@@ -9,12 +9,16 @@ declare(strict_types=1);
  *   owner_type=redirect，owner_id=0，meta_key=随机键（metas 有 owner_type+owner_id+meta_key 唯一索引），
  *   meta_value={"target":目标地址,"code":301|302}，
  *   created_at=保存时间，updated_at=最近一次被访问的时间（0 = 从未访问，按小时节流写入）。
+ * 前缀规则（2.0.4）：旧地址写成「/旧目录/*」时整批跳转，存 metas 一行 owner_type=redirect_prefix，
+ *   meta_value={"prefix":规范化后的目录（带结尾 /）,"target","code"}；只在即将 404 时按最长前缀匹配
+ *   （LegacyUrls::onNotFound），不占网址登记表，也不会挡住已有内容。目标以 /* 结尾时把剩余路径接上。
  * 整站模板导出时不带跳转（属于具体站点，见 SiteTemplateData::snapshot）。
  * SEO 插件专业版另有自己的重定向表与 404 记录，两者互不影响；SEO 插件的规则在 init 钩子里先执行。
  */
 final class Redirects
 {
     public const CODES = [301, 302];
+    private const PREFIX_TYPE = 'redirect_prefix';
     private const MAX_TARGET = 1000;
     private const MAX_IMPORT_LINES = 5000;
 
@@ -22,7 +26,7 @@ final class Redirects
     public static function find(int $id): ?array
     {
         if ($id < 1 || !db()->tableExists('metas')) return null;
-        $row = db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'metas WHERE id = ? AND owner_type = ?', [$id, 'redirect']);
+        $row = db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'metas WHERE id = ? AND owner_type IN (?, ?)', [$id, 'redirect', self::PREFIX_TYPE]);
         if (!$row) return null;
         $value = self::decode((string) $row['meta_value']);
         return ['id' => (int) $row['id'], 'target' => $value['target'], 'code' => $value['code'],
@@ -67,7 +71,11 @@ final class Redirects
     public static function save(int $id, string $source, string $target, int $code = 301): int
     {
         $code = in_array($code, self::CODES, true) ? $code : 301;
-        $target = self::normalizeTarget($target);
+        $carry = str_ends_with(trim($target), '/*');
+        $target = self::normalizeTarget($carry ? substr(trim($target), 0, -1) : $target);
+        if (str_ends_with(trim($source), '/*')) {
+            return self::savePrefix($id, trim($source), $target, $code, $carry);
+        }
         $routes = productRouteModel();
         try {
             $path = ProductRouteModel::normalize($source);
@@ -98,6 +106,66 @@ final class Redirects
         return $id;
     }
 
+    /** 前缀规则：「/旧目录/*」。目录按网址登记的同一规则规范化；目标落在本目录里会无限跳转，拒收。 */
+    private static function savePrefix(int $id, string $source, string $target, int $code, bool $carry = false): int
+    {
+        try {
+            $prefix = rtrim(ProductRouteModel::normalize(substr($source, 0, -1)), '/') . '/';
+        } catch (InvalidArgumentException) {
+            throw new InvalidArgumentException('product_url_invalid');
+        }
+        if ($prefix === '/') throw new InvalidArgumentException('redirect_source_required');
+        if (str_starts_with($target, '/')) {
+            try {
+                $targetPath = rtrim(ProductRouteModel::normalize((string) parse_url($target, PHP_URL_PATH)), '/') . '/';
+                if (str_starts_with($targetPath, $prefix)) throw new InvalidArgumentException('redirect_loop');
+            } catch (InvalidArgumentException $e) {
+                if ($e->getMessage() === 'redirect_loop') throw $e;
+            }
+        }
+        $value = json_encode(['prefix' => $prefix, 'target' => $target, 'code' => $code, 'carry' => $carry && str_ends_with($target, '/')], JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        $key = substr(hash('sha256', $prefix), 0, 32);
+        $existing = db()->fetchOne('SELECT id FROM ' . DB_PREFIX . 'metas WHERE owner_type = ? AND owner_id = 0 AND meta_key = ?', [self::PREFIX_TYPE, $key]);
+        if ($existing && (int) $existing['id'] !== $id) {
+            $id = (int) $existing['id'];   // 同一目录再保存一次就是改目标
+        }
+        if ($id > 0 && db()->fetchOne('SELECT id FROM ' . DB_PREFIX . 'metas WHERE id = ? AND owner_type = ?', [$id, self::PREFIX_TYPE])) {
+            db()->update('metas', ['meta_key' => $key, 'meta_value' => $value, 'created_at' => time()], 'id = ?', [$id]);
+            return $id;
+        }
+        if ($id > 0) self::delete($id);   // 原来是精确跳转，改成了前缀规则
+        return (int) db()->insert('metas', ['owner_type' => self::PREFIX_TYPE, 'owner_id' => 0, 'meta_key' => $key,
+            'meta_value' => $value, 'created_at' => time(), 'updated_at' => 0]);
+    }
+
+    /**
+     * 即将 404 的路径匹配前缀规则（最长前缀胜出）；不命中返回 null。
+     * @return array{id:int,target:string,code:int}|null
+     */
+    public static function matchPrefix(string $path): ?array
+    {
+        if (!db()->tableExists('metas')) return null;
+        try {
+            $normalized = rtrim(ProductRouteModel::normalize($path), '/') . '/';
+        } catch (InvalidArgumentException) {
+            return null;
+        }
+        $best = null;
+        foreach (db()->fetchAll('SELECT id, meta_value FROM ' . DB_PREFIX . 'metas WHERE owner_type = ?', [self::PREFIX_TYPE]) as $row) {
+            $value = json_decode((string) $row['meta_value'], true);
+            $prefix = is_array($value) ? (string) ($value['prefix'] ?? '') : '';
+            if ($prefix === '' || !str_starts_with($normalized, $prefix)) continue;
+            if ($best !== null && strlen($prefix) <= strlen($best['prefix'])) continue;
+            $best = ['id' => (int) $row['id'], 'prefix' => $prefix, 'value' => $value];
+        }
+        if ($best === null) return null;
+        $target = (string) ($best['value']['target'] ?? '');
+        $rest = substr($normalized, strlen($best['prefix']));
+        // 目标保存时写成「/新目录/*」：把旧目录之后的部分接上（/old/a/b/ → /new/a/b/）
+        if (!empty($best['value']['carry']) && $rest !== '') $target .= $rest;
+        return ['id' => $best['id'], 'target' => $target, 'code' => (int) ($best['value']['code'] ?? 301) === 302 ? 302 : 301];
+    }
+
     /** 目标指回旧地址本身，或指向一条又跳回旧地址的跳转，都会让浏览器死循环。 */
     private static function assertNoLoop(string $source, string $target): void
     {
@@ -125,7 +193,7 @@ final class Redirects
     {
         if ($id < 1) return;
         productRouteModel()->remove('redirect', $id);
-        db()->delete('metas', 'id = ? AND owner_type = ?', [$id, 'redirect']);
+        db()->delete('metas', 'id = ? AND owner_type IN (?, ?)', [$id, 'redirect', self::PREFIX_TYPE]);
     }
 
     /** 旧地址对应的跳转 id；没有（或该地址属于别的内容）时为 0。 */
@@ -142,17 +210,36 @@ final class Redirects
         $rows = db()->fetchAll('SELECT r.entity_id AS id, r.path AS source, m.meta_value AS value, m.updated_at AS last_hit
             FROM ' . DB_PREFIX . 'product_routes r JOIN ' . DB_PREFIX . "metas m ON m.id = r.entity_id AND m.owner_type = 'redirect'
             WHERE r.entity_type = 'redirect'{$where} ORDER BY r.id DESC LIMIT ? OFFSET ?", array_merge($params, [max(1, $limit), max(0, $offset)]));
-        return array_map(static function (array $r): array {
+        $exact = array_map(static function (array $r): array {
             $value = self::decode((string) $r['value']);
             return ['id' => (int) $r['id'], 'source' => (string) $r['source'], 'target' => $value['target'], 'code' => $value['code'],
                 'last_hit' => (int) $r['last_hit']];
         }, $rows);
+        // 前缀规则数量很少（成批地址才用），列表第一页之前全部列出
+        return $offset > 0 ? $exact : array_merge(self::prefixRules($search), $exact);
+    }
+
+    /** @return list<array{id:int,source:string,target:string,code:int,last_hit:int}> */
+    public static function prefixRules(string $search = ''): array
+    {
+        if (!db()->tableExists('metas')) return [];
+        $out = [];
+        foreach (db()->fetchAll('SELECT id, meta_value, updated_at FROM ' . DB_PREFIX . 'metas WHERE owner_type = ? ORDER BY id DESC', [self::PREFIX_TYPE]) as $row) {
+            $value = json_decode((string) $row['meta_value'], true);
+            if (!is_array($value)) continue;
+            $source = rawurldecode((string) ($value['prefix'] ?? '')) . '*';
+            $target = (string) ($value['target'] ?? '') . (!empty($value['carry']) ? '*' : '');
+            if ($search !== '' && !str_contains($source, $search) && !str_contains($target, $search)) continue;
+            $out[] = ['id' => (int) $row['id'], 'source' => $source, 'target' => $target,
+                'code' => (int) ($value['code'] ?? 301) === 302 ? 302 : 301, 'last_hit' => (int) $row['updated_at']];
+        }
+        return $out;
     }
 
     public static function count(string $search = ''): int
     {
         [$where, $params] = self::searchCondition($search);
-        return (int) db()->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . 'product_routes r JOIN ' . DB_PREFIX
+        return count(self::prefixRules($search)) + (int) db()->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . 'product_routes r JOIN ' . DB_PREFIX
             . "metas m ON m.id = r.entity_id AND m.owner_type = 'redirect' WHERE r.entity_type = 'redirect'{$where}", $params);
     }
 

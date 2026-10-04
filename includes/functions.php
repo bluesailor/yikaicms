@@ -3885,7 +3885,23 @@ function formTemplateFieldsRaw(array $template): string
     $lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
     $fieldsRaw = (string) ($template['fields'] ?? '');
     $localized = (string) ($template['fields_' . $lang] ?? '');
+    // 表单模板只有 en / ja 两种语言列；其它语言的字段存 metas（WordPress 导入 CF7 翻译时写入，2.0.4）
+    if (trim($localized) === '' && !array_key_exists('fields_' . $lang, $template) && (int) ($template['id'] ?? 0) > 0 && function_exists('getMeta')) {
+        $localized = (string) (getMeta('form_template_lang', (int) $template['id'], 'fields_' . $lang) ?? '');
+    }
     return trim($localized) !== '' ? $localized : $fieldsRaw;
+}
+
+/** 提交成功提示：当前语言列 → metas 里的语言版本 → 基础提示 → 默认文案。 */
+function formTemplateSuccessMessage(array $template): string
+{
+    $lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
+    $message = (string) ($template['success_message_' . $lang] ?? '');
+    if ($message === '' && !array_key_exists('success_message_' . $lang, $template) && (int) ($template['id'] ?? 0) > 0 && function_exists('getMeta')) {
+        $message = (string) (getMeta('form_template_lang', (int) $template['id'], 'success_' . $lang) ?? '');
+    }
+    if ($message === '') $message = (string) ($template['success_message'] ?? '');
+    return $message !== '' ? $message : __('fd_default_success_msg');
 }
 
 /**

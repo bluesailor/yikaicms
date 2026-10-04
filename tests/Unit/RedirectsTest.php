@@ -136,4 +136,34 @@ final class RedirectsTest extends TestCase
         $content = $this->insertRow('contents', ['title' => 'New owner']);
         self::assertSame('/gone/', (new ProductRouteModel())->assign('content', $content, '/gone/', 'zh-CN'));
     }
+    /** 2.0.4 前缀规则：「/旧目录/*」整批跳转，最长前缀胜出，目标写 /* 时接上剩余路径；不占网址登记表。 */
+    public function testPrefixRulesMatchLongestPrefixAndCanCarryTheRest(): void
+    {
+        $news = Redirects::save(0, '/old-news/*', '/news/', 301);
+        $deep = Redirects::save(0, '/old-news/2019/*', '/archive/*', 302);
+        self::assertNull((new ProductRouteModel())->resolve('/old-news/'), '前缀规则不进网址登记表');
+        self::assertSame(['id' => $news, 'target' => '/news/', 'code' => 301], Redirects::matchPrefix('/old-news/a-story/'));
+        self::assertSame(['id' => $deep, 'target' => '/archive/may/report/', 'code' => 302], Redirects::matchPrefix('/old-news/2019/may/report'));
+        self::assertNull(Redirects::matchPrefix('/old-newsletter/'), '只按整段目录匹配');
+        self::assertSame($news, Redirects::save(0, '/old-news/*', '/blog/', 301), '同一目录再存一次就是改目标');
+        self::assertSame('/blog/', Redirects::matchPrefix('/old-news/x/')['target']);
+
+        $sources = array_column(Redirects::list(), 'source');
+        self::assertContains('/old-news/*', $sources);
+        self::assertContains('/old-news/2019/*', $sources);
+        self::assertSame(2, Redirects::count());
+        self::assertSame('/archive/*', Redirects::find($deep) !== null ? Redirects::prefixRules()[0]['target'] : '');
+
+        foreach ([['/old-news/*', '/old-news/sub/'], ['/*', '/x/']] as [$source, $target]) {
+            try {
+                Redirects::save(0, $source, $target);
+                self::fail('应拒收：' . $source . ' → ' . $target);
+            } catch (InvalidArgumentException $e) {
+                self::assertContains($e->getMessage(), ['redirect_loop', 'redirect_source_required', 'product_url_invalid']);
+            }
+        }
+        Redirects::delete($news);
+        self::assertNull(Redirects::matchPrefix('/old-news/a/'));
+        self::assertSame(1, Redirects::count());
+    }
 }

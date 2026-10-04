@@ -175,3 +175,6 @@ function customProductCategoryPageUrl(array $category, int $page = 1, array $par
     $query = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
     return $base . ($query !== '' ? (str_contains($base, '?') ? '&' : '?') . $query : '');
 }
+
+// 旧站地址兜底（2.0.4，LegacyUrls）：首页查询串在 index.php 接，即将 404 的在 init.php 挂 render_404
+require_once __DIR__ . '/LegacyUrls.php';
