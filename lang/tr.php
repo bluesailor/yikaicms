@@ -9132,4 +9132,8 @@ return [
     'blox_origin_restore_tip' => 'Bu öğenin değerini kaldırır ve devralınan ayarı kullanır',
     'blox_origin_edit' => 'Düzenle',
     'blox_origin_spacing_local' => 'Bu öğe geçersiz kılar:',
+    'ch_lang_empty' => 'Henüz :lang bölüm yok. :source bölümlerinden tek adımda oluşturabilirsiniz: adlar yerleşik sözlükle çevrilir, ardından her birini düzenleyebilirsiniz.',
+    'ch_lang_empty_btn' => ':lang bölümleri oluştur',
+    'a11y_select_row' => 'Seç: :name',
+    'a11y_show_password' => 'Parolayı göster',
 ];

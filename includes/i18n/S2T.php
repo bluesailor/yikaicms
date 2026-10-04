@@ -30,6 +30,19 @@ final class S2T
     public const PACK_PLUGIN = 'zh-tw';
 
     /**
+     * 产品用语（2.0.4 繁体用语审校，见 lang/zh-TW.php）：OpenCC 的台湾词表会把这些词转成别的说法
+     * （发布→釋出、权限→許可權、前台→前臺）。只收意思单一的词，内容转换也照此用；
+     * 栏目、模板、主题这类有歧义或只属于界面的词只在语言包里改，不进这里。
+     */
+    private const TW_TERMS = [
+        '发布' => '發佈', '前台' => '前台', '后台' => '後台', '权限' => '權限', '账号' => '帳號',
+        '全局' => '全域', '质量' => '品質', '反馈' => '回饋', '扩展字段' => '擴充欄位', '注册码' => '序號',
+    ];
+
+    /** 已审定的繁体写法：转换时原样保留，语言包里的文案在前台整页再转一次也不会被改掉。 */
+    private const TW_KEEP = ['單元', '範本', '建構器', '網站', '佈景主題', '導覽', '前台', '後台', '發佈', '權限', '帳號', '全域', '品質', '回饋', '擴充欄位', '序號'];
+
+    /**
      * 映射表文件：2.0.4 前安装的站点核心目录里自带一份（升级不删）；之后的安装包不再自带，
      * 由「繁體中文語言包」插件提供。两处都没有时返回 null，繁体页面按简体原样输出。
      */
@@ -54,8 +67,26 @@ final class S2T
         if (self::$maps === null) {
             $file = self::mapsFile();
             $m = $file !== null ? require $file : null;
-            self::$maps = (is_array($m) && isset($m['p1'], $m['p2']))
+            /** @var array{p1: array<string, string>, p2: array<string, string>} $maps */
+            $maps = (is_array($m) && isset($m['p1'], $m['p2']))
                 ? $m : ['p1' => [], 'p2' => []];
+            // 台湾用词里有几条结果包含原词（算法→演算法、虚拟机→虛擬機器）：已是繁体的文字再转一次会变成
+            // 「演演算法」。给这些结果补一条原样映射，strtr 取最长匹配，转过的文字就不再变。
+            foreach ($maps['p2'] as $from => $to) {
+                if ($to !== $from && str_contains($to, (string) $from)) {
+                    $maps['p2'][$to] ??= $to;
+                }
+            }
+            if ($maps['p1'] !== []) {
+                foreach (self::TW_TERMS as $from => $to) {
+                    $maps['p1'][$from] = $to;
+                }
+                foreach (self::TW_KEEP as $term) {
+                    $maps['p1'][$term] ??= $term;
+                    $maps['p2'][$term] = $term;
+                }
+            }
+            self::$maps = $maps;
         }
         return self::$maps;
     }
@@ -136,7 +167,8 @@ final class S2T
             // 只在词组里出现的繁体字（如「聯繫」的「繫」）：按等长词组逐字补上，单字条目优先
             foreach ($maps['p1'] as $from => $to) {
                 $len = mb_strlen($from);
-                if ($len < 2 || $len !== mb_strlen($to)) continue;
+                // 产品用语是换词不是换字（质量→品質），逐字对不上
+                if ($len < 2 || $len !== mb_strlen($to) || isset(self::TW_TERMS[$from])) continue;
                 $f = mb_str_split($from);
                 $t = mb_str_split($to);
                 foreach ($t as $i => $char) {

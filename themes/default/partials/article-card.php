@@ -27,10 +27,10 @@ $__lo = $listOpts ?? null;
     <div class="flex-1 py-4 <?php echo listShowEl($__lo, 'cover') ? 'pr-4' : 'px-6'; ?>">
         <h3 class="text-lg font-bold text-dark group-hover:text-primary transition line-clamp-2">
             <?php if (!empty($item['is_top'])): ?>
-            <span class="text-xs bg-red-500 text-white px-1.5 py-0.5 rounded mr-2"><?php echo __('article_top'); ?></span>
+            <span class="text-xs bg-red-600 text-white px-1.5 py-0.5 rounded mr-2"><?php echo __('article_top'); ?></span>
             <?php endif; ?>
             <?php if (!empty($item['is_recommend'])): ?>
-            <span class="text-xs bg-orange-500 text-white px-1.5 py-0.5 rounded mr-2"><?php echo __('article_recommend'); ?></span>
+            <span class="text-xs bg-orange-700 text-white px-1.5 py-0.5 rounded mr-2"><?php echo __('article_recommend'); ?></span>
             <?php endif; ?>
             <?php echo e($item['title']); ?>
         </h3>
@@ -39,7 +39,7 @@ $__lo = $listOpts ?? null;
             <?php echo e(($item['summary'] ?? '') ?: cutStr(strip_tags($item['content'] ?? ''), 120)); ?>
         </p>
         <?php endif; ?>
-        <div class="mt-3 flex items-center gap-4 text-xs text-gray-400">
+        <div class="mt-3 flex items-center gap-4 text-xs text-gray-500">
             <?php if (listShowEl($__lo, 'channel') && !empty($item['channel_name'])): ?>
             <span class="text-primary"><?php echo e($item['channel_name']); ?></span>
             <?php endif; ?>

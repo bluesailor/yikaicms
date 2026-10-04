@@ -602,12 +602,24 @@ function ykPickChannelIcon(name) {
     <a href="?lang=<?php echo e($_lc); ?>&tab=<?php echo e($activeTab); ?>"
        class="px-3 py-1 rounded-full transition <?php echo $_isCurrent ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'; ?>">
         <?php echo e($_label); ?>
-        <?php if ($_isDefault): ?><span class="ml-1 text-[10px] opacity-70">(<?php echo e(__('lang_source')); ?>)</span><?php endif; ?>
+        <?php if ($_isDefault): ?><span class="ml-1 text-[10px]">(<?php echo e(__('lang_source')); ?>)</span><?php endif; ?>
     </a>
     <?php endforeach; ?>
     <?php if ($_viewLang !== $_defaultLang): ?>
     <span class="ml-auto text-xs text-amber-600"><?php echo str_replace(':lang', e($_langLabels[$_defaultLang] ?? $_defaultLang), e(__('ch_source_lang_tip'))); ?></span>
     <?php endif; ?>
+</div>
+<?php endif; ?>
+
+<?php // 该语言还没有任何栏目（启用语言后从未生成过）：指到按词典批量生成的页面，别让人对着空列表 ?>
+<?php if ($_viewLang !== $_defaultLang && (int) db()->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . 'channels WHERE lang = ?', [$_viewLang]) === 0):
+    $_emptyArgs = ['lang' => $_langLabels[$_viewLang] ?? $_viewLang, 'source' => $_langLabels[$_defaultLang] ?? $_defaultLang]; ?>
+<div class="mb-4 px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 flex flex-wrap items-center gap-3" role="status">
+    <i class="ti ti-language text-xl text-amber-600" aria-hidden="true"></i>
+    <p class="flex-1 min-w-[16rem] text-sm text-amber-800"><?php echo e(__('ch_lang_empty', $_emptyArgs)); ?></p>
+    <a href="/admin/setting_channel_translate.php?lang=<?php echo e($_viewLang); ?>" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm transition inline-flex items-center gap-1">
+        <i class="ti ti-wand text-base" aria-hidden="true"></i><?php echo e(__('ch_lang_empty_btn', $_emptyArgs)); ?>
+    </a>
 </div>
 <?php endif; ?>
 

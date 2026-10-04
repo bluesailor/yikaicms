@@ -60,7 +60,7 @@ $articleGrid = AbstractElement::gridClasses($perRow, 4);
                     <?php if (!empty($item['is_hot'])): ?>
                     <span class="absolute top-2 left-2 bg-red-500 text-white text-xs px-2 py-1 rounded"><?php echo __('home_hot'); ?></span>
                     <?php elseif (!empty($item['is_new'])): ?>
-                    <span class="absolute top-2 left-2 bg-green-500 text-white text-xs px-2 py-1 rounded"><?php echo __('home_new'); ?></span>
+                    <span class="absolute top-2 left-2 bg-green-700 text-white text-xs px-2 py-1 rounded"><?php echo __('home_new'); ?></span>
                     <?php endif; ?>
                 </div>
                 <div class="p-4">
@@ -125,7 +125,7 @@ $articleGrid = AbstractElement::gridClasses($perRow, 4);
                 <?php endif; ?>
                 </div>
                 <div class="p-4">
-                    <div class="text-xs text-gray-400 mb-2">
+                    <div class="text-xs text-gray-500 mb-2">
                         <?php echo e($itemCatName); ?> · <?php echo friendlyTime((int)(($item['publish_time'] ?? 0) ?: ($item['created_at'] ?? 0))); ?>
                     </div>
                     <h3 class="font-bold text-dark group-hover:text-primary transition line-clamp-2">

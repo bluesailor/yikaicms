@@ -739,6 +739,11 @@ function switchAdminLang(lang) {
         'columns'        => __('so_columns'),
     ], JSON_UNESCAPED_UNICODE); ?>;</script>
     <script src="/assets/js/screen-options.js?v=2"></script>
+    <script>window.YK_A11Y_I18N = <?php echo json_encode([
+        'selectAll' => __('admin_select_all'),
+        'selectRow' => __('a11y_select_row'),
+    ], JSON_UNESCAPED_UNICODE); ?>;</script>
+    <script src="/assets/js/admin-a11y.js?v=<?php echo (int) @filemtime(ROOT_PATH . '/assets/js/admin-a11y.js'); ?>"></script>
     <?php /* flatpickr：统一美化后台所有日期/时间输入（跨浏览器一致 + 本地化日历） */ ?>
     <link rel="stylesheet" href="/assets/flatpickr/flatpickr.min.css">
     <script src="/assets/flatpickr/flatpickr.min.js"></script>

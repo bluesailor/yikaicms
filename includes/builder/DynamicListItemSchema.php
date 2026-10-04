@@ -115,7 +115,7 @@ final class DynamicListItemSchema
             ? '<h3 class="text-lg font-semibold mb-2 group-hover:text-primary transition">' . $titleTag . '</h3>'
             : '';
         $date = $showDate
-            ? '<div class="text-xs text-gray-400 mb-2">' . self::tag($dateField, ' dateformat="Y-m-d"') . '</div>'
+            ? '<div class="text-xs text-gray-500 mb-2">' . self::tag($dateField, ' dateformat="Y-m-d"') . '</div>'
             : '';
         $meta = $showMeta ? self::meta($metaField) : '';
         $summary = $showSummary
@@ -171,7 +171,7 @@ final class DynamicListItemSchema
                 . '{/yk:if}';
         }
         return '{yk:if field=model op=notempty}'
-            . '<div class="text-xs text-gray-400 mb-2">' . self::tag('model') . '</div>'
+            . '<div class="text-xs text-gray-500 mb-2">' . self::tag('model') . '</div>'
             . '{/yk:if}';
     }
 

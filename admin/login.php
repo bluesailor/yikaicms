@@ -186,7 +186,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <input type="password" name="password" required
                                class="w-full border border-gray-300 rounded-lg px-4 py-3 pr-11 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                placeholder="<?php echo __('login_password_placeholder'); ?>">
-                        <button type="button" onclick="togglePassword(this)" class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 cursor-pointer">
+                        <button type="button" onclick="togglePassword(this)" aria-label="<?php echo e(__('a11y_show_password')); ?>" aria-pressed="false" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 cursor-pointer">
                             <i class="ti ti-eye text-lg eye-open hidden"></i>
                             <i class="ti ti-eye-off text-lg eye-closed"></i>
                         </button>
@@ -232,6 +232,7 @@ function togglePassword(el) {
     input.type = isHidden ? 'text' : 'password';
     wrap.querySelector('.eye-open').classList.toggle('hidden', !isHidden);
     wrap.querySelector('.eye-closed').classList.toggle('hidden', isHidden);
+    el.setAttribute('aria-pressed', isHidden ? 'true' : 'false');
 }
 </script>
 </body>

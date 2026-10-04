@@ -39,7 +39,7 @@ final class QuoteElement extends AbstractElement
         }
         $html .= $text;
         if ($author !== '') {
-            $html .= '<footer class="mt-2 text-sm not-italic text-gray-400">— ' . $author . '</footer>';
+            $html .= '<footer class="mt-2 text-sm not-italic text-gray-500">— ' . $author . '</footer>';
         }
         return $html . '</blockquote>';
     }
