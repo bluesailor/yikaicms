@@ -122,4 +122,18 @@ final class LanguageRegistryTest extends TestCase
             self::assertStringNotContainsString('ja|en|zh-CN|zh-TW', (string) file_get_contents(ROOT_PATH . '/' . $file), $file);
         }
     }
+
+    public function testLanguageNamesAreShownInTheInterfaceLanguage(): void
+    {
+        self::assertSame('马来语', LanguageRegistry::localName('ms', 'zh-CN'));
+        self::assertSame('Persian', LanguageRegistry::localName('fa', 'en'));
+        self::assertSame('マレー語', LanguageRegistry::localName('ms', 'ja'));
+        self::assertSame('Malay', LanguageRegistry::localName('ms', 'xx'), '未知界面语言退回英文');
+        $table = require ROOT_PATH . '/includes/i18n/language-names.php';
+        foreach (LanguageRegistry::codes() as $ui) {
+            foreach (LanguageRegistry::codes() as $code) {
+                self::assertNotSame('', $table[$ui][$code] ?? '', "{$ui} 缺 {$code} 的名称：注册表改了要重跑 tools/build-language-names.js");
+            }
+        }
+    }
 }

@@ -15,6 +15,11 @@ requirePermission('*');
 
 // 扫描所有语言包
 $allLangs = availableLanguages();
+// 语言名按后台当前界面语言给出（「Bahasa Melayu」→「马来语 · Bahasa Melayu」），只认本族语名的人也能对上
+$langTitle = static function (string $code, string $native): string {
+    $local = LanguageRegistry::localName($code, getLang());
+    return $local === '' || mb_stripos($local, $native) !== false || mb_stripos($native, $local) !== false ? $native : $local . ' · ' . $native;
+};
 $enabledLangsJson = config('enabled_languages', '');
 $enabledLangs = $enabledLangsJson ? json_decode($enabledLangsJson, true) : array_keys($allLangs);
 $defaultLang = config('site_lang', 'zh-CN');
@@ -223,8 +228,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                <?php echo in_array($code, $enabledLangs) ? 'checked' : ''; ?>
                                class="w-4 h-4 rounded">
                         <div>
-                            <span class="font-medium"><?php echo e($label); ?></span>
-                            <span class="text-xs text-gray-400 font-mono ml-2"><?php echo e($code); ?></span>
+                            <span class="font-medium"><?php echo e($langTitle($code, $label)); ?></span>
+                            <span class="text-xs text-gray-400 font-mono ms-2"><?php echo e($code); ?></span>
                         </div>
                     </div>
                     <div class="flex items-center gap-2">
@@ -255,7 +260,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <select name="default_lang" class="w-full border rounded px-4 py-2">
                             <?php foreach ($allLangs as $code => $label): ?>
                             <option value="<?php echo e($code); ?>" <?php echo $code === $defaultLang ? 'selected' : ''; ?>>
-                                <?php echo e($label); ?> (<?php echo e($code); ?>)
+                                <?php echo e($langTitle($code, $label)); ?> (<?php echo e($code); ?>)
                             </option>
                             <?php endforeach; ?>
                         </select>
@@ -266,7 +271,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <select name="admin_lang" class="w-full border rounded px-4 py-2">
                             <?php foreach (adminLanguages() as $code => $label): ?>
                             <option value="<?php echo e($code); ?>" <?php echo $code === $adminLang ? 'selected' : ''; ?>>
-                                <?php echo e($label); ?> (<?php echo e($code); ?>)
+                                <?php echo e($langTitle($code, $label)); ?> (<?php echo e($code); ?>)
                             </option>
                             <?php endforeach; ?>
                         </select>
@@ -417,9 +422,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php endif; ?>
             <?php foreach ($domainLangs as $code => $label): ?>
             <div class="flex flex-wrap items-center gap-3 p-3 rounded-lg border">
-                <div class="w-40 shrink-0">
-                    <span class="font-medium"><?php echo e($label); ?></span>
-                    <span class="text-xs text-gray-400 font-mono ml-1"><?php echo e($code); ?></span>
+                <div class="w-56 shrink-0">
+                    <span class="font-medium"><?php echo e($langTitle($code, $label)); ?></span>
+                    <span class="text-xs text-gray-400 font-mono ms-1"><?php echo e($code); ?></span>
                 </div>
                 <input type="text" name="domains[<?php echo e($code); ?>]" value="<?php echo e((string) ($domainMap[$code] ?? '')); ?>"
                        placeholder="<?php echo e(LanguageRegistry::hreflang($code) === 'en' ? 'en.example.com' : strtolower($code) . '.example.com'); ?>"
