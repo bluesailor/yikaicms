@@ -9132,4 +9132,6 @@ z. B. steel|Edelstahl',
     'blox_origin_restore_tip' => 'Entfernt den Wert dieses Elements und nutzt die geerbte Einstellung',
     'blox_origin_edit' => 'Bearbeiten',
     'blox_origin_spacing_local' => 'Dieses Element überschreibt:',
+    'ch_lang_empty' => 'Es gibt noch keine Rubriken auf :lang. Erzeugen Sie sie in einem Schritt aus den Rubriken auf :source: Die Namen werden mit dem integrierten Wörterbuch übersetzt und lassen sich danach einzeln bearbeiten.',
+    'ch_lang_empty_btn' => 'Rubriken auf :lang erzeugen',
 ];

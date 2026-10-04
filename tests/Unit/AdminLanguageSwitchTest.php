@@ -67,6 +67,24 @@ final class AdminLanguageSwitchTest extends TestCase
         }
     }
 
+    /** 栏目翻译页改的导航固定项写站点覆盖层：核心语言包升级会整份替换，写进去会丢，还会被当成核心改动 */
+    public function testChannelTranslatePageWritesTheSiteOverrideLayer(): void
+    {
+        $code = $this->code('admin/setting_channel_translate.php');
+        self::assertStringContainsString("'/lang/overrides/' . \$targetLang . '.php'", $code);
+        self::assertStringContainsString('array_intersect_key($sysItems, $sysNavItems)', $code);
+        self::assertSame(1, substr_count($code, 'file_put_contents('));
+        self::assertStringContainsString('file_put_contents($overrideFile', $code);
+    }
+
+    /** 某语言还没有栏目时，栏目页给出按词典批量生成的入口 */
+    public function testEmptyLanguageChannelListLinksToGeneration(): void
+    {
+        $code = $this->code('admin/channel.php');
+        self::assertStringContainsString("__('ch_lang_empty', \$_emptyArgs)", $code);
+        self::assertStringContainsString('/admin/setting_channel_translate.php?lang=', $code);
+    }
+
     public function testNoHardcodedLanguageTablesLeft(): void
     {
         $files = [

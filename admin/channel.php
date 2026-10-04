@@ -611,6 +611,18 @@ function ykPickChannelIcon(name) {
 </div>
 <?php endif; ?>
 
+<?php // 该语言还没有任何栏目（启用语言后从未生成过）：指到按词典批量生成的页面，别让人对着空列表 ?>
+<?php if ($_viewLang !== $_defaultLang && (int) db()->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . 'channels WHERE lang = ?', [$_viewLang]) === 0):
+    $_emptyArgs = ['lang' => $_langLabels[$_viewLang] ?? $_viewLang, 'source' => $_langLabels[$_defaultLang] ?? $_defaultLang]; ?>
+<div class="mb-4 px-4 py-3 rounded-lg border border-amber-200 bg-amber-50 flex flex-wrap items-center gap-3" role="status">
+    <i class="ti ti-language text-xl text-amber-600" aria-hidden="true"></i>
+    <p class="flex-1 min-w-[16rem] text-sm text-amber-800"><?php echo e(__('ch_lang_empty', $_emptyArgs)); ?></p>
+    <a href="/admin/setting_channel_translate.php?lang=<?php echo e($_viewLang); ?>" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm transition inline-flex items-center gap-1">
+        <i class="ti ti-wand text-base" aria-hidden="true"></i><?php echo e(__('ch_lang_empty_btn', $_emptyArgs)); ?>
+    </a>
+</div>
+<?php endif; ?>
+
 
 <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
     <?php /* 栏目列表 */ ?>

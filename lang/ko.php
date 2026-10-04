@@ -9132,4 +9132,6 @@ return [
     'blox_origin_restore_tip' => '이 요소의 값을 지우고 상속된 설정을 사용합니다',
     'blox_origin_edit' => '수정',
     'blox_origin_spacing_local' => '이 요소가 덮어씀:',
+    'ch_lang_empty' => ':lang 섹션이 아직 없습니다. :source 섹션을 바탕으로 한 번에 만들 수 있으며, 이름은 내장 사전으로 자동 번역되고 만든 뒤 하나씩 수정할 수 있습니다.',
+    'ch_lang_empty_btn' => ':lang 섹션 만들기',
 ];

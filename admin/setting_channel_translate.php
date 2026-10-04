@@ -47,6 +47,21 @@ foreach ($targetRows as $r) {
     }
 }
 
+// 系统固定导航项（非数据库栏目，通过语言包翻译）
+$sysNavItems = [
+    'nav_home' => '首页',
+    'nav_contact' => '联系我们',
+    'footer_privacy' => '隐私政策',
+    'footer_terms' => '服务条款',
+    'footer_contact' => '联系方式',
+    'footer_follow' => '关注我们',
+    'footer_copyright' => '版权所有',
+];
+// 站长改的译文写在站点覆盖层 lang/overrides/<语言>.php：核心语言包升级时会整份替换，
+// 写进去的修改会丢，还会被升级前的核心文件检查当成改动。
+$overrideFile = ROOT_PATH . '/lang/overrides/' . $targetLang . '.php';
+$overrideData = is_file($overrideFile) ? (array) (require $overrideFile) : [];
+
 // POST 处理
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
@@ -54,18 +69,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // 保存手工编辑
     if ($action === 'save') {
-        // 保存系统固定项到语言包
         $sysItems = $_POST['sys'] ?? [];
-        if (!empty($sysItems)) {
-            $langFile = ROOT_PATH . '/lang/' . $targetLang . '.php';
-            if (file_exists($langFile)) {
-                $langData = require $langFile;
-                foreach ($sysItems as $k => $v) {
-                    $v = trim($v);
-                    if ($v !== '') $langData[$k] = $v;
+        if (is_array($sysItems) && $sysItems !== []) {
+            $packFile = ROOT_PATH . '/lang/' . $targetLang . '.php';
+            $pack = is_file($packFile) ? (array) (require $packFile) : [];
+            $changed = false;
+            foreach (array_intersect_key($sysItems, $sysNavItems) as $k => $v) {
+                $v = trim((string) $v);
+                // 与语言包相同或清空：去掉覆盖，回到语言包的写法
+                if ($v === '' || $v === ($pack[$k] ?? null)) {
+                    $changed = $changed || isset($overrideData[$k]);
+                    unset($overrideData[$k]);
+                } elseif (($overrideData[$k] ?? null) !== $v) {
+                    $overrideData[$k] = $v;
+                    $changed = true;
                 }
-                $export = "<?php\nreturn " . var_export($langData, true) . ";\n";
-                file_put_contents($langFile, $export);
+            }
+            if ($changed) {
+                if (!is_dir(dirname($overrideFile))) mkdir(dirname($overrideFile), 0755, true);
+                file_put_contents($overrideFile, "<?php\nreturn " . var_export($overrideData, true) . ";\n", LOCK_EX);
             }
         }
 
@@ -247,19 +269,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
             <div class="divide-y">
                 <?php
-                // 系统固定导航项（非数据库栏目，通过语言包翻译）
-                $sysNavItems = [
-                    'nav_home' => '首页',
-                    'nav_contact' => '联系我们',
-                    'footer_privacy' => '隐私政策',
-                    'footer_terms' => '服务条款',
-                    'footer_contact' => '联系方式',
-                    'footer_follow' => '关注我们',
-                    'footer_copyright' => '版权所有',
-                ];
-                // 加载目标语言包
+                // 当前译文：站点覆盖层优先，其次目标语言包
                 $targetLangFile = ROOT_PATH . '/lang/' . $targetLang . '.php';
-                $targetLangData = file_exists($targetLangFile) ? require $targetLangFile : [];
+                $targetLangData = array_merge(file_exists($targetLangFile) ? (array) (require $targetLangFile) : [], $overrideData);
                 ?>
                 <?php foreach ($sysNavItems as $langKey => $zhName):
                     $currentVal = $targetLangData[$langKey] ?? '';
