@@ -151,11 +151,11 @@ final class NavElement extends AbstractElement
 
     public function scripts(): array
     {
-        return ['/assets/js/blox-nav-overflow.js'];
+        return ['/assets/js/yikay-nav-overflow.js'];
     }
 
     /**
-     * 横向菜单挂「更多 ▾」溢出收纳（blox-nav-overflow.js 渐进增强）：菜单多/开图标
+     * 横向菜单挂「更多 ▾」溢出收纳（yikay-nav-overflow.js 渐进增强）：菜单多/开图标
      * 也不折行，放不下的一级项收进下拉。纵向（flex-col，页脚常用）不需要。
      * 属性值即「更多」的本地化文案，JS 直接取用。
      *

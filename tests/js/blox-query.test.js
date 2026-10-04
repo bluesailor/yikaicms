@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { fragmentUrl, cleanUrl, buildFilterUrl } = require('../../assets/js/blox-query');
+const { fragmentUrl, cleanUrl, buildFilterUrl } = require('../../assets/js/yikay-query');
 
 test('fragment requests reuse the page URL and never leak the fragment flag back', () => {
     const base = 'https://example.test/news/?ykq_a1=2';

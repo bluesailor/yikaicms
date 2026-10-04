@@ -29,7 +29,7 @@ final class NavMegaElement extends AbstractElement
 
     public function scripts(): array
     {
-        return ['/assets/js/blox-nav-overflow.js'];
+        return ['/assets/js/yikay-nav-overflow.js'];
     }
 
     public function controls(): array

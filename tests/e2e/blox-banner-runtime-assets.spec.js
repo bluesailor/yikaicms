@@ -11,15 +11,15 @@ test('homepage loads the banner runtime once after its video policy @ci', async 
     new URL(node.src, document.baseURI).pathname
   )));
   const swiperIndex = scripts.indexOf('/assets/swiper/swiper-bundle.min.js');
-  const policyIndex = scripts.indexOf('/assets/js/blox-video-policy.js');
-  const bannerIndex = scripts.indexOf('/assets/js/blox-banner.js');
+  const policyIndex = scripts.indexOf('/assets/js/yikay-video-policy.js');
+  const bannerIndex = scripts.indexOf('/assets/js/yikay-banner.js');
 
   expect(swiperIndex).toBeGreaterThanOrEqual(0);
   expect(policyIndex).toBeGreaterThan(swiperIndex);
   expect(bannerIndex).toBeGreaterThan(policyIndex);
-  expect(scripts.filter(path => path === '/assets/js/blox-video-policy.js')).toHaveLength(1);
-  expect(scripts.filter(path => path === '/assets/js/blox-banner.js')).toHaveLength(1);
-  const bannerStyles = page.locator('link[rel="stylesheet"][href*="/assets/css/blox-banner.css"]');
+  expect(scripts.filter(path => path === '/assets/js/yikay-video-policy.js')).toHaveLength(1);
+  expect(scripts.filter(path => path === '/assets/js/yikay-banner.js')).toHaveLength(1);
+  const bannerStyles = page.locator('link[rel="stylesheet"][href*="/assets/css/yikay-banner.css"]');
   await expect(bannerStyles).toHaveCount(1);
   expect(await bannerStyles.evaluate(node => node.parentElement && node.parentElement.tagName)).toBe('HEAD');
   await expect.poll(() => page.evaluate(() => ({

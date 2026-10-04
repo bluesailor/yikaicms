@@ -151,7 +151,7 @@ if (is_file($root . '/config/config.php')) {
     );
     $landingQuery->execute([$landingLang]);
     $landingRows = $landingQuery->fetchAll(PDO::FETCH_ASSOC);
-    // 画布不在编辑器页面里渲染：编辑器脚本把文档 POST 给保存接口的 preview 动作（blox-preview-client.js），
+    // 画布不在编辑器页面里渲染：编辑器脚本把文档 POST 给保存接口的 preview 动作（yikay-preview-client.js），
     // 这里照做，并要求目录元素确实渲染出来（防止检查本身什么都没看见就放行）
     $landingElements = [
         'list' => ['content-catalog', 'data-content-catalog'],

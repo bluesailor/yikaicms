@@ -23,7 +23,7 @@ final class BloxSaveStatusR1ContractTest extends TestCase
     {
         self::$editor = (string) bloxEditorSourceForTest();
         self::$header = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor/partials/header.php');
-        self::$recovery = (string) file_get_contents(ROOT_PATH . '/assets/js/blox-draft-recovery.js');
+        self::$recovery = (string) file_get_contents(ROOT_PATH . '/assets/js/yikay-draft-recovery.js');
     }
 
     public function testServerSaveTimeOnlyAdvancesOnServerSuccess(): void

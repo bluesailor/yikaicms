@@ -84,7 +84,7 @@ final class PricingTableElementTest extends TestCase
         ];
         $html = $element->render($data);
 
-        self::assertSame(['/assets/js/blox-pricing.js'], $element->scriptsFor($data));
+        self::assertSame(['/assets/js/yikay-pricing.js'], $element->scriptsFor($data));
         self::assertStringContainsString('data-yk-pricing-cycle-button="yearly" aria-pressed="false"', $html);
         self::assertStringContainsString('省 17%', $html);
         self::assertMatchesRegularExpression('/data-yk-pricing-price="monthly"(?![^>]*hidden)[^>]*>.*199/s', $html);

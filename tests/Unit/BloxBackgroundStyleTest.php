@@ -229,7 +229,7 @@ final class BloxBackgroundStyleTest extends TestCase
             $out
         );
         $this->assertSame(
-            ['/assets/js/scroll-anim.js', '/assets/js/blox-video-policy.js', '/assets/js/blox-background-video.js'],
+            ['/assets/js/scroll-anim.js', '/assets/js/yikay-video-policy.js', '/assets/js/yikay-background-video.js'],
             BloxAssetCollector::scripts()
         );
         $this->assertStringContainsString('style="background-color:#102030;opacity:0.55;"', $out);

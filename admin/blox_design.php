@@ -850,7 +850,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 </div>
 
-<script src="/assets/js/blox-color-picker.js"></script>
+<script src="/assets/js/yikay-color-picker.js"></script>
 <script>
 function bloxDesignManager() {
     var colorPicker = window.YikaiBloxColorPicker;

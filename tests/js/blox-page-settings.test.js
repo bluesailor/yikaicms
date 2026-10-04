@@ -6,8 +6,8 @@ const vm = require('node:vm');
 
 function settings(url, withSummary = true) {
     const context = { window: { location: { origin: 'https://example.test' } }, URL, URLSearchParams };
-    if (withSummary) vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../assets/js/blox-draft-summary.js'), 'utf8'), context);
-    vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../assets/js/blox-page-settings.js'), 'utf8'), context);
+    if (withSummary) vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../assets/js/yikay-draft-summary.js'), 'utf8'), context);
+    vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../assets/js/yikay-page-settings.js'), 'utf8'), context);
     return Object.assign(context.window.YikaiBloxPageSettings.mixin({ id: 88, url, slug: 'company', text: { invalid: 'Invalid URL' } }), {
         pagePublished: false,
         publishedDocument: null,

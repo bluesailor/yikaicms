@@ -28,7 +28,7 @@ final class CategoryNavElement extends AbstractElement
     {
         $accordion = ($data['layout'] ?? 'stacked') !== 'inline' && ($data['expand'] ?? 'accordion') === 'accordion';
         return $accordion || BloxValueSanitizer::truthy($data['mobile_select'] ?? true)
-            ? ['/assets/js/blox-category-nav.js']
+            ? ['/assets/js/yikay-category-nav.js']
             : [];
     }
 

@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const palette = require("../../assets/js/blox-command-palette.js");
+const palette = require("../../assets/js/yikay-command-palette.js");
 
 test("ranking prefers contiguous matches, then all words, then in-order letters", () => {
     const items = [

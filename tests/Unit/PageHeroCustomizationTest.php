@@ -102,7 +102,7 @@ final class PageHeroCustomizationTest extends TestCase
         $editor = $this->source('admin/blox_editor.php')
             . $this->source('admin/blox_editor/partials/overlays.php');
         $api = $this->source('admin/blox_page_api.php');
-        $bridge = $this->source('assets/js/blox-canvas-bridge.js');
+        $bridge = $this->source('assets/js/yikay-canvas-bridge.js');
 
         $this->assertStringContainsString("if (!\$isHomeLayout && is_array(\$pageRow)", $canvas);
         $this->assertStringContainsString("(\$pageType !== 'page' || PageBloxDocument::usesThemeTitle(\$canvasFrame))", $canvas);

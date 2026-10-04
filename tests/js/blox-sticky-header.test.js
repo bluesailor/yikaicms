@@ -7,7 +7,7 @@ const vm = require('node:vm');
 const context = {};
 vm.createContext(context);
 vm.runInContext(
-    fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'js', 'blox-sticky-header.js'), 'utf8'),
+    fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'js', 'yikay-sticky-header.js'), 'utf8'),
     context
 );
 const sticky = context.BloxStickyHeader;

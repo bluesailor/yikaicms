@@ -2,7 +2,7 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const store = require("../../assets/js/blox-home-field-store.js");
+const store = require("../../assets/js/yikay-home-field-store.js");
 
 test("custom locale overrides survive JSON serialization and remain sparse", () => {
     const element = { data: { block_type: "custom:1" } };

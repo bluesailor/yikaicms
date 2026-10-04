@@ -71,7 +71,7 @@ final class RichEditorDependencyContractTest extends TestCase
             'admin/article_edit.php',
             'admin/blox_editor.php',
             'admin/blox_editor/partials/media-editing-methods.php',
-            'assets/js/blox-compact-richtext.js',
+            'assets/js/yikay-compact-richtext.js',
         ] as $file) {
             $source = $this->source($file);
             self::assertDoesNotMatchRegularExpression(
@@ -136,8 +136,8 @@ final class RichEditorDependencyContractTest extends TestCase
     private const INIT_SOURCES = [
         'admin/blox_editor/partials/media-editing-methods.php',
         'admin/includes/footer.php',
-        'assets/js/blox-compact-richtext.js',
         'assets/js/footer-content-editor.js',
+        'assets/js/yikay-compact-richtext.js',
     ];
 
     public function testEveryHugeRteInitIsListed(): void

@@ -4,7 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 
-const SRC = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'js', 'blox-video-policy.js'), 'utf8');
+const SRC = fs.readFileSync(path.join(__dirname, '..', '..', 'assets', 'js', 'yikay-video-policy.js'), 'utf8');
 
 function run({ mobile = false, reduced = false, saveData = false } = {}) {
     const window = {

@@ -16,7 +16,7 @@ async function setup(page, type) {
         <div id="language" style="flex:0 0 70px">English</div>
         </header>`);
     await page.addStyleTag({ path: path.join(root, 'assets/css/tailwind.css') });
-    await page.addScriptTag({ path: path.join(root, 'assets/js/blox-nav-overflow.js') });
+    await page.addScriptTag({ path: path.join(root, 'assets/js/yikay-nav-overflow.js') });
     await expect(page.locator('[data-yk-nav-more]')).toBeVisible();
 }
 

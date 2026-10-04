@@ -20,7 +20,7 @@ final class BloxResponsiveValue
     public const WIDE_SETTING_KEY = 'blox_widescreen_enabled';
 
     /**
-     * 断点档位（与 BloxCssCompiler、Tailwind md:/lg:/wide:、assets/js/blox-responsive.js 一致）。
+     * 断点档位（与 BloxCssCompiler、Tailwind md:/lg:/wide:、assets/js/yikay-responsive.js 一致）。
      * min/max 为含端点像素；null 表示不设限。
      */
     public const TIERS = [

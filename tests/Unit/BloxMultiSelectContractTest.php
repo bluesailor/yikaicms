@@ -18,7 +18,7 @@ final class BloxMultiSelectContractTest extends TestCase
 {
     public function testSelectionStateModuleIsPureAndRegistered(): void
     {
-        $module = $this->source('assets/js/blox-multi-select.js');
+        $module = $this->source('assets/js/yikay-multi-select.js');
         $policy = json_decode($this->source('config/blox-assets.json'), true, 512, JSON_THROW_ON_ERROR);
 
         // 纯状态机：不碰 DOM、不发包、不写存储。
@@ -27,9 +27,9 @@ final class BloxMultiSelectContractTest extends TestCase
         }
         self::assertStringContainsString('global.YikaiBloxMultiSelect', $module);
         self::assertStringContainsString('module.exports', $module);
-        self::assertContains('assets/js/blox-multi-select.js', $policy['core']);
+        self::assertContains('assets/js/yikay-multi-select.js', $policy['core']);
         // 编辑器页面必须真实加载这两个模块（登记 ≠ 加载，2026-09 教训）。
-        foreach (['assets/js/blox-multi-select.js', 'assets/js/blox-multi-actions.js'] as $script) {
+        foreach (['assets/js/yikay-multi-select.js', 'assets/js/yikay-multi-actions.js'] as $script) {
             self::assertStringContainsString($script, $this->source('admin/blox_editor.php'), "编辑器缺少 {$script} 脚本标签");
         }
         // 读取付费源码的契约测试登记进 private 桶（与 BloxEditorPreviewContractTest 对齐）。
@@ -91,7 +91,7 @@ final class BloxMultiSelectContractTest extends TestCase
     {
         $editor = $this->source('admin/blox_editor.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
-        $module = $this->source('assets/js/blox-multi-actions.js');
+        $module = $this->source('assets/js/yikay-multi-actions.js');
         $policy = json_decode($this->source('config/blox-assets.json'), true, 512, JSON_THROW_ON_ERROR);
 
         // 四个操作 = 恰好四次 runCommand 包装；数组运算全部在纯模块，热点文件只做薄命令。
@@ -107,7 +107,7 @@ final class BloxMultiSelectContractTest extends TestCase
         foreach (['document.', 'fetch(', 'localStorage', 'postMessage'] as $forbidden) {
             self::assertStringNotContainsString($forbidden, $module, "批量模块不得包含 {$forbidden}");
         }
-        self::assertContains('assets/js/blox-multi-actions.js', $policy['core']);
+        self::assertContains('assets/js/yikay-multi-actions.js', $policy['core']);
     }
 
     public function testBatchLangKeysExistInAllThreeLanguages(): void
@@ -130,11 +130,11 @@ final class BloxMultiSelectContractTest extends TestCase
     {
         $editor = $this->source('admin/blox_editor.php');
         $workspace = $this->source('admin/blox_editor/partials/workspace.php');
-        $module = $this->source('assets/js/blox-multi-properties.js');
+        $module = $this->source('assets/js/yikay-multi-properties.js');
         $policy = json_decode($this->source('config/blox-assets.json'), true, 512, JSON_THROW_ON_ERROR);
 
-        self::assertStringContainsString('assets/js/blox-multi-properties.js', $editor);
-        self::assertContains('assets/js/blox-multi-properties.js', $policy['core']);
+        self::assertStringContainsString('assets/js/yikay-multi-properties.js', $editor);
+        self::assertContains('assets/js/yikay-multi-properties.js', $policy['core']);
         self::assertStringContainsString('global.YikaiBloxBatchProperties', $module);
         self::assertStringContainsString('module.exports', $module);
         self::assertSame(2, substr_count($module, 'runCommand("batch-set-style"'), '控件与间距各一个命令入口');

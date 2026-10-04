@@ -77,7 +77,7 @@ final class CategoryNavElementTest extends TestCase
         foreach ($element->controls() as $control) {
             self::assertArrayNotHasKey('advanced', $control, '栏目导航是免费元素');
         }
-        self::assertSame(['/assets/js/blox-category-nav.js'], $element->scriptsFor([]));
+        self::assertSame(['/assets/js/yikay-category-nav.js'], $element->scriptsFor([]));
         self::assertSame([], $element->scriptsFor(['layout' => 'inline', 'mobile_select' => '0']));
     }
 

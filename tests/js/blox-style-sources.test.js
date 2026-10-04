@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const sources = require('../../assets/js/blox-style-sources');
+const sources = require('../../assets/js/yikay-style-sources');
 const ctrl = { key: 'color', default: '' };
 
 test('style sources distinguish element defaults, stored overrides and unresolved CSS', () => {

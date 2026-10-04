@@ -9,7 +9,7 @@ final class BloxBannerManagerContractTest extends TestCase
     public function testManagerUsesDirectEditingWithoutTheLegacyTakeoverStep(): void
     {
         $workspace = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor/partials/banner-manager.php');
-        $editor = (string) file_get_contents(ROOT_PATH . '/assets/js/blox-banner-panel.js');
+        $editor = (string) file_get_contents(ROOT_PATH . '/assets/js/yikay-banner-panel.js');
         self::assertStringNotContainsString('adoptBannerItems(', $workspace . $editor);
         self::assertStringNotContainsString('blox_home_banner_items_help', $workspace);
         self::assertStringContainsString('@click="selectBannerItem(bi)"', $workspace);

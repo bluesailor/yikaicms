@@ -1,6 +1,6 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { DraftRecovery } = require('../../assets/js/blox-draft-recovery.js');
+const { DraftRecovery } = require('../../assets/js/yikay-draft-recovery.js');
 
 function memoryStorage() {
     const values = new Map();

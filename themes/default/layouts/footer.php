@@ -286,7 +286,7 @@ if ($footerBgLiteral !== '') {
 
     <?php /* General Lightbox */ ?>
     <?php
-    // 灯箱改由共享实现提供（assets/js/blox-lightbox.js）：支持分组前后切换、焦点返回与滑动。
+    // 灯箱改由共享实现提供（assets/js/yikay-lightbox.js）：支持分组前后切换、焦点返回与滑动。
     // 这里只留一段极小的引导——页面上真的有 a[data-lightbox] 才去取脚本与样式，
     // 没有灯箱图片的页面一个字节都不多下载。Blox 图片元素另有 BloxAssetCollector 精确登记，
     // 这段是给相册等非 Blox 内容兜底的。
@@ -296,10 +296,10 @@ if ($footerBgLiteral !== '') {
         if (!document.querySelector('a[data-lightbox]:not([data-lightbox="album"])')) return;
         var css = document.createElement('link');
         css.rel = 'stylesheet';
-        css.href = '<?php echo BasePath::url(assetVer('/assets/css/blox-lightbox.css')); ?>';
+        css.href = '<?php echo BasePath::url(assetVer('/assets/css/yikay-lightbox.css')); ?>';
         document.head.appendChild(css);
         var script = document.createElement('script');
-        script.src = '<?php echo BasePath::url(assetVer('/assets/js/blox-lightbox.js')); ?>';
+        script.src = '<?php echo BasePath::url(assetVer('/assets/js/yikay-lightbox.js')); ?>';
         script.defer = true;
         document.head.appendChild(script);
     })();

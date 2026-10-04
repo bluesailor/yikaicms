@@ -1,7 +1,7 @@
 "use strict";
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const rules = require("../../assets/js/blox-control-rules.js");
+const rules = require("../../assets/js/yikay-control-rules.js");
 
 const get = (data) => (key) => data[key];
 

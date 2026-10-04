@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const conditions = require('../../assets/js/blox-detail-conditions');
+const conditions = require('../../assets/js/yikay-detail-conditions');
 
 const base = { content_type: 'product', lang: 'zh-CN', source: 'custom', priority: 4 };
 

@@ -128,8 +128,8 @@ final class ImageElement extends AbstractElement
             $lightboxHref = self::safeHref($rawSrc);
             if ($lightboxHref !== '') {
                 // 按需加载：没有灯箱图片的页面不会引入这两个文件
-                BloxAssetCollector::addStyle('/assets/css/blox-lightbox.css');
-                BloxAssetCollector::addScript('/assets/js/blox-lightbox.js');
+                BloxAssetCollector::addStyle('/assets/css/yikay-lightbox.css');
+                BloxAssetCollector::addScript('/assets/js/yikay-lightbox.js');
                 // 分组名让同组图片可以前后切换；留空则只看这一张。
                 // 值取自作者填写的分组，经白名单收敛——它会进选择器，不能带引号或空白。
                 $groupRaw = trim((string) ($data['lightbox_group'] ?? ''));

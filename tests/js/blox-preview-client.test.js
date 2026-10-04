@@ -14,7 +14,7 @@ class FakeAbortController {
 }
 
 global.AbortController = FakeAbortController;
-require("../../assets/js/blox-preview-client.js");
+require("../../assets/js/yikay-preview-client.js");
 
 function deferred() {
     let resolve;

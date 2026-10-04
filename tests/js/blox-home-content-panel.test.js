@@ -1,7 +1,7 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const panel = require('../../assets/js/blox-home-content-panel');
-const imageControl = require('../../assets/js/blox-image-control');
+const panel = require('../../assets/js/yikay-home-content-panel');
+const imageControl = require('../../assets/js/yikay-image-control');
 const about = { type: 'home-block', data: { block_type: 'about' } };
 const cta = { type: 'home-block', data: { block_type: 'cta' } };
 

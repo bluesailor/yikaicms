@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { check } = require('../../assets/js/blox-custom-code');
+const { check } = require('../../assets/js/yikay-custom-code');
 
 // 与 tests/Unit/BloxCustomCodeTest.php 同一组样例：客户端即时检查必须与服务端结论一致
 test('custom CSS checks mirror the server rules', () => {
@@ -34,7 +34,7 @@ test('custom CSS checks mirror the server rules', () => {
 });
 
 test('class names are filtered with the server rules', () => {
-  const { classList } = require('../../assets/js/blox-custom-code');
+  const { classList } = require('../../assets/js/yikay-custom-code');
   assert.equal(classList('  card  md:flex yk-c-fake w-1/2 bad"class card <x> '), 'card md:flex w-1/2');
   assert.equal(classList(''), '');
   assert.equal(classList(Array.from({ length: 25 }, (_, i) => 'c' + i).join(' ')).split(' ').length, 20);

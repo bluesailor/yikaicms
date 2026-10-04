@@ -95,7 +95,7 @@ final class PricingTableElement extends AbstractElement
 
     public function scriptsFor(array $data): array
     {
-        return self::enabled($data, 'billing_toggle', false) ? ['/assets/js/blox-pricing.js'] : [];
+        return self::enabled($data, 'billing_toggle', false) ? ['/assets/js/yikay-pricing.js'] : [];
     }
 
     public function render(array $data, string $children = ''): string

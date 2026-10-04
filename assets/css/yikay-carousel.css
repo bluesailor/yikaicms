@@ -1,4 +1,4 @@
-/* Blox 轮播（客户评价轮播）：原生横向滚动 + scroll-snap；圆点与自动播放由 blox-carousel.js 负责。 */
+/* Blox 轮播（客户评价轮播）：原生横向滚动 + scroll-snap；圆点与自动播放由 yikay-carousel.js 负责。 */
 .yk-carousel { --yk-carousel-gap: 24px; position: relative; min-width: 0; width: 100%; }
 .yk-carousel-track {
     display: flex;

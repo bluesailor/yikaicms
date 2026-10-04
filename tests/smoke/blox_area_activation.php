@@ -153,11 +153,11 @@ check('自定义网页尾重启：原模板和条件恢复生效', str_contains(
 $idSticky = makeTemplate('header', 'SMK-STICKY', '[{"main":"home"}]', ['sticky' => true]);
 $homeS = fetch('/');
 check('sticky：壳带 yk-sticky-header 类', str_contains($homeS, 'yk-sticky-header'));
-check('sticky：前台注入 blox-sticky-header.js', str_contains($homeS, 'blox-sticky-header.js'));
+check('sticky：前台注入 yikay-sticky-header.js', str_contains($homeS, 'yikay-sticky-header.js'));
 dropTemplate($idSticky);
 $idPlainH = makeTemplate('header', 'SMK-PLAIN', '[{"main":"home"}]');
 $homeP = fetch('/');
-check('sticky 关：无壳类无脚本', !str_contains($homeP, 'yk-sticky-header') && !str_contains($homeP, 'blox-sticky-header.js'));
+check('sticky 关：无壳类无脚本', !str_contains($homeP, 'yk-sticky-header') && !str_contains($homeP, 'yikay-sticky-header.js'));
 dropTemplate($idPlainH);
 
 // 6) 市场主题被卸载后，老数据库残留 slug 必须完整回退 default，而非拼凑 includes 模板。

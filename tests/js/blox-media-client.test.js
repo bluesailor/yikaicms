@@ -10,7 +10,7 @@ global.fetch = function (url, options) {
         json: function () { return Promise.resolve(nextResponse); },
     });
 };
-require("../../assets/js/blox-media-client.js");
+require("../../assets/js/yikay-media-client.js");
 
 test("list normalizes media pagination and encodes search", async function () {
     nextResponse = {

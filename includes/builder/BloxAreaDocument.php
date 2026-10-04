@@ -78,7 +78,7 @@ final class BloxAreaDocument
         $sticky = !empty($settings['sticky']);
         $stickyDevices = $settings['sticky_devices'];
         if ($sticky && class_exists('BloxAssetCollector')) {
-            BloxAssetCollector::addScript('/assets/js/blox-sticky-header.js');
+            BloxAssetCollector::addScript('/assets/js/yikay-sticky-header.js');
         }
 
         $previewState = in_array($previewState, BloxHeaderStates::NAMES, true) ? $previewState : '';

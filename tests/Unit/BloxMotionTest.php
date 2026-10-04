@@ -29,9 +29,9 @@ final class BloxMotionTest extends TestCase
     public function testEffectsCollectPolicyOnceBeforeTheirRuntime(): void
     {
         BloxAssetCollector::reset();
-        BloxAssetCollector::addScript('/assets/js/blox-carousel.js');
-        BloxAssetCollector::addScript('/assets/js/blox-interactions.js');
-        self::assertSame(['/assets/js/scroll-anim.js', '/assets/js/blox-carousel.js', '/assets/js/blox-interactions.js'], BloxAssetCollector::scripts());
+        BloxAssetCollector::addScript('/assets/js/yikay-carousel.js');
+        BloxAssetCollector::addScript('/assets/js/yikay-interactions.js');
+        self::assertSame(['/assets/js/scroll-anim.js', '/assets/js/yikay-carousel.js', '/assets/js/yikay-interactions.js'], BloxAssetCollector::scripts());
         BloxAssetCollector::reset();
         BuilderRegistry::get('heading')->render(['text' => 'No effect']);
         self::assertSame([], BloxAssetCollector::scripts());

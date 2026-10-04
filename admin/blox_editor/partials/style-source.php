@@ -2,7 +2,7 @@
 declare(strict_types=1);
 // 样式来源与恢复继承（2.0.4，借鉴 WordPress 7.2）：控件下方一行说明当前生效值来自哪一层
 // （本元素 / 沿用更大设备档 / 全局类 / 样式预设 / 主题），本元素的值压过了哪些来源（已覆盖），
-// 并可一键恢复继承。计算见 assets/js/blox-style-origin.js。
+// 并可一键恢复继承。计算见 assets/js/yikay-style-origin.js。
 // $styleSourceControl 由父模板给出可信的 Alpine 控件表达式，从不来自请求数据。
 ?>
 <div x-data="{ origin: { layers: [], effective: null, overridden: [], resettable: false } }"

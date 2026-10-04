@@ -61,8 +61,8 @@ function rtl_targets(): array
             $files[] = $f->getPathname();
         }
     }
-    $add('assets/css/{style,blox-*}.css');
-    $add('assets/js/blox-{carousel,tabs,lightbox,popup,banner,collapse,dot-nav,overlay,org-chart}.js');
+    $add('assets/css/{style,yikay-*}.css');
+    $add('assets/js/yikay-{carousel,tabs,lightbox,popup,banner,collapse,dot-nav,overlay,org-chart}.js');
     $files = array_values(array_unique(array_map(static fn(string $f): string => str_replace('\\', '/', (string) realpath($f)), $files)));
     sort($files);
     return $files;

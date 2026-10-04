@@ -35,7 +35,7 @@ final class NavDrawerElement extends AbstractElement
 
     public function scripts(): array
     {
-        return ['/assets/js/blox-nav-drawer.js'];
+        return ['/assets/js/yikay-nav-drawer.js'];
     }
 
     public function render(array $data, string $children = ''): string

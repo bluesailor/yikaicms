@@ -13,8 +13,8 @@ final class TestimonialLogoWallElementsTest extends TestCase
     {
         $element = BuilderRegistry::get('testimonial-carousel');
         self::assertInstanceOf(TestimonialCarouselElement::class, $element);
-        self::assertSame(['/assets/js/blox-carousel.js'], $element->scriptsFor([]));
-        self::assertSame(['/assets/css/blox-carousel.css'], $element->stylesFor([]));
+        self::assertSame(['/assets/js/yikay-carousel.js'], $element->scriptsFor([]));
+        self::assertSame(['/assets/css/yikay-carousel.css'], $element->stylesFor([]));
 
         $html = $element->render([
             'items' => [
@@ -104,7 +104,7 @@ final class TestimonialLogoWallElementsTest extends TestCase
         self::assertSame(6, substr_count($marquee, 'class="yk-testimonial-cell"'));
         self::assertStringContainsString('--yk-testimonial-marquee:26.25s', $marquee);
         self::assertSame([], $element->scriptsFor(['layout' => 'marquee']));
-        self::assertSame(['/assets/js/blox-carousel.js'], $element->scriptsFor(['layout' => 'bogus']), '未知布局按轮播');
+        self::assertSame(['/assets/js/yikay-carousel.js'], $element->scriptsFor(['layout' => 'bogus']), '未知布局按轮播');
 
         self::assertSame('JD', TestimonialCarouselElement::initials('Jane  van Doe'));
         self::assertSame('王', TestimonialCarouselElement::initials('王小明'));

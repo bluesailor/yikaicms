@@ -31,7 +31,7 @@ final class BloxEditorHistoryContractTest extends TestCase
 
     private function historySource(): string
     {
-        $source = file_get_contents(ROOT_PATH . '/assets/js/blox-history-store.js');
+        $source = file_get_contents(ROOT_PATH . '/assets/js/yikay-history-store.js');
         $this->assertNotFalse($source);
 
         return (string) $source;
@@ -42,7 +42,7 @@ final class BloxEditorHistoryContractTest extends TestCase
         $editor = $this->editorSource();
         $source = $this->historySource();
 
-        $this->assertStringContainsString('<script src="/assets/js/blox-history-store.js?v=', $editor);
+        $this->assertStringContainsString('<script src="/assets/js/yikay-history-store.js?v=', $editor);
         $this->assertStringContainsString('new window.BloxHistoryStore({', $editor);
         $this->assertStringContainsString('limit: 51,', $editor);
         $this->assertStringContainsString('delay: 700,', $editor);

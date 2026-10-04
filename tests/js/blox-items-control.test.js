@@ -1,6 +1,6 @@
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
-const { methods } = require('../../assets/js/blox-items-control.js');
+const { methods } = require('../../assets/js/yikay-items-control.js');
 
 const ctrl = {
     key: 'items',
