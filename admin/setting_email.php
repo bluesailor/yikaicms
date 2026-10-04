@@ -151,6 +151,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action', 'save') === 'save') 
     }
     $isLangTab = ($saveTab !== 'smtp');
 
+    // SMTP 密码不回显（页面里只有空的密码框）：留空表示不修改；勾选「清除」才删掉已保存的密码
+    if (array_key_exists('smtp_pass', $settings) && trim((string) $settings['smtp_pass']) === '') {
+        unset($settings['smtp_pass']);
+        if (post('smtp_pass_clear') === '1') {
+            settingModel()->set('smtp_pass', '');
+        }
+    }
+
     foreach ($settings as $key => $value) {
         // 模板 tab + 非默认语言：写入 <key>_<lang>
         if ($isLangTab && $_viewLang !== $_defaultLang && in_array($key, $EMAIL_LANG_KEYS, true)) {
@@ -299,8 +307,13 @@ if ($_emailLangAware) {
                     <span class="text-gray-400 text-sm block"><?php echo __('email_smtp_pass_tip'); ?></span>
                 </label>
                 <div class="md:col-span-3">
-                    <input type="text" name="settings[smtp_pass]" value="<?php echo e(config('smtp_pass')); ?>"
-                           placeholder="<?php echo e(__('email_smtp_pass_placeholder')); ?>" class="w-full border rounded px-4 py-2 font-mono" autocomplete="off">
+                    <?php /* 已保存的密码不回显（含页面源码）：留空不修改 */ ?>
+                    <?php $smtpPassSet = (string) config('smtp_pass', '') !== ''; ?>
+                    <input type="password" name="settings[smtp_pass]" value=""
+                           placeholder="<?php echo e($smtpPassSet ? __('email_smtp_pass_saved') : __('email_smtp_pass_placeholder')); ?>" class="w-full border rounded px-4 py-2 font-mono" autocomplete="new-password">
+                    <?php if ($smtpPassSet): ?>
+                    <label class="mt-2 inline-flex items-center gap-2 text-sm text-gray-500"><input type="checkbox" name="smtp_pass_clear" value="1"> <?php echo e(__('email_smtp_pass_clear')); ?></label>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

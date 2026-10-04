@@ -9036,4 +9036,7 @@ return [
     'blox_share_email' => 'E-mail',
     'blox_share_copy' => 'Copia link',
     'blox_share_copied' => 'Link copiato',
+    'email_smtp_pass_saved' => 'Salvata (nascosta); lascia vuoto per mantenerla',
+    'email_smtp_pass_clear' => 'Cancella la password salvata',
+    'seo_push_tls_error' => 'Verifica del certificato HTTPS non riuscita, di solito perché i certificati radice del server sono obsoleti. Chiedi al tuo hosting di aggiornarli',
 ];
