@@ -9131,4 +9131,5 @@ ex. : steel|Acier inoxydable',
     'blox_origin_overrides' => 'Remplace :',
     'blox_origin_restore_tip' => 'Supprime la valeur de cet élément et utilise le réglage hérité',
     'blox_origin_edit' => 'Modifier',
+    'blox_origin_spacing_local' => 'Cet élément remplace :',
 ];

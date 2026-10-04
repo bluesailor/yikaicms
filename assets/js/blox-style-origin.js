@@ -166,6 +166,45 @@
         };
     }
 
+    var SPACING_SIDES = ['top', 'right', 'bottom', 'left'];
+    /**
+     * 间距块的来源汇总（间距是独立界面，不走通用控件）：挂着的全局类设了哪些内 / 外边距，
+     * 以及本元素当前设备档的哪些值压过了它们（元素的「全部」压过类的四边，元素的单边只压同一边）。
+     * @return {{classes:Array<{id:string,name:string,items:Array<{kind:string,side:string,value:*}>}>, overridden:Array<{kind:string,side:string}>}}
+     */
+    function spacing(element, ctx) {
+        ctx = ctx || {};
+        var data = element && object(element.data) ? element.data : {};
+        var catalog = object(ctx.catalog) ? ctx.catalog : {};
+        var classes = object(catalog.classes) ? catalog.classes : {};
+        var device = ctx.device || 'desktop';
+        var out = { classes: [], overridden: [] };
+        var local = function (key) { return filled(deviceValue(data[key], device).value); };
+        (Array.isArray(data._classes) ? data._classes : []).forEach(function (id) {
+            var entry = classes[id];
+            if (!object(entry) || !object(entry.settings)) return;
+            var items = [];
+            ['padding', 'margin'].forEach(function (kind) {
+                if (kind === 'padding') {
+                    var all = deviceValue(entry.settings.padding_px, device).value;
+                    if (filled(all)) items.push({ kind: kind, side: '', value: all });
+                }
+                SPACING_SIDES.forEach(function (side) {
+                    var value = deviceValue(entry.settings[kind + '_' + side + '_px'], device).value;
+                    if (filled(value)) items.push({ kind: kind, side: side, value: value });
+                });
+            });
+            if (!items.length) return;
+            out.classes.push({ id: String(id), name: String(entry.name || id), items: items });
+            items.forEach(function (item) {
+                var hit = local('style_' + item.kind) || (item.side ? local('style_' + item.kind + '_' + item.side)
+                    : SPACING_SIDES.some(function (side) { return local('style_' + item.kind + '_' + side); }));
+                if (hit && !out.overridden.some(function (o) { return o.kind === item.kind && o.side === item.side; })) out.overridden.push({ kind: item.kind, side: item.side });
+            });
+        });
+        return out;
+    }
+
     /** 给人看的值：色值令牌显示名称，圆角 / 阴影令牌显示刻度名，数字带单位。 */
     function display(layer, catalog) {
         if (!layer) return '';
@@ -239,6 +278,16 @@
             });
             this.flushHistory(true);
         },
+        /** 间距块的来源：「全局类 .x：内边距 24px、上外边距 16px」，本元素压过的部分另行列出。 */
+        spacingOrigin() {
+            if (!this.selEl) return { classes: [], overridden: [] };
+            return spacing({ type: this.selEl.type, data: this.selEl.data || {} }, { device: this.previewDevice, catalog: this.designSystem || {} });
+        },
+        spacingItemText(item) {
+            var text = this.styleOriginText || {};
+            var label = (text[item.kind] || item.kind) + (item.side ? ' · ' + (text['side_' + item.side] || item.side) : '');
+            return item.value === undefined ? label : label + ' ' + (/^-?\d+(\.\d+)?$/.test(String(item.value)) ? item.value + 'px' : item.value);
+        },
         /** 去改来源：全局类 → 切到编辑这个类；主题 / 色值令牌 → 设计系统。 */
         openOriginSource(layer) {
             if (!layer) return;
@@ -249,7 +298,7 @@
     };
     function global() { return typeof window !== 'undefined' ? window : {}; }
 
-    var api = { describe: describe, display: display, methods: methods, CLASS_MAP: CLASS_MAP };
+    var api = { describe: describe, display: display, spacing: spacing, methods: methods, CLASS_MAP: CLASS_MAP };
     if (typeof module !== 'undefined' && module.exports) module.exports = api;
     if (root) root.BloxStyleOrigin = api;
 })(typeof window !== 'undefined' ? window : null);

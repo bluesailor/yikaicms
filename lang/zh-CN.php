@@ -9253,4 +9253,5 @@ voltage|电压|220V',
     'blox_origin_overrides' => '已覆盖：',
     'blox_origin_restore_tip' => '删除本元素的这个值，改用上一层的设置',
     'blox_origin_edit' => '去修改',
+    'blox_origin_spacing_local' => '本元素已覆盖：',
 ];

@@ -9131,4 +9131,5 @@ return [
     'blox_origin_overrides' => 'يتجاوز:',
     'blox_origin_restore_tip' => 'يحذف قيمة هذا العنصر ويستخدم الإعداد الموروث',
     'blox_origin_edit' => 'تعديل',
+    'blox_origin_spacing_local' => 'هذا العنصر يتجاوز:',
 ];

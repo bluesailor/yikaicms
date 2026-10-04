@@ -1649,6 +1649,9 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 'label' => __('blox_origin_label'), 'local' => __('blox_origin_local'), 'inherit' => __('blox_origin_inherit'),
                 'class' => __('blox_origin_class'), 'preset' => __('blox_origin_preset'), 'theme' => __('blox_origin_theme'),
                 'button' => __('blox_origin_button'), 'default' => __('blox_origin_default'), 'overrides' => __('blox_origin_overrides'),
+                // 间距来源：沿用间距块已有的文案
+                'padding' => __('blox_padding'), 'margin' => __('blox_margin'), 'side_top' => __('blox_side_top'),
+                'side_right' => __('blox_side_right'), 'side_bottom' => __('blox_side_bottom'), 'side_left' => __('blox_side_left'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             homeSourceLinks: <?= json_encode($bloxSourceLinks, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             homeText: <?php echo json_encode([

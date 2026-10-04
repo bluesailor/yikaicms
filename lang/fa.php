@@ -9131,4 +9131,5 @@ return [
     'blox_origin_overrides' => 'جایگزین:',
     'blox_origin_restore_tip' => 'مقدار این عنصر را حذف می‌کند و از تنظیم به‌ارث‌رسیده استفاده می‌کند',
     'blox_origin_edit' => 'ویرایش',
+    'blox_origin_spacing_local' => 'این عنصر جایگزین می‌کند:',
 ];

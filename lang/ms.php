@@ -9131,4 +9131,5 @@ cth.: steel|Keluli tahan karat',
     'blox_origin_overrides' => 'Mengatasi:',
     'blox_origin_restore_tip' => 'Buang nilai elemen ini dan guna tetapan warisan',
     'blox_origin_edit' => 'Sunting',
+    'blox_origin_spacing_local' => 'Elemen ini mengatasi:',
 ];

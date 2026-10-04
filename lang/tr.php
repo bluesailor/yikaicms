@@ -9131,4 +9131,5 @@ return [
     'blox_origin_overrides' => 'Geçersiz kılar:',
     'blox_origin_restore_tip' => 'Bu öğenin değerini kaldırır ve devralınan ayarı kullanır',
     'blox_origin_edit' => 'Düzenle',
+    'blox_origin_spacing_local' => 'Bu öğe geçersiz kılar:',
 ];
