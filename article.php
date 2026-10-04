@@ -295,7 +295,7 @@ require theme_path('partials/page-hero.php');
                                 <h4 class="text-sm font-medium text-gray-800 line-clamp-2 hover:text-primary transition">
                                     <?php echo e($related['title']); ?>
                                 </h4>
-                                <p class="text-xs text-gray-400 mt-1">
+                                <p class="text-xs text-gray-500 mt-1">
                                     <?php echo e(displayDate((int)(($related['publish_time'] ?? 0) ?: ($related['created_at'] ?? 0)))); ?>
                                 </p>
                             </div>

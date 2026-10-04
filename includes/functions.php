@@ -3212,7 +3212,7 @@ function adminPoweredBy(): string
     }
     $html = '<div class="mt-1 text-xs text-gray-400">Powered by YikaiCMS';
     if (defined('CMS_VERSION')) {
-        $html .= ' <a href="https://yikaicms.com" target="_blank" rel="noopener" class="text-gray-300 hover:text-primary">v' . e(CMS_VERSION) . '</a>';
+        $html .= ' <a href="https://yikaicms.com" target="_blank" rel="noopener" class="text-gray-500 hover:text-primary">v' . e(CMS_VERSION) . '</a>';
     }
     return $html . '</div>';
 }

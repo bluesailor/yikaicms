@@ -31,7 +31,7 @@ final class BasicContentVariantsTest extends TestCase
     public function testQuoteDefaultsAndVariants(): void
     {
         $el = new QuoteElement();
-        $default = '<blockquote class="border-l-4 border-primary pl-4 py-2 my-4 italic text-gray-600">Copy<footer class="mt-2 text-sm not-italic text-gray-400">— Author</footer></blockquote>';
+        $default = '<blockquote class="border-l-4 border-primary pl-4 py-2 my-4 italic text-gray-600">Copy<footer class="mt-2 text-sm not-italic text-gray-500">— Author</footer></blockquote>';
         self::assertSame($default, $el->render(['text' => 'Copy', 'author' => 'Author']));
         self::assertSame($default, $el->render(['text' => 'Copy', 'author' => 'Author', 'quote_style' => []]));
         foreach (['soft', 'center'] as $style) {

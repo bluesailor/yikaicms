@@ -9134,4 +9134,6 @@ contoh: steel|Baja tahan karat',
     'blox_origin_spacing_local' => 'Elemen ini menimpa:',
     'ch_lang_empty' => 'Belum ada bagian :lang. Buat sekaligus dari bagian :source: nama diterjemahkan dengan kamus bawaan dan setelah itu bisa diedit satu per satu.',
     'ch_lang_empty_btn' => 'Buat bagian :lang',
+    'a11y_select_row' => 'Pilih: :name',
+    'a11y_show_password' => 'Tampilkan kata sandi',
 ];

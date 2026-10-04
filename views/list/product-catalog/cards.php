@@ -37,7 +37,7 @@ $pcBadges = static function () use ($item, $pcHasBadges): void {
     }
     ?>
     <div class="absolute top-2 left-2 flex flex-col gap-1">
-        <?php if (!empty($item['is_new'])): ?><span class="bg-green-500 text-white text-xs px-2 py-0.5 rounded">NEW</span><?php endif; ?>
+        <?php if (!empty($item['is_new'])): ?><span class="bg-green-700 text-white text-xs px-2 py-0.5 rounded">NEW</span><?php endif; ?>
         <?php if (!empty($item['is_hot'])): ?><span class="bg-red-500 text-white text-xs px-2 py-0.5 rounded">HOT</span><?php endif; ?>
         <?php if (!empty($item['is_recommend'])): ?><span class="bg-primary text-white text-xs px-2 py-0.5 rounded"><?php echo __('article_recommend'); ?></span><?php endif; ?>
     </div>
@@ -68,7 +68,7 @@ $pcTextBlock = static function (bool $featured) use ($pcTitle, $pcModel, $pcShow
         <h3 class="<?php echo $featured ? 'text-xl' : ''; ?> font-bold text-dark group-hover:text-primary transition line-clamp-2"><?php echo e($pcTitle); ?></h3>
         <?php endif; ?>
         <?php if ($pcModel !== ''): ?>
-        <p class="text-xs text-gray-400 mt-1"><?php echo e($pcModel); ?></p>
+        <p class="text-xs text-gray-500 mt-1"><?php echo e($pcModel); ?></p>
         <?php endif; ?>
         <?php if ($pcShowPrice): ?>
         <div class="mt-2 text-primary font-bold"><?php echo formatPrice($pcPrice); ?></div>

@@ -301,3 +301,13 @@ input[type="radio"] {
     border-color: #3b82f6;
     background: rgba(59, 130, 246, 0.05);
 }
+
+/* 无障碍（2.0.4）：后台说明文字多用 text-gray-400 / 500。gray-400 在白底上只有 2.6:1，gray-500 在后台的
+   gray-100 底色上 4.4:1，都达不到 WCAG AA 的 4.5:1。后台内统一用稍深一点的灰（白底 5.2:1、gray-100 底 4.7:1）；
+   前台主题不受影响。 */
+.text-gray-400, .text-gray-500 { color: oklch(53.5% .027 264.364); }
+/* 同理：状态绿字、浅蓝标签、蓝色按钮在后台常见底色上都差一点，后台内各加深一档。 */
+.text-green-600 { color: var(--color-green-700); }
+.text-blue-600 { color: var(--color-blue-700); }
+.bg-blue-500 { background-color: var(--color-blue-600); }
+.hover\:bg-blue-600:hover { background-color: var(--color-blue-700); }

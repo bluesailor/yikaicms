@@ -29,8 +29,8 @@ $revLabels = [
         <h2 class="font-bold text-gray-800 flex items-center gap-2">
             <i class="ti ti-history text-base"></i><?php echo __('revision_history'); ?>
         </h2>
-        <button type="button" id="revReload" class="text-gray-400 hover:text-primary text-sm inline-flex items-center gap-1">
-            <i class="ti ti-refresh"></i>
+        <button type="button" id="revReload" aria-label="<?php echo e(__('btn_refresh')); ?>" title="<?php echo e(__('btn_refresh')); ?>" class="p-1 text-gray-500 hover:text-primary text-sm inline-flex items-center gap-1">
+            <i class="ti ti-refresh" aria-hidden="true"></i>
         </button>
     </div>
     <div class="p-6">

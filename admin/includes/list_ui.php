@@ -92,7 +92,7 @@ function renderBulkBar(array $actions): string
     }
 
     $html = '<div class="flex items-center gap-2">'
-        . '<select id="bulkAction" class="border rounded px-3 py-1.5 text-sm bg-white">' . $opts . '</select>'
+        . '<select id="bulkAction" aria-label="' . e(__('admin_bulk_actions')) . '" class="border rounded px-3 py-1.5 text-sm bg-white">' . $opts . '</select>'
         . '<button type="button" onclick="applyBulk()" class="border px-4 py-1.5 rounded text-sm hover:bg-gray-50 text-gray-700">' . __('admin_apply') . '</button>'
         . '<span id="bulkCount" class="text-xs text-gray-400"></span>'
         . '</div>';

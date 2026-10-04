@@ -9134,4 +9134,6 @@ VD: steel|Thép không gỉ',
     'blox_origin_spacing_local' => 'Phần tử này ghi đè:',
     'ch_lang_empty' => 'Chưa có chuyên mục :lang. Bạn có thể tạo tất cả từ các chuyên mục :source chỉ với một bước: tên được dịch bằng từ điển tích hợp và có thể sửa từng mục sau đó.',
     'ch_lang_empty_btn' => 'Tạo chuyên mục :lang',
+    'a11y_select_row' => 'Chọn: :name',
+    'a11y_show_password' => 'Hiện mật khẩu',
 ];

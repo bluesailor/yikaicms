@@ -166,7 +166,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
         <form class="flex flex-wrap gap-3 items-center">
             <?php echo renderAdminPageSize($perPage); ?>
             <input type="hidden" name="lang" value="<?php echo e($_viewLang); ?>">
-            <select name="category_id" class="border rounded px-3 py-2">
+            <select name="category_id" aria-label="<?php echo e(__('admin_category')); ?>" class="border rounded px-3 py-2">
                 <option value=""><?php echo __('admin_all'); ?></option>
                 <?php foreach ($categories as $cat): ?>
                 <option value="<?php echo $cat['id']; ?>" <?php echo $categoryId === (int)$cat['id'] ? 'selected' : ''; ?>>
@@ -175,7 +175,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
                 <?php endforeach; ?>
             </select>
 
-            <select name="status" class="border rounded px-3 py-2">
+            <select name="status" aria-label="<?php echo e(__('admin_status')); ?>" class="border rounded px-3 py-2">
                 <option value=""><?php echo __('admin_all'); ?></option>
                 <option value="1" <?php echo $status === '1' ? 'selected' : ''; ?>><?php echo __('status_on_shelf'); ?></option>
                 <option value="0" <?php echo $status === '0' ? 'selected' : ''; ?>><?php echo __('status_off_shelf'); ?></option>

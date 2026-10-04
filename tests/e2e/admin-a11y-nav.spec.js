@@ -54,3 +54,21 @@ test('mobile menu behaves as a modal dialog and returns focus on Escape @ci', as
   await expect(trigger).toHaveAttribute('aria-expanded', 'false');
   await expect(trigger).toBeFocused();
 });
+
+// 2.0.4：表单控件与图标按钮都要有可访问名称（读屏、语音控制靠它找控件）
+test('list filters, row checkboxes and settings fields expose accessible names @ci', async ({ page }) => {
+  await page.goto('/admin/content.php');
+  for (const name of ['channel_id', 'type', 'status']) {
+    await expect(page.locator(`select[name="${name}"]`)).toHaveAccessibleName(/.+/);
+  }
+  await expect(page.locator('#checkAll')).toHaveAccessibleName(/.+/);
+  const row = page.locator('input[name="ids[]"]').first();
+  if (await row.count()) await expect(row).toHaveAccessibleName(/.+/);
+
+  // 设置页：并排的文字标签由 admin-a11y.js 关联到输入框
+  await page.goto('/admin/setting.php');
+  await expect(page.locator('input[name="settings[site_name]"]')).toHaveAccessibleName(/.+/);
+
+  // 顶栏语言与账号菜单在窄屏只剩图标，也要有名称
+  await expect(page.locator('header button[aria-haspopup="true"]').first()).toHaveAccessibleName(/.+/);
+});
