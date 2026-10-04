@@ -883,6 +883,8 @@ $bloxDesignSystem['classes'] = array_map(
     static fn(array $row): array => ['name' => (string) ($row['name'] ?? ''), 'settings' => $row['settings'] ?? []],
     BloxGlobalClasses::catalog()
 );
+// 样式来源的「主题」层（2.0.4）：设计系统里的排版角色与按钮设置（草稿，与画布预览一致）
+$bloxDesignSystem['theme'] = BloxDesignTheme::snapshot()['draft'];
 $bloxGlobalClasses = array_values(BloxGlobalClasses::catalog());
 $bloxGlobalQueries = array_values(BloxGlobalQueries::catalog());
 $canManageBloxDesign = hasPermission('blox_global');
@@ -952,6 +954,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
     <script src="/assets/js/blox-style-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-source.js') ?>"></script>
     <script src="/assets/js/blox-style-groups.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-groups.js') ?>"></script>
     <script src="/assets/js/blox-style-sources.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-sources.js') ?>"></script>
+    <script src="/assets/js/blox-style-origin.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-style-origin.js') ?>"></script>
     <script src="/assets/js/blox-custom-code.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-custom-code.js') ?>"></script>
     <script src="/assets/js/blox-detail-conditions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-detail-conditions.js') ?>"></script>
     <script src="/assets/js/blox-background-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/blox-background-panel.js') ?>"></script>
@@ -1642,6 +1645,14 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 ['theme', 'local', 'mobile', 'tablet', 'fromDesktop', 'fromTablet', 'global', 'token', 'default'],
                 array_map(fn(string $key): string => __('blox_exp_source_' . $key), ['theme', 'local', 'mobile', 'tablet', 'fromDesktop', 'fromTablet', 'global', 'token', 'default'])
             ), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+            styleOriginText: <?= json_encode([
+                'label' => __('blox_origin_label'), 'local' => __('blox_origin_local'), 'inherit' => __('blox_origin_inherit'),
+                'class' => __('blox_origin_class'), 'preset' => __('blox_origin_preset'), 'theme' => __('blox_origin_theme'),
+                'button' => __('blox_origin_button'), 'default' => __('blox_origin_default'), 'overrides' => __('blox_origin_overrides'),
+                // 间距来源：沿用间距块已有的文案
+                'padding' => __('blox_padding'), 'margin' => __('blox_margin'), 'side_top' => __('blox_side_top'),
+                'side_right' => __('blox_side_right'), 'side_bottom' => __('blox_side_bottom'), 'side_left' => __('blox_side_left'),
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             homeSourceLinks: <?= json_encode($bloxSourceLinks, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             homeText: <?php echo json_encode([
                 'publishConfirm' => __('blox_publish_confirm'),
@@ -2707,7 +2718,8 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                         if (!result || Number(result.code) !== 0 || !result.data) {
                             throw new Error((result && result.msg) || self.designText.failed);
                         }
-                        self.designSystem = result.data;
+                        // 设计接口的快照不带全局类目录与主题：保留编辑器里已有的，否则来源提示里的类全变「未知」
+                        self.designSystem = Object.assign({ classes: self.designSystem.classes, theme: self.designSystem.theme }, result.data);
                         if (action === "token_add") self.newToken = { name: "", category: "brand", value: "#3b82f6" };
                         if (action === "style_add") self.newStyle = { name: "", category: "general", color: "", background: "", border_color: "", radius: "none" };
                         self.refreshPreview();
@@ -2873,6 +2885,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             ...window.BloxHomeContentPanel.methods,
             ...window.BloxCtaQuick.methods,
             ...window.BloxStyleSource.methods,
+            ...window.BloxStyleOrigin.methods,
             ...window.BloxStyleGroups.methods,
             // 作者端扩展模块（yikai-builder）提供的面板方法；未启用时为空，核心编辑照常可用。
             ...((window.BloxProEditor || {}).methods || {}),
