@@ -94,9 +94,12 @@ $channel = getChannelBySlug('about');
 $urls = [];
 foreach (['zh-CN', 'en', 'ja'] as $language) {
     $row = channelModel()->siblingForLang((int) $channel['id'], $language);
+    // 2.0.4 起 channelUrl() 对非默认语言的行已带语言前缀（网址登记），不能再拼一次
+    $withPrefix = static fn (string $url): string => $language !== '' && langPrefix($language) !== '' && str_starts_with($url, langPrefix($language) . '/')
+        ? $url : langPrefix($language) . $url;
     $urls[$language] = [
-        'href' => langPrefix($language) . channelUrl($row),
-        'destination' => langPrefix($language) . channelUrl(pagePrimaryEditTarget($row)),
+        'href' => $withPrefix(channelUrl($row)),
+        'destination' => $withPrefix(channelUrl(pagePrimaryEditTarget($row))),
     ];
 }
 echo json_encode($urls, JSON_THROW_ON_ERROR);
