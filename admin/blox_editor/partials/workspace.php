@@ -1244,6 +1244,21 @@ declare(strict_types=1);
                                             <i class="ti ti-restore text-sm"></i>
                                         </button>
                                     </div>
+                                    <?php /* 间距来源（2.0.4）：挂着的全局类设了哪些边距、本元素压过了哪些 */ ?>
+                                    <div x-data="{ so: { classes: [], overridden: [] } }" x-effect="so = spacingOrigin()" x-show="so.classes.length" x-cloak
+                                         data-testid="blox-spacing-origin" :data-overridden="so.overridden.length ? 'yes' : ''" class="space-y-0.5 text-[10px] leading-4 text-gray-500">
+                                        <template x-for="item in so.classes" :key="item.id">
+                                            <div class="flex items-start gap-1">
+                                                <i class="ti ti-hash text-[11px]" aria-hidden="true"></i>
+                                                <span><span><?= e(__('blox_origin_label')) ?></span> <span class="font-medium text-gray-700" x-text="styleOriginText.class + ' .' + item.name"></span>
+                                                    <span class="text-gray-400" x-text="'· ' + item.items.map(function (i) { return spacingItemText(i); }).join('、')"></span></span>
+                                            </div>
+                                        </template>
+                                        <div x-show="so.overridden.length" class="flex items-start gap-1 text-amber-700" data-testid="blox-spacing-overrides">
+                                            <i class="ti ti-arrow-back-up text-[11px]" aria-hidden="true"></i>
+                                            <span><span><?= e(__('blox_origin_spacing_local')) ?></span> <span x-text="so.overridden.map(function (i) { return spacingItemText(i); }).join('、')"></span></span>
+                                        </div>
+                                    </div>
                                     <p x-show="boxDeviceHint() !== ''" x-cloak data-blox-spacing-device
                                        class="text-[11px] leading-snug text-blue-600 inline-flex items-center gap-1">
                                         <i class="ti ti-device-mobile text-xs"></i>
@@ -1600,7 +1615,6 @@ declare(strict_types=1);
 
                                     <?php $styleSourceControl = 'ctrl'; require __DIR__ . '/style-source.php'; ?>
                                     <?php require __DIR__ . '/home-content-source.php'; ?>
-                                    <?php require __DIR__ . '/control-style-source.php'; ?>
                                     <p x-show="ctrl.responsive && previewDevice !== 'desktop'"
                                        class="-mt-0.5 mb-1.5 text-[10px] text-gray-400 flex items-center gap-1">
                                         <i class="ti" :class="controlResponsiveState(ctrl).overridden ? 'ti-adjustments' : 'ti-link'"></i>

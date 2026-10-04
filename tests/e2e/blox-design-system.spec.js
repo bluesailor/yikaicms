@@ -118,34 +118,82 @@ test('stored style sources reset only the local value and undo restores it @ci',
   await page.getByTestId('blox-style-tab').click();
   await page.getByTestId('blox-professional-features').locator('summary').click();
   const source = page.getByTestId('blox-style-source-color');
-  await expect(source).toHaveAttribute('data-local-source', 'css');
+  await expect(source).toHaveAttribute('data-origin', '');   // 没有任何一层给颜色赋值：不显示来源行
   await performPreviewUpdate(page, async () => {
     await page.locator('[data-control-key="color"]').getByTestId('blox-color-picker-trigger').click();
     await page.getByTestId('blox-editor-color-token-primary').click();
   });
   await page.keyboard.press('Escape');
-  await expect(source).toHaveAttribute('data-local-source', 'element');
+  await expect(source).toHaveAttribute('data-origin', 'local');
+  await expect(source).toBeVisible();
   const heading = (await frame(page)).locator('[data-yk-el-type="heading"] h2').last();
   const localColor = await heading.evaluate(el => getComputedStyle(el).color);
-  await performPreviewUpdate(page, () => page.getByTestId('blox-global-style-select').selectOption('s_card'));
-  await expect(source).toHaveAttribute('data-shared-source', 'live');
-  await expect(source).toContainText('Card');
 
+  // 恢复继承：只删本元素的值，可撤销
   await performPreviewUpdate(page, () => page.getByTestId('blox-style-source-reset-color').click());
-  await expect(source).toHaveAttribute('data-local-source', 'css');
-  await expect(page.getByTestId('blox-global-style-select')).toHaveValue('s_card');
+  await expect(source).toHaveAttribute('data-origin', '');
   await undo(page);
-  await expect(source).toHaveAttribute('data-local-source', 'element');
-  await expect(source).toContainText('var(--yk-color-primary)');
+  await expect(source).toHaveAttribute('data-origin', 'local');
 
+  // 样式预设（内联 !important）压过本元素的值：来源行如实说明，并列出被覆盖的本元素值
+  await performPreviewUpdate(page, () => page.getByTestId('blox-global-style-select').selectOption('s_card'));
+  await expect(source).toHaveAttribute('data-origin', 'preset');
+  await expect(source).toHaveAttribute('data-overridden', 'local');
+  await expect(source).toContainText('Card');
+  await expect(page.getByTestId('blox-style-source-reset-color')).toBeHidden();
   await page.evaluate(() => { window.Alpine.$data(document.body).designSystem.styles[0].status = 'archived'; });
-  await expect(source).toHaveAttribute('data-shared-source', 'archived');
-  await page.evaluate(() => { window.Alpine.$data(document.body).designSystem.styles = []; });
-  await expect(source).toHaveAttribute('data-shared-source', 'snapshot');
-  await info.attach('style-source-snapshot', { body: await source.screenshot(), contentType: 'image/png' });
+  await expect(source).toHaveAttribute('data-origin', 'preset');   // 归档后仍按快照渲染
+  await info.attach('style-source-preset', { body: await source.screenshot(), contentType: 'image/png' });
   await performPreviewUpdate(page, () => page.getByTestId('blox-style-binding-remove').click());
-  await expect(source).toHaveAttribute('data-shared-source', 'unbound');
+  await expect(source).toHaveAttribute('data-origin', 'local');
   await expect(heading).toHaveCSS('color', localColor);
+  await restoreClean(page);
+});
+
+test('style origin names the class and theme layers, flags overrides and restores inheritance @ci', async ({ page }, info) => {
+  await addTemporaryHeading(page);
+  await page.getByTestId('blox-style-tab').click();
+  const source = page.getByTestId('blox-style-source-type_font_size');
+  const app = fn => page.evaluate(fn);
+  // 主题：设计系统里 H2 的字号
+  await app(() => { const a = window.Alpine.$data(document.body); a.designSystem.theme = { typography: { h2: { size: { d: 30 } } }, buttons: {}, layout: {} }; });
+  await expect(source).toHaveAttribute('data-origin', 'theme');
+  await expect(source).toContainText('H2');
+  await expect(source).toContainText('30');
+  // 全局类：压过主题
+  await app(() => {
+    const a = window.Alpine.$data(document.body);
+    a.designSystem.classes = Object.assign({}, a.designSystem.classes, { gc_e2e0origin01: { name: 'e2e-origin', settings: { font_size_px: 22 } } });
+    a.selEl.data._classes = ['gc_e2e0origin01'];
+  });
+  await expect(source).toHaveAttribute('data-origin', 'class');
+  await expect(source).toHaveAttribute('data-overridden', 'theme');
+  await expect(source).toContainText('.e2e-origin');
+  await expect(source).toContainText('22px');
+  // 本元素的值：压过类和主题，标出「已覆盖」，可以恢复
+  await app(() => { const a = window.Alpine.$data(document.body); a.selEl.data.type_font_size = { d: '26' }; });
+  await expect(source).toHaveAttribute('data-origin', 'local');
+  await expect(source).toHaveAttribute('data-overridden', 'class theme');
+  await expect(page.getByTestId('blox-style-overrides-type_font_size')).toContainText('.e2e-origin');
+  await info.attach('style-origin-overrides', { body: await source.screenshot(), contentType: 'image/png' });
+  // 平板沿用桌面
+  await page.getByTestId('blox-control-type_font_size-device-tablet').click();
+  await expect(source).toHaveAttribute('data-origin', 'inherit');
+  await page.getByTestId('blox-control-type_font_size-device-desktop').click();
+  await page.getByTestId('blox-style-source-reset-type_font_size').click();
+  await expect(source).toHaveAttribute('data-origin', 'class');
+  await undo(page);
+  await expect(source).toHaveAttribute('data-origin', 'local');
+  // 间距块：类设的边距与本元素压过的部分
+  await app(() => {
+    const a = window.Alpine.$data(document.body);
+    a.designSystem.classes.gc_e2e0origin01.settings.padding_px = 24;
+    a.selEl.data.style_padding_top = 'lg';
+  });
+  await expect(page.getByTestId('blox-spacing-origin')).toContainText('.e2e-origin');
+  await expect(page.getByTestId('blox-spacing-origin')).toContainText('24px');
+  await expect(page.getByTestId('blox-spacing-overrides')).toBeVisible();
+  await app(() => { const a = window.Alpine.$data(document.body); a.selEl.data._classes = []; delete a.selEl.data.type_font_size; delete a.selEl.data.style_padding_top; });
   await restoreClean(page);
 });
 
@@ -156,21 +204,21 @@ test('container background and radius keep their own source and reset independen
   await page.getByTestId('blox-style-tab').click();
   const radiusSource = page.getByTestId('blox-style-source-radius');
   const backgroundSource = page.getByTestId('blox-style-source-bg_color');
-  await expect(radiusSource).toHaveAttribute('data-local-source', 'default');
-  await expect(backgroundSource).toHaveAttribute('data-local-source', 'css');
+  await expect(radiusSource).toHaveAttribute('data-origin', 'default');
+  await expect(backgroundSource).toHaveAttribute('data-origin', '');
   await performPreviewUpdate(page, () => page.getByTestId('blox-container-radius-xl').click());
-  await expect(radiusSource).toHaveAttribute('data-local-source', 'element');
+  await expect(radiusSource).toHaveAttribute('data-origin', 'local');
   await performPreviewUpdate(page, async () => {
     await page.locator('[data-control-key="bg_color"]').getByTestId('blox-color-picker-trigger').click();
     await page.getByTestId('blox-editor-color-token-primary').click();
   });
   await page.keyboard.press('Escape');
-  await expect(backgroundSource).toHaveAttribute('data-local-source', 'element');
+  await expect(backgroundSource).toHaveAttribute('data-origin', 'local');
   await performPreviewUpdate(page, () => page.getByTestId('blox-style-source-reset-bg_color').click());
-  await expect(backgroundSource).toHaveAttribute('data-local-source', 'css');
-  await expect(radiusSource).toHaveAttribute('data-local-source', 'element');
+  await expect(backgroundSource).toHaveAttribute('data-origin', '');
+  await expect(radiusSource).toHaveAttribute('data-origin', 'local');
   await undo(page);
-  await expect(backgroundSource).toHaveAttribute('data-local-source', 'element');
+  await expect(backgroundSource).toHaveAttribute('data-origin', 'local');
   await info.attach('container-style-sources', { body: await page.getByTestId('blox-property-scroll').screenshot(), contentType: 'image/png' });
   await restoreClean(page);
 });
