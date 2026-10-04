@@ -9090,4 +9090,7 @@ voltage|Voltage|220V',
     'blox_share_email' => 'Email',
     'blox_share_copy' => 'Copy link',
     'blox_share_copied' => 'Link copied',
+    'email_smtp_pass_saved' => 'Saved (hidden); leave blank to keep it',
+    'email_smtp_pass_clear' => 'Clear the saved password',
+    'seo_push_tls_error' => 'HTTPS certificate verification failed, usually because the server\'s CA bundle is out of date. Ask your host to update it',
 ];

@@ -9036,4 +9036,7 @@ return [
     'blox_share_email' => 'E-Mail',
     'blox_share_copy' => 'Link kopieren',
     'blox_share_copied' => 'Link kopiert',
+    'email_smtp_pass_saved' => 'Gespeichert (verborgen); leer lassen, um es beizubehalten',
+    'email_smtp_pass_clear' => 'Gespeichertes Passwort löschen',
+    'seo_push_tls_error' => 'HTTPS-Zertifikatsprüfung fehlgeschlagen, meist weil die Stammzertifikate des Servers veraltet sind. Bitten Sie Ihren Hoster, sie zu aktualisieren',
 ];

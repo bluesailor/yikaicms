@@ -9158,4 +9158,7 @@ voltage|电压|220V',
     'blox_share_email' => '邮件',
     'blox_share_copy' => '复制链接',
     'blox_share_copied' => '链接已复制',
+    'email_smtp_pass_saved' => '已保存（不显示）；留空不修改',
+    'email_smtp_pass_clear' => '清除已保存的密码',
+    'seo_push_tls_error' => 'HTTPS 证书校验失败，多是服务器的根证书库过旧，请联系主机商更新 CA 证书',
 ];

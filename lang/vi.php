@@ -9036,4 +9036,7 @@ return [
     'blox_share_email' => 'Email',
     'blox_share_copy' => 'Sao chép liên kết',
     'blox_share_copied' => 'Đã sao chép liên kết',
+    'email_smtp_pass_saved' => 'Đã lưu (ẩn); để trống để giữ nguyên',
+    'email_smtp_pass_clear' => 'Xóa mật khẩu đã lưu',
+    'seo_push_tls_error' => 'Xác minh chứng chỉ HTTPS thất bại, thường do kho chứng chỉ gốc của máy chủ đã cũ. Hãy nhờ nhà cung cấp hosting cập nhật',
 ];
