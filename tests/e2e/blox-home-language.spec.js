@@ -15,7 +15,7 @@ const {
 const language = process.env.BLOX_E2E_SITE_LANG || 'zh-CN';
 const locales = {
   en: {
-    title: /^Yikai Builder · Home$/,
+    title: /^Yikay Builder · Home$/,
     library: 'Element library',
     editHeader: 'Edit header',
     context: 'Header · Theme default',
@@ -25,7 +25,7 @@ const locales = {
     customBlockBase: '常见问题',
   },
   ja: {
-    title: /^Yikai ビルダー · ホーム$/,
+    title: /^Yikay ビルダー · ホーム$/,
     library: '要素ライブラリ',
     editHeader: 'ヘッダーを編集',
     context: 'ヘッダー · テーマ標準',

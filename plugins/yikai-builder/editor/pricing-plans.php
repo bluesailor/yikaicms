@@ -1,7 +1,7 @@
 <?php
 
 declare(strict_types=1);
-/** Yikai Builder Pro：价格方案的套餐编辑器（ctrl.type === 'pricing_plans'），经 blox_editor_panel 'pricing_plans' 插槽挂到控件循环。 */
+/** Yikay Builder Pro：价格方案的套餐编辑器（ctrl.type === 'pricing_plans'），经 blox_editor_panel 'pricing_plans' 插槽挂到控件循环。 */
 $pricingText = json_encode([
     'name' => __('blox_pricing_plan_name'),
     'badge' => __('blox_pricing_plan_badge'),

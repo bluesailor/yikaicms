@@ -2222,8 +2222,8 @@ test('editor chrome localizes to en and ja @ci', async ({ page }, testInfo) => {
     setAdminLang('ja');
     await page.reload();
     await expect(page.getByTestId('blox-tree')).toBeVisible();
-    // 2026-09-17 起编辑器品牌名为「Yikai ビルダー」（原「…エディター」）
-    await expect(page).toHaveTitle(/Yikai ビルダー/);
+    // 2026-09-17 起编辑器品牌名为「Yikay ビルダー」（原「…エディター」）
+    await expect(page).toHaveTitle(/Yikay ビルダー/);
     await expect(page.getByText('要素ライブラリ').first()).toBeVisible();
   } finally {
     setAdminLang('zh-CN');

@@ -1,4 +1,4 @@
-/* Yikai Builder Pro 作者端模块：价格方案元素的套餐编辑方法，以 `...window.BloxPricingControl.methods` 混入编辑器。
+/* Yikay Builder Pro 作者端模块：价格方案元素的套餐编辑方法，以 `...window.BloxPricingControl.methods` 混入编辑器。
  * 价格方案的渲染、按月/按年切换脚本与保存校验留在核心；未加载本模块时编辑器不提供价格方案编辑。 */
 (function (global) {
     'use strict';

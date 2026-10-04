@@ -13,8 +13,8 @@ return [
     'id' => '20260914_enable_blox_pro_editor_modules',
     'title' => '迁移易开网页构建器 Pro 旧插件 ID',
     'desc' => '开发期曾以 blox-pro 登记的站点改为新 ID yikai-builder，并保留原启用状态；未登记的站点不做任何改动。',
-    'title_en' => 'Move the legacy Yikai Builder Pro plugin ID',
-    'title_ja' => 'Yikai ビルダー Pro の旧プラグイン ID を移行',
+    'title_en' => 'Move the legacy Yikay Builder Pro plugin ID',
+    'title_ja' => 'Yikay ビルダー Pro の旧プラグイン ID を移行',
     'desc_en' => 'Sites registered under the earlier blox-pro ID are moved to yikai-builder with their state kept; other sites are left unchanged.',
     'desc_ja' => '以前の blox-pro ID で登録済みのサイトは状態を保ったまま yikai-builder に移行します。それ以外のサイトは変更しません。',
     'check' => static function (): bool {
