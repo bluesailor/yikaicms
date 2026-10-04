@@ -9117,4 +9117,7 @@ return [
     'blox_field_table_striped' => '줄무늬',
     'blox_field_table_bordered' => '테두리',
     'blox_field_table_plain' => '심플',
+    'email_smtp_pass_saved' => '저장됨(표시 안 함). 비워 두면 변경하지 않습니다',
+    'email_smtp_pass_clear' => '저장된 비밀번호 삭제',
+    'seo_push_tls_error' => 'HTTPS 인증서 확인에 실패했습니다. 대개 서버의 루트 인증서가 오래되었기 때문입니다. 호스팅 업체에 CA 인증서 업데이트를 요청하세요',
 ];

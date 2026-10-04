@@ -9313,4 +9313,7 @@ voltage|電圧|220V',
     'blox_field_table_striped' => 'ストライプ',
     'blox_field_table_bordered' => '罫線',
     'blox_field_table_plain' => 'シンプル',
+    'email_smtp_pass_saved' => '保存済み（非表示）。空欄のままなら変更しません',
+    'email_smtp_pass_clear' => '保存済みのパスワードを削除',
+    'seo_push_tls_error' => 'HTTPS 証明書の検証に失敗しました。多くはサーバーのルート証明書が古いためです。ホスティング会社に CA 証明書の更新を依頼してください',
 ];

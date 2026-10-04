@@ -9117,4 +9117,7 @@ contoh: steel|Baja tahan karat',
     'blox_field_table_striped' => 'Belang',
     'blox_field_table_bordered' => 'Berbingkai',
     'blox_field_table_plain' => 'Polos',
+    'email_smtp_pass_saved' => 'Tersimpan (disembunyikan); kosongkan agar tidak diubah',
+    'email_smtp_pass_clear' => 'Hapus kata sandi tersimpan',
+    'seo_push_tls_error' => 'Verifikasi sertifikat HTTPS gagal, biasanya karena sertifikat root server sudah usang. Minta penyedia hosting Anda memperbaruinya',
 ];

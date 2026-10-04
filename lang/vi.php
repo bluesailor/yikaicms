@@ -9117,4 +9117,7 @@ VD: steel|Thép không gỉ',
     'blox_field_table_striped' => 'Sọc xen kẽ',
     'blox_field_table_bordered' => 'Có viền',
     'blox_field_table_plain' => 'Đơn giản',
+    'email_smtp_pass_saved' => 'Đã lưu (ẩn); để trống để giữ nguyên',
+    'email_smtp_pass_clear' => 'Xóa mật khẩu đã lưu',
+    'seo_push_tls_error' => 'Xác minh chứng chỉ HTTPS thất bại, thường do kho chứng chỉ gốc của máy chủ đã cũ. Hãy nhờ nhà cung cấp hosting cập nhật',
 ];

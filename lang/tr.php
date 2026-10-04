@@ -9117,4 +9117,7 @@ return [
     'blox_field_table_striped' => 'Çizgili',
     'blox_field_table_bordered' => 'Kenarlıklı',
     'blox_field_table_plain' => 'Sade',
+    'email_smtp_pass_saved' => 'Kaydedildi (gizli); değiştirmemek için boş bırakın',
+    'email_smtp_pass_clear' => 'Kayıtlı parolayı temizle',
+    'seo_push_tls_error' => 'HTTPS sertifika doğrulaması başarısız oldu; genellikle sunucunun kök sertifikaları eskidir. Barındırma sağlayıcınızdan güncellemesini isteyin',
 ];

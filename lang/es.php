@@ -9117,4 +9117,7 @@ ej.: steel|Acero inoxidable',
     'blox_field_table_striped' => 'Rayado',
     'blox_field_table_bordered' => 'Con bordes',
     'blox_field_table_plain' => 'Sencillo',
+    'email_smtp_pass_saved' => 'Guardada (oculta); déjela en blanco para conservarla',
+    'email_smtp_pass_clear' => 'Borrar la contraseña guardada',
+    'seo_push_tls_error' => 'Falló la verificación del certificado HTTPS, normalmente porque los certificados raíz del servidor están desactualizados. Pida a su proveedor de hosting que los actualice',
 ];
