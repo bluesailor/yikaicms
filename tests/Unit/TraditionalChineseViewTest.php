@@ -110,6 +110,13 @@ final class TraditionalChineseViewTest extends TestCase
      */
     public function testInterfacePackIsGeneratedAndStableUnderPageConversion(): void
     {
+        // 产品用语（繁体用语审校的结论）：内容转换也照此，审过的写法再转一次不变
+        self::assertSame('發佈時間', S2T::text('发布时间'));
+        self::assertSame('後台登入', S2T::text('后台登录'));
+        self::assertSame('全部權限', S2T::text(S2T::text('全部权限')));
+        self::assertSame('會議主題', S2T::text('会议主题'));
+        self::assertSame('产品与服务', S2T::toSimplified('產品與服務'));
+
         // 结果包含原词的台湾用词：转过的文字再转不能叠字（演演算法）
         self::assertSame('當前演算法', S2T::text(S2T::text('当前算法')));
         self::assertSame('虛擬機器', S2T::text('虛擬機器'));

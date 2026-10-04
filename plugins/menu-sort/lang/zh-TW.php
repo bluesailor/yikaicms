@@ -6,8 +6,8 @@
  */
 
 return [
-    'mnsort_title' => '後臺選單排序',
-    'mnsort_tip' => '拖拽排序、點選名稱可改名、👁 切換顯示隱藏——:b改動自動儲存:_b，重新整理後臺頁面後生效。改名僅作用於當前後臺語言（:lang），清空恢復預設。',
+    'mnsort_title' => '後台選單排序',
+    'mnsort_tip' => '拖拽排序、點選名稱可改名、👁 切換顯示隱藏——:b改動自動儲存:_b，重新整理後台頁面後生效。改名僅作用於當前後台語言（:lang），清空恢復預設。',
     'mnsort_reset' => '恢復預設',
     'mnsort_save_now' => '立即儲存',
     'mnsort_toggle_group' => '顯示/隱藏整個分組',
@@ -15,7 +15,7 @@ return [
     'mnsort_rename_tip' => '改名後立即儲存；清空則恢復預設',
     'mnsort_saving' => '儲存中…',
     'mnsort_autosaved' => '✓ 已自動儲存 ',
-    'mnsort_saved_hint' => '已儲存，重新整理後臺頁面後側欄生效',
+    'mnsort_saved_hint' => '已儲存，重新整理後台頁面後側欄生效',
     'mnsort_save_failed' => '儲存失敗',
     'mnsort_reset_confirm' => '確定恢復預設選單排序？',
     'mnsort_reset_done' => '已恢復預設',
@@ -24,7 +24,7 @@ return [
     'mnsort_log_reset' => '重置選單排序',
     'mnsort_reset_msg' => '已恢復預設排序',
     'mnsort_grp_system' => '系統',
-    'mnsort_grp_setting' => '站點設定',
+    'mnsort_grp_setting' => '網站設定',
     'mnsort_grp_plugin' => '外掛管理',
     'mnsort_from_plugin' => '外掛·',
 ];
