@@ -115,7 +115,7 @@ function redirectToRegisteredUrl(string $kind, int $id): void
     if ($registered === '') return;
     $page = (int) ($params['page'] ?? 1);
     unset($params['page']);
-    $target = customRoutePublicPath($registered);
+    $target = customRoutePublicPath(viewLangPath($registered));
     if ($page > 1 && in_array($kind, ProductRouteModel::LISTING_KINDS, true)) $target = rtrim($target, '/') . '/page/' . $page . '/';
     $query = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
     header('Location: ' . $target . ($query !== '' ? '?' . $query : ''), true, 301);

@@ -1464,7 +1464,7 @@ function channelPrettyUrl(array $channel): string
     }
     // 登记网址（WordPress 迁移等）优先，与 productPrettyUrl 一致
     $custom = productRouteModel()->pathFor('channel', (int) ($channel['id'] ?? 0));
-    return $custom !== '' ? $custom : channelDefaultPrettyUrl($channel);
+    return $custom !== '' ? viewLangPath($custom) : channelDefaultPrettyUrl($channel);
 }
 
 /**
@@ -1475,9 +1475,21 @@ function channelPrettyUrl(array $channel): string
 function rowLangPrefix(array $row): string
 {
     $lang = (string) ($row['lang'] ?? '');
-    if ($lang === '' || $lang === displayLang()) return langPrefix();
+    // 繁体视图渲染简体数据：简体行用当前（/zh-TW）前缀，否则链接与跳转会丢掉繁体
+    if ($lang === '' || $lang === displayLang() || $lang === siteLang()) return langPrefix();
     $enabled = json_decode((string) config('enabled_languages', ''), true);
     return is_array($enabled) && in_array($lang, $enabled, true) ? langPrefix($lang) : langPrefix();
+}
+
+/**
+ * 登记网址存的是数据行（简体）的地址；繁体视图（zh-TW 渲染 zh-CN 数据）下补上当前的 /zh-TW 前缀，
+ * 不然繁体页面上的链接会跳回简体站。其它语言视图下原样返回。
+ */
+function viewLangPath(string $path): string
+{
+    if (displayLang() === siteLang()) return $path;
+    $prefix = langPrefix();
+    return $prefix === '' || $path === $prefix || str_starts_with($path, $prefix . '/') ? $path : $prefix . $path;
 }
 
 /** 栏目不看登记网址时的默认美化地址（/{slug}.html 等）；登记网址冲突检查用它。 */
@@ -1700,7 +1712,7 @@ function newsChannelUrl(?array $category): string
     $id = $category !== null ? (int) ($category['id'] ?? 0)
         : ($newsIds[siteLang()] ??= (int) ((getChannelBySlug('news', true) ?: [])['id'] ?? 0));
     $custom = productRouteModel()->pathFor('channel', $id);
-    if ($custom !== '') return $custom;
+    if ($custom !== '') return viewLangPath($custom);
     return langPrefix() . ($slug !== '' ? '/news/' . rawurlencode($slug) . '.html' : '/news.html');
 }
 
@@ -1708,7 +1720,7 @@ function contentPrettyUrl(array $content): string
 {
     // 登记网址（WordPress 迁移等）优先，与 productPrettyUrl 一致
     $custom = productRouteModel()->pathFor('content', (int) ($content['id'] ?? 0));
-    return $custom !== '' ? $custom : contentDefaultPrettyUrl($content);
+    return $custom !== '' ? viewLangPath($custom) : contentDefaultPrettyUrl($content);
 }
 
 /** 内容不看登记网址时的默认美化地址（/news/article/{slug}.html 等）。 */
@@ -1812,7 +1824,7 @@ function productUrl(array $product): string
 function productPrettyUrl(array $product): string
 {
     $custom = productRouteModel()->pathFor('product', (int) ($product['id'] ?? 0));
-    if ($custom !== '') return $custom;
+    if ($custom !== '') return viewLangPath($custom);
     $prefix = rowLangPrefix($product);
     // 同 channelPrettyUrl/contentPrettyUrl：存量别名可能需要转义
     $slug = rawurlencode((string) ($product['slug'] ?? ''));
@@ -1907,7 +1919,7 @@ function productCategoryUrl(array $category): string
 {
     if (!isDynamicUrlMode()) {
         $custom = productRouteModel()->pathFor('category', (int) ($category['id'] ?? 0));
-        if ($custom !== '') return $custom;
+        if ($custom !== '') return viewLangPath($custom);
     }
     if (isDynamicUrlMode()) {
         $slug = (string) ($category['slug'] ?? '');
