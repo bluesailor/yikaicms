@@ -172,6 +172,14 @@
 .prose table { width: 100%; border-collapse: collapse; margin: 1em 0; }
 .prose th, .prose td { border: 1px solid #e5e7eb; padding: 0.5em 0.75em; text-align: left; }
 .prose th { background: #f9fafb; font-weight: 600; }
+/* 正文宽表格（2.0.4）：参数表十几列时横向滚动，不撑破版面。导入的表格包了 .yk-table-scroll；
+   没包的在手机上整表改为可横滑的块（桌面保持原样）。 */
+.prose .yk-table-scroll, .yk-description .yk-table-scroll { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; margin: 1em 0; }
+.prose .yk-table-scroll > table, .yk-description .yk-table-scroll > table { margin: 0; }
+.yk-description table { border-collapse: collapse; }
+@media (max-width: 767px) {
+    .prose table:not(.yk-table-scroll > table), .yk-description table:not(.yk-table-scroll > table) { display: block; max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+}
 /* 代码：内联 code + 代码块 pre（编辑器 codesample 生成 <pre class="language-*"><code>） */
 .prose code { background: #f3f4f6; color: #db2777; padding: 0.15em 0.4em; border-radius: 4px; font-size: 0.9em; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace; }
 .prose pre { background: #1e293b; color: #e2e8f0; padding: 1em 1.25em; border-radius: 8px; margin: 1em 0; overflow-x: auto; font-size: 0.9em; line-height: 1.6; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Courier New", monospace; }

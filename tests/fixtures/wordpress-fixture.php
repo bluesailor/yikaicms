@@ -130,7 +130,27 @@ function wordPressFixture(PDO $pdo, string $p = 'wp_'): array
         ['elType' => 'widget', 'widgetType' => 'text-editor', 'settings' => ['editor' => '<p>Twenty engineers.</p>']],
     ]]]]]));
     $wpml('post_page', $ids['page_team'], 302, 'en', null);
-    $ids['page_contact'] = $post(['post_type' => 'page', 'post_title' => 'Contact', 'post_name' => 'contact', 'post_content' => "Email us.\n\n[contact-form-7 id=\"5\"]"]);
+    // Contact Form 7：询盘表单（英文为默认语言，日文、德文翻译；新版 CF7 短代码用 hash 前 7 位）
+    $quoteForm = "<label>Company name\n    [text company placeholder \"Your company\"]</label>\n<label>Your name *\n    [text* your-name]</label>\n"
+        . "<label>Email *\n    [email* your-email]</label>\n<label>Bearing type\n    [select bearing-type \"Single row\" \"Double row\"]</label>\n"
+        . "<label>Message\n    [textarea your-message]</label>\n[acceptance privacy]I agree to the privacy policy[/acceptance]\n[quiz robot \"1+1=?|2\"]\n[submit \"Send inquiry\"]";
+    $ids['form_quote'] = $post(['post_type' => 'wpcf7_contact_form', 'post_title' => 'Request a Quote', 'post_name' => 'request-a-quote', 'post_content' => $quoteForm]);
+    $meta($ids['form_quote'], '_form', $quoteForm);
+    $meta($ids['form_quote'], '_hash', 'a1b2c3d4e5f60718293a4b5c6d7e8f9012345678');
+    $meta($ids['form_quote'], '_messages', ['mail_sent_ok' => 'Thank you, we will reply within 24 hours.']);
+    $wpml('post_wpcf7_contact_form', $ids['form_quote'], 601, 'en', null);
+    $quoteJa = "<label>会社名\n    [text company]</label>\n<label>お名前 *\n    [text* your-name]</label>\n<label>メール *\n    [email* your-email]</label>\n[submit \"送信\"]";
+    $ids['form_quote_ja'] = $post(['post_type' => 'wpcf7_contact_form', 'post_title' => 'お見積り依頼', 'post_name' => 'request-a-quote-ja', 'post_content' => $quoteJa]);
+    $meta($ids['form_quote_ja'], '_form', $quoteJa);
+    $meta($ids['form_quote_ja'], '_messages', ['mail_sent_ok' => 'お問い合わせありがとうございます。']);
+    $wpml('post_wpcf7_contact_form', $ids['form_quote_ja'], 601, 'ja', 'en');
+    $quoteDe = "<label>Firma\n    [text company]</label>\n<label>Name *\n    [text* your-name]</label>\n<label>E-Mail *\n    [email* your-email]</label>\n[submit \"Senden\"]";
+    $ids['form_quote_de'] = $post(['post_type' => 'wpcf7_contact_form', 'post_title' => 'Angebotsanfrage', 'post_name' => 'request-a-quote-de', 'post_content' => $quoteDe]);
+    $meta($ids['form_quote_de'], '_form', $quoteDe);
+    $meta($ids['form_quote_de'], '_messages', ['mail_sent_ok' => 'Vielen Dank für Ihre Anfrage.']);
+    $wpml('post_wpcf7_contact_form', $ids['form_quote_de'], 601, 'de', 'en');
+    $ids['page_contact'] = $post(['post_type' => 'page', 'post_title' => 'Contact', 'post_name' => 'contact',
+        'post_content' => "Email us.\n\n[contact-form-7 id=\"a1b2c3d\" title=\"Request a Quote\"]\n\n<table><tr><th>Model</th><th>Size</th></tr><tr><td>SE7</td><td>7 in</td></tr></table>"]);
     $wpml('post_page', $ids['page_contact'], 303, 'en', null);
 
     // WooCommerce：产品分类（父子）、产品标签、属性、图集、SKU
@@ -154,6 +174,29 @@ function wordPressFixture(PDO $pdo, string $p = 'wp_'): array
     $relate($ids['product_drive'], $pcWorm);
     $relate($ids['product_drive'], $ptHeavy);
     $wpml('post_product', $ids['product_drive'], 501, 'en', null);
+
+    // 导航菜单：三级以上（第四级并到第三级）、页面 / 产品分类 / 产品 / 自定义链接混排；日文菜单是同一翻译组
+    $menuMain = $term('Main Menu', 'main-menu', 'nav_menu');
+    $menuJa = $term('メインメニュー', 'main-menu-ja', 'nav_menu');
+    $wpml('tax_nav_menu', $menuMain['tt_id'], 701, 'en', null);
+    $wpml('tax_nav_menu', $menuJa['tt_id'], 701, 'ja', 'en');
+    $opt('stylesheet', 'flatsome-child');
+    $opt('theme_mods_flatsome-child', ['nav_menu_locations' => ['primary' => $menuMain['term_id']]]);
+    $item = static function (array $menu, string $title, array $m, int $order, int $parent = 0) use ($post, $meta, $relate): int {
+        $id = $post(['post_type' => 'nav_menu_item', 'post_title' => $title, 'menu_order' => $order]);
+        foreach ($m + ['_menu_item_menu_item_parent' => (string) $parent, '_menu_item_target' => ''] as $key => $value) $meta($id, $key, $value);
+        $relate($id, $menu);
+        return $id;
+    };
+    $mAbout = $item($menuMain, '', ['_menu_item_type' => 'post_type', '_menu_item_object' => 'page', '_menu_item_object_id' => (string) $ids['page_about']], 1);
+    $item($menuMain, 'Our Team', ['_menu_item_type' => 'post_type', '_menu_item_object' => 'page', '_menu_item_object_id' => (string) $ids['page_team']], 2, $mAbout);
+    $mProducts = $item($menuMain, 'Products', ['_menu_item_type' => 'custom', '_menu_item_object' => 'custom', '_menu_item_url' => '#'], 3);
+    $mWorm = $item($menuMain, '', ['_menu_item_type' => 'taxonomy', '_menu_item_object' => 'product_cat', '_menu_item_object_id' => (string) $pcWorm['term_id']], 4, $mProducts);
+    $mSe7 = $item($menuMain, '', ['_menu_item_type' => 'post_type', '_menu_item_object' => 'product', '_menu_item_object_id' => (string) $ids['product_drive']], 5, $mWorm);
+    $item($menuMain, 'SE7 manual', ['_menu_item_type' => 'post_type', '_menu_item_object' => 'post', '_menu_item_object_id' => (string) $ids['post_install']], 6, $mSe7);
+    $item($menuMain, 'Contact us', ['_menu_item_type' => 'custom', '_menu_item_object' => 'custom', '_menu_item_url' => 'https://www.slewing-bearing.com/contact/'], 7);
+    $item($menuJa, '', ['_menu_item_type' => 'post_type', '_menu_item_object' => 'post', '_menu_item_object_id' => (string) $ids['post_install_ja']], 1);
+    $ids['menu_main_tt'] = $menuMain['tt_id'];
 
     return $ids;
 }

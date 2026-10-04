@@ -4,6 +4,8 @@ declare(strict_types=1);
 require_once __DIR__ . '/WordPressSource.php';
 require_once __DIR__ . '/WordPressPermalinks.php';
 require_once __DIR__ . '/WordPressContent.php';
+require_once __DIR__ . '/WordPressForms.php';
+require_once dirname(__DIR__) . '/LegacyUrls.php';
 
 /**
  * WordPress → YikaiCMS 导入（2.0.4，WordPress 迁移底座；读 WordPress 数据库）。
@@ -17,7 +19,10 @@ require_once __DIR__ . '/WordPressContent.php';
  *   商品分类 / 标签       → 产品分类 / 产品标签
  *   Yoast 标题、描述、焦点词 → SEO 标题 / 描述 / 关键词（产品存在 metas）
  *   WPML 翻译组           → translation_group_id；非默认语言网址加 /xx 前缀（语言子域名由「语言域名」设置接管）
- * 每个条目都按原站固定链接登记网址（网址登记表），网址不变。
+ *   Contact Form 7 表单   → 表单模板（各语言字段），正文里的 [contact-form-7] 换成 [form-别名]（2.0.4）
+ *   导航菜单 nav_menu     → 菜单组（最多三级），各语言菜单记成默认语言组的语言版本（2.0.4）
+ * 每个条目都按原站固定链接登记网址（网址登记表），网址不变；导入后打开 LegacyUrls 兜底
+ * （?p=123、?s=、/feed/、/author/、附件页等成批旧地址）。
  *
  * 可重复运行：WordPress id → CMS id 记在 metas（owner_type=wp_import），再跑一次是更新不是重复插入。
  * 试运行（dryRun）在事务里完整跑一遍再回滚，报告与正式导入完全一致。
@@ -52,9 +57,11 @@ final class WordPressImporter
     private array $groups = [];
     /** @var array<string,int> 各语言新闻栏目（语言 → 栏目 id）的缓存 */
     private array $newsChannels = [];
+    /** @var array<string,string> CF7 表单 id / hash 前 7 位 → 本站表单别名 */
+    private array $formSlugs = [];
 
-    /** @var array{created:array<string,int>,updated:array<string,int>,skipped:array<string,int>,urls:int,warnings:list<string>,dropped:array<string,int>,unknown:array<string,int>,languages:list<string>} */
-    private array $report = ['created' => [], 'updated' => [], 'skipped' => [], 'urls' => 0, 'warnings' => [], 'dropped' => [], 'unknown' => [], 'languages' => []];
+    /** @var array{created:array<string,int>,updated:array<string,int>,skipped:array<string,int>,urls:int,warnings:list<string>,dropped:array<string,int>,unknown:array<string,int>,languages:list<string>,menus:list<array<string,mixed>>,forms:list<array{name:string,slug:string,lang:string,translations:list<string>}>} */
+    private array $report = ['created' => [], 'updated' => [], 'skipped' => [], 'urls' => 0, 'warnings' => [], 'dropped' => [], 'unknown' => [], 'languages' => [], 'menus' => [], 'forms' => []];
     /** @var list<string> 本次登记的全部网址（覆盖检查用） */
     private array $paths = [];
 
@@ -94,6 +101,9 @@ final class WordPressImporter
 
         db()->beginTransaction();
         try {
+            // 表单先导：正文里的 [contact-form-7 id=…] 才能换成本站的 [form-别名]
+            $this->importForms();
+            $this->content->forms = $this->formSlugs;
             $this->importCategories();
             $this->importPostTags();
             $this->importProductCategories();
@@ -101,6 +111,10 @@ final class WordPressImporter
             $this->importPages();
             $this->importPosts();
             $this->importProducts();
+            // 菜单最后导：菜单项指向的页面、分类、产品都已经有了
+            $this->importMenus();
+            // 打开旧链接兜底：?p=123、/feed/、/author/… 等（LegacyUrls）
+            settingModel()->saveBatch([LegacyUrls::SETTING => '1']);
             if ($dryRun) db()->rollback(); else db()->commit();
         } catch (Throwable $e) {
             db()->rollback();
@@ -484,6 +498,209 @@ final class WordPressImporter
             return $done[$wpId] = $id;
         };
         foreach ($this->defaultLanguageFirst($pages, 'post_page', 'ID') as $page) $make($page);
+    }
+
+    // ── Contact Form 7 表单 ───────────────────────────────────────────────
+
+    /**
+     * CF7 表单 → 表单模板。默认语言那份建模板；WPML 翻译进同一模板的各语言字段
+     * （en / ja 有现成的列，其它语言存 metas：owner_type=form_template_lang，meta_key=fields_<语言> / success_<语言>）。
+     */
+    private function importForms(): void
+    {
+        $forms = $this->src->posts(['wpcf7_contact_form']);
+        if ($forms === []) return;
+        $meta = $this->src->meta(array_map(static fn (array $f): int => (int) $f['ID'], $forms));
+        $converter = new WordPressForms();
+        $base = [];
+        $reportIndex = [];
+        foreach ($this->defaultLanguageFirst($forms, 'post_wpcf7_contact_form', 'ID') as $form) {
+            $wpId = (int) $form['ID'];
+            $lang = $this->langOf('post_wpcf7_contact_form', $wpId);
+            if ($lang === null) continue;
+            $m = $meta[$wpId] ?? [];
+            $fields = trim($converter->convert((string) ($m['_form'] ?? $form['post_content'])));
+            $success = WordPressForms::successMessage((string) ($m['_messages'] ?? ''));
+            $title = html_entity_decode((string) $form['post_title'], ENT_QUOTES | ENT_HTML5, 'UTF-8') ?: 'Form ' . $wpId;
+            $trid = $this->trid('post_wpcf7_contact_form', $wpId);
+            $templateId = $trid > 0 ? ($base[$trid] ?? 0) : 0;
+            if ($templateId === 0) {
+                $existing = $this->mapped('form', $wpId, 'form_templates');
+                $slug = $this->slug((string) $form['post_name'], $title, 'form_templates', $existing);
+                if (preg_match('/^[a-zA-Z0-9_-]+$/', $slug) !== 1) $slug = 'wp-form-' . $wpId;
+                $data = ['name' => $title, 'slug' => $slug, 'fields' => $fields, 'status' => 1];
+                if ($success !== '') $data['success_message'] = $success;
+                if ($existing === 0) $data['created_at'] = time();
+                $templateId = $this->upsert('form', $wpId, 'form_templates', $data);
+                if ($trid > 0) $base[$trid] = $templateId;
+                $this->report['forms'][] = ['name' => $title, 'slug' => (string) db()->fetchColumn('SELECT slug FROM ' . DB_PREFIX . 'form_templates WHERE id = ?', [$templateId]), 'lang' => $lang, 'translations' => []];
+                $reportIndex[$templateId] = array_key_last($this->report['forms']);
+            } elseif (in_array($lang, ['en', 'ja'], true)) {
+                db()->update('form_templates', ['fields_' . $lang => $fields, 'name_' . $lang => $title]
+                    + ($success !== '' ? ['success_message_' . $lang => $success] : []), 'id = ?', [$templateId]);
+            } else {
+                setMeta('form_template_lang', $templateId, 'fields_' . $lang, $fields);
+                if ($success !== '') setMeta('form_template_lang', $templateId, 'success_' . $lang, $success);
+            }
+            if (isset($reportIndex[$templateId]) && $lang !== $this->report['forms'][$reportIndex[$templateId]]['lang']) {
+                $this->report['forms'][$reportIndex[$templateId]]['translations'][] = $lang;
+            }
+            $slug = (string) db()->fetchColumn('SELECT slug FROM ' . DB_PREFIX . 'form_templates WHERE id = ?', [$templateId]);
+            $this->formSlugs[(string) $wpId] = $slug;
+            $hash = (string) ($m['_hash'] ?? '');
+            if ($hash !== '') $this->formSlugs[substr($hash, 0, 7)] = $slug;
+        }
+        foreach ($converter->dropped as $tag => $n) $this->warn("表单里去掉了不支持的标签 [{$tag}]（{$n} 处），请在表单设计里检查");
+    }
+
+    // ── 导航菜单 ────────────────────────────────────────────────────────────
+
+    /**
+     * WordPress 菜单 → 菜单组（最多三级，更深的并到第三级）。每种语言的菜单各建一组，
+     * 非默认语言的组记成默认语言组的「语言版本」（metas owner_type=nav_menu_lang），
+     * 页头导航元素选默认语言那组即可，各语言自动换成自己的菜单（NavMenuModel::treeFor）。
+     */
+    private function importMenus(): void
+    {
+        $menus = $this->src->terms(['nav_menu']);
+        if ($menus === []) return;
+        $items = $this->src->posts(['nav_menu_item']);
+        $meta = $this->src->meta(array_map(static fn (array $i): int => (int) $i['ID'], $items));
+        $byMenu = [];
+        foreach ($items as $item) {
+            foreach ($this->relationships[(int) $item['ID']] ?? [] as $tt) {
+                if (isset($menus[$tt])) $byMenu[$tt][] = $item;
+            }
+        }
+        $locations = $this->menuLocations();
+        $base = [];
+        $model = new NavMenuModel();
+        foreach ($this->defaultLanguageFirst(array_values($menus), 'tax_nav_menu', 'tt_id') as $menu) {
+            $tt = (int) $menu['tt_id'];
+            $lang = $this->langOf('tax_nav_menu', $tt);
+            if ($lang === null) continue;
+            $tree = $this->menuTree($byMenu[$tt] ?? [], $meta);
+            $count = 0;
+            $clean = $model->sanitizeItems($tree, 1, $count);
+            $name = mb_substr($menu['name'] . ($lang !== $this->defaultLang ? " ({$lang})" : ''), 0, 100);
+            $existing = $this->mapped('nav_menu', $tt, 'nav_menus');
+            $data = ['name' => $name, 'items' => json_encode($clean, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES), 'updated_at' => time()];
+            if ($existing === 0) $data += ['sort_order' => 0, 'created_at' => time()];
+            $id = $this->upsert('nav_menu', $tt, 'nav_menus', $data);
+            $trid = $this->trid('tax_nav_menu', $tt);
+            if ($lang === $this->defaultLang || !isset($base[$trid]) || $trid === 0) {
+                if ($trid > 0) $base[$trid] = $id;
+            } else {
+                setMeta('nav_menu_lang', $base[$trid], $lang, (string) $id);
+            }
+            $this->report['menus'][] = ['id' => $id, 'name' => $name, 'lang' => $lang, 'items' => $count,
+                'locations' => $locations[(int) $menu['term_id']] ?? []];
+        }
+    }
+
+    /** 主题菜单位置：term_id → 位置名（primary、footer…）。 @return array<int,list<string>> */
+    private function menuLocations(): array
+    {
+        $mods = $this->src->optionArray('theme_mods_' . (string) $this->src->option('stylesheet'));
+        $out = [];
+        foreach (is_array($mods['nav_menu_locations'] ?? null) ? $mods['nav_menu_locations'] : [] as $location => $termId) {
+            if ((int) $termId > 0) $out[(int) $termId][] = (string) $location;
+        }
+        return $out;
+    }
+
+    /**
+     * 菜单项 → 菜单组的项树。页面 / 文章分类引用栏目（名称跟随栏目），文章 / 产品 / 产品分类 / 标签用登记的网址，
+     * 自定义链接把原站域名换成站内路径。没有链接的父项（# 占位）用第一个子项的链接。
+     *
+     * @param list<array<string,mixed>> $items
+     * @param array<int,array<string,string>> $meta
+     * @return list<array<string,mixed>>
+     */
+    private function menuTree(array $items, array $meta): array
+    {
+        usort($items, static fn (array $a, array $b): int => (int) $a['menu_order'] <=> (int) $b['menu_order']);
+        $nodes = [];
+        $parents = [];
+        foreach ($items as $item) {
+            $id = (int) $item['ID'];
+            $nodes[$id] = $this->menuNode($item, $meta[$id] ?? []);
+            $parents[$id] = (int) ($meta[$id]['_menu_item_menu_item_parent'] ?? 0);
+        }
+        $children = [];
+        foreach ($parents as $id => $parent) $children[isset($nodes[$parent]) ? $parent : 0][] = $id;
+        $build = function (int $parent, int $depth) use (&$build, &$nodes, $children): array {
+            $out = [];
+            foreach ($children[$parent] ?? [] as $id) {
+                $node = $nodes[$id];
+                $kids = $build($id, $depth + 1);
+                if ($depth >= NavMenuModel::MAX_DEPTH) {
+                    // 第三级以下：自己留在第三级，子孙并成它后面的同级项
+                    $out[] = ['children' => []] + $node;
+                    foreach ($kids as $kid) $out[] = $kid;
+                    if ($kids !== []) $this->warn("菜单「{$node['label']}」下超过三级，更深的项已并到第三级");
+                    continue;
+                }
+                $node['children'] = $kids;
+                if ($node['channel_id'] === 0 && $node['url'] === '' && $kids !== []) {
+                    $node['url'] = $kids[0]['url'] !== '' ? $kids[0]['url'] : '';
+                    if ($node['url'] === '' && $kids[0]['channel_id'] > 0) {
+                        $node['channel_id'] = 0;
+                        $node['url'] = '/';
+                    }
+                }
+                if ($node['channel_id'] === 0 && ($node['url'] === '' || $node['label'] === '')) {
+                    $this->warn("菜单项「{$node['label']}」没有可用的链接，已跳过");
+                    foreach ($kids as $kid) $out[] = $kid;
+                    continue;
+                }
+                $out[] = $node;
+            }
+            return $out;
+        };
+        return $build(0, 1);
+    }
+
+    /** @param array<string,mixed> $item @param array<string,string> $m @return array{channel_id:int,label:string,url:string,target:string,icon:string,children:list<mixed>} */
+    private function menuNode(array $item, array $m): array
+    {
+        $label = trim(html_entity_decode((string) $item['post_title'], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        $type = (string) ($m['_menu_item_type'] ?? 'custom');
+        $object = (string) ($m['_menu_item_object'] ?? '');
+        $objectId = (int) ($m['_menu_item_object_id'] ?? 0);
+        $node = ['channel_id' => 0, 'label' => $label, 'url' => '', 'target' => ($m['_menu_item_target'] ?? '') === '_blank' ? '_blank' : '', 'icon' => '', 'children' => []];
+        $titleOf = static fn (string $table, string $column, int $id): string => $id > 0 ? (string) (db()->fetchColumn('SELECT ' . $column . ' FROM ' . DB_PREFIX . $table . ' WHERE id = ?', [$id]) ?: '') : '';
+        if ($type === 'post_type' && $object === 'page') {
+            $node['channel_id'] = $this->ids['page'][$objectId] ?? $this->mapped('page', $objectId, 'channels');
+        } elseif ($type === 'post_type' && $object === 'post') {
+            $id = $this->ids['post'][$objectId] ?? $this->mapped('post', $objectId, 'contents');
+            $node['url'] = productRouteModel()->pathFor('content', $id);
+            $node['label'] = $label !== '' ? $label : $titleOf('contents', 'title', $id);
+        } elseif ($type === 'post_type' && $object === 'product') {
+            $id = $this->ids['product'][$objectId] ?? $this->mapped('product', $objectId, 'products');
+            $node['url'] = productRouteModel()->pathFor('product', $id);
+            $node['label'] = $label !== '' ? $label : $titleOf('products', 'title', $id);
+        } elseif ($type === 'taxonomy' && in_array($object, ['category', 'product_cat', 'post_tag', 'product_tag'], true)) {
+            $tt = $this->ttByTerm[$object . ':' . $objectId] ?? 0;
+            $kind = $object;
+            $route = LegacyUrls::KIND_ROUTE[$object];
+            $id = $this->ids[$kind][$tt] ?? (int) (getMeta(self::MAP, $tt, $kind) ?? 0);
+            if ($object === 'category') {
+                $node['channel_id'] = $id;
+            } else {
+                $node['url'] = productRouteModel()->pathFor($route, $id);
+                if ($node['label'] === '') $node['label'] = (string) ($this->terms[$tt]['name'] ?? '');
+            }
+        } elseif ($type === 'custom') {
+            $url = trim((string) ($m['_menu_item_url'] ?? ''));
+            if (preg_match('~^(https?:)?//([^/]+)(/.*)?$~i', $url, $u) === 1) {
+                $url = $this->content->localPath(strtolower($u[2]), $u[3] ?? '/') ?? $url;
+            }
+            $node['url'] = ($url === '' || str_starts_with($url, '#')) ? '' : $url;
+        } else {
+            $this->warn("菜单项「{$label}」的类型 {$type}/{$object} 不支持，请导入后手动补");
+        }
+        return $node;
     }
 
     /** 主分类：Yoast 主分类优先，其次第一个分类。 @return array<string,mixed>|null */

@@ -114,12 +114,7 @@ if (!empty($template['captcha'])) {
     }
 }
 
-$fieldsLang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
-$fieldsRaw = (string) ($template['fields'] ?? '');
-$localizedFields = (string) ($template['fields_' . $fieldsLang] ?? '');
-if (trim($localizedFields) !== '') {
-    $fieldsRaw = $localizedFields;
-}
+$fieldsRaw = formTemplateFieldsRaw($template);
 
 // 旧 JSON 和文本模板必须走同一规范化、校验路径，避免渲染与提交解释不同。
 $fields = formFieldsFromStored($fieldsRaw);
@@ -311,9 +306,5 @@ FormSubmissionLifecycle::afterCommit(
 // lang-aware：始终先查 success_message_<siteLang>，base 当语言无关 fallback。
 // 不再用 `lang !== defaultLang` 门槛 — 那样在用户把默认语言改为 en/ja 后
 // 两边相等就跳过翻译查找，前端永远拿到 legacy 中文 base。
-$_smLang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
-$msg = $template['success_message'] ?? '';
-$langMsg = (string) ($template['success_message_' . $_smLang] ?? '');
-if ($langMsg !== '') $msg = $langMsg;
-if (!$msg) $msg = __('fd_default_success_msg');
+$msg = formTemplateSuccessMessage($template);
 echo json_encode(['code' => 0, 'msg' => $msg]);

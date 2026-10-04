@@ -24,10 +24,7 @@ if (!$template) {
     exit;
 }
 
-$lang = function_exists('siteLang') ? siteLang() : (string) config('site_lang', 'zh-CN');
-$fieldsRaw = (string) ($template['fields'] ?? '');
-$localized = (string) ($template['fields_' . $lang] ?? '');
-if (trim($localized) !== '') $fieldsRaw = $localized;
+$fieldsRaw = formTemplateFieldsRaw($template);
 if (!formFieldSetValid(formFieldsFromStored($fieldsRaw))) {
     http_response_code(422);
     echo json_encode(['code' => 1, 'msg' => __('form_nonce_invalid')], JSON_UNESCAPED_UNICODE);
