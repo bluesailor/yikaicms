@@ -13,7 +13,7 @@ function editorWith(query) {
         loopText: { orders: { default: 'Default', random: 'Random', manual: 'Manual', price_asc: 'Price ↑' }, termOrders: { default: 'Default', count: 'Count' } },
         loopTerms: { content: [{ value: 1, label: 'News' }, { value: 2, label: '— Industry' }], product: [{ value: 7, label: 'Sensors' }] },
     } };
-    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../plugins/yikai-builder/assets/blox-pro-editor.js'), 'utf8'),
+    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../plugins/yikai-builder/assets/yikay-pro-editor.js'), 'utf8'),
         { window, URLSearchParams });
     return Object.assign({}, window.BloxProEditor.methods, { selEl: { type: 'div', data: { _query: query } } });
 }
@@ -97,7 +97,7 @@ test('global query: edit in place, save back to the shared body, or cancel to th
         const query = JSON.parse(options.body.get('query') || '{}');
         return { json: async () => ({ code: 0, data: { query: { query_id: 'gq_aaaaaaaaaaaa', name: 'Latest', query, modified: 9 } } }) };
     };
-    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../plugins/yikai-builder/assets/blox-pro-editor.js'), 'utf8'),
+    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../plugins/yikai-builder/assets/yikay-pro-editor.js'), 'utf8'),
         { window, URLSearchParams, fetch });
     const element = { type: 'div', data: { _query: { ref: 'gq_aaaaaaaaaaaa' } } };
     const editor = Object.assign({}, window.BloxProEditor.methods, {

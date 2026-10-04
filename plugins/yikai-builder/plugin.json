@@ -2,7 +2,7 @@
     "name": "易开网页构建器 Pro",
     "name_en": "Yikay Builder Pro",
     "name_ja": "Yikay ビルダー Pro",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "description": "为已激活专业授权的站点开放易开网页构建器的高级编辑能力：循环模板、显示条件、全局样式、表格、价格方案。需要 CMS v1.20.0+ 及专业授权，从后台插件市场安装。基础编辑与默认详情页编辑免费；未授权或停用插件时，已发布的内容照常显示。",
     "description_en": "Advanced Yikay Builder authoring for sites with an activated professional license: query loops, display conditions, global styles, tables and pricing plans. Requires CMS v1.20.0+ and a professional license; install it from the plugin market in the admin. Basic editing and default detail templates stay free, and published content keeps rendering without a license or with the plugin disabled.",
     "description_ja": "有効なプロフェッショナルライセンスをお持ちのサイト向けに、Yikay ビルダーの高度な編集機能（ループテンプレート、表示条件、グローバルスタイル、表、料金プラン）を提供します。CMS v1.20.0 以降とプロフェッショナルライセンスが必要で、管理画面のプラグインマーケットからインストールします。基本編集と標準詳細テンプレートの編集は無料です。ライセンスがない場合やプラグイン無効時も、公開済みのコンテンツはそのまま表示されます。",

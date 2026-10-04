@@ -18,7 +18,7 @@ function fixture(fetcher, reports = [{ matched: false, groups: [] }]) {
             } };
         }
     }
-    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../plugins/yikai-builder/assets/blox-pro-editor.js'), 'utf8'),
+    vm.runInNewContext(fs.readFileSync(path.join(__dirname, '../../plugins/yikai-builder/assets/yikay-pro-editor.js'), 'utf8'),
         { window, URLSearchParams, DOMParser, fetch: fetcher });
     const editor = Object.assign({}, window.BloxProEditor.methods, {
         selEl: { data: {} }, selectedSi: 0, currentPath: '0.0.0',
