@@ -62,7 +62,7 @@ class NavMenuModel extends Model
      */
     public function treeFor(int $id): array
     {
-        $row = $this->findWhere(['id' => $id]);
+        $row = $this->findWhere(['id' => $this->languageVersion($id)]);
         if (!$row) {
             return [];
         }
@@ -71,6 +71,23 @@ class NavMenuModel extends Model
             return [];
         }
         return $this->buildNodes($items, 1);
+    }
+
+    /**
+     * 当前语言的菜单组（2.0.4）：组可以有各语言版本（WordPress 导入时建，metas owner_type=nav_menu_lang，
+     * owner_id=默认语言组，meta_key=语言，值=该语言的组 id）。没有对应版本就用组本身。
+     */
+    public function languageVersion(int $id): int
+    {
+        if ($id < 1 || !function_exists('getMeta') || !function_exists('siteLang')) {
+            return $id;
+        }
+        $lang = siteLang();
+        if ($lang === (string) config('site_lang', 'zh-CN')) {
+            return $id;
+        }
+        $variant = (int) (getMeta('nav_menu_lang', $id, $lang) ?? 0);
+        return $variant > 0 && $this->findWhere(['id' => $variant]) ? $variant : $id;
     }
 
     /**
