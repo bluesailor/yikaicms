@@ -176,7 +176,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php if (ExtFields::isProOwner($ownerType) && !$proAllowed): ?>
         <span class="text-sm text-amber-700"><?php echo e(__('ef_pro_locked')); ?></span>
         <?php else: ?>
-        <button type="button" @click="openEdit(null)" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
+        <button type="button" @click="openEdit(null)" data-testid="ef-add" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
             <i class="ti ti-plus text-base"></i>
             <?php echo e(__('ef_add')); ?>
         </button>
@@ -286,12 +286,12 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div x-show="['repeater', 'group'].includes(item.field_type)" class="rounded border p-4 space-y-3">
                 <div class="flex items-center">
                     <h4 class="font-medium text-gray-800"><?php echo e(__('ef_sub_fields')); ?></h4>
-                    <button type="button" @click="addSub()" class="ms-auto text-sm text-primary hover:underline"><i class="ti ti-plus"></i> <?php echo e(__('ef_add_sub_field')); ?></button>
+                    <button type="button" @click="addSub()" data-testid="ef-add-sub" class="ms-auto text-sm text-primary hover:underline"><i class="ti ti-plus"></i> <?php echo e(__('ef_add_sub_field')); ?></button>
                 </div>
                 <template x-for="(sub, i) in subs" :key="i">
                     <div class="grid grid-cols-[1fr_1fr_8rem_auto] gap-2 items-start">
-                        <input type="text" x-model="sub.name" class="border rounded px-2 py-1.5 text-sm" placeholder="<?php echo e(__('extfield_name')); ?>">
-                        <input type="text" x-model="sub.key" class="border rounded px-2 py-1.5 font-mono text-sm" placeholder="<?php echo e(__('extfield_key')); ?>">
+                        <input type="text" x-model="sub.name" data-testid="ef-sub-name" class="border rounded px-2 py-1.5 text-sm" placeholder="<?php echo e(__('extfield_name')); ?>">
+                        <input type="text" x-model="sub.key" data-testid="ef-sub-key" class="border rounded px-2 py-1.5 font-mono text-sm" placeholder="<?php echo e(__('extfield_key')); ?>">
                         <select x-model="sub.type" class="border rounded px-2 py-1.5 text-sm">
                             <?php foreach ($subTypeLabels as $k => $v): ?>
                             <option value="<?php echo e($k); ?>"><?php echo e($v); ?></option>

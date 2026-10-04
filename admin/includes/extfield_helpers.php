@@ -145,7 +145,7 @@ function efRelationshipHtml(array $field, string $name, string $value): string
         . '<input type="hidden" name="' . e($name) . '" value="' . e($value) . '" data-ef-value>'
         . '<div class="mb-2 flex flex-wrap gap-2" data-ef-rel-chips>' . $chips . '</div>'
         . '<div class="relative"><input type="search" class="w-full border rounded px-3 py-2 text-sm" placeholder="' . e(__('ef_rel_search')) . '" data-ef-rel-search autocomplete="off">'
-        . '<div class="absolute z-20 mt-1 hidden max-h-60 w-full overflow-y-auto rounded border bg-white shadow" data-ef-rel-results></div></div></div>';
+        . '<div class="absolute z-40 mt-1 hidden max-h-60 w-full overflow-y-auto rounded border bg-white shadow" data-ef-rel-results></div></div></div>';
 }
 
 /** @return array<int,string> id => 标题（保持顺序；已删除的条目略过） */
