@@ -95,7 +95,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $allowed = array_keys(adminLanguages());
         $list = array_values(array_intersect($allowed, array_filter(array_map('trim', explode(',', $val)))));
         if ($list === []) error(__('sset_keep_one_lang'));
-        settingModel()->set('admin_languages', implode(',', $list));
+        // 全选 = 不限制（存空）：以后新增的语言包自动出现在后台语言切换里（见 adminLanguageChoicesValue）
+        settingModel()->set('admin_languages', adminLanguageChoicesValue($list));
         adminLog('setting', 'admin_languages', '更新后台语言: ' . implode(',', $list));
         success(['admin_languages' => implode(',', $list)]);
     }
@@ -511,10 +512,7 @@ async function saveSiteLanguages() {
 
 <?php /* 后台语言配置（独立卡片） */ ?>
 <?php
-$adminLangsRaw = trim((string)config('admin_languages', ''));
-$adminLangsCurrent = $adminLangsRaw !== ''
-    ? array_filter(array_map('trim', explode(',', $adminLangsRaw)))
-    : array_keys(adminLanguages());
+$adminLangsCurrent = adminLanguageChoices();
 $_adminLangsForUI = adminLanguages();
 ?>
 <div class="bg-white rounded-lg shadow mb-6">

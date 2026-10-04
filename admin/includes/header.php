@@ -652,14 +652,8 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                     // 语言集合来自注册表 + 已装语言包；英文沿用原来的「EN」短写，其余用本族语名
                     $langLabels = adminLanguages();
                     if (isset($langLabels['en'])) $langLabels['en'] = 'EN';
-                    $configured = trim((string)config('admin_languages', ''));
-                    if ($configured !== '') {
-                        $availableLangs = array_values(array_filter(array_map('trim', explode(',', $configured)),
-                            fn($k) => isset($langLabels[$k])));
-                    } else {
-                        // 默认：全部已安装的语言包
-                        $availableLangs = array_keys($langLabels);
-                    }
+                    // 「基本设置 → 后台语言」；没设（或仍是旧安装原值）= 全部可用的语言包
+                    $availableLangs = adminLanguageChoices();
                     ?>
                     <?php if (count($availableLangs) >= 2): ?>
                     <div class="relative" x-data="{ open: false }">

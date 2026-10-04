@@ -18,9 +18,13 @@ requirePermission('*');
 
 $catalog = require ROOT_PATH . '/includes/channel_catalog.php';
 
-// 按语言挑名称
+// 按语言挑名称：目录里写了该语言就用；没写的语言（西、法、韩……）查网站常用词典（lang/dict-zh-*.php，2.0.4 起 16 种）
 $pickName = function (array $it, string $lang): string {
-    return LanguageRegistry::localizedField($it, 'name', $lang) ?: (string) ($it['slug'] ?? '');
+    $own = trim((string) ($it['name_' . $lang] ?? ''));
+    if ($own === '' && !LanguageRegistry::isChinese($lang)) {
+        $own = (string) (dictTranslateTo((string) ($it['name'] ?? ''), $lang) ?? '');
+    }
+    return $own !== '' ? $own : (LanguageRegistry::localizedField($it, 'name', $lang) ?: (string) ($it['slug'] ?? ''));
 };
 
 // ── 生成动作 ──────────────────────────────────────────────

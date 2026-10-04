@@ -1,0 +1,192 @@
+<?php
+/**
+ * 中文→土耳其文 网站常用词典
+ *
+ * 用于栏目名、菜单名、文章标题等快速翻译
+ * AI 翻译前先查字典，命中则直接使用，未命中再调 AI
+ *
+ * 使用: $dict = require ROOT_PATH . '/lang/dict-zh-tr.php';
+ *       $tr = $dict['关于我们'] ?? null; // 'Hakkımızda'
+ */
+
+return [
+    // ============ 导航/栏目 ============
+    '首页' => 'Ana Sayfa',
+    '返回列表' => 'Listeye Dön',
+    '暂无内容' => 'İçerik yok',
+    '暂无数据' => 'Veri yok',
+    '关于我们' => 'Hakkımızda',
+    '关于' => 'Hakkında',
+    '公司简介' => 'Şirket Profili',
+    '企业简介' => 'Şirket Profili',
+    '协会简介' => 'Dernek Hakkında',
+    '企业文化' => 'Kurum Kültürü',
+    '发展历程' => 'Tarihçe',
+    '组织架构' => 'Organizasyon',
+    '组织机构' => 'Organizasyon',
+    '荣誉资质' => 'Ödüller ve Sertifikalar',
+    '团队风采' => 'Ekibimiz',
+
+    '产品中心' => 'Ürünler',
+    '产品展示' => 'Ürünler',
+    '产品列表' => 'Ürün Listesi',
+    '产品详情' => 'Ürün Detayları',
+    '热门产品' => 'Popüler Ürünler',
+    '新品推荐' => 'Yeni Ürünler',
+    '全部产品' => 'Tüm Ürünler',
+
+    '新闻中心' => 'Haberler',
+    '新闻资讯' => 'Haberler',
+    '公司新闻' => 'Şirket Haberleri',
+    '行业动态' => 'Sektör Haberleri',
+    '行业资讯' => 'Sektör Haberleri',
+    '媒体报道' => 'Basında Biz',
+    '通知公告' => 'Duyurular',
+    '协会通知' => 'Dernek Duyuruları',
+    '图片新闻' => 'Foto Haberler',
+    '工作研讨' => 'Çalışma Seminerleri',
+
+    '解决方案' => 'Çözümler',
+    '成功案例' => 'Referanslar',
+    '案例展示' => 'Referanslar',
+    '行业方案' => 'Sektörel Çözümler',
+
+    '服务支持' => 'Destek',
+    '服务流程' => 'Süreç',
+    '售后服务' => 'Satış Sonrası Hizmet',
+    '常见问题' => 'Sıkça Sorulan Sorular',
+    '技术支持' => 'Teknik Destek',
+
+    '人才招聘' => 'Kariyer',
+    '招聘信息' => 'Açık Pozisyonlar',
+    '加入我们' => 'Bize Katılın',
+
+    '联系我们' => 'İletişim',
+    '在线留言' => 'Mesaj Bırakın',
+    '联系方式' => 'İletişim Bilgileri',
+
+    '下载中心' => 'İndirmeler',
+    '资料下载' => 'İndirmeler',
+
+    '会员之窗' => 'Üye Alanı',
+    '会员风采' => 'Üyelerimiz',
+    '会员服务' => 'Üye Hizmetleri',
+    '入会申请' => 'Üyelik Başvurusu',
+    '入会程序' => 'Nasıl Üye Olunur',
+    '入会申请表' => 'Başvuru Formu',
+
+    '行业品牌' => 'Markalar',
+    '服务品牌' => 'Hizmet Markaları',
+    '商品品牌' => 'Ürün Markaları',
+    '品牌展示' => 'Markalarımız',
+
+    '供求信息' => 'Arz ve Talep',
+    '培训天地' => 'Eğitim',
+    '法规标准' => 'Mevzuat ve Standartlar',
+    '协会月刊' => 'Aylık Bülten',
+    '分支机构' => 'Şubeler',
+    '新年贺词' => 'Yeni Yıl Mesajı',
+
+    '隐私政策' => 'Gizlilik Politikası',
+    '服务条款' => 'Kullanım Koşulları',
+    '网站地图' => 'Site Haritası',
+    '友情链接' => 'Bağlantılar',
+    '合作伙伴' => 'İş Ortakları',
+    '技术分享' => 'Teknik Makaleler',
+    '软件下载' => 'Yazılım',
+    '文档资料' => 'Belgeler',
+    '驱动程序' => 'Sürücüler',
+
+    // ============ 页面元素 ============
+    '更多' => 'Daha Fazla',
+    '查看更多' => 'Tümünü Gör',
+    '了解更多' => 'Daha Fazla Bilgi',
+    '立即咨询' => 'Hemen Sor',
+    '免费咨询' => 'Ücretsiz Danışmanlık',
+    '在线咨询' => 'Online Danışma',
+    '获取报价' => 'Teklif Alın',
+    '提交' => 'Gönder',
+    '发送' => 'Gönder',
+    '搜索' => 'Ara',
+    '返回顶部' => 'Başa Dön',
+    '返回首页' => 'Ana Sayfaya Dön',
+    '上一页' => 'Önceki',
+    '下一页' => 'Sonraki',
+    '上一篇' => 'Önceki Yazı',
+    '下一篇' => 'Sonraki Yazı',
+    '全部' => 'Tümü',
+    '推荐' => 'Öne Çıkan',
+    '热门' => 'Popüler',
+    '最新' => 'En Yeni',
+    '置顶' => 'Sabitlenmiş',
+
+    // ============ 表单 ============
+    '姓名' => 'Ad Soyad',
+    '您的姓名' => 'Adınız',
+    '称呼' => 'Ad',
+    '电话' => 'Telefon',
+    '手机' => 'Cep Telefonu',
+    '联系电话' => 'Telefon',
+    '邮箱' => 'E-posta',
+    '电子邮箱' => 'E-posta Adresi',
+    '公司' => 'Şirket',
+    '公司名称' => 'Şirket Adı',
+    '地址' => 'Adres',
+    '公司地址' => 'Şirket Adresi',
+    '留言内容' => 'Mesajınız',
+    '留言' => 'Mesaj',
+    '主题' => 'Konu',
+    '验证码' => 'Doğrulama Kodu',
+    '提交留言' => 'Mesaj Gönder',
+    '必填' => 'Zorunlu',
+
+    // ============ 文章/内容 ============
+    '阅读全文' => 'Devamını Oku',
+    '发布时间' => 'Yayın Tarihi',
+    '作者' => 'Yazar',
+    '来源' => 'Kaynak',
+    '浏览量' => 'Görüntülenme',
+    '阅读' => 'Okunma',
+    '分享' => 'Paylaş',
+    '标签' => 'Etiketler',
+    '分类' => 'Kategori',
+    '相关文章' => 'İlgili Yazılar',
+    '相关产品' => 'İlgili Ürünler',
+    '相关推荐' => 'Önerilenler',
+
+    // ============ 产品 ============
+    '价格' => 'Fiyat',
+    '型号' => 'Model',
+    '规格' => 'Teknik Özellikler',
+    '品牌' => 'Marka',
+    '材质' => 'Malzeme',
+    '颜色' => 'Renk',
+    '尺寸' => 'Boyut',
+    '重量' => 'Ağırlık',
+    '包装' => 'Ambalaj',
+    '产地' => 'Menşei',
+    '库存' => 'Stok',
+    '起订量' => 'Minimum Sipariş',
+    '交货期' => 'Teslim Süresi',
+    '面议' => 'Görüşülür',
+    '询价' => 'Fiyat Sor',
+
+    // ============ 页脚 ============
+    '快速链接' => 'Hızlı Bağlantılar',
+    '关注我们' => 'Bizi Takip Edin',
+    '版权所有' => 'Tüm Hakları Saklıdır',
+    '备案号' => 'Kayıt No.',
+    '工作时间' => 'Çalışma Saatleri',
+    '传真' => 'Faks',
+    '邮编' => 'Posta Kodu',
+
+    // ============ 行业通用 ============
+    '质量保证' => 'Kalite Güvencesi',
+    '技术领先' => 'Teknolojide Liderlik',
+    '专业服务' => 'Profesyonel Hizmet',
+    '合作共赢' => 'Kazan-Kazan İş Birliği',
+    '品质保证' => 'Kalite Garantisi',
+    '诚信经营' => 'Dürüst Ticaret',
+    '创新发展' => 'İnovasyon ve Gelişim',
+    '客户至上' => 'Önce Müşteri',
+];

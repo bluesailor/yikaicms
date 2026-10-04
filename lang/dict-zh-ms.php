@@ -1,0 +1,192 @@
+<?php
+/**
+ * 中文→马来文 网站常用词典
+ *
+ * 用于栏目名、菜单名、文章标题等快速翻译
+ * AI 翻译前先查字典，命中则直接使用，未命中再调 AI
+ *
+ * 使用: $dict = require ROOT_PATH . '/lang/dict-zh-ms.php';
+ *       $ms = $dict['关于我们'] ?? null; // 'Tentang Kami'
+ */
+
+return [
+    // ============ 导航/栏目 ============
+    '首页' => 'Laman Utama',
+    '返回列表' => 'Kembali ke Senarai',
+    '暂无内容' => 'Tiada kandungan',
+    '暂无数据' => 'Tiada data',
+    '关于我们' => 'Tentang Kami',
+    '关于' => 'Tentang',
+    '公司简介' => 'Profil Syarikat',
+    '企业简介' => 'Profil Syarikat',
+    '协会简介' => 'Tentang Persatuan',
+    '企业文化' => 'Budaya Korporat',
+    '发展历程' => 'Sejarah',
+    '组织架构' => 'Struktur Organisasi',
+    '组织机构' => 'Struktur Organisasi',
+    '荣誉资质' => 'Anugerah & Pensijilan',
+    '团队风采' => 'Pasukan Kami',
+
+    '产品中心' => 'Produk',
+    '产品展示' => 'Produk',
+    '产品列表' => 'Senarai Produk',
+    '产品详情' => 'Butiran Produk',
+    '热门产品' => 'Produk Popular',
+    '新品推荐' => 'Produk Baharu',
+    '全部产品' => 'Semua Produk',
+
+    '新闻中心' => 'Berita',
+    '新闻资讯' => 'Berita',
+    '公司新闻' => 'Berita Syarikat',
+    '行业动态' => 'Berita Industri',
+    '行业资讯' => 'Berita Industri',
+    '媒体报道' => 'Liputan Media',
+    '通知公告' => 'Pengumuman',
+    '协会通知' => 'Notis Persatuan',
+    '图片新闻' => 'Berita Bergambar',
+    '工作研讨' => 'Seminar Kerja',
+
+    '解决方案' => 'Penyelesaian',
+    '成功案例' => 'Kajian Kes',
+    '案例展示' => 'Kajian Kes',
+    '行业方案' => 'Penyelesaian Industri',
+
+    '服务支持' => 'Sokongan',
+    '服务流程' => 'Proses Perkhidmatan',
+    '售后服务' => 'Perkhidmatan Selepas Jualan',
+    '常见问题' => 'Soalan Lazim',
+    '技术支持' => 'Sokongan Teknikal',
+
+    '人才招聘' => 'Kerjaya',
+    '招聘信息' => 'Jawatan Kosong',
+    '加入我们' => 'Sertai Kami',
+
+    '联系我们' => 'Hubungi Kami',
+    '在线留言' => 'Tinggalkan Mesej',
+    '联系方式' => 'Maklumat Hubungan',
+
+    '下载中心' => 'Muat Turun',
+    '资料下载' => 'Muat Turun',
+
+    '会员之窗' => 'Ruang Ahli',
+    '会员风采' => 'Profil Ahli',
+    '会员服务' => 'Perkhidmatan Ahli',
+    '入会申请' => 'Permohonan Keahlian',
+    '入会程序' => 'Cara Menyertai',
+    '入会申请表' => 'Borang Permohonan',
+
+    '行业品牌' => 'Jenama',
+    '服务品牌' => 'Jenama Perkhidmatan',
+    '商品品牌' => 'Jenama Produk',
+    '品牌展示' => 'Pameran Jenama',
+
+    '供求信息' => 'Bekalan & Permintaan',
+    '培训天地' => 'Latihan',
+    '法规标准' => 'Peraturan & Piawaian',
+    '协会月刊' => 'Majalah Bulanan',
+    '分支机构' => 'Cawangan',
+    '新年贺词' => 'Ucapan Tahun Baharu',
+
+    '隐私政策' => 'Dasar Privasi',
+    '服务条款' => 'Terma Perkhidmatan',
+    '网站地图' => 'Peta Laman',
+    '友情链接' => 'Pautan',
+    '合作伙伴' => 'Rakan Kongsi',
+    '技术分享' => 'Artikel Teknikal',
+    '软件下载' => 'Perisian',
+    '文档资料' => 'Dokumen',
+    '驱动程序' => 'Pemacu',
+
+    // ============ 页面元素 ============
+    '更多' => 'Lagi',
+    '查看更多' => 'Lihat Lagi',
+    '了解更多' => 'Ketahui Lagi',
+    '立即咨询' => 'Tanya Sekarang',
+    '免费咨询' => 'Konsultasi Percuma',
+    '在线咨询' => 'Pertanyaan Dalam Talian',
+    '获取报价' => 'Dapatkan Sebut Harga',
+    '提交' => 'Hantar',
+    '发送' => 'Hantar',
+    '搜索' => 'Cari',
+    '返回顶部' => 'Kembali ke Atas',
+    '返回首页' => 'Kembali ke Laman Utama',
+    '上一页' => 'Sebelumnya',
+    '下一页' => 'Seterusnya',
+    '上一篇' => 'Artikel Sebelumnya',
+    '下一篇' => 'Artikel Seterusnya',
+    '全部' => 'Semua',
+    '推荐' => 'Pilihan',
+    '热门' => 'Popular',
+    '最新' => 'Terkini',
+    '置顶' => 'Disematkan',
+
+    // ============ 表单 ============
+    '姓名' => 'Nama',
+    '您的姓名' => 'Nama Anda',
+    '称呼' => 'Nama',
+    '电话' => 'Telefon',
+    '手机' => 'Telefon Bimbit',
+    '联系电话' => 'Nombor Telefon',
+    '邮箱' => 'E-mel',
+    '电子邮箱' => 'Alamat E-mel',
+    '公司' => 'Syarikat',
+    '公司名称' => 'Nama Syarikat',
+    '地址' => 'Alamat',
+    '公司地址' => 'Alamat Syarikat',
+    '留言内容' => 'Mesej',
+    '留言' => 'Mesej',
+    '主题' => 'Subjek',
+    '验证码' => 'Kod Pengesahan',
+    '提交留言' => 'Hantar Mesej',
+    '必填' => 'Wajib',
+
+    // ============ 文章/内容 ============
+    '阅读全文' => 'Baca Lagi',
+    '发布时间' => 'Diterbitkan',
+    '作者' => 'Penulis',
+    '来源' => 'Sumber',
+    '浏览量' => 'Paparan',
+    '阅读' => 'Bacaan',
+    '分享' => 'Kongsi',
+    '标签' => 'Tag',
+    '分类' => 'Kategori',
+    '相关文章' => 'Artikel Berkaitan',
+    '相关产品' => 'Produk Berkaitan',
+    '相关推荐' => 'Cadangan',
+
+    // ============ 产品 ============
+    '价格' => 'Harga',
+    '型号' => 'Model',
+    '规格' => 'Spesifikasi',
+    '品牌' => 'Jenama',
+    '材质' => 'Bahan',
+    '颜色' => 'Warna',
+    '尺寸' => 'Saiz',
+    '重量' => 'Berat',
+    '包装' => 'Pembungkusan',
+    '产地' => 'Asal',
+    '库存' => 'Stok',
+    '起订量' => 'Pesanan Minimum',
+    '交货期' => 'Tempoh Penghantaran',
+    '面议' => 'Boleh Runding',
+    '询价' => 'Tanya Harga',
+
+    // ============ 页脚 ============
+    '快速链接' => 'Pautan Pantas',
+    '关注我们' => 'Ikuti Kami',
+    '版权所有' => 'Hak Cipta Terpelihara',
+    '备案号' => 'No. Pendaftaran',
+    '工作时间' => 'Waktu Perniagaan',
+    '传真' => 'Faks',
+    '邮编' => 'Poskod',
+
+    // ============ 行业通用 ============
+    '质量保证' => 'Jaminan Kualiti',
+    '技术领先' => 'Teknologi Terkehadapan',
+    '专业服务' => 'Perkhidmatan Profesional',
+    '合作共赢' => 'Kerjasama Menang-Menang',
+    '品质保证' => 'Kualiti Terjamin',
+    '诚信经营' => 'Perniagaan Berintegriti',
+    '创新发展' => 'Inovasi & Pembangunan',
+    '客户至上' => 'Pelanggan Diutamakan',
+];
