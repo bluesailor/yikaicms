@@ -8,7 +8,7 @@
     "description_ja": "企業サイトに販売機能を追加：商品販売・カート・受注・中国大陸の配送範囲・配送会社・決済。",
     "author": "Yikai CMS",
     "requires_php": "8.0",
-    "requires_cms": "1.19.7",
+    "requires_cms": "1.20.0",
     "permissions": {
         "shop_manage": {
             "label": "商城管理",
