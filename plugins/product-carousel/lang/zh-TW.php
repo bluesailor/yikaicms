@@ -18,7 +18,7 @@ return [
     'pcar_none_selected' => '尚未選擇產品',
     'pcar_batch_add' => '批次新增',
     'pcar_search_ph' => '搜尋產品名篩選…',
-    'pcar_no_published' => '暫無已釋出產品',
+    'pcar_no_published' => '暫無已發佈產品',
     'pcar_add_checked' => '新增勾選的產品',
     'pcar_prev_group' => '上一組',
     'pcar_next_group' => '下一組',

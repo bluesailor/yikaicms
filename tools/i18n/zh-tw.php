@@ -23,8 +23,14 @@ if (!S2T::available()) {
 [, $opt] = i18n_args($argv);
 $check = isset($opt['check']);
 
+// 产品术语表（繁体用语审校结论）：新转换的文案先换术语再转繁体。
+// 「主题」有主题 / 话题两种意思，不自动换，新文案里的「佈景主題」需人工审。
+$glossaryFile = $root . '/tools/i18n/glossary/zh-TW.json';
+$glossary = is_file($glossaryFile) ? (array) json_decode((string) file_get_contents($glossaryFile), true) : [];
+
 /** 转到不动点（最多 4 趟） */
-$convert = static function (string $text): string {
+$convert = static function (string $text) use ($glossary): string {
+    $text = strtr($text, $glossary);
     for ($i = 0; $i < 4; $i++) {
         $next = S2T::text($text);
         if ($next === $text) {
