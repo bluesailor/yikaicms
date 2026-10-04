@@ -22,8 +22,8 @@ $extFieldOwnerType = (string) ($extFieldOwnerType ?? '');
 $extFieldOwnerId = (int) ($extFieldOwnerId ?? 0);
 $extFieldTermId = (int) ($extFieldTermId ?? 0);
 $extFieldTermInput = (string) ($extFieldTermInput ?? '');
-$extFieldBare = !empty($extFieldBare);
-$extFieldNoScripts = !empty($extFieldNoScripts);
+$extFieldBare = (bool) ($extFieldBare ?? false);
+$extFieldNoScripts = (bool) ($extFieldNoScripts ?? false);
 
 if (!in_array($extFieldOwnerType, ExtFields::owners(), true)) {
     return;

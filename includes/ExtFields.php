@@ -474,7 +474,7 @@ final class ExtFields
     /**
      * 保存一个条目的字段值。只写该归属已定义的字段；没提交的字段（被条件 / 挂载隐藏、
      * 或别的语言版本没有）保持原值。
-     * @param array<string,mixed> $posted ext_fields[...]
+     * @param array<array-key,mixed> $posted ext_fields[...]
      */
     public static function save(string $owner, int $ownerId, array $posted): void
     {
@@ -496,7 +496,7 @@ final class ExtFields
 
     /**
      * 必填校验：返回第一个没填的字段名；全部填了返回 null。被条件逻辑或挂载位置隐藏的字段不校验。
-     * @param array<string,mixed> $posted
+     * @param array<array-key,mixed> $posted
      */
     public static function missingRequired(string $owner, array $posted, int $termId = 0): ?string
     {

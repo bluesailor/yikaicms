@@ -138,6 +138,11 @@
                     results.appendChild(b);
                 });
                 results.classList.remove('hidden');
+                // 靠近窗口底部（编辑页底部有悬浮保存栏）时改为向上展开
+                results.style.bottom = '';
+                results.style.marginBottom = '';
+                var rect = results.getBoundingClientRect();
+                if (rect.bottom > window.innerHeight - 90) { results.style.bottom = '100%'; results.style.marginBottom = '4px'; }
             })
             .catch(function () { results.classList.add('hidden'); });
     }
