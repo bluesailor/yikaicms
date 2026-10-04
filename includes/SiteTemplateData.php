@@ -59,6 +59,24 @@ final class SiteTemplateData
         return $schema;
     }
 
+    /**
+     * 哪些 metas 随整站模板导出：内容 / 产品 / 栏目等条目的字段值，扩展字段的类型配置（extfield），
+     * 2.0.4 起还有产品分类字段、全站选项（site）和自定义模型的字段值（owner = 模型键，之前漏导）。
+     * 跳转、导入映射等属于具体站点的不导出。
+     */
+    private static function metaOwnerPortable(string $owner): bool
+    {
+        if (in_array($owner, ['channel', 'content', 'article', 'page', 'case', 'product', 'album', 'download', 'job', 'content_tag',
+            'extfield', 'product_category', 'site'], true)) {
+            return true;
+        }
+        try {
+            return function_exists('contentModelModel') && in_array($owner, contentModelModel()->keys(), true);
+        } catch (Throwable) {
+            return false;
+        }
+    }
+
     public static function snapshot(bool $export = false): array
     {
         $tables = [];
@@ -67,7 +85,7 @@ final class SiteTemplateData
             if ($export) {
                 $rows = array_values(array_filter($rows, static function (array $row) use ($table): bool {
                     // content_tag：文章标签页的登记行（标签网址指向它）；跳转（redirect）属于具体站点，不随模板走
-                    if ($table === 'metas' && !in_array($row['owner_type'], ['channel', 'content', 'article', 'page', 'case', 'product', 'album', 'download', 'job', 'content_tag'], true)) return false;
+                    if ($table === 'metas' && !self::metaOwnerPortable((string) $row['owner_type'])) return false;
                     if ($table === 'product_routes' && ($row['entity_type'] ?? '') === 'redirect') return false;
                     if (isset($row['deleted_at']) && $row['deleted_at'] !== '' && (int) $row['deleted_at'] > 0) return false;
                     if (in_array($table, ['channels', 'contents', 'products', 'jobs', 'blox_templates'], true) && (int) ($row['status'] ?? 1) !== 1) return false;

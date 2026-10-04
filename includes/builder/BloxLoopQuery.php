@@ -52,6 +52,26 @@ final class BloxLoopQuery
         self::$currentContext = $context;
     }
 
+    /**
+     * 当前列表页对应的分类（{{term.meta.*}} 用）：产品分类页 → [product_category, id]，
+     * 栏目页 → [channel, id]；不在列表页 → ['', 0]。
+     * @return array{0:string,1:int}
+     */
+    public static function currentTerm(): array
+    {
+        $context = self::$currentContext;
+        if (!is_array($context)) {
+            return ['', 0];
+        }
+        $categoryId = (int) ($context['category_id'] ?? 0);
+        if ($categoryId > 0) {
+            return ['product_category', $categoryId];
+        }
+        $channel = is_array($context['channel'] ?? null) ? $context['channel'] : [];
+        $channelId = (int) ($channel['id'] ?? 0);
+        return $channelId > 0 ? ['channel', $channelId] : ['', 0];
+    }
+
     /** @psalm-suppress PossiblyUnusedMethod 测试专用（单测进程共享请求级缓存时复位） */
     public static function resetForTests(): void
     {
@@ -152,6 +172,9 @@ final class BloxLoopQuery
         if ($plan === null) {
             return $empty;
         }
+        if ($plan['kind'] === 'row') {
+            return self::runRows($plan, $empty);
+        }
         $param = self::effectivePageParam($query, $paginationParam);
         $page = 1;
         if ($param !== '') {
@@ -198,6 +221,34 @@ final class BloxLoopQuery
             'pages' => $pages,
             'param' => $param,
         ];
+    }
+
+    /**
+     * 重复器行循环（field:键 / option:键）：行来自字段值，不查库、不分页；每行带子字段定义
+     * （`_subs`），{{loop.子键}} 按子字段类型出文本。
+     * @param array{rows:list<array<string,mixed>>,pagination:string,is_product:bool,kind:string,total:int,page:int,pages:int,param:string} $empty
+     * @return array{rows:list<array<string,mixed>>,pagination:string,is_product:bool,kind:string,total:int,page:int,pages:int,param:string}
+     */
+    private static function runRows(array $plan, array $empty): array
+    {
+        $field = ExtFields::field((string) $plan['field_owner'], (string) $plan['field_key']);
+        if ($field === null) {
+            return $empty;
+        }
+        $subs = [];
+        foreach ((array) ($field['config']['sub_fields'] ?? []) as $sub) {
+            $subs[(string) $sub['key']] = $sub;
+        }
+        $all = ExtFields::rows((string) $plan['field_owner'], (int) $plan['field_owner_id'], (string) $plan['field_key']);
+        $slice = array_slice($all, (int) $plan['offset'], (int) $plan['limit']);
+        $rows = [];
+        foreach ($slice as $i => $row) {
+            $decorated = self::decorateRow($row, $plan, $i, count($slice), count($all), 1, 1);
+            $decorated['_subs'] = $subs;
+            $decorated['_field'] = (string) $plan['field_key'];
+            $rows[] = $decorated;
+        }
+        return ['rows' => $rows, 'kind' => 'row', 'total' => count($all)] + $empty;
     }
 
     /** 循环行附加虚拟键：类型、序号、首末奇偶、总数与分页（{{loop.*}} 与显示条件共用）。 */
@@ -286,6 +337,9 @@ final class BloxLoopQuery
             'offset' => max(0, min(BloxQuerySpec::MAX_OFFSET, (int) ($query['offset'] ?? 0))),
             'order' => (string) ($query['order'] ?? 'default'),
         ];
+        if (preg_match('/^(field|option|rel):([a-z][a-z0-9_]{0,63})$/D', $source, $m) === 1) {
+            return self::fieldPlan($m[1], $m[2], $plan);
+        }
         $children = null; // null = 各来源旧默认（内容不含子栏目、产品含子分类）
         if (is_bool($query['children'] ?? null)) {
             $children = $query['children'];
@@ -470,6 +524,78 @@ final class BloxLoopQuery
         return BloxQueryFilters::applyOverrides($plan, $overrides);
     }
 
+    /**
+     * 字段来源（2.0.4 高级字段）：
+     * - field:键 → 当前条目（嵌套时取外层循环行）的重复器行；option:键 → 全站选项的重复器行；
+     * - rel:键 → 当前条目关联字段指向的产品 / 内容，默认按选择顺序。
+     * 字段不存在、类型不对、没有当前条目或值为空 → null（空态）。
+     */
+    private static function fieldPlan(string $mode, string $key, array $plan): ?array
+    {
+        if (!class_exists('ExtFields')) {
+            return null;
+        }
+        [$owner, $ownerId] = $mode === 'option' ? ['site', 0] : self::fieldOwnerItem();
+        if ($owner === '' || ($mode !== 'option' && $ownerId <= 0)) {
+            return null;
+        }
+        $field = ExtFields::field($owner, $key);
+        if ($mode !== 'rel') {
+            if ($field === null || $field['field_type'] !== 'repeater') {
+                return null;
+            }
+            return ['kind' => 'row', 'field_owner' => $owner, 'field_owner_id' => $ownerId, 'field_key' => $key] + $plan;
+        }
+        if ($field === null || $field['field_type'] !== 'relationship') {
+            return null;
+        }
+        $ids = (array) ExtFields::decode('relationship', ExtFields::raw($owner, $ownerId, $key));
+        if ($ids === []) {
+            return null;
+        }
+        $target = (string) ($field['config']['target'] ?? 'product');
+        if ($target === 'product') {
+            $plan['kind'] = 'product';
+        } else {
+            $plan['kind'] = 'content';
+            if ($target !== 'content') {
+                $plan['content_type'] = self::safeType($target);
+            }
+        }
+        $plan['ids'] = array_map('intval', $ids);
+        if ($plan['order'] === 'default') {
+            $plan['order'] = 'manual';
+        }
+        return $plan;
+    }
+
+    /**
+     * 字段来源的条目：嵌套循环里取外层行（产品 / 内容 / 分类行），否则取当前详情页条目。
+     * @return array{0:string,1:int} [字段归属, 条目 id]；没有 → ['', 0]
+     */
+    public static function fieldOwnerItem(): array
+    {
+        $outer = self::enclosingRow();
+        if ($outer !== null) {
+            $id = (int) ($outer['id'] ?? 0);
+            return match ((string) ($outer['_type'] ?? '')) {
+                'product' => ['product', $id],
+                'content' => [function_exists('resolveExtFieldOwner') ? resolveExtFieldOwner((string) ($outer['type'] ?? '')) : 'content', $id],
+                'term' => [['content' => 'channel', 'product' => 'product_category'][(string) ($outer['_taxonomy'] ?? '')] ?? '', $id],
+                default => ['', 0],
+            };
+        }
+        $product = self::pageItem('product');
+        if ($product !== null) {
+            return ['product', (int) $product['id']];
+        }
+        $content = self::pageItem('content');
+        if ($content !== null) {
+            return [function_exists('resolveExtFieldOwner') ? resolveExtFieldOwner((string) ($content['type'] ?? '')) : 'content', (int) $content['id']];
+        }
+        return ['', 0];
+    }
+
     /** 当前页面主条目（相关内容 / 排除当前）：类型必须与查询来源一致。 */
     private static function pageItem(string $kind): ?array
     {
@@ -645,7 +771,43 @@ final class BloxLoopQuery
         if ($channels !== []) {
             $groups[] = ['label' => __('blox_query_group_channels'), 'options' => $channels];
         }
+        $fieldSources = self::editorFieldSources();
+        if ($fieldSources !== []) {
+            $groups[] = ['label' => __('blox_query_group_fields'), 'options' => $fieldSources];
+        }
         return $groups;
+    }
+
+    /**
+     * 字段来源候选（2.0.4）：各归属的重复器（field:键，全站选项为 option:键）与关联字段（rel:键）。
+     * 同名字段在不同归属下合并为一项——运行时按当前条目的归属取值。
+     * @return array<string,string>
+     */
+    private static function editorFieldSources(): array
+    {
+        if (!class_exists('ExtFields')) {
+            return [];
+        }
+        $out = [];
+        try {
+            foreach (ExtFields::owners() as $owner) {
+                foreach (ExtFields::fields($owner) as $field) {
+                    $type = (string) $field['field_type'];
+                    if ($type !== 'repeater' && $type !== 'relationship') {
+                        continue;
+                    }
+                    if ($owner === 'site' && $type !== 'repeater') {
+                        continue;
+                    }
+                    $value = ($type === 'relationship' ? 'rel:' : ($owner === 'site' ? 'option:' : 'field:')) . $field['field_key'];
+                    $label = sprintf(__($type === 'relationship' ? 'blox_query_source_rel' : 'blox_query_source_rows'), (string) $field['field_name'], ExtFields::ownerLabel($owner));
+                    $out[$value] = isset($out[$value]) ? $out[$value] . ' / ' . ExtFields::ownerLabel($owner) : $label;
+                }
+            }
+        } catch (Throwable) {
+            return [];
+        }
+        return $out;
     }
 
     /**

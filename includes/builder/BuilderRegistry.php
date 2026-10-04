@@ -155,6 +155,7 @@ final class BuilderRegistry
             new SiteContactElement(),
             new SocialLinksElement(),
             new ShareButtonsElement(),
+            new FieldTableElement(),
             new SiteSearchElement(),
             new SearchResultsElement(),
             new LanguageSwitcherElement(),

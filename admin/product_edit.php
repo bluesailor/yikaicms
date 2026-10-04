@@ -66,6 +66,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($data['title'])) {
         error(__('prod_name_required'));
     }
+    $missingField = ExtFields::missingRequired('product', (array) ($_POST['ext_fields'] ?? []), (int) $data['category_id']);
+    if ($missingField !== null) {
+        error(sprintf(__('ef_required_missing'), $missingField));
+    }
 
     // 定时上架：与文章同一套规则（上架即上线；定时到点上架，时间已过则直接上架）。
     // 上架时间存在 metas（见 ScheduledPublish），保存产品后写入。
@@ -102,6 +106,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     // 只在定时期间保存上架时间：上架后不再需要，普通保存也不往 metas 写行
     ScheduledPublish::setProductTime((int) $id, $sched['status'] === ScheduledPublish::STATUS ? $sched['publish_time'] : 0);
+    // 扩展字段（2.0.4 起产品页也能填；按字段类型校验，见 ExtFields）
+    ExtFields::save('product', (int) $id, (array) ($_POST['ext_fields'] ?? []));
 
     success(['id' => $id]);
 }
@@ -248,6 +254,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </button>
                 </div>
             </div>
+
+            <?php /* 扩展字段（2.0.4：产品也能填；按产品分类挂载的字段随分类切换显隐） */ ?>
+            <?php
+            $extFieldOwnerType = 'product';
+            $extFieldOwnerId   = (int) $id;
+            $extFieldTermId    = (int) ($product['category_id'] ?? 0);
+            $extFieldTermInput = '#categoryIdInput';
+            require ROOT_PATH . '/admin/includes/extfield_render.php';
+            ?>
         </div>
 
         <?php /* 侧边栏 */ ?>

@@ -198,5 +198,54 @@ function wordPressFixture(PDO $pdo, string $p = 'wp_'): array
     $item($menuJa, '', ['_menu_item_type' => 'post_type', '_menu_item_object' => 'post', '_menu_item_object_id' => (string) $ids['post_install_ja']], 1);
     $ids['menu_main_tt'] = $menuMain['tt_id'];
 
+    // Advanced Custom Fields：产品字段组（重复器 / 文件 / 链接 / 开关 / 下拉 / 多选 / 关联 / 相册 / 日期 + 跳过的布局与地图字段）、
+    // 按产品分类挂载的字段组、产品分类字段组、全站选项页
+    $acfGroup = static function (string $title, array $location) use ($post): int {
+        return $post(['post_type' => 'acf-field-group', 'post_title' => $title, 'post_excerpt' => strtolower(str_replace(' ', '-', $title)),
+            'post_content' => serialize(['location' => $location, 'menu_order' => 0])]);
+    };
+    $acfField = static function (int $parent, string $name, string $label, array $settings, int $order) use ($post): int {
+        return $post(['post_type' => 'acf-field', 'post_parent' => $parent, 'post_excerpt' => $name, 'post_title' => $label,
+            'post_name' => 'field_' . substr(md5($parent . $name), 0, 13), 'menu_order' => $order, 'post_content' => serialize($settings)]);
+    };
+    $gSpecs = $acfGroup('Product specs', [[['param' => 'post_type', 'operator' => '==', 'value' => 'product']]]);
+    $fTable = $acfField($gSpecs, 'spec_table', 'Spec table', ['type' => 'repeater', 'button_label' => 'Add model'], 0);
+    $acfField($fTable, 'model', 'Model', ['type' => 'text'], 0);
+    $acfField($fTable, 'load', 'Axial load (kN)', ['type' => 'number'], 1);
+    $acfField($fTable, 'drawing', 'Drawing', ['type' => 'file'], 2);
+    $acfField($gSpecs, 'datasheet', 'Datasheet', ['type' => 'file', 'instructions' => 'PDF datasheet'], 1);
+    $acfField($gSpecs, 'buy_link', 'Buy link', ['type' => 'link'], 2);
+    $acfField($gSpecs, 'certified', 'CE certified', ['type' => 'true_false'], 3);
+    $acfField($gSpecs, 'mount', 'Mounting', ['type' => 'select', 'choices' => ['horizontal' => 'Horizontal', 'vertical' => 'Vertical']], 4);
+    $acfField($gSpecs, 'finish', 'Finish', ['type' => 'checkbox', 'choices' => ['galvanized' => 'Galvanized', 'painted' => 'Painted']], 5);
+    $acfField($gSpecs, 'related_posts', 'Related articles', ['type' => 'relationship', 'post_type' => ['post']], 6);
+    $acfField($gSpecs, 'extra_photos', 'Extra photos', ['type' => 'gallery'], 7);
+    $acfField($gSpecs, 'release_date', 'Release date', ['type' => 'date_picker'], 8);
+    $acfField($gSpecs, 'tab_more', 'More', ['type' => 'tab'], 9);
+    $acfField($gSpecs, 'factory_map', 'Factory map', ['type' => 'google_map'], 10);
+    $gWorm = $acfGroup('Worm drive extras', [[['param' => 'post_taxonomy', 'operator' => '==', 'value' => 'product_cat:worm-gear-slew-drive-cat']]]);
+    $acfField($gWorm, 'torque_curve', 'Torque curve', ['type' => 'image'], 0);
+    $gCat = $acfGroup('Category banner', [[['param' => 'taxonomy', 'operator' => '==', 'value' => 'product_cat']]]);
+    $acfField($gCat, 'banner_text', 'Banner text', ['type' => 'text'], 0);
+    $gOpt = $acfGroup('Company', [[['param' => 'options_page', 'operator' => '==', 'value' => 'acf-options']]]);
+    $fCerts = $acfField($gOpt, 'certificates', 'Certificates', ['type' => 'repeater'], 0);
+    $acfField($fCerts, 'name', 'Name', ['type' => 'text'], 0);
+    $acfField($fCerts, 'image', 'Image', ['type' => 'image'], 1);
+
+    $d = $ids['product_drive'];
+    foreach ([
+        'spec_table' => '2', '_spec_table' => 'field_spec', 'spec_table_0_model' => 'SE7A', 'spec_table_0_load' => '35', 'spec_table_0_drawing' => (string) $ids['img_ring'],
+        'spec_table_1_model' => 'SE7B', 'spec_table_1_load' => '42',
+        'datasheet' => (string) $ids['img_gear'],
+        'buy_link' => ['title' => 'Buy SE7', 'url' => 'https://shop.example.com/se7', 'target' => '_blank'],
+        'certified' => '1', 'mount' => 'vertical', 'finish' => ['galvanized', 'painted'],
+        'related_posts' => [(string) $ids['post_install']], 'extra_photos' => [(string) $ids['img_gear'], (string) $ids['img_ring']],
+        'release_date' => '20230510', 'torque_curve' => (string) $ids['img_ring'],
+    ] as $key => $value) $meta($d, $key, $value);
+    $pdo->prepare("INSERT INTO {$p}termmeta (term_id, meta_key, meta_value) VALUES (?, ?, ?)")->execute([$pcWorm['term_id'], 'banner_text', 'Worm drives for solar trackers']);
+    $opt('options_certificates', '1');
+    $opt('options_certificates_0_name', 'ISO 9001');
+    $opt('options_certificates_0_image', (string) $ids['img_ring']);
+
     return $ids;
 }

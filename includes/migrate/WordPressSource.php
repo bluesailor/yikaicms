@@ -61,6 +61,24 @@ final class WordPressSource
     }
 
     /** @return array<array-key,mixed> */
+    /**
+     * 名字带某前缀的全部选项（ACF 选项页存为 options_字段名），返回 [去掉前缀的名字 => 值]。
+     * @return array<string,string>
+     */
+    public function optionsWithPrefix(string $prefix): array
+    {
+        $out = [];
+        try {
+            // 转义符用 !：MySQL 与 SQLite 对反斜杠的处理不同，! 两边一致
+            foreach ($this->rows("SELECT option_name, option_value FROM {$this->p}options WHERE option_name LIKE ? ESCAPE '!'", [str_replace(['!', '_', '%'], ['!!', '!_', '!%'], $prefix) . '%']) as $r) {
+                $out[substr((string) $r['option_name'], strlen($prefix))] = (string) $r['option_value'];
+            }
+        } catch (Throwable) {
+            return [];
+        }
+        return $out;
+    }
+
     public static function unserializeArray(string $value): array
     {
         if ($value === '' || !preg_match('/^a:\d+:\{/', $value)) return [];

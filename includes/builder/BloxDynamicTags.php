@@ -22,7 +22,12 @@
  * URL 槽位用 resolveText 后仍过元素既有的 safeHref/UrlPolicy 白名单。
  *
  * 第一批 Provider 全部免费（site/page/article/product/loop/lang）；
- * URL 参数、当前用户、自定义模型字段属付费层，后续批次经 BloxFeaturePolicy 收权。
+ * URL 参数、当前用户属付费层，后续批次经 BloxFeaturePolicy 收权。
+ *
+ * 扩展字段（2.0.4 高级字段，取值永远免费）：
+ * - `article.meta.键` / `product.meta.键` / `loop.meta.键`：当前文章 / 产品 / 循环行的字段，`.子键` 取字段组的子字段或链接文字（.title）；
+ * - `loop.子键`：重复器循环（来源 field:键 / option:键）里当前行的子字段；
+ * - `option.键`：全站选项；`term.meta.键`：当前栏目 / 产品分类页的字段。
  */
 
 declare(strict_types=1);
@@ -30,7 +35,8 @@ declare(strict_types=1);
 final class BloxDynamicTags
 {
     private const TAG_PATTERN = '/\{\{\s*([^{}|]+(?:\|[^{}|]*)*?)\s*\}\}/';
-    private const SOURCE_PATTERN = '/^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_-]{0,63}){1,2}$/D';
+    // 2.0.4 起最多四段：product.meta.键.子键（字段组 / 链接）
+    private const SOURCE_PATTERN = '/^[a-z][a-z0-9_]*(?:\.[a-z][a-z0-9_-]{0,63}){1,3}$/D';
     /** 单串标签数上限：坏数据兜底，不是产品限制。 */
     private const MAX_TAGS = 20;
 
@@ -74,8 +80,65 @@ final class BloxDynamicTags
         if ($links) {
             return [
                 '{{loop.url}}' => __('blox_dyn_loop_url'),
-            ];
+            ] + self::fieldTagOptions(true);
         }
+        return self::staticTagOptions() + self::fieldTagOptions(false);
+    }
+
+    /**
+     * 已定义扩展字段的候选（2.0.4）：产品 / 内容字段、全站选项、栏目与产品分类字段、重复器子字段。
+     * 链接槽只列链接 / 文件 / 图片类字段。
+     * @return array<string,string>
+     */
+    private static function fieldTagOptions(bool $links): array
+    {
+        if (!class_exists('ExtFields')) {
+            return [];
+        }
+        $linkTypes = ['link', 'file', 'image'];
+        $out = [];
+        try {
+            foreach (ExtFields::owners() as $owner) {
+                $prefix = match ($owner) {
+                    'product' => '{{product.meta.',
+                    'site' => '{{option.',
+                    'channel', 'product_category' => '{{term.meta.',
+                    default => '{{article.meta.',
+                };
+                foreach (ExtFields::fields($owner) as $field) {
+                    $type = (string) $field['field_type'];
+                    $label = ExtFields::ownerLabel($owner) . ' · ' . (string) $field['field_name'];
+                    if ($type === 'repeater') {
+                        foreach ((array) ($field['config']['sub_fields'] ?? []) as $sub) {
+                            if (!$links || in_array($sub['type'], $linkTypes, true)) {
+                                $out['{{loop.' . $sub['key'] . '}}'] = $label . ' · ' . $sub['name'];
+                            }
+                        }
+                        continue;
+                    }
+                    if ($type === 'group') {
+                        foreach ((array) ($field['config']['sub_fields'] ?? []) as $sub) {
+                            if (!$links || in_array($sub['type'], $linkTypes, true)) {
+                                $out[$prefix . $field['field_key'] . '.' . $sub['key'] . '}}'] = $label . ' · ' . $sub['name'];
+                            }
+                        }
+                        continue;
+                    }
+                    if ($type === 'relationship' || ($links && !in_array($type, $linkTypes, true))) {
+                        continue;
+                    }
+                    $out[$prefix . $field['field_key'] . '}}'] = $label;
+                }
+            }
+        } catch (Throwable) {
+            return [];
+        }
+        return $out;
+    }
+
+    /** @return array<string,string> */
+    private static function staticTagOptions(): array
+    {
         return [
             '{{article.title}}' => __('blox_dyn_article_title'),
             '{{article.summary}}' => __('blox_dyn_article_summary'),
@@ -168,16 +231,36 @@ final class BloxDynamicTags
                 return DynamicSiteData::value($configField, $slot);
 
             case 'article':
+                if ($field === 'meta' && class_exists('ArticleTemplateDocument')) {
+                    $row = ArticleTemplateDocument::currentContent();
+                    return is_array($row) ? self::metaValue($row, 'content', $parts[2] ?? '', $parts[3] ?? '') : null;
+                }
                 if (!in_array($field, self::ARTICLE_FIELDS, true) || !class_exists('ArticleTemplateDocument')) {
                     return null;
                 }
                 return self::rowValue(ArticleTemplateDocument::currentContent(), $field);
 
             case 'product':
+                if ($field === 'meta' && class_exists('ProductTemplateDocument')) {
+                    $row = ProductTemplateDocument::currentProduct();
+                    return is_array($row) ? self::metaValue($row, 'product', $parts[2] ?? '', $parts[3] ?? '') : null;
+                }
                 if (!in_array($field, self::PRODUCT_FIELDS, true) || !class_exists('ProductTemplateDocument')) {
                     return null;
                 }
                 return self::rowValue(ProductTemplateDocument::currentProduct(), $field);
+
+            case 'option':
+                // 全站选项（2.0.4）：option.键[.子键]
+                return class_exists('ExtFields') ? self::nonEmpty(ExtFields::textFor('site', 0, $field, $parts[2] ?? '')) : null;
+
+            case 'term':
+                // 当前栏目 / 产品分类页的字段（2.0.4）：term.meta.键[.子键]
+                if ($field !== 'meta' || !class_exists('ExtFields') || !class_exists('BloxLoopQuery')) {
+                    return null;
+                }
+                [$owner, $termId] = BloxLoopQuery::currentTerm();
+                return $termId > 0 ? self::nonEmpty(ExtFields::textFor($owner, $termId, $parts[2] ?? '', $parts[3] ?? '')) : null;
 
             case 'page':
                 if ($field !== 'title' || !class_exists('PageTitleElement')) {
@@ -190,12 +273,12 @@ final class BloxDynamicTags
                     return null;
                 }
                 $context = TagEngine::currentContext();
-                return is_array($context) ? self::loopValue($context, $field, $parts[2] ?? '') : null;
+                return is_array($context) ? self::loopValue($context, $field, $parts[2] ?? '', $parts[3] ?? '') : null;
 
             case 'parent':
                 // 嵌套循环：外层循环的当前行（2.0.3）
                 $parent = class_exists('BloxLoopQuery') ? BloxLoopQuery::parentRow() : null;
-                return is_array($parent) ? self::loopValue($parent, $field, $parts[2] ?? '') : null;
+                return is_array($parent) ? self::loopValue($parent, $field, $parts[2] ?? '', $parts[3] ?? '') : null;
 
             case 'lang':
                 return $field === 'code' && function_exists('siteLang') ? siteLang() : null;
@@ -209,7 +292,7 @@ final class BloxDynamicTags
      * first/last/odd/even（"1"/空，便于 fallback 管道与显示条件）、category/category_url、
      * file_size（下载，人类可读）、meta.<键>（自定义字段）。
      */
-    private static function loopValue(array $row, string $field, string $sub): ?string
+    private static function loopValue(array $row, string $field, string $sub, string $sub2 = ''): ?string
     {
         if (isset(self::LOOP_COUNTERS[$field])) {
             $value = $row[self::LOOP_COUNTERS[$field]] ?? null;
@@ -219,6 +302,9 @@ final class BloxDynamicTags
             return ($row[self::LOOP_FLAGS[$field]] ?? '0') === '1' ? '1' : '';
         }
         $type = (string) ($row['_type'] ?? 'content');
+        if ($type === 'row') {
+            return self::repeaterRowValue($row, $field, $sub);
+        }
         switch ($field) {
             case 'url':
                 return self::rowUrl($row, $type);
@@ -236,7 +322,7 @@ final class BloxDynamicTags
                 $bytes = (int) ($row['file_size'] ?? 0);
                 return $bytes > 0 && function_exists('formatFileSize') ? (string) formatFileSize($bytes) : null;
             case 'meta':
-                return $sub !== '' ? self::metaValue($row, $type, $sub) : null;
+                return $sub !== '' ? self::metaValue($row, $type, $sub, $sub2) : null;
         }
         return in_array($field, self::LOOP_FIELDS, true) ? self::rowValue($row, $field) : null;
     }
@@ -295,18 +381,46 @@ final class BloxDynamicTags
         ], $type);
     }
 
-    /** 自定义字段（metas，owner 与显示条件/循环过滤同源）。 */
-    private static function metaValue(array $row, string $type, string $key): ?string
+    /**
+     * 自定义字段（metas，owner 与显示条件/循环过滤同源）。2.0.4 起按字段类型出纯文本
+     * （链接 = 网址、下拉 = 显示名、字段组 = 子键），并支持分类循环行（栏目 / 产品分类字段）。
+     */
+    private static function metaValue(array $row, string $type, string $key, string $sub = ''): ?string
     {
         $id = (int) ($row['id'] ?? 0);
-        if ($id <= 0 || !function_exists('getMeta') || !in_array($type, ['content', 'product'], true)) {
+        if ($id <= 0 || $key === '' || !function_exists('getMeta')) {
             return null;
         }
-        $owner = $type === 'product'
-            ? 'product'
-            : (function_exists('resolveExtFieldOwner') ? resolveExtFieldOwner((string) ($row['type'] ?? 'article')) : 'content');
+        $owner = match ($type) {
+            'product' => 'product',
+            'content' => function_exists('resolveExtFieldOwner') ? resolveExtFieldOwner((string) ($row['type'] ?? 'article')) : 'content',
+            'term' => ['content' => 'channel', 'product' => 'product_category'][(string) ($row['_taxonomy'] ?? '')] ?? '',
+            default => '',
+        };
+        if ($owner === '') {
+            return null;
+        }
+        if (class_exists('ExtFields')) {
+            return self::nonEmpty(ExtFields::textFor($owner, $id, $key, $sub));
+        }
         $value = getMeta($owner, $id, $key);
         return is_scalar($value) ? trim((string) $value) : null;
+    }
+
+    /** 重复器行（来源 field:键 / option:键）：子字段按类型出纯文本，`.title` 取链接文字。 */
+    private static function repeaterRowValue(array $row, string $field, string $sub): ?string
+    {
+        $subs = is_array($row['_subs'] ?? null) ? $row['_subs'] : [];
+        if (!is_array($subs[$field] ?? null) || !is_scalar($row[$field] ?? null) || !class_exists('ExtFields')) {
+            return null;
+        }
+        return self::nonEmpty(ExtFields::text($subs[$field], (string) $row[$field], $sub));
+    }
+
+    private static function nonEmpty(string $value): ?string
+    {
+        $value = trim($value);
+        return $value === '' ? null : $value;
     }
 
     /** 数据行取值：仅标量，其他形态一律 null（行内容不可信，形状必须收紧）。 */

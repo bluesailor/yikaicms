@@ -720,6 +720,8 @@
         loopQueryKind() {
             var source = String(this.loopQueryField("source"));
             if (source.indexOf("terms:") === 0) return "term";
+            if (source.indexOf("field:") === 0 || source.indexOf("option:") === 0) return "field"; // 2.0.4 重复器行
+            if (source.indexOf("rel:") === 0) return "rel"; // 2.0.4 关联条目
             if (source === "current") return "current";
             if (source === "type:product" || source === "type:download" || source === "type:job") return source.slice(5);
             return "content";
@@ -730,6 +732,7 @@
             var source = String(this.loopQueryField("source"));
             if (source.indexOf("terms:") === 0) return source.slice(6);
             var kind = this.loopQueryKind();
+            if (kind === "field" || kind === "rel") return "";
             if (kind === "product" || kind === "download") return kind;
             return kind === "content" ? "content" : "";
         },
@@ -1015,7 +1018,7 @@
                 if (key === "source") {
                     // 换来源：分类候选属于另一套体系，旧的分类/排序选择不再有意义
                     ["cat", "cats", "cats_exclude", "children", "parent_term", "hide_empty", "order"].forEach(function (stale) { delete query[stale]; });
-                    if (text.indexOf("terms:") === 0) {
+                    if (text.indexOf("terms:") === 0 || /^(field|option|rel):/.test(text)) {
                         ["keyword", "recommend", "hot", "top", "new", "ids", "exclude_ids", "exclude_current", "date_within", "date_from", "date_to", "price_min", "price_max", "filters", "filter_relation"].forEach(function (stale) { delete query[stale]; });
                         if (query.scope === "related") delete query.scope;
                     }

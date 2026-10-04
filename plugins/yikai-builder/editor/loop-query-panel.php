@@ -70,6 +70,8 @@ $loopSources = class_exists('BloxLoopQuery') && method_exists('BloxLoopQuery', '
                                                 </label>
                                                 <p x-show="loopQueryField('source') === 'current'" class="text-[10px] text-gray-400"><?= e(__('blox_loop_source_current_hint')) ?></p>
                                                 <p x-show="loopQueryKind() === 'term'" class="text-[10px] text-gray-400"><?= e(__('blox_query_terms_hint')) ?></p>
+                                                <p x-show="loopQueryKind() === 'field'" class="text-[10px] text-gray-400"><?= e(__('blox_query_rows_hint')) ?></p>
+                                                <p x-show="loopQueryKind() === 'rel'" class="text-[10px] text-gray-400"><?= e(__('blox_query_rel_hint')) ?></p>
 
                                                 <?php /* ── 分类（多选包含 / 排除 / 含子类）：内容/产品/下载与分类循环 ── */ ?>
                                                 <template x-if="loopQueryTaxonomy() && loopQueryField('source') !== 'current' && String(loopQueryField('source')).indexOf('channel:') !== 0">
@@ -124,7 +126,7 @@ $loopSources = class_exists('BloxLoopQuery') && method_exists('BloxLoopQuery', '
                                                 </template>
 
                                                 <?php /* ── 上下文范围：相关内容 / 嵌套外层 ── */ ?>
-                                                <label class="<?= $loopLabel ?>" x-show="loopQueryField('source') !== 'current'">
+                                                <label class="<?= $loopLabel ?>" x-show="loopQueryField('source') !== 'current' && loopQueryKind() !== 'field' && loopQueryKind() !== 'rel'">
                                                     <span class="mb-1 block"><?= e(__('blox_query_scope')) ?></span>
                                                     <select :value="loopQueryField('scope')" @change="setLoopQueryField('scope', $event.target.value)"
                                                             data-testid="blox-loop-scope" class="<?= $loopSelect ?>">
@@ -151,7 +153,7 @@ $loopSources = class_exists('BloxLoopQuery') && method_exists('BloxLoopQuery', '
                                                 </div>
 
                                                 <?php /* ── 排序 ── */ ?>
-                                                <label class="<?= $loopLabel ?>">
+                                                <label class="<?= $loopLabel ?>" x-show="loopQueryKind() !== 'field'">
                                                     <span class="mb-1 block"><?= e(__('blox_dynamic_order')) ?></span>
                                                     <select :value="loopQueryField('order') || 'default'" @change="setLoopQueryField('order', $event.target.value)"
                                                             data-testid="blox-loop-order" class="<?= $loopSelect ?>">
@@ -163,7 +165,7 @@ $loopSources = class_exists('BloxLoopQuery') && method_exists('BloxLoopQuery', '
                                                 <p x-show="loopQueryField('order') === 'random'" class="text-[10px] text-gray-400"><?= e(__('blox_query_random_hint')) ?></p>
 
                                                 <?php /* ── 条目筛选（分类循环不适用） ── */ ?>
-                                                <template x-if="loopQueryKind() !== 'term'">
+                                                <template x-if="loopQueryKind() !== 'term' && loopQueryKind() !== 'field' && loopQueryKind() !== 'rel'">
                                                     <div class="space-y-2">
                                                         <label class="<?= $loopLabel ?>">
                                                             <span class="mb-1 block"><?= e(__('blox_dynamic_keyword')) ?></span>

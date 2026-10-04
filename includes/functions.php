@@ -4549,4 +4549,6 @@ require_once __DIR__ . '/lang_url.php';
 require_once __DIR__ . '/permissions.php';
 require_once __DIR__ . '/catalog_pagination.php';
 require_once __DIR__ . '/product_routes.php';
+// 扩展字段（2.0.4 高级字段：类型、配置、值的校验 / 保存 / 读取）
+require_once __DIR__ . '/ExtFields.php';
 require_once __DIR__ . '/media/MediaAlt.php';
