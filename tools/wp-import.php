@@ -26,6 +26,7 @@ require ROOT_PATH . '/config/config.php';
 require ROOT_PATH . '/includes/functions.php';
 require ROOT_PATH . '/includes/models/autoload.php';
 require ROOT_PATH . '/includes/migrate/WordPressImporter.php';
+require_once ROOT_PATH . '/includes/Redirects.php';
 
 $opts = getopt('', ['dsn:', 'user::', 'prefix::', 'dry-run', 'default-lang::', 'lang-map::', 'uploads::', 'urls::', 'report::', 'help']);
 if (isset($opts['help']) || empty($opts['dsn'])) {
@@ -73,6 +74,14 @@ if ($report['language_domains'] !== []) {
     fwrite($out, 'WPML 用了语言子域名：' . json_encode($report['language_domains'], JSON_UNESCAPED_SLASHES)
         . "\n  → 在「设置 → 多语言 → 语言域名」里照此配置并解析、绑定这些域名，原来的子域名网址才能保留。\n");
 }
+foreach ($report['forms'] as $form) {
+    fwrite($out, "表单：{$form['name']} → 表单模板「{$form['slug']}」" . ($form['translations'] !== [] ? '，含翻译 ' . implode('/', $form['translations']) : '')
+        . "（正文里的 Contact Form 7 短代码已换成 [form-{$form['slug']}]）\n");
+}
+foreach ($report['menus'] as $menu) {
+    fwrite($out, "菜单：{$menu['name']}（{$menu['lang']}，{$menu['items']} 项" . ($menu['locations'] !== [] ? '，原站位置 ' . implode('/', $menu['locations']) : '') . "）→ 菜单组 #{$menu['id']}\n");
+}
+if ($report['menus'] !== []) fwrite($out, "  在页头导航元素里选默认语言的菜单组即可，其它语言自动换成各自的菜单。\n");
 if ($report['dropped'] !== []) fwrite($out, '去掉的短代码（表单、幻灯片等，请在新站重做）：' . json_encode($report['dropped'], JSON_UNESCAPED_UNICODE) . "\n");
 if ($report['unknown'] !== []) fwrite($out, '没认出的短代码（原样保留在正文里，请检查）：' . json_encode($report['unknown'], JSON_UNESCAPED_UNICODE) . "\n");
 if (isset($report['uploads'])) fwrite($out, '上传文件：复制 ' . $report['uploads']['copied'] . '，已存在 ' . $report['uploads']['kept'] . "\n");
@@ -126,7 +135,7 @@ function wpImportCoverage(string $file, WordPressImporter $importer, array $repo
         $host = strtolower((string) parse_url($url, PHP_URL_HOST));
         $path = (string) (parse_url($url, PHP_URL_PATH) ?: '/');
         if (isset($domains[$host]) && !str_starts_with($path, '/wp-content/')) $path = '/' . $domains[$host] . $path;
-        if ($path === '/' || isset($domains[$host]) && preg_match('#^/[a-z]{2}(?:-[A-Z]{2})?/?$#', $path)) { $covered++; continue; }   // 首页
+        if ($path === '/' || isset($domains[$host]) && preg_match('#^/[a-z]{2}(?:-[A-Z]{2})?/?$#', $path)) { $covered++; continue; }   // 首页（含 ?p=123、?s= 等旧查询串，由 LegacyUrls 接住）
         try {
             $normalized = rtrim(ProductRouteModel::normalize($path), '/');
         } catch (InvalidArgumentException) {
@@ -134,6 +143,8 @@ function wpImportCoverage(string $file, WordPressImporter $importer, array $repo
             continue;
         }
         if (isset($registered[$normalized]) || productRouteModel()->resolve($normalized) !== null) { $covered++; continue; }
+        // 成批的旧地址：WordPress 规律地址（feed、作者、附件、日期归档）与跳转的前缀规则
+        if (LegacyUrls::wordpressPathTarget($path) !== null || Redirects::matchPrefix($path) !== null) { $covered++; continue; }
         $missing[] = $url;
     }
     return ['total' => $total, 'covered' => $covered, 'missing' => $missing];

@@ -154,6 +154,7 @@ final class BuilderRegistry
             new SiteFilingElement(),
             new SiteContactElement(),
             new SocialLinksElement(),
+            new ShareButtonsElement(),
             new SiteSearchElement(),
             new SearchResultsElement(),
             new LanguageSwitcherElement(),

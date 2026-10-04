@@ -71,6 +71,9 @@ if ($__reqPath !== '/' && $__reqPath !== '/index.php') {
 }
 unset($__incomingLang, $__incomingPath, $__reqPath, $__isIndexRequest, $__dynamicRequested, $__dynamicHit);
 
+// 首页带旧站查询串：?s=关键词 → 搜索页；导入过 WordPress 的站点再接住 ?p=123 这类旧链接（LegacyUrls）
+if ($_GET !== []) LegacyUrls::onHome($_GET);
+
 HtmlCache::start(300);
 
 // 页面信息

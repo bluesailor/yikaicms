@@ -143,6 +143,8 @@ require_once ROOT_PATH . '/includes/Cron.php';
 require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 // Cache invalidation is registered by HtmlCache.php; do not duplicate its policy here.
 if (function_exists('add_action')) {
+    // 旧站地址兜底（2.0.4）：即将 404 时先看跳转的前缀规则与 WordPress 规律地址
+    add_action('render_404', [LegacyUrls::class, 'onNotFound']);
     // 吸顶头部滚动透明效果（前台 footer 输出，各主题通用；未启用时自动无输出）
     add_action('ik_footer_scripts', 'renderHeaderScrollFade');
     // 代码块复制按钮（正文含 <pre><code> 时才实际生效）

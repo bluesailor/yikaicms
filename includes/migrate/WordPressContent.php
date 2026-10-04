@@ -28,6 +28,8 @@ final class WordPressContent
     public array $dropped = [];
     /** @var array<string,int> 不认识、只去掉了标签的短代码 → 次数 */
     public array $unknown = [];
+    /** @var array<string,string> Contact Form 7 表单 id（或 hash 前 7 位）→ 本站表单别名；导入表单后由导入器填入 */
+    public array $forms = [];
 
     /**
      * @param array<int,string> $attachments
@@ -50,8 +52,20 @@ final class WordPressContent
         $html = (string) preg_replace('/<!--\s*\/?wp:[^>]*?-->\n?/s', '', $html);
         $html = $this->shortcodes($html);
         $html = self::autop($html);
+        // 表单短代码单独成块，别被包进 <p>（表单不能放在段落里）
+        $html = (string) preg_replace('~<p>\s*(\[form-[a-zA-Z0-9_-]+\])\s*</p>~', '$1', $html);
+        $html = self::wrapTables($html);
         $html = $this->localizeUrls($html);
         return trim($html);
+    }
+
+    /**
+     * 正文里的表格包一层可横向滚动的容器（参数表常有十几列，手机上不撑破版面）。已包过的不重复包。
+     */
+    public static function wrapTables(string $html): string
+    {
+        return (string) preg_replace_callback('~(<div class="yk-table-scroll">\s*)?(<table\b.*?</table>)~is',
+            static fn (array $m): string => $m[1] !== '' ? $m[0] : '<div class="yk-table-scroll">' . $m[2] . '</div>', $html);
     }
 
     // ── 短代码 ───────────────────────────────────────────────────────────
@@ -72,6 +86,12 @@ final class WordPressContent
         }, $html);
         // [embed]url[/embed]、[video src=".."] → 链接
         $html = (string) preg_replace_callback('/\[embed[^\]]*\](.*?)\[\/embed\]/s', static fn (array $m): string => '<p><a href="' . htmlspecialchars(trim($m[1]), ENT_QUOTES) . '">' . htmlspecialchars(trim($m[1]), ENT_QUOTES) . '</a></p>', $html);
+        // Contact Form 7：导入过的表单换成本站表单短代码；没导入的照旧去掉（下面计数）
+        $html = (string) preg_replace_callback('/\[contact-form-7\b([^\]]*)\]/', function (array $m): string {
+            $id = self::attr($m[1], 'id');
+            $slug = $this->forms[$id] ?? $this->forms[substr($id, 0, 7)] ?? null;
+            return $slug === null ? $m[0] : "\n[form-" . $slug . "]\n";
+        }, $html);
         // 整个去掉的（表单、幻灯片、商城列表）
         foreach (self::DROPPED as $name) {
             $q = preg_quote($name, '/');
@@ -84,8 +104,10 @@ final class WordPressContent
         // 单独出现、又不认识的 [xxx …] 可能是正文（如「[see figure 2]」），原样保留，记进报告让人看。
         preg_match_all('/\[\/([a-z][a-z0-9_-]*)\]/i', $html, $closers);
         $paired = array_flip(array_map('strtolower', $closers[1]));
-        return (string) preg_replace_callback('/\[(\/?)([a-z][a-z0-9_-]*)((?:\s[^\]]*)?)\/?\]/i', function (array $m) use ($paired): string {
+        $ownForms = array_flip(array_map(static fn (string $slug): string => 'form-' . strtolower($slug), $this->forms));
+        return (string) preg_replace_callback('/\[(\/?)([a-z][a-z0-9_-]*)((?:\s[^\]]*)?)\/?\]/i', function (array $m) use ($paired, $ownForms): string {
             $name = strtolower($m[2]);
+            if (isset($ownForms[$name])) return $m[0];   // 上面换进来的本站表单短代码
             $builder = false;
             foreach (self::BUILDER_PREFIXES as $prefix) {
                 if ($name === $prefix || str_starts_with($name, $prefix)) { $builder = true; break; }
