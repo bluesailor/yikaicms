@@ -1,4 +1,4 @@
-# YikaiCMS v2.0.3
+# YikaiCMS v2.0.4
 
 > **面向企业官网与外贸网站的轻量 PHP CMS** · 源码公开，免费商用
 
@@ -15,11 +15,11 @@
 </p>
 <p align="center"><sub>左：前台首页（Default 主题） · 右：易开网页构建器可视化编辑首页</sub></p>
 
-**简体中文** · 轻量、多语言、可视化的企业建站系统：PHP 原生部署，MySQL / SQLite 均可；企业官网常用的栏目、产品、新闻、案例、表单询盘、SEO 都已内置，不用装一堆插件；支持简体中文、English、日本語多语言站点。
+**简体中文** · 轻量、多语言、可视化的企业建站系统：PHP 原生部署，MySQL / SQLite 均可；企业官网常用的栏目、产品、新闻、案例、表单询盘、SEO 都已内置，不用装一堆插件；前台支持 18 种语言（简体 / 繁体中文、English、日本語、한국어、Español、Français、Deutsch、Русский、العربية 等，阿拉伯语与波斯语从右到左排版），后台界面可选 16 种语言。
 
-**English** · A lightweight PHP CMS for business and export websites: deploys on plain PHP with MySQL or SQLite, ships the columns, products, news, cases, inquiry forms and SEO a company site needs, and builds multilingual sites in Chinese, English and Japanese. Source available and free for commercial use.
+**English** · A lightweight PHP CMS for business and export websites: deploys on plain PHP with MySQL or SQLite, ships the columns, products, news, cases, inquiry forms and SEO a company site needs, and builds multilingual sites in 18 languages (Simplified and Traditional Chinese, English, Japanese, Korean, Spanish, French, German, Russian, Arabic and more, with right-to-left layout for Arabic and Persian); the admin is available in 16 languages. Source available and free for commercial use.
 
-**日本語** · 企業サイト・海外向けサイトのための軽量 PHP CMS。PHP だけで動作し、MySQL / SQLite に対応。カテゴリ、製品、ニュース、事例、問い合わせフォーム、SEO を標準搭載し、中国語・英語・日本語の多言語サイトを構築できます。ソース公開・商用無料。
+**日本語** · 企業サイト・海外向けサイトのための軽量 PHP CMS。PHP だけで動作し、MySQL / SQLite に対応。カテゴリ、製品、ニュース、事例、問い合わせフォーム、SEO を標準搭載し、簡体字・繁体字中国語、英語、日本語、韓国語、スペイン語、フランス語、ドイツ語、ロシア語、アラビア語など 18 言語の多言語サイトを構築でき（アラビア語・ペルシア語は右から左のレイアウト）、管理画面は 16 言語に対応しています。ソース公開・商用無料。
 
 ---
 
@@ -34,7 +34,7 @@
 
 ## 3 分钟安装
 
-1. 下载完整包 [yikaicms-v2.0.3.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.0.3/yikaicms-v2.0.3.zip)（校验文件 [yikaicms-v2.0.3.sha256](https://github.com/bluesailor/yikaicms/releases/download/v2.0.3/yikaicms-v2.0.3.sha256)），解压上传到网站根目录（也可以放在子目录）；
+1. 下载完整包 [yikaicms-v2.0.4.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.0.4/yikaicms-v2.0.4.zip)（校验文件 [yikaicms-v2.0.4.sha256](https://github.com/bluesailor/yikaicms/releases/download/v2.0.4/yikaicms-v2.0.4.sha256)），解压上传到网站根目录（也可以放在子目录）；
 2. 确保站点根目录（安装器写入 `installed.lock`）和 `/config/`、`/uploads/`、`/storage/` 可写，浏览器访问 `http://你的域名/install/`，按向导选择 MySQL 或 SQLite 完成安装；
 3. 配置伪静态（宝塔面板：站点 → 设置 → 伪静态，写入一行 `include /www/wwwroot/<你的站点目录>/deploy/nginx-baota.conf;`）；
 4. 登录后台，在「建站向导」里从 40 多套行业整站模板（中文、日文、英文）中挑一套导入，或直接在演示内容上修改。
@@ -49,11 +49,13 @@
 - **企业建站内容** — 无限层级栏目，文章、产品（多级分类 / 规格参数 / 图片组）、案例、下载、招聘、相册、单页、发展历程
 - **易开网页构建器（Yikay Builder）** — 可视化拖拽编辑页面、首页、网页头 / 网页尾、详情页、列表页、搜索页与 404 页，桌面 / 平板 / 手机分档预览与设置
 - **轻量商城** — 免费商城插件（2.0.4 起在插件市场按需安装）：商品规格与库存、购物车、微信支付 / 支付宝、配送区域与运费、订单与退款
-- **多语言与外贸** — 中英日多语言站点，按语言编辑内容与首页区块；语言网址可用前缀（`/en/`）或独立语言域名（`en.example.com`），hreflang 与多语言 SEO
+- **多语言与外贸** — 18 种语言的多语言站点（含繁体中文与从右到左的阿拉伯语、波斯语），按语言编辑内容与首页区块，常用栏目名按内置词典自动翻译；后台界面 16 种语言；语言网址可用前缀（`/en/`）或独立语言域名（`en.example.com`），hreflang 与多语言 SEO
 - **表单与询盘** — 可视化表单设计、产品询盘、邮件通知、垃圾信息防护
 - **SEO** — Sitemap、OG 标签、Canonical、站长验证、自定义网址
 - **AI 内容助手** — 标题、摘要、正文、SEO 与翻译辅助，支持 OpenAI、Claude、DeepSeek、通义千问、智谱
 - **主题与插件** — 随包 Default 主题（更多主题在主题市场按需安装），插件 Hooks，后台主题市场、整站模板市场与插件市场（签名校验）
+- **从 WordPress 迁移** — 命令行导入文章、单页、WooCommerce 产品、分类标签、Yoast SEO、WPML 多语言、Contact Form 7 表单、导航菜单与 ACF 字段；所有内容都能自定义网址，旧网址自动 301，另有 301 跳转管理（支持批量导入与整目录跳转）
+- **无障碍** — 前台与后台按 WCAG 2.2 AA 自动检测：表单标签、按钮名称、颜色对比度、点击区域与页面地标；站点健康检查可扫描当前主题与已发布内容
 - **运维** — 角色权限、备份恢复、在线升级（完整包 / 增量包）、站点健康检查与建站内容检查，支持部署在子目录；需要协助时可给官方技术支持开限时访问（站长发起、随时撤销），授权后也可接收签名的远程升级与修复
 
 <details>
@@ -102,7 +104,7 @@
 - **数据库** — 一键备份、按表导出、SQL 导入、日志清理
 - **升级** — 内置升级检测，完整包与增量包在线升级，升级前自动备份；可选自动升级（维护时段内只装安全更新或全部正式版）与升级邮件通知
 - **SEO 与安全** — Sitemap / OG / Canonical / 站长验证；登录保护、IP 白名单、表单防刷
-- **扩展字段** — 自定义内容 / 产品字段
+- **扩展字段** — 给产品、文章等内容加自定义字段：文本、富文本、数字、日期、开关、单选 / 多选、图片 / 图片组、文件、链接、颜色；字段组、重复器、关联内容，以及栏目、产品分类与全站选项页上的字段需专业授权。网页构建器用 `{{product.meta.字段}}` 等动态标签直接调用，WordPress 的 ACF 字段可以导入
 
 ### 插件
 
@@ -141,7 +143,7 @@
 
 ### 1. 下载部署
 
-- 完整安装包：[yikaicms-v2.0.3.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.0.3/yikaicms-v2.0.3.zip)，发布说明见 [v2.0.3 Release](https://github.com/bluesailor/yikaicms/releases/tag/v2.0.3)；每个版本附 `.sha256` 校验文件，历史版本见 [Releases](https://github.com/bluesailor/yikaicms/releases)。
+- 完整安装包：[yikaicms-v2.0.4.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.0.4/yikaicms-v2.0.4.zip)，发布说明见 [v2.0.4 Release](https://github.com/bluesailor/yikaicms/releases/tag/v2.0.4)；每个版本附 `.sha256` 校验文件，历史版本见 [Releases](https://github.com/bluesailor/yikaicms/releases)。
 - 已安装的站点可在后台「系统维护 → 系统升级」在线升级，无需手动下载。
 - 开发者也可以直接克隆仓库：`git clone https://github.com/bluesailor/yikaicms.git`
 
