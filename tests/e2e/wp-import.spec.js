@@ -41,6 +41,33 @@ test('WordPress import keeps every original URL with content, SEO and translatio
     expect(menu).not.toContain('slewing-bearing.com');
     expect(imported.menu.ja).toBeGreaterThan(0);
 
+    // ACF → 扩展字段：类型按表映射，布局字段静默跳过，地图字段跳过并提示；值转换（附件 id → 网址、Ymd → 日期、关联 → 新 id）
+    expect(first).toContain('ACF 字段组：Product specs');
+    expect(first).toContain('google_map');
+    const acf = imported.acf;
+    expect(acf.fields['product:spec_table'].type).toBe('repeater');
+    expect(acf.fields['product:spec_table'].config.sub_fields.map(s => s.key)).toEqual(['model', 'load', 'drawing']);
+    expect(acf.fields['product:spec_table'].config.button_label).toBe('Add model');
+    expect(acf.fields['product:finish'].type).toBe('multi_select');
+    expect(acf.fields['product:related_posts'].config.target).toBe('content');
+    expect(acf.fields['product:tab_more']).toBeUndefined();
+    expect(acf.fields['product:factory_map']).toBeUndefined();
+    expect(acf.fields['product:torque_curve'].config.location).toEqual([acf.category_id]);
+    expect(acf.fields['product_category:banner_text'].type).toBe('text');
+    expect(acf.fields['site:certificates'].type).toBe('repeater');
+    const rows = JSON.parse(acf.product.spec_table);
+    expect(rows).toEqual([{ model: 'SE7A', load: '35', drawing: '/wp-content/uploads/2023/05/ring.png' }, { model: 'SE7B', load: '42', drawing: '' }]);
+    expect(acf.product.datasheet).toBe('/wp-content/uploads/2023/05/gear.jpg');
+    expect(JSON.parse(acf.product.buy_link)).toEqual({ url: 'https://shop.example.com/se7', title: 'Buy SE7', target: '_blank' });
+    expect(acf.product.certified).toBe('1');
+    expect(acf.product.mount).toBe('vertical');
+    expect(acf.product.finish).toBe('galvanized,painted');
+    expect(acf.product.related_posts).toBe(String(acf.post));
+    expect(acf.product.extra_photos).toBe('/wp-content/uploads/2023/05/gear.jpg,/wp-content/uploads/2023/05/ring.png');
+    expect(acf.product.release_date).toBe('2023-05-10');
+    expect(acf.category.banner_text).toBe('Worm drives for solar trackers');
+    expect(JSON.parse(acf.site.certificates)).toEqual([{ name: 'ISO 9001', image: '/wp-content/uploads/2023/05/ring.png' }]);
+
     // 旧站成批地址：?p=、?s=、feed、作者页、日期归档
     const location = async url => {
       const response = await visitor.request.get(url, { maxRedirects: 0 });

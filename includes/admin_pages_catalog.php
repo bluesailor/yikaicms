@@ -67,7 +67,8 @@ if (!function_exists('adminPagesCatalog')) {
             ['url'=>'/admin/theme_content.php',    'title'=>'主题文案',     'keywords'=>'主题文案 模板文字 主题字段 theme content',                                'group'=>'外观'],
             ['url'=>'/admin/site_content_check.php','title'=>'内容自检',    'keywords'=>'内容检查 空栏目 缺图 演示内容 自检 content check',                        'group'=>'外观'],
             ['url'=>'/admin/plugin.php',           'title'=>'插件管理',     'keywords'=>'插件 扩展 plugin extension',                                            'group'=>'外观'],
-            ['url'=>'/admin/extfield.php',         'title'=>'扩展字段',     'keywords'=>'自定义字段 扩展字段 custom field',                                       'group'=>'外观'],
+            ['url'=>'/admin/extfield.php',         'title'=>'扩展字段',     'keywords'=>'自定义字段 扩展字段 高级字段 重复器 关联 custom field ACF repeater',      'group'=>'外观'],
+            ['url'=>'/admin/site_fields.php',      'title'=>'全站选项',     'keywords'=>'全站选项 选项页 全局字段 options page ACF',                               'group'=>'外观'],
             ['url'=>'/admin/setting_ai.php',       'title'=>'AI 设置',      'keywords'=>'AI API Key 大模型 OpenAI Claude DeepSeek 模型选择',                       'group'=>'外观'],
             ['url'=>'/admin/ai_assistant.php',     'title'=>'AI 助手',      'keywords'=>'AI 助手 智能助手 对话 chatbot',                                          'group'=>'外观'],
 

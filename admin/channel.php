@@ -108,6 +108,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (empty($data['name'])) {
             error(__('admin_category_name_required'));
         }
+        $missingField = ExtFields::missingRequired('channel', (array) ($_POST['ext_fields'] ?? []));
+        if ($missingField !== null) {
+            error(sprintf(__('ef_required_missing'), $missingField));
+        }
 
         // 判据用行语言而非页面视图变量（$_viewLang 在文件后段才定义，保存分支
         // 拿不到——Psalm 在 release 分支抓出的未定义变量）：编辑行取库里 lang，
@@ -175,6 +179,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             adminLog('channel', 'create', __('admin_add') . '：' . $data['name']);
         }
         customUrlSave('channel', (int) $id, $customUrl, $_urlLang);
+        // 栏目字段（2.0.4 高级字段，专业版定义；值照常可填）
+        ExtFields::save('channel', (int) $id, (array) ($_POST['ext_fields'] ?? []));
 
         // 更新页脚导航
         $isFooterNav = postInt('is_footer_nav');
@@ -1259,6 +1265,18 @@ function ykPickChannelIcon(name) {
                 </a>
                 <?php endif; ?>
                 <?php endif; ?>
+
+                <?php /* 栏目字段（2.0.4 高级字段） */ ?>
+                <?php
+                $extFieldOwnerType = 'channel';
+                $extFieldOwnerId = (int) ($editChannel['id'] ?? 0);
+                $extFieldBare = true;
+                if (ExtFields::fields('channel') !== []) {
+                    echo '<div class="border-t pt-4">';
+                    require ROOT_PATH . '/admin/includes/extfield_render.php';
+                    echo '</div>';
+                }
+                ?>
 
                 <div class="flex gap-2">
                     <button type="submit" class="flex-1 bg-primary hover:bg-secondary text-white py-2 rounded transition inline-flex items-center justify-center gap-1">

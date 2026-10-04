@@ -99,6 +99,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (empty($data['title'])) {
         error(__('admin_title_required'));
     }
+    $missingField = ExtFields::missingRequired(resolveExtFieldOwner((string) ($data['type'] ?? '')), (array) ($_POST['ext_fields'] ?? []), (int) $data['channel_id']);
+    if ($missingField !== null) {
+        error(sprintf(__('ef_required_missing'), $missingField));
+    }
 
     // 类型必须是登记过的键：任意字符串落库后会被别处当类型用，也会进后台列表回显
     if (!isRegisteredContentType((string) $data['type'])) {
@@ -125,12 +129,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     customUrlSave('content', (int) $id, $customUrl, $_urlLang);
 
-    // 扩展字段值存入 metas（owner_type：自定义模型用 model_key，内置内容类型用 'content'）
-    $extOwner = resolveExtFieldOwner((string) $data['type']);
-    foreach ((array) ($_POST['ext_fields'] ?? []) as $fieldKey => $fieldVal) {
-        if (!is_string($fieldKey)) continue;
-        setMeta($extOwner, $id, $fieldKey, is_array($fieldVal) ? implode(',', $fieldVal) : (string) $fieldVal);
-    }
+    // 扩展字段值存入 metas（owner_type：自定义模型用 model_key，内置内容类型用 'content'；按字段类型校验，见 ExtFields）
+    ExtFields::save(resolveExtFieldOwner((string) $data['type']), (int) $id, (array) ($_POST['ext_fields'] ?? []));
 
     success(['id' => $id]);
 }
@@ -283,6 +283,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php
             $extFieldOwnerType = resolveExtFieldOwner((string) $lockedType);
             $extFieldOwnerId   = (int) $id;
+            $extFieldTermId    = (int) ($content['channel_id'] ?? $lockedChannelId ?? 0);
+            $extFieldTermInput = $lockedChannelId ? '' : '#channelSelect';
             require ROOT_PATH . '/admin/includes/extfield_render.php';
             ?>
 
