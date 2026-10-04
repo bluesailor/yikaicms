@@ -56,7 +56,7 @@ test('clicks outside a pricing switch are ignored', () => {
 });
 
 // 编辑器套餐方法：yikai-builder 作者端模块
-const { methods } = require('../../plugins/yikai-builder/assets/blox-pro-pricing.js');
+const { methods } = require('../../plugins/yikai-builder/assets/yikay-pro-pricing.js');
 
 function editor(plans) {
     return Object.assign({

@@ -6,12 +6,12 @@
 
 - `access.php` / `main.php`：授权桥（`blox_pro_feature_allowed`），只在 `licensed` 档被核心调用。
 - `editor.php`：作者端模块注册。只挂编辑器钩子 `blox_editor_scripts`、`blox_editor_panel`，不参与保存校验与前台渲染。
-- 已迁入的作者端模块（`BLOX_PRO_EDITOR_MODULES`），交互方法在 `assets/blox-pro-editor.js`，以 `window.BloxProEditor.methods` 混入编辑器：
+- 已迁入的作者端模块（`BLOX_PRO_EDITOR_MODULES`），交互方法在 `assets/yikay-pro-editor.js`，以 `window.BloxProEditor.methods` 混入编辑器：
   - `display_conditions`：元素/区块显示条件编辑面板（`editor/conditions-panel.php`）及条件增删改方法。
   - `style_presets`：元素全局样式选择器（`editor/style-preset-picker.php`）及 `globalStyleOptions/globalStyleLabel/applyGlobalStyle`。
   - `query_loop`：循环模板面板（`editor/loop-template-card.php`）；专业控件与循环子元素仅在本模块加载时下发给编辑器。
-  - `pricing`：价格方案元素的套餐编辑（`editor/pricing-plans.php`、`assets/blox-pro-pricing.js`）；未放行时元素面板不提供价格方案，已有价格方案整体冻结，前台照常渲染（含按月/按年切换）。
-  - `table`：表格元素的创建、网格编辑与画布单元格编辑（`editor/table-grid.php`、`assets/blox-pro-table.js`）；未放行时元素面板不提供表格，已有表格整张冻结，前台照常渲染。
+  - `pricing`：价格方案元素的套餐编辑（`editor/pricing-plans.php`、`assets/yikay-pro-pricing.js`）；未放行时元素面板不提供价格方案，已有价格方案整体冻结，前台照常渲染（含按月/按年切换）。
+  - `table`：表格元素的创建、网格编辑与画布单元格编辑（`editor/table-grid.php`、`assets/yikay-pro-table.js`）；未放行时元素面板不提供表格，已有表格整张冻结，前台照常渲染。
 - 与核心基础输入交织的共用逻辑（标题绑定弹层、循环宿主判断、设计系统对话框）留在核心，模块缺失时按同一开关收起。
 
 核心保留：能力策略、服务端保护字段比较与保存校验、条件匹配与前台渲染、样式快照输出。
