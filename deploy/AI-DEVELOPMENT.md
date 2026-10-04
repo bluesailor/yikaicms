@@ -1,6 +1,6 @@
 # YikaiCMS 扩展开发：AI 阅读入口
 
-更新：2026-10-04，按 v2.0.4（发版前按 main `beb17cee` 核对，发版时跟到发版提交）核对；上一轮基线为 v2.0.3（`18f8dbdc695d18d0537909209e59f43613cf9869`）。适用于不同 AI 编程助手和人工开发者，不依赖特定工具、账号或本机路径。
+更新：2026-10-04，按 v2.0.4（按发版前的 main `07bfdcdd` 核对）核对；上一轮基线为 v2.0.3（`18f8dbdc695d18d0537909209e59f43613cf9869`）。适用于不同 AI 编程助手和人工开发者，不依赖特定工具、账号或本机路径。
 
 ## 阅读顺序
 
@@ -28,7 +28,7 @@
 
 ## 通用要求
 
-- **命名约定（2.0.4 起）**：可视化构建器的英文及所有外语名称是 **Yikay Builder**，中文仍叫「易开网页构建器」，界面文案里不再出现「Blox」。核心的构建器前台 / 编辑器静态资源由 `assets/js/blox-*.js`、`assets/css/blox-*.css` 改名为 `assets/js/yikay-*.js`、`assets/css/yikay-*.css`；新增资源用 `yikay-` 前缀。源码类名（`Blox*`）、数据表与设置键（`blox_*`）、钩子名（`blox_icon_sets` 等）、前台 CSS 类名（`blox-*`）、模板包格式（`yikaicms-blox-template`）、后台地址（`admin/blox_*.php`）**保持不变**，不要自行改名。
+- **命名约定（2.0.4 起）**：可视化构建器的英文及所有外语名称是 **Yikay Builder**，中文仍叫「易开网页构建器」，界面文案里不再出现「Blox」。核心的构建器前台 / 编辑器静态资源由 `assets/js/blox-*.js`、`assets/css/blox-*.css` 改名为 `assets/js/yikay-*.js`、`assets/css/yikay-*.css`；新增资源用 `yikay-` 前缀。老主题经 `BloxAssetCollector::addScript()` / `addStyle()` 登记的旧文件名会自动换成新文件，模板里直接写死的旧地址需要自己改。源码类名（`Blox*`）、数据表与设置键（`blox_*`）、钩子名（`blox_icon_sets` 等）、前台 CSS 类名（`blox-*`）、模板包格式（`yikaicms-blox-template`）、后台地址（`admin/blox_*.php`）**保持不变**，不要自行改名。
 
 - **运行下限 PHP 8.0**（`RuntimeRequirements::PHP_MINIMUM`、composer `php >=8.0`），推荐 8.2 或更高。扩展代码必须能在 PHP 8.0 上加载运行：不要使用 enum、readonly 属性、`never` 返回类型、纯交集类型、first-class callable 语法等 8.1+ 特性，除非在 plugin.json / theme.json 声明更高的 `requires_php`，并在运行时受控检查。
 - 原生 PHP，不引入框架。SQL 兼容 MySQL 5.7 / MariaDB 10.x；需要支持 SQLite 的路径使用现有数据库分支。
@@ -38,6 +38,8 @@
 - 后台富文本编辑器自 v1.20.0 起为随包 HugeRTE（`assets/hugerte/`），`/assets/tinymce/` 已移除。新代码使用全局 `hugerte`；`assets/js/rich-editor.js` 仅为第三方旧代码保留 `window.tinymce` 别名。不要硬编码 TinyMCE 资源路径；依赖编辑器插件或 API 的扩展需在目标版本实测。
 - 中文、英文、日文界面文案齐全。资源自托管，不依赖公共 CDN。
 - 多语言：语言代码只用 `includes/i18n/LanguageRegistry.php` 登记的，不另写语言列表；站内链接用 `langUrl()` / `langPrefix()`，不手拼 `/en/`（站点可能启用了语言域名）；前台样式用逻辑方向（`ms-*`、`text-start` 等），阿拉伯语页面才能镜像。繁体中文（zh-TW）是简体页面的整页转换，会原样提交回服务器比对的数据按 [多语言部署](./LANGUAGES.md) 第四节处理。
+- 繁体中文：界面文案写进 `lang/zh-CN.php` 后用 `php tools/i18n/zh-tw.php` 生成 `zh-TW.php`（2.0.4 起，单测会拦过期的繁体包）；内容只存简体，不要另建繁体内容。
+- 无障碍：新页面与模板按 WCAG 2.2 AA 写——表单控件有关联标签、图标按钮有 `aria-label`、标题不跳级、小字对比度至少 4.5:1、点击区域不小于 24px；要点见主题指南 8.6 与插件指南 5.6。
 - 不修改 config/config.php、管理员凭据、安装锁或用户数据；不重置站点图片、视频、配色和内容。
 - 不修改核心文件（升级会覆盖的文件，含 `themes/default/` 与随包插件），定制放插件、非默认主题或 `overrides/`。2.0.3 起升级前会按包内哈希清单（`config/release-files.php`）比对：新版本要覆盖的文件若被本站改过，在线升级列出文件、等站长确认，自动升级与远程升级直接跳过这次升级。
 - 只修改被授权的目录；发现已有改动不得回退。遵守目标仓库的工作树与提交约定。
