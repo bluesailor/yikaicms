@@ -82,6 +82,20 @@ final class LanguageRegistry
         return $code === 'zh-CN' ? 'ZH' : strtoupper($code);
     }
 
+    /**
+     * 某语言在另一种界面语言里的名称（CLDR，见 language-names.php）：后台用它把「Bahasa Melayu」
+     * 显示成「马来语」。没有对照时退回英文名。
+     */
+    public static function localName(string $code, string $uiLang): string
+    {
+        static $table = null;
+        if ($table === null) {
+            $file = __DIR__ . '/language-names.php';
+            $table = is_file($file) ? (array) require $file : [];
+        }
+        return (string) ($table[$uiLang][$code] ?? $table['en'][$code] ?? self::englishName($code));
+    }
+
     public static function englishName(string $code): string
     {
         return self::LANGUAGES[$code]['english'] ?? $code;

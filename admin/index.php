@@ -560,7 +560,6 @@ $__qkCatalog = [
     '/admin/setting_contact.php' => ['ti-phone',            'bg-cyan-50 group-hover:bg-cyan-100',     'text-cyan-600',    'dashboard_quick_contact', '*'],
     '/admin/setting.php'         => ['ti-settings',         'bg-blue-50 group-hover:bg-blue-100',     'text-blue-600',    'dashboard_quick_setting', '*'],
     '/admin/database.php'        => ['ti-database',         'bg-purple-50 group-hover:bg-purple-100', 'text-purple-600',  'dashboard_quick_database','*'],
-    '/admin/banner.php'          => ['ti-photo',            'bg-amber-50 group-hover:bg-amber-100',   'text-amber-600',   'dashboard_quick_banner',  'banner'],
     '/admin/channel.php'         => ['ti-align-justified',  'bg-rose-50 group-hover:bg-rose-100',     'text-rose-600',    'dashboard_quick_channel', '*'],
     '/admin/page.php'            => ['ti-file-description', 'bg-lime-50 group-hover:bg-lime-100',     'text-lime-600',    'dashboard_quick_page',    'edit_page'],
     '/admin/article.php'         => ['ti-file-text',        'bg-indigo-50 group-hover:bg-indigo-100', 'text-indigo-600',  'dashboard_quick_article', 'edit_article'],
@@ -577,8 +576,8 @@ $__qkCatalog = [
 // 默认清单不含「网站设计」：它是整站设计入口，左侧菜单常驻，放在常用里重复（2026-09-18 产品决定）。
 // 管理员用 ☆ 收藏后照常出现，所以目录里仍保留它的图标与文案。
 $__qkByRole = [
-    // 1 超级管理员：日常最常做的事在前（询盘、文章、产品）。轮播图在首页可视化编辑里也能改、
-    //   一年改不了几次，数据库更少用，2.0.3 起移出默认（仍可 ☆ 收藏；运营角色保留轮播图）
+    // 1 超级管理员：日常最常做的事在前（询盘、文章、产品）。数据库很少用，2.0.3 起移出默认。
+    //   轮播图在首页可视化编辑里就能改、一年改不了几次，2.0.4 起常用面板一律不放（所有角色，含旧收藏）
     1 => ['/admin/form.php', '/admin/article.php', '/admin/product.php', '/admin/page.php',
           '/admin/channel.php', '/admin/setting_contact.php', '/admin/setting.php', '/admin/download.php'],
     // 2 投稿者：只写文章相关
@@ -589,8 +588,8 @@ $__qkByRole = [
     // 4 内容主管：内容编辑 + 招聘/时间轴
     4 => ['/admin/article.php', '/admin/product.php', '/admin/page.php', '/admin/case.php',
           '/admin/download.php', '/admin/job.php', '/admin/media.php'],
-    // 5 运营：内容 + 表单/会员/轮播/友链
-    5 => ['/admin/article.php', '/admin/product.php', '/admin/banner.php', '/admin/form.php',
+    // 5 运营：内容 + 表单/会员/友链
+    5 => ['/admin/article.php', '/admin/product.php', '/admin/form.php',
           '/admin/member.php', '/admin/link.php', '/admin/media.php', '/admin/page.php'],
 ];
 $__roleId = (int) (getAdminInfo()['role_id'] ?? 0);
@@ -646,6 +645,7 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
 // 常用面板 × 星标收藏：有收藏时用收藏渲染（可拖拽排序），没有收藏保留默认卡片。
 // 图标与文案从侧栏菜单 DOM 采集（header 的 ykFav 模块保证其已就绪）。
 (function () {
+    var HIDDEN = '/admin/banner.php';
     var QK_COLORS = [
         ['bg-blue-50', 'text-blue-600'], ['bg-green-50', 'text-green-600'],
         ['bg-cyan-50', 'text-cyan-600'], ['bg-purple-50', 'text-purple-600'],
@@ -662,6 +662,11 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
         var grid = document.getElementById('quickGrid');
         if (!grid || !window.ykFav) return;
         var list = ykFav.get();
+        // 轮播图不进常用面板（2.0.4）：旧版拖拽排序会把当时的默认卡片整组存成收藏，里面带着轮播图——清掉并写回
+        if (list && list.indexOf(HIDDEN) !== -1) {
+            list = list.filter(function (url) { return url !== HIDDEN; });
+            ykFav.save(list);
+        }
         if (!list || !list.length) return;   // 未收藏 → 默认卡片原样保留
         grid.innerHTML = '';
         list.forEach(function (url, i) {
