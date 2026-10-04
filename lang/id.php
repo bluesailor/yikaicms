@@ -9036,4 +9036,7 @@ return [
     'blox_share_email' => 'Email',
     'blox_share_copy' => 'Salin tautan',
     'blox_share_copied' => 'Tautan disalin',
+    'email_smtp_pass_saved' => 'Tersimpan (disembunyikan); kosongkan agar tidak diubah',
+    'email_smtp_pass_clear' => 'Hapus kata sandi tersimpan',
+    'seo_push_tls_error' => 'Verifikasi sertifikat HTTPS gagal, biasanya karena sertifikat root server sudah usang. Minta penyedia hosting Anda memperbaruinya',
 ];
