@@ -25,7 +25,7 @@ for (const [kind, route, dynamic] of [
     publicPage.on('console', m => { if (m.type() === 'error') errors.push(m.text()); });
     publicPage.on('response', r => { if (r.status() >= 500) errors.push(`${r.status()} ${r.url()}`); });
     const evidence = [];
-    const cards = publicPage.locator('a h3');
+    const cards = publicPage.locator('a :is(h2, h3)');
     async function visit(url, cache, count) {
       const response = await publicPage.goto(url);
       expect(response.status()).toBe(200);

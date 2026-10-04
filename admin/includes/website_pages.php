@@ -85,7 +85,7 @@ function renderWebsitePageCard(array $page, bool $overview = false): string
     ?>
     <article class="website-page-card<?php echo $disabled ? ' is-disabled' : ''; ?>" data-testid="website-page-card-<?php echo $id; ?>"<?php echo $disabled ? ' data-page-disabled="1"' : ''; ?>>
         <div class="website-page-body">
-            <div class="website-page-title"><h3><?php echo e((string) $page['name']); ?></h3><span><?php echo e((string) $page['lang']); ?></span></div>
+            <div class="website-page-title"><h2><?php echo e((string) $page['name']); ?></h2><span><?php echo e((string) $page['lang']); ?></span></div>
             <p class="website-page-url"><?php echo e($page['public_url']); ?></p>
             <div class="website-page-badges">
                 <span class="<?php echo $disabled ? 'is-off' : 'is-live'; ?>"><?php if ($disabled): ?><i class="ti ti-eye-off" aria-hidden="true"></i><?php endif; ?><?php echo e(__($disabled ? 'website_pages_disabled' : 'website_pages_active')); ?></span>
@@ -235,7 +235,7 @@ function renderWebsiteStructuralCard(array $item): string
              data-testid="website-structural-card-<?php echo e($testId); ?>" data-structural-kind="<?php echo e($kind); ?>">
         <div class="website-page-body">
             <div class="website-page-title">
-                <h3><?php echo e((string) $item['name']); ?></h3>
+                <h2><?php echo e((string) $item['name']); ?></h2>
                 <span><?php echo e((string) $item['lang']); ?></span>
             </div>
             <p class="website-page-url"><?php echo e(__('website_structural_kind_' . $kind)); ?></p>
@@ -274,7 +274,7 @@ function renderWebsiteHomeCard(string $lang): string
     ?>
     <article class="website-page-card website-page-home" data-testid="page-home-card">
         <div class="website-page-body">
-            <div class="website-page-title"><h3><?php echo e(websiteHomeTitle($lang)); ?></h3><span><?php echo e($lang); ?></span></div>
+            <div class="website-page-title"><h2><?php echo e(websiteHomeTitle($lang)); ?></h2><span><?php echo e($lang); ?></span></div>
             <p class="website-page-url"><?php echo e($url); ?></p>
             <div class="website-page-badges"><span class="is-live"><?php echo e(__('admin_label_fixed')); ?></span><span><?php echo e(__('site_design_theme_hint', ['theme'=>(string) config('current_theme', 'default')])); ?></span></div>
             <p class="website-page-note"><?php echo e(__(HomeBloxDocument::isActive() && HomeBloxDocument::hasPublished() ? 'site_design_home_active' : 'site_design_home_structured')); ?></p>

@@ -873,7 +873,7 @@ document.getElementById('datefmtSave').addEventListener('click', async function 
                     <span class="text-gray-400 text-sm block"><?php echo e($__tip); ?></span>
                     <?php endif; ?>
                     <?php if ($isModified && $defaultValue !== ''): ?>
-                    <span class="text-gray-300 text-xs block mt-1 truncate" title="<?php echo e($defaultValue); ?>"><?php echo __('setting_default'); ?>: <?php echo e(mb_strimwidth($defaultValue, 0, 30, '...')); ?></span>
+                    <span class="text-gray-500 text-xs block mt-1 truncate" title="<?php echo e($defaultValue); ?>"><?php echo __('setting_default'); ?>: <?php echo e(mb_strimwidth($defaultValue, 0, 30, '...')); ?></span>
                     <?php endif; ?>
                 </label>
                 <div class="<?php echo $__stackedField ? '' : 'md:col-span-3'; ?>">

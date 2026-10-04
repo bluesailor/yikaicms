@@ -32,9 +32,9 @@
         <?php endif; ?>
     </div>
     <div class="p-4">
-        <h3 class="font-bold text-dark group-hover:text-primary transition line-clamp-2">
+        <h2 class="font-bold text-dark group-hover:text-primary transition line-clamp-2">
             <?php echo e($item['title']); ?>
-        </h3>
+        </h2>
         <?php if ($isProductType && !empty($item['model'])): ?>
         <p class="text-xs text-gray-500 mt-1"><?php echo e($item['model']); ?></p>
         <?php endif; ?>

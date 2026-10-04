@@ -230,7 +230,7 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                :inert="mobileView && !mobileMenu"
                :role="mobileView && mobileMenu ? 'dialog' : null"
                :aria-modal="mobileView && mobileMenu ? 'true' : null"
-               :aria-label="mobileView && mobileMenu ? '<?php echo e(__('admin_main_menu')); ?>' : null"
+               aria-label="<?php echo e(__('admin_main_menu')); ?>"
                data-compact="<?= $_sbCollapsed ? 'true' : 'false' ?>" :data-compact="collapsed ? 'true' : 'false'"
                class="fixed inset-y-0 left-0 z-50 bg-sidebar text-gray-300 transition-all duration-300 ease-in-out -translate-x-full lg:translate-x-0 overflow-y-auto overflow-x-visible w-64 <?= $_sbCollapsed ? 'lg:w-16' : 'lg:w-64' ?>"
                <?php // 必须用对象语法：三元写法下 Alpine 只移除自己加过的类，

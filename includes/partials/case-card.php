@@ -18,8 +18,8 @@
         <?php endif; ?>
     </div>
     <div class="p-4">
-        <h3 class="font-bold text-dark group-hover:text-primary transition line-clamp-2">
+        <h2 class="font-bold text-dark group-hover:text-primary transition line-clamp-2">
             <?php echo e($item['title']); ?>
-        </h3>
+        </h2>
     </div>
 </a>

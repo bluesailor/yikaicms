@@ -1278,7 +1278,7 @@ function confirmAreaPublish(form) {
                         <button type="submit"
                                 aria-pressed="<?php echo $areaEnabled ? 'true' : 'false'; ?>"
                                 data-testid="blox-custom-<?php echo e($areaType); ?>-choice-custom"
-                                class="inline-flex h-8 items-center gap-2 border px-2.5 text-xs font-medium <?php echo $areaEnabled ? 'border-primary bg-primary/10 text-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'; ?>">
+                                class="inline-flex h-8 items-center gap-2 border px-2.5 text-xs font-medium <?php echo $areaEnabled ? 'border-primary bg-primary/5 text-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'; ?>">
                             <i class="ti <?php echo $areaEnabled ? 'ti-circle-dot' : 'ti-circle'; ?>" aria-hidden="true"></i>
                             <?php echo e(__($areaCustomOptionKey)); ?>
                         </button>
@@ -1289,7 +1289,7 @@ function confirmAreaPublish(form) {
                         <input type="hidden" name="area" value="<?php echo e($areaType); ?>">
                         <input type="hidden" name="enabled" value="0">
                         <input type="hidden" name="context" value="<?php echo e($areaContextKey); ?>">
-                        <button type="submit" aria-pressed="<?php echo $areaEnabled ? 'false' : 'true'; ?>" data-testid="blox-custom-<?php echo e($areaType); ?>-choice-theme" class="inline-flex h-8 items-center gap-2 border px-2.5 text-xs font-medium <?php echo !$areaEnabled ? 'border-primary bg-primary/10 text-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'; ?>">
+                        <button type="submit" aria-pressed="<?php echo $areaEnabled ? 'false' : 'true'; ?>" data-testid="blox-custom-<?php echo e($areaType); ?>-choice-theme" class="inline-flex h-8 items-center gap-2 border px-2.5 text-xs font-medium <?php echo !$areaEnabled ? 'border-primary bg-primary/5 text-primary' : 'border-gray-300 text-gray-600 hover:border-primary hover:text-primary'; ?>">
                             <i class="ti <?php echo !$areaEnabled ? 'ti-circle-dot' : 'ti-circle'; ?>" aria-hidden="true"></i>
                             <?php echo e(__($areaThemeOptionKey)); ?>
                         </button>
@@ -1786,11 +1786,11 @@ function confirmAreaPublish(form) {
                             <td class="px-5 py-3 text-right">
                                 <?php if ($templateEditable): ?>
                                 <a href="/admin/blox_editor.php?template=<?php echo (int) $template['id']; ?>"
-                                   class="mr-3 text-blue-600 hover:text-blue-800" title="<?php echo e(__('blox_tpl_open_editor')); ?>">
+                                   class="inline-flex p-1.5 mr-1 text-blue-600 hover:text-blue-800" title="<?php echo e(__('blox_tpl_open_editor')); ?>">
                                     <i class="ti ti-edit"></i>
                                 </a>
                                 <?php if ($isAreaTemplate): ?>
-                                <button type="button" class="mr-3 text-indigo-600 hover:text-indigo-800"
+                                <button type="button" class="inline-flex p-1.5 mr-1 text-indigo-600 hover:text-indigo-800"
                                         @click="condOpen = condOpen === <?php echo (int) $template['id']; ?> ? 0 : <?php echo (int) $template['id']; ?>"
                                         data-testid="blox-condition-toggle"
                                         title="<?php echo e(__('blox_tpl_conditions')); ?>">
@@ -1798,7 +1798,7 @@ function confirmAreaPublish(form) {
                                 </button>
                                 <?php endif; ?>
                                 <?php if ($isSectionTemplate): ?>
-                                <button type="button" class="mr-3 text-emerald-700 hover:text-emerald-900"
+                                <button type="button" class="inline-flex p-1.5 mr-1 text-emerald-700 hover:text-emerald-900"
                                         @click="metaOpen = metaOpen === <?php echo $templateId; ?> ? 0 : <?php echo $templateId; ?>"
                                         data-testid="blox-metadata-toggle"
                                         title="<?php echo e(__('blox_tpl_metadata')); ?>">
@@ -1809,12 +1809,12 @@ function confirmAreaPublish(form) {
                                 <span class="mr-3 text-gray-500" title="<?php echo e(__('blox_feature_disabled')); ?>"><i class="ti ti-lock"></i></span>
                                 <?php endif; ?>
                                 <a href="/admin/blox_templates.php?action=export&amp;id=<?php echo (int) $template['id']; ?>"
-                                   class="mr-3 text-gray-600 hover:text-gray-900" title="<?php echo e(__('blox_tpl_export_json')); ?>">
+                                   class="inline-flex p-1.5 mr-1 text-gray-600 hover:text-gray-900" title="<?php echo e(__('blox_tpl_export_json')); ?>">
                                     <i class="ti ti-download"></i>
                                 </a>
                                 <a href="/admin/blox_templates.php?action=export&amp;media=1&amp;id=<?php echo (int) $template['id']; ?>"
                                    data-testid="blox-template-export-media"
-                                   class="mr-3 text-gray-600 hover:text-gray-900" title="<?php echo e(__('blox_tpl_export_with_media')); ?>">
+                                   class="inline-flex p-1.5 mr-1 text-gray-600 hover:text-gray-900" title="<?php echo e(__('blox_tpl_export_with_media')); ?>">
                                     <i class="ti ti-photo-down"></i>
                                 </a>
                                 <?php if ($templateEditable): ?>
@@ -1827,7 +1827,7 @@ function confirmAreaPublish(form) {
                                     <input type="hidden" name="action" value="<?php echo (int) $template['status'] === 1 ? 'unpublish' : 'publish'; ?>">
                                     <input type="hidden" name="id" value="<?php echo (int) $template['id']; ?>">
                                     <input type="hidden" name="confirm_conflict" value="">
-                                    <button type="submit" class="text-blue-600 hover:text-blue-800" title="<?php echo (int) $template['status'] === 1 ? __('blox_tpl_unpublish') : __('blox_tpl_publish_draft'); ?>">
+                                    <button type="submit" class="inline-flex p-1.5 text-blue-600 hover:text-blue-800" title="<?php echo (int) $template['status'] === 1 ? __('blox_tpl_unpublish') : __('blox_tpl_publish_draft'); ?>">
                                         <i class="ti <?php echo (int) $template['status'] === 1 ? 'ti-player-pause' : 'ti-send'; ?>"></i>
                                     </button>
                                 </form>
@@ -1835,7 +1835,7 @@ function confirmAreaPublish(form) {
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo (int) $template['id']; ?>">
-                                    <button type="submit" class="text-red-600 hover:text-red-800" title="<?php echo e(__('delete')); ?>"><i class="ti ti-trash"></i></button>
+                                    <button type="submit" class="inline-flex p-1.5 text-red-600 hover:text-red-800" title="<?php echo e(__('delete')); ?>"><i class="ti ti-trash"></i></button>
                                 </form>
                                 <?php endif; ?>
                             </td>

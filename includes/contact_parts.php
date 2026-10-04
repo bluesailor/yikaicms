@@ -205,7 +205,7 @@ function renderContactCardsHtml(?array $contactCards = null, ?string $gridCols =
                 </div>
                 <?php endif; ?>
                 <div class="yk-contact-copy min-w-0">
-                    <h3 class="font-bold text-dark mb-1 md:mb-2"><?php echo e((string) ($card['label'] ?? '')); ?></h3>
+                    <h2 class="font-bold text-dark mb-1 md:mb-2"><?php echo e((string) ($card['label'] ?? '')); ?></h2>
                     <?php if (preg_match('/\.(jpg|jpeg|png|gif|webp|svg)(\?|$)/i', $cardValue)): ?>
                     <img loading="lazy" src="<?php echo e($cardValue); ?>" alt="<?php echo e((string) ($card['label'] ?? '')); ?>" class="max-h-24 md:mx-auto">
                     <?php elseif ($cardHref !== ''): ?>
@@ -311,7 +311,7 @@ function renderContactMapHtml(?callable $__ykEdit = null): string
                         </svg>
                     </div>
                     <h2 class="text-xl font-bold text-dark mb-2"><?php echo __('contact_visit_title'); ?></h2>
-                    <p class="text-sm text-gray-500 mb-6"><?php echo __('contact_visit_hint'); ?></p>
+                    <p class="text-sm text-gray-600 mb-6"><?php echo __('contact_visit_hint'); ?></p>
                     <dl class="space-y-4 text-sm">
                         <?php if ($visitAddress !== ''): ?>
                         <div><dt class="font-medium text-gray-800 mb-1"><?php echo __('contact_address'); ?></dt><dd class="text-gray-600 leading-relaxed"><?php echo e($visitAddress); ?></dd></div>
