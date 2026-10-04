@@ -9036,4 +9036,7 @@ return [
     'blox_share_email' => 'Correo electrónico',
     'blox_share_copy' => 'Copiar enlace',
     'blox_share_copied' => 'Enlace copiado',
+    'email_smtp_pass_saved' => 'Guardada (oculta); déjela en blanco para conservarla',
+    'email_smtp_pass_clear' => 'Borrar la contraseña guardada',
+    'seo_push_tls_error' => 'Falló la verificación del certificado HTTPS, normalmente porque los certificados raíz del servidor están desactualizados. Pida a su proveedor de hosting que los actualice',
 ];
