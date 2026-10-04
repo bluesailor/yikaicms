@@ -1,8 +1,8 @@
 # YikaiCMS 插件开发指南
 
-文档版本：0.4。更新：2026-10-01。对象：为 YikaiCMS 编写业务扩展和后台工具的开发者。
+文档版本：0.5。更新：2026-10-04。对象：为 YikaiCMS 编写业务扩展和后台工具的开发者。
 
-本文根据当前主仓源码整理，不是 WordPress 插件教程。源码核对基线：YikaiCMS v2.0.3（`18f8dbdc695d18d0537909209e59f43613cf9869`）（0.3 版基线为 v2.0.2 `0bcb322f8c9b8a59975e5917d449e0753428b2bd`；0.2 版历史基线为 v1.19.9 `c97ca429`；2.0.1、2.0.2 未改变插件接口）。本版指南已按当前的插件依赖声明、整站模板插件数据接入、插件安装与来源回执规则复核；2.0.3 未改变插件加载、钩子与安装接口，新增的是多语言（语言注册表、语言域名、从右到左、繁体整页转换）与升级前核心文件检查带来的约束。代码须兼容 PHP 8.0（产品运行下限），推荐 8.2+；数据库兼容 MySQL 5.7 / MariaDB 10.x 与 SQLite。
+本文根据当前主仓源码整理，不是 WordPress 插件教程。源码核对基线：YikaiCMS v2.0.4（发版前按 main `beb17cee` 核对，发版时跟到发版提交）（0.4 版基线为 v2.0.3 `18f8dbdc695d18d0537909209e59f43613cf9869`；0.3 版基线为 v2.0.2 `0bcb322f8c9b8a59975e5917d449e0753428b2bd`；0.2 版历史基线为 v1.19.9 `c97ca429`；2.0.1、2.0.2 未改变插件接口）。本版指南已按当前的插件依赖声明、整站模板插件数据接入、插件安装与来源回执规则复核；2.0.3 未改变插件加载、钩子与安装接口，新增的是多语言（语言注册表、语言域名、从右到左、繁体整页转换）与升级前核心文件检查带来的约束。2.0.4 仍未改变插件加载与安装接口，新增的公开能力是：网页构建器图标集注册（6.1）、扩展字段的读写接口（8.1）、即将 404 时的旧地址兜底（`render_404` 的执行顺序，见第 6 节表格）。代码须兼容 PHP 8.0（产品运行下限），推荐 8.2+；数据库兼容 MySQL 5.7 / MariaDB 10.x 与 SQLite。
 
 示例是开发起点，尚未安装到站点或进行浏览器验收。发布前应针对目标 CMS 版本验证。本指南不把开发分支的未发布能力视为稳定公共接口。
 
@@ -223,6 +223,7 @@ has_filter(string $hook): bool;
 | `admin_sidebar` filter | 修改后台菜单数据 | 菜单可见不是服务端权限检查 |
 | `content_output` filter | 修改经过该过滤器的正文 | 当前已核对 `detail.php`；不能据此保证所有文章路由都会触发 |
 | `blox_icon_sets` filter | 给网页构建器注册图标集（2.0.4，见 6.1） | 只认合法前缀与站内样式表，不合法的整项忽略 |
+| `render_404` action | 页面即将输出 404，参数为请求路径（`render404()`） | 2.0.4 起核心先挂了旧地址兜底（`LegacyUrls::onNotFound`：跳转里的前缀规则 `/旧目录/*`、导入过 WordPress 的站点的 feed / 作者 / 附件 / 日期归档地址），命中就 301 并结束请求，插件的处理不再执行；没命中才轮到插件（如 SEO 插件记录死链）。插件要接管某类旧地址时同样在这里跳转后 `exit` |
 
 ### 6.1 注册图标集（2.0.4）
 
@@ -281,6 +282,16 @@ add_filter('admin_sidebar', static function (array $menu): array {
 - 当前 ZIP 安装可能替换已有同名插件目录，**不要把用户上传、配置数据库、授权密钥或业务数据写进插件源码目录**。使用模型或站点运行数据目录，并设计访问控制。
 - 输出变化要处理缓存；含会员或个人信息的输出不可进入公共整页缓存。不要以禁用全站缓存代替正确的缓存边界。
 
+### 8.1 扩展字段（2.0.4）
+
+站长在「外观 → 扩展字段」里给内容、产品、自定义模型（专业版另有栏目、产品分类、全站选项）定义的字段，插件可以直接读写，不要自己去解析 `metas` 表：
+
+- 字段定义：`ExtFields::fields($owner)`（带解码后的 `config`：重复器 / 字段组的 `sub_fields`、关联的 `target`、条件 `conditions`、挂载位置 `location`）、`ExtFields::field($owner, $key)`。归属取值：`content`、`product`、自定义模型键、`channel`、`product_category`、`site`（全站选项，条目 id 为 0）；内容条目的归属用 `resolveExtFieldOwner($type)` 算，不要写死 `content`。
+- 读值：`ExtFields::raw($owner, $id, $key)`（存储原文）、`ExtFields::decode($type, $stored)`（重复器 = 行数组，字段组 / 链接 = 关联数组，多选 / 多图 / 关联 = 列表）、`ExtFields::textFor($owner, $id, $key, $sub)`（纯文本：链接取网址、下拉取显示名）、`ExtFields::rows($owner, $id, $key)`（重复器的行）。前台输出仍要 `e()` 转义；`ExtFields::html()` 给出的是已转义 / 已净化的展示片段。
+- 写值：`ExtFields::save($owner, $id, $_POST['ext_fields'] ?? [])` 只写已定义的字段并按类型校验（链接、图片、文件网址过 `safeUrl`，富文本过 `sanitizeHtml`，下拉只收选项里的键）；单个值可用 `ExtFields::sanitize($field, $raw)` 后再 `setMeta()`。必填检查：`ExtFields::missingRequired($owner, $posted, $termId)`。
+- 在插件自己的后台页渲染字段区：`require_once ROOT_PATH . '/admin/includes/extfield_helpers.php'; efRenderFields($owner, $id);`，表单字段名为 `ext_fields[...]`。
+- 不要往扩展字段的配置（`metas` 里 `owner_type = 'extfield'`）写数据，也不要绕过 `BloxFeaturePolicy::allows('advanced_fields')` 去创建重复器、关联等专业版字段；插件自己的业务数据仍放插件自己的表或设置。
+
 ## 9. 安装、调试和打包
 
 本地使用合法目录后，在后台插件管理页安装/启用；启用和停用会改数据库，请仅在开发站进行。现有 CLI：
@@ -334,5 +345,7 @@ v1.20.1 起，安装种子（`install/sql/*.sql`）只登记随完整包提供�
 - [后台菜单接口](../admin/includes/sidebar_menu_api.php)
 - [插件 CLI](../includes/commands/plugin.php)
 - [语言注册表](../includes/i18n/LanguageRegistry.php)、[繁体整页转换](../includes/i18n/S2T.php)、[多语言部署](./LANGUAGES.md)
+- [扩展字段](../includes/ExtFields.php)、[字段区渲染](../admin/includes/extfield_helpers.php)（2.0.4）
+- [301 跳转与前缀规则](../includes/Redirects.php)、[旧地址兜底](../includes/LegacyUrls.php)（2.0.4）
 
 后续维护：接口发生变化时同时更新本指南和对应示例；历史插件中的宽松 HTML 输出、旧 PHP 注释、未验证钩子不能当作新开发的安全标准。

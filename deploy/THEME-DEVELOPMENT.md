@@ -2,7 +2,7 @@
 
 适用对象：主题作者、项目交付开发者、易开网页构建器（Yikai Builder）模板制作者。
 
-本指南按 YikaiCMS v2.0.3（`18f8dbdc695d18d0537909209e59f43613cf9869`）的实际代码重新核对（上一轮基线为 `2.0.2`、提交 `0bcb322f8c9b8a59975e5917d449e0753428b2bd`）。产品运行下限为 PHP 8.0；数据库兼容目标为 MySQL 5.7 / MariaDB 10.x，同时支持 SQLite。后续版本如有变化，以目标版本源码和测试为准。
+本指南按 YikaiCMS v2.0.4（发版前按 main `beb17cee` 核对，发版时跟到发版提交）的实际代码重新核对（上一轮基线为 `2.0.3`、提交 `18f8dbdc695d18d0537909209e59f43613cf9869`）。2.0.4 与主题 / 模板相关的新增：扩展字段的取值（8.5）、构建器动态数据与新元素（9.4）、正文宽表格横向滚动（8.5 末）。产品运行下限为 PHP 8.0；数据库兼容目标为 MySQL 5.7 / MariaDB 10.x，同时支持 SQLite。后续版本如有变化，以目标版本源码和测试为准。
 
 本文只讲现有扩展边界，不介绍如何修改核心，也不把尚未存在的约定写成接口。
 
@@ -434,6 +434,21 @@ bash tools/build_css.sh
 4. 前台缓存是否已经清理。
 5. 浏览器是否仍使用旧的 CSS/JS。
 
+### 8.5 扩展字段（2.0.4）
+
+站长在「外观 → 扩展字段」定义的字段（产品参数表、规格书、证书……），主题里这样取，不要自己查 `metas`：
+
+- PHP 模板：`ykField('specs')` 取当前详情页条目（产品 / 文章 / 自定义模型）或循环当前行的字段，返回解码后的值——重复器是行数组、字段组 / 链接是关联数组、多选 / 多图 / 关联是列表，其余字符串；`ykOption('factory_area')` 取全站选项。也可显式传条目：`ykField('specs', $id, 'product')`。输出照常 `e()`，网址再过 `safeUrl()`。
+  ```php
+  <?php foreach ((array) ykField('specs') as $row): ?>
+      <tr><td><?= e($row['model'] ?? '') ?></td><td><?= e($row['load'] ?? '') ?></td></tr>
+  <?php endforeach; ?>
+  ```
+- 模板标签：`{yk:field name=键}`（2.0.4 起按字段类型出文字：链接给网址、下拉给显示名；字段组 / 链接文字写 `name=键.子键`；上下文是栏目行时取的是栏目字段）。与其它 `{yk:field}` 一样，只在有当前条目的上下文里取值。
+- 字段定义与字段值随整站模板导出导入（含自定义模型、产品分类字段和全站选项），模板依赖的字段不必让客户重建；字段的类型配置存在 `metas`（`owner_type = 'extfield'`），不要手改。重复器、关联等专业版字段在导入的站点上照常显示和填写。
+
+正文里的宽表格：2.0.4 起 `.prose` 里的 `<table>` 在手机上可横向滚动，WordPress 导入的表格包在 `.yk-table-scroll` 里。主题若重写了 `.prose table` 的样式，不要给它加 `overflow: hidden` 或固定宽度，否则会把滚动吃掉。
+
 ## 9. 易开网页构建器模板
 
 界面对外名称是“易开网页构建器”或“Yikai Builder”；源码和模板包仍使用 Blox 命名。
@@ -540,6 +555,22 @@ article-detail
 导入器会校验模板类型、名称、元素、插件和设计依赖，并拒绝 `code` 元素。导入结果先作为草稿保存，发布是另一项操作。需要随包带图片时用「导出 JSON（含图片）」，不要手写指向别的站点的图片地址；也不要放入跨站组件库引用或敏感数据。
 
 元素、区块和区块标题的「高级」设置（HTML ID、CSS 类、自定义属性、自定义 CSS）会随文档一起保存和导出。自定义 CSS 只接受净化后的样式：不能出现 `<`、`@import`、`expression()`、`javascript:` 或任何外部地址（`//`），花括号必须配平；`%root%` 指代本元素。新增或修改自定义 CSS 需要「全站设计」权限；类名 `yk-` 前缀与属性 `data-yk*` 留给系统。
+
+### 9.4 动态数据（2.0.4）
+
+构建器的动态标签（`{{来源.字段}}`，可用 `|` 写兜底）2.0.4 新增：
+
+| 标签 | 取值 |
+|---|---|
+| `{{product.meta.键}}`、`{{article.meta.键}}` | 产品 / 文章详情模板里当前条目的扩展字段；`.子键` 取字段组的子字段或链接文字（`.title`），最多四段 |
+| `{{loop.meta.键}}` | 循环当前行的扩展字段（分类循环行取栏目 / 产品分类字段） |
+| `{{loop.子键}}` | 重复器循环里当前行的子字段 |
+| `{{option.键}}` | 全站选项 |
+| `{{term.meta.键}}` | 当前栏目页 / 产品分类页的字段 |
+
+查询循环新增来源（作者端随循环模板归 Pro 插件，渲染免费）：`field:键`（当前条目的重复器，每行一项）、`option:键`（全站选项里的重复器）、`rel:键`（当前条目关联字段选中的产品或内容，默认按选择顺序）。没有当前条目或值为空时按空态处理，不会退化成全量列表。
+
+新元素：「字段表格」（`field-table`，把重复器排成参数表、字段组 / 全部字段排成规格列表）、「分享按钮」（`share-buttons`，不加载第三方脚本）。两者都属于动态元素，在没有当前条目的页面上不输出。
 
 ## 10. 打包、安装、升级和删除
 
@@ -664,6 +695,8 @@ tests/Unit/RtlFoundationTest.php
 | 元素 / 区块高级设置与自定义 CSS 净化 | [`includes/builder/BloxCustomCode.php`](../includes/builder/BloxCustomCode.php) |
 | 整站模板导出、导入与插件处理 | [`includes/SiteTemplateService.php`](../includes/SiteTemplateService.php)、[`includes/SiteTemplateArchive.php`](../includes/SiteTemplateArchive.php) |
 | 构建器模板示例 | [`templates/blox/`](../templates/blox/) |
+| 扩展字段（取值、校验、主题函数 `ykField` / `ykOption`） | [`includes/ExtFields.php`](../includes/ExtFields.php) |
+| 动态标签与循环来源 | [`includes/builder/BloxDynamicTags.php`](../includes/builder/BloxDynamicTags.php)、[`includes/builder/BloxLoopQuery.php`](../includes/builder/BloxLoopQuery.php)、[`includes/builder/elements/FieldTableElement.php`](../includes/builder/elements/FieldTableElement.php) |
 | 核心 CSS 构建 | [`tools/build_css.sh`](../tools/build_css.sh)、[`assets/css/src/app.css`](../assets/css/src/app.css) |
 | 安装包主题策略 | [`build.sh`](../build.sh)、[`marketplace/README.md`](../marketplace/README.md) |
 
