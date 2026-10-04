@@ -30,12 +30,9 @@ if ($action === 'render') {
     if (!hasPermission($permission)) {
         permissionDenied();
     }
-    $extFieldOwnerType = $owner;
-    $extFieldOwnerId = max(0, getInt('id'));
-    $extFieldBare = true;
-    $extFieldNoScripts = true;
+    require_once ROOT_PATH . '/admin/includes/extfield_helpers.php';
     ob_start();
-    require ROOT_PATH . '/admin/includes/extfield_render.php';
+    efRenderFields($owner, max(0, getInt('id')), ['bare' => true, 'no_scripts' => true]);
     success(['html' => (string) ob_get_clean()]);
 }
 if ($action !== 'search') {

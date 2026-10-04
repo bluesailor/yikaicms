@@ -257,11 +257,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
             <?php /* 扩展字段（2.0.4：产品也能填；按产品分类挂载的字段随分类切换显隐） */ ?>
             <?php
-            $extFieldOwnerType = 'product';
-            $extFieldOwnerId   = (int) $id;
-            $extFieldTermId    = (int) ($product['category_id'] ?? 0);
-            $extFieldTermInput = '#categoryIdInput';
-            require ROOT_PATH . '/admin/includes/extfield_render.php';
+            require_once ROOT_PATH . '/admin/includes/extfield_helpers.php';
+            efRenderFields('product', (int) $id, ['term_id' => (int) ($product['category_id'] ?? 0), 'term_input' => '#categoryIdInput']);
             ?>
         </div>
 

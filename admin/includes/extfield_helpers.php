@@ -6,6 +6,22 @@
 
 if (!defined('ROOT_PATH')) exit('Access Denied');
 
+/**
+ * 渲染一个归属的字段区（各编辑页统一入口；变量只活在本函数里，不污染调用页）。
+ * @param array{term_id?:int,term_input?:string,bare?:bool,no_scripts?:bool} $options
+ * @psalm-suppress UnusedVariable 变量由 extfield_render.php 读取
+ */
+function efRenderFields(string $owner, int $ownerId, array $options = []): void
+{
+    $extFieldOwnerType = $owner;
+    $extFieldOwnerId = $ownerId;
+    $extFieldTermId = (int) ($options['term_id'] ?? 0);
+    $extFieldTermInput = (string) ($options['term_input'] ?? '');
+    $extFieldBare = !empty($options['bare']);
+    $extFieldNoScripts = !empty($options['no_scripts']);
+    require __DIR__ . '/extfield_render.php';
+}
+
 /** 字段脚本与文案（页面里只需一次；弹窗页在页面底部直接调用）。 */
 function efScriptsHtml(): string
 {
