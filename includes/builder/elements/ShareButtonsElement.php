@@ -73,7 +73,7 @@ final class ShareButtonsElement extends AbstractElement
         $justify = ['center' => 'justify-center', 'right' => 'justify-end'][(string) ($data['align'] ?? 'left')] ?? 'justify-start';
         $label = trim((string) ($data['label'] ?? ''));
         return '<div class="yk-share flex flex-wrap items-center gap-2 ' . $justify . '" data-yk-share role="group" aria-label="' . self::h($label !== '' ? $label : __('blox_el_share_buttons')) . '">'
-            . ($label !== '' ? '<span class="mr-1 text-sm font-medium text-gray-600">' . self::h($label) . '</span>' : '')
+            . ($label !== '' ? '<span class="me-1 text-sm font-medium text-gray-600">' . self::h($label) . '</span>' : '')
             . $items . '</div>';
     }
 

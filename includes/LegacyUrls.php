@@ -32,7 +32,7 @@ final class LegacyUrls
 
     /**
      * 首页请求（含语言首页 /ja/）。命中就跳转并结束请求；不命中直接返回，照常渲染首页。
-     * @param array<string,mixed> $query
+     * @param array<array-key,mixed> $query
      */
     public static function onHome(array $query): void
     {
@@ -44,7 +44,7 @@ final class LegacyUrls
 
     /**
      * 首页查询串对应的跳转目标（纯函数，便于测试）；不跳返回 null。
-     * @param array<string,mixed> $query
+     * @param array<array-key,mixed> $query
      */
     public static function homeTarget(array $query, bool $wordpress): ?string
     {
