@@ -64,6 +64,8 @@ if (!$channel || $channel['status'] != 1) {
     render404(__('error_page_not_found'));
 }
 redirectToRegisteredUrl('channel', $channelId);   // 设了登记网址：旧地址 301 过去
+// 没有本语言单页时 302 到原文（2.0.5）。/{别名}.html 各类栏目都先进这里，列表类转给 list.php 另行处理
+if (($channel['type'] ?? '') === 'page') LocalizedUrl::enter('channel', $channel, isset($_GET['preview']));
 
 // 联系页：所有语言版本都委托给 contact.php 渲染
 // （保留 cards / form / map 等专属布局；避免 /en/contact-en.html /ja/contact-ja.html

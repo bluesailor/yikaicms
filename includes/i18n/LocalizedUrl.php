@@ -14,16 +14,23 @@ declare(strict_types=1);
  * 网址按目标语言显式生成，不依赖当前请求的语言上下文：伪静态（登记网址优先、否则默认形态换前缀）、
  * 动态网址（?yk_route=…&lang=xx）、语言域名都覆盖；繁体（zh-TW）作为简体数据的渲染视图时跟着简体那一行出。
  * 登记网址进来的页面（product_routes.php 设的 yk_route_entity）仍按登记表给 hreflang，与这里一致。
+ *
+ * 第二步（2.0.5）：栏目（列表页、单页）也走这里——此前 /en/about.html 没有英文栏目时按 findBySlugLang 回落
+ * 原文行、以 200 冒充英文页。分页第 2 页起仍按路径给 hreflang（别的语言的第 N 页未必是对应页）。
+ * 站点地图的各条网址也用 urlFor 按行自己的语言生成（动态网址、语言域名此前会给错）。
  */
 final class LocalizedUrl
 {
-    /** @var array{kind:string,row:array<string,mixed>}|null */
+    /** @var array{kind:string,row:array<string,mixed>,page:int}|null */
     private static ?array $entity = null;
 
-    /** 详情页登记当前条目；必要时按严格策略 302 到条目自己的语言版本（预览不跳）。 @param array<string,mixed> $row */
-    public static function enter(string $kind, array $row, bool $preview = false): void
+    /**
+     * 详情 / 栏目页登记当前条目；必要时按严格策略 302 到条目自己的语言版本（预览不跳）。
+     * $page：列表分页页码，第 2 页起 hreflang 与语言切换仍按路径。 @param array<string,mixed> $row
+     */
+    public static function enter(string $kind, array $row, bool $preview = false, int $page = 1): void
     {
-        self::$entity = ['kind' => $kind, 'row' => $row];
+        self::$entity = ['kind' => $kind, 'row' => $row, 'page' => max(1, $page)];
         if ($preview || headers_sent()) return;
         $rowLang = (string) ($row['lang'] ?? '');
         if ($rowLang === '' || $rowLang === siteLang()) return;
@@ -37,7 +44,7 @@ final class LocalizedUrl
     }
 
     /**
-     * @return array{kind:string,row:array<string,mixed>}|null
+     * @return array{kind:string,row:array<string,mixed>,page:int}|null
      * @psalm-suppress PossiblyUnusedMethod 公开 API（插件可取本页条目），测试也用
      */
     public static function current(): ?array
@@ -87,8 +94,9 @@ final class LocalizedUrl
     public static function urlFor(string $kind, array $row, string $lang): string
     {
         $default = (string) config('site_lang', 'zh-CN');
+        if ($kind === 'channel' && ($row['type'] ?? '') === 'link') return '';
         if (isDynamicUrlMode()) {
-            $url = match ($kind) { 'content' => contentUrl($row), 'product' => productUrl($row), default => '' };
+            $url = match ($kind) { 'content' => contentUrl($row), 'product' => productUrl($row), 'channel' => channelUrl($row), default => '' };
             return $url === '' ? '' : self::withLangQuery($url, $lang === $default ? '' : $lang);
         }
         $registered = productRouteModel()->pathFor($kind, (int) ($row['id'] ?? 0));
@@ -96,7 +104,10 @@ final class LocalizedUrl
             // 登记网址本身带着该语言的前缀（非默认语言），繁体视图在简体网址前补 /zh-TW
             $path = $lang === (string) ($row['lang'] ?? '') ? $registered : self::prefix($lang, $default) . self::stripPrefix($registered);
         } else {
-            $path = match ($kind) { 'content' => contentDefaultPrettyUrl($row), 'product' => self::productDefaultPrettyUrl($row), default => '' };
+            $path = match ($kind) {
+                'content' => contentDefaultPrettyUrl($row), 'product' => self::productDefaultPrettyUrl($row),
+                'channel' => channelDefaultPrettyUrl($row), default => '',
+            };
             if ($path === '') return '';
             $path = self::prefix($lang, $default) . self::stripPrefix($path);
         }
@@ -112,7 +123,7 @@ final class LocalizedUrl
      */
     public static function hreflangTags(): ?string
     {
-        if (self::$entity === null) return null;
+        if (self::$entity === null || self::$entity['page'] > 1) return null;
         $alternates = self::alternates(self::$entity['kind'], self::$entity['row']);
         if (count($alternates) < 2) return '';
         $default = (string) config('site_lang', 'zh-CN');
@@ -130,7 +141,7 @@ final class LocalizedUrl
     /** 语言切换目标：本页有登记条目时给该语言版本，没有译文去该语言首页；本页没登记条目返回 null。 */
     public static function switchTarget(string $lang): ?string
     {
-        if (self::$entity === null) return null;
+        if (self::$entity === null || self::$entity['page'] > 1) return null;
         $alternates = self::alternates(self::$entity['kind'], self::$entity['row']);
         return $alternates[$lang] ?? langUrl('/', $lang);
     }
@@ -153,6 +164,9 @@ final class LocalizedUrl
         } elseif ($kind === 'product') {
             $ids = db()->fetchAll('SELECT id FROM ' . DB_PREFIX . 'products WHERE (translation_group_id = ? OR id = ?) AND status = 1 AND deleted_at IS NULL ORDER BY id', [$group, $group]);
             $rows = array_values(array_filter(array_map(static fn (array $r): ?array => productModel()->getPublished((int) $r['id']), $ids)));
+        } elseif ($kind === 'channel') {
+            $rows = channelModel()->query('SELECT * FROM ' . channelModel()->tableName() . ' WHERE (translation_group_id = ? OR id = ?) AND status = 1 ORDER BY id',
+                [$group, $group]);
         } else {
             $rows = [$row];
         }

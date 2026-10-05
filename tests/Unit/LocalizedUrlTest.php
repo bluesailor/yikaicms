@@ -66,4 +66,21 @@ final class LocalizedUrlTest extends TestCase
         self::assertStringContainsString('$target = LocalizedUrl::switchTarget($language);', $switcher);
         self::assertContains('includes/i18n/LocalizedUrl.php', (require ROOT_PATH . '/config/release-runtime.php')['required_files']);
     }
+    public function testChannelsOnlyRedirectSinglePagesAndPagedListsKeepPathRules(): void
+    {
+        // 单页栏目：正文是栏目自己的内容，缺译文按严格策略跳；/{别名}.html 各类栏目都先进 page.php，只认 page
+        self::assertStringContainsString("if ((\$channel['type'] ?? '') === 'page') LocalizedUrl::enter('channel', \$channel, isset(\$_GET['preview']));",
+            (string) file_get_contents(ROOT_PATH . '/page.php'));
+        // 列表栏目：条目本就按当前语言筛选，回落到别的语言行时不登记、不跳
+        self::assertStringContainsString("!in_array(\$channel['type'], ['link', 'page'], true) && in_array((string) (\$channel['lang'] ?? ''), ['', siteLang()], true)",
+            (string) file_get_contents(ROOT_PATH . '/list.php'));
+        // 第 2 页起不按条目给 hreflang / 切换目标（别的语言的第 N 页未必对应）
+        LocalizedUrl::enter('channel', ['id' => 1, 'lang' => '', 'type' => 'list'], true, 2);
+        self::assertSame(2, LocalizedUrl::current()['page'] ?? null);
+        self::assertNull(LocalizedUrl::hreflangTags());
+        self::assertNull(LocalizedUrl::switchTarget('en'));
+        LocalizedUrl::reset();
+        // 链接栏目没有自己的页面
+        self::assertSame('', LocalizedUrl::urlFor('channel', ['id' => 1, 'type' => 'link', 'link_url' => 'https://example.com'], 'en'));
+    }
 }

@@ -31,7 +31,20 @@ if ($action === 'setup') {
     $row = array_merge($row, ['slug' => 'only-chinese-e2e', 'title' => '只有中文的新闻 E2E', 'translation_group_id' => 0, 'views' => 0]);
     $only = (int) db()->insert('contents', $row);
     db()->update('contents', ['translation_group_id' => $only], 'id = ?', [$only]);
-    $state = ['settings' => $settings, 'only' => $only, 'translated' => $translated['slug'], 'en' => (string) $en['slug'], 'ja' => (string) $ja['slug']];
+    // 有英文版、没有子栏目的单页栏目（父单页会 302 到第一个子栏目）；两边网址用改动前就有的 channelPrettyUrl 算
+    $leaf = db()->fetchOne("SELECT p.* FROM {$t}channels p WHERE p.type = 'page' AND p.lang = 'zh-CN' AND p.status = 1
+        AND NOT EXISTS (SELECT 1 FROM {$t}channels k WHERE k.parent_id = p.id AND k.status = 1)
+        AND EXISTS (SELECT 1 FROM {$t}channels e WHERE e.translation_group_id = p.translation_group_id AND e.lang = 'en' AND e.status = 1 AND e.id <> p.id)
+        AND p.translation_group_id > 0 ORDER BY p.id LIMIT 1");
+    if (!$leaf) throw new RuntimeException('Demo page channel with an English version required');
+    $leafEn = db()->fetchOne("SELECT * FROM {$t}channels WHERE translation_group_id = ? AND lang = 'en' AND status = 1 AND id <> ?", [(int) $leaf['translation_group_id'], (int) $leaf['id']]);
+    // 只有中文的单页栏目：复制上面的单页，自成翻译组
+    $channel = $leaf;
+    unset($channel['id']);
+    $onlyChannel = (int) db()->insert('channels', array_merge($channel, ['slug' => 'only-chinese-channel-e2e', 'name' => '只有中文的单页 E2E', 'translation_group_id' => 0, 'parent_id' => 0, 'is_nav' => 0]));
+    db()->update('channels', ['translation_group_id' => $onlyChannel], 'id = ?', [$onlyChannel]);
+    $state = ['settings' => $settings, 'only' => $only, 'translated' => $translated['slug'], 'en' => (string) $en['slug'], 'ja' => (string) $ja['slug'],
+        'onlyChannel' => $onlyChannel, 'pageZh' => channelPrettyUrl($leaf), 'pageEn' => channelPrettyUrl($leafEn)];
     settingModel()->rotateHtmlCacheGeneration();
     file_put_contents($file, json_encode($state, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE));
     echo json_encode($state, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
@@ -41,6 +54,7 @@ if ($action === 'setup') {
 } elseif ($action === 'restore' && is_file($file)) {
     $state = json_decode((string) file_get_contents($file), true, 512, JSON_THROW_ON_ERROR);
     db()->delete('contents', 'id = ?', [(int) $state['only']]);
+    db()->delete('channels', 'id = ?', [(int) $state['onlyChannel']]);
     settingModel()->saveBatch($state['settings']);
     settingModel()->rotateHtmlCacheGeneration();
     unlink($file);

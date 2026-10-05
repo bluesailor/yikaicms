@@ -53,3 +53,51 @@ test('image editor rotates, crops, saves in place and restores the original @ci'
     fixture('restore');
   }
 });
+
+// 2.0.5：网页构建器的图片控件直接打开同一个编辑弹窗（按网址找媒体）；保存后不刷新整页、网址不变、画布重渲染。
+test('builder image control opens the image editor for library images @ci', async ({ page }) => {
+  test.setTimeout(90000);
+  const { openPageEditor, performPagePreviewUpdate } = require('./helpers');
+  const fixtures = JSON.parse(require('node:fs').readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
+  fixture('setup');
+  try {
+    await openPageEditor(page, fixtures.blox_page);
+    await performPagePreviewUpdate(page, () => page.evaluate(() => {
+      const app = window.Alpine.$data(document.body);
+      app.selectSection(app.sections.length - 1, false);
+      app.addElement(app.elementLib.find(el => el.type === 'image'));
+      app.mobilePanel = 'settings';
+      app.refreshPreview();
+    }));
+    const control = page.getByTestId('blox-element-image-control');
+    const input = control.locator('input');
+    const edit = page.getByTestId('blox-element-image-edit');
+    // 不在媒体库上传目录的图片（主题自带、外链）不给编辑
+    await performPagePreviewUpdate(page, async () => { await input.fill('/images/logo.png'); await input.blur(); });
+    await expect(edit).toBeHidden();
+    await performPagePreviewUpdate(page, async () => { await input.fill('/uploads/images/e2e-image-edit.png'); await input.blur(); });
+    await expect(edit).toBeVisible();
+
+    await page.evaluate(() => { window.__noReload = true; });
+    await edit.click();
+    const modal = page.locator('#imageEditModal');
+    await expect(modal).toBeVisible();
+    await expect(modal.locator('[data-ie-size]')).toContainText('400');
+    const loaded = page.waitForResponse(r => r.url().includes('action=preview') && r.status() === 200);
+    await modal.locator('[data-ie-op="rotate:90"]').click();
+    await loaded;
+    await expect(modal.locator('[data-ie-size]')).toContainText('200 × 400');
+    const saved = page.waitForResponse(r => r.request().method() === 'POST' && r.url().includes('/admin/media_edit.php'));
+    const rerendered = page.waitForResponse(r => r.url().includes('blox_preview') || r.url().includes('preview'), { timeout: 15000 }).catch(() => null);
+    await modal.getByTestId('image-edit-save').click();
+    expect((await (await saved).json()).code).toBe(0);
+    await expect(modal).toBeHidden();
+    await rerendered;
+    expect(await page.evaluate(() => window.__noReload)).toBe(true);
+    await expect(input).toHaveValue('/uploads/images/e2e-image-edit.png');
+    const info = fixture('inspect');
+    expect([info.w, info.h]).toEqual([200, 400]);
+  } finally {
+    fixture('restore');
+  }
+});
