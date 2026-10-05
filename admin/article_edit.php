@@ -244,7 +244,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <h2 class="font-bold text-gray-800 mb-4"><?php echo __('label_publish_settings'); ?></h2>
                 <div class="space-y-4">
                     <div>
-                        <label class="block text-gray-700 mb-2"><?php echo __('label_category'); ?></label>
+                        <div class="flex items-center justify-between mb-2">
+                            <label class="block text-gray-700"><?php echo __('label_category'); ?></label>
+                            <?php /* 新标签页打开，正在写的文章不会丢；加完分类回来刷新本页即可选择 */ ?>
+                            <a href="/admin/article_category.php?lang=<?php echo rawurlencode((string) $_editLang); ?>" target="_blank" rel="noopener"
+                               class="text-xs text-primary hover:underline inline-flex items-center gap-1" data-testid="article-category-manage">
+                                <i class="ti ti-settings text-sm" aria-hidden="true"></i><?php echo e(__('admin_category_manage')); ?></a>
+                        </div>
                         <input type="hidden" name="channel_id" id="categoryIdInput" value="<?php echo (int)($article['channel_id'] ?? 0); ?>">
                         <div class="border rounded p-3 max-h-60 overflow-y-auto space-y-1" id="categoryTree">
                             <?php
