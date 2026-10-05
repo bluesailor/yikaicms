@@ -19,9 +19,9 @@ if (empty($groupedTimelines)) return;
     <?php foreach ($groupedTimelines as $year => $events): ?>
     <?php /* 年份分组头 */ ?>
     <div class="flex items-center gap-3 mb-4 mt-8 first:mt-0" data-aos="fade-up">
-        <div class="px-4 py-1.5 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded shadow text-sm">
+        <h2 class="px-4 py-1.5 bg-gradient-to-r from-primary to-secondary text-white font-bold rounded shadow text-sm">
             <?php echo $year; ?>
-        </div>
+        </h2>
         <div class="flex-1 h-px bg-gradient-to-r from-gray-300 to-transparent"></div>
     </div>
 
