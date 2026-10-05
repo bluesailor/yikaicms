@@ -29,6 +29,7 @@ require_once __DIR__ . '/Slug.php';       // generateSlug/normalizeSlugInput：U
 require_once __DIR__ . '/admin_article_categories.php';   // 文章分类可由插件接管（admin_article_categories 过滤器）
 require_once __DIR__ . '/i18n/LanguageRegistry.php';   // 支持哪些语言、前缀/hreflang/方向：单一来源
 require_once __DIR__ . '/i18n/LanguageDomains.php';    // 语言域名模式（en.example.com 等）
+require_once __DIR__ . '/i18n/LocalizedUrl.php';       // 条目各语言网址、hreflang、切换、严格翻译策略（2.0.5）
 require_once __DIR__ . '/i18n/LanguageRouting.php';    // 语言前缀能否访问：探针、.htaccess 一键更新
 require_once __DIR__ . '/i18n/TextDirection.php';      // Blox 的左/右按起始/结束输出（RTL 镜像）
 require_once __DIR__ . '/AdminLogSanitizer.php';
@@ -939,6 +940,21 @@ function renderHreflangs(): string
     if (is_array($entity)) {
         return customRouteHreflangs(productRouteModel()->translationPaths((string) $entity['kind'], (int) $entity['id']),
             (int) ($entity['page'] ?? 1), $enabled, $defaultLang);
+    }
+    // 内容 / 产品详情：只列翻译组里真实存在的语言版本（2.0.5，LocalizedUrl）
+    $entityTags = LocalizedUrl::hreflangTags();
+    if ($entityTags !== null) return $entityTags;
+    // 动态网址：语言在查询参数里。此前照伪静态拼成 /en/index.php（404），且丢了 yk_route
+    if (isDynamicUrlMode()) {
+        $requestUri = BasePath::strip((string) ($_SERVER['REQUEST_URI'] ?? '/'));
+        $out = '';
+        foreach ($enabled as $code) {
+            if (!is_string($code) || !LanguageRegistry::has($code)) continue;
+            $href = $base . LocalizedUrl::withLangQuery(LocalizedUrl::stripPrefix($requestUri), $code === $defaultLang ? '' : $code);
+            $out .= '<link rel="alternate" hreflang="' . htmlspecialchars(LanguageRegistry::hreflang($code), ENT_QUOTES) . '" href="' . htmlspecialchars($href, ENT_QUOTES) . '">' . "\n";
+        }
+        $defaultHref = $base . LocalizedUrl::withLangQuery(LocalizedUrl::stripPrefix($requestUri), '');
+        return $out . '<link rel="alternate" hreflang="x-default" href="' . htmlspecialchars($defaultHref, ENT_QUOTES) . '">' . "\n";
     }
     $out = '';
     foreach ($enabled as $code) {
@@ -4463,6 +4479,18 @@ function siteLang(): string
 {
     $lang = displayLang();
     return $lang === 'zh-TW' && (string) config('site_lang', 'zh-CN') !== 'zh-TW' ? 'zh-CN' : $lang;
+}
+
+/**
+ * 数据语言的语义别名（2.0.5）：查内容、产品、栏目、设置时用它，读起来不会和「访客看到的语言」混。
+ *   displayLang() = 访客看到的语言（页面、界面文字、网址前缀）
+ *   contentLang() = 数据语言（= siteLang()；繁体视图读简体数据）
+ *   后台界面语言 = config('admin_lang')
+ * 插件新代码请用 contentLang()；siteLang() 保留，两者永远相同。
+ */
+function contentLang(): string
+{
+    return siteLang();
 }
 
 /**
