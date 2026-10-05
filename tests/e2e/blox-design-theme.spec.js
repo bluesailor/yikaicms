@@ -76,11 +76,12 @@ test('site theme drafts stay private until published and then reach the front en
   // 2.0.5 三源归一：发布后字号写进排版 token theme-h2，旧变量成为别名；实际字号由下方计算样式断言守护
   expect(css).toContain('--yk-type-h2-size:var(--yk-typo-theme-h2-size)');
   expect(css).toContain('h2.yk-type-h2{font-size:var(--yk-type-h2-size);}');
-  // 显式 0 是有效值，不能被当成“未设置”丢掉。
-  expect(css).toContain('--yk-layout-gap:0px');
-  expect(css).toContain('--yk-layout-max-width:1200px');
+  // 显式 0 是有效值，不能被当成“未设置”丢掉。布局桌面值同样改引用刻度 token（theme-content / theme-section / theme-gap），
+  // 手机单独改写仍是原值；实际取值由下方计算样式断言守护。
+  expect(css).toContain('--yk-layout-gap:var(--yk-space-theme-gap)');
+  expect(css).toContain('--yk-layout-max-width:var(--yk-container-theme-content)');
   expect(css).toContain('--yk-layout-section-spacing:0px');
-  expect(css).toContain('--yk-layout-section-spacing:64px');
+  expect(css).toContain('--yk-layout-section-spacing:var(--yk-space-theme-section)');
   expect(css).not.toContain('yk-type-h1');
 
   const editor = await page.context().newPage();

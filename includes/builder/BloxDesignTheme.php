@@ -4,10 +4,12 @@
  *
  * 2.0.5 设计系统 2.0（RFC-1 决策 1，三源归一第一步）：排版角色的字号 / 字重 / 行高以排版 token
  * theme-<角色>（BloxDesignType，存在 blox_design_system）为准，本类成为它们的编辑视图：
- *   - 发布时双写 token（syncTypographyTokens）；设计系统页也能直接改这些 token；
+ *   - 发布时双写 token（syncTokens）；设计系统页也能直接改这些 token；
  *   - 编译时 token 存在就引用它（--yk-type-h1-size:var(--yk-typo-theme-h1-size) 等，旧变量名保留为别名），
  *     不存在（老站还没同步过）就照旧输出原值——两种情况前台计算结果相同（金丝雀页守护）；
- *   - 字体、颜色、按钮、布局仍在本类。
+ *   - 布局同理（三源归一第二步）：正文最大宽度 → 容器宽度 token theme-content，区块上下间距 / 容器子元素间距的
+ *     桌面值 → 间距 token theme-section / theme-gap；平板 / 手机的单独改写仍留在本类；
+ *   - 字体、颜色、按钮仍在本类。
  */
 
 declare(strict_types=1);
@@ -157,18 +159,22 @@ final class BloxDesignTheme
             }
         }
 
+        $scaleTokens = self::layoutTokens();
         if (isset($theme['layout']['content_max_width'])) {
-            $vars['base'][] = '--yk-layout-max-width:' . $theme['layout']['content_max_width'] . 'px';
+            $vars['base'][] = '--yk-layout-max-width:' . (isset($scaleTokens['container'][self::TOKEN_LAYOUT['content_max_width'][1]])
+                ? 'var(--yk-container-' . self::TOKEN_LAYOUT['content_max_width'][1] . ')'
+                : $theme['layout']['content_max_width'] . 'px');
             $rules[] = 'div.yk-width-theme{max-width:var(--yk-layout-max-width);}';
         }
         if (isset($theme['layout']['section_spacing'])) {
             // A mobile-only override must not leak into wider screens; 32px is the legacy md spacing.
             $spacing = array_replace(['d' => 32], $theme['layout']['section_spacing']);
-            self::addResponsive($vars, '--yk-layout-section-spacing', $spacing, 'px');
+            self::addResponsive($vars, '--yk-layout-section-spacing', $spacing, 'px', self::layoutTokenVar($scaleTokens, 'section_spacing', $theme));
             $rules[] = 'section.yk-section-space-theme{padding-top:var(--yk-layout-section-spacing);padding-bottom:var(--yk-layout-section-spacing);}';
         }
         if (isset($theme['layout']['container_gap'])) {
-            $gap = self::responsiveDeclaration($vars, $rules, 'div.yk-gap-theme', 'gap', '--yk-layout-gap', $theme['layout']['container_gap']);
+            $gap = self::responsiveDeclaration($vars, $rules, 'div.yk-gap-theme', 'gap', '--yk-layout-gap', $theme['layout']['container_gap'],
+                self::layoutTokenVar($scaleTokens, 'container_gap', $theme));
             if ($gap !== '') {
                 $rules[] = 'div.yk-gap-theme{' . $gap . '}';
             }
@@ -249,7 +255,37 @@ final class BloxDesignTheme
             $lh = self::decimal($token['line_height'] ?? null, 1.0, 2.2);
             if ($lh !== null) $theme['typography'][$role]['line_height'] = $lh;
         }
+        $scaleTokens = self::layoutTokens();
+        foreach (self::TOKEN_LAYOUT as $key => [$kind, $id, $min, $max]) {
+            if (!isset($theme['layout'][$key]) || $key !== 'content_max_width' && !isset($theme['layout'][$key]['d'])) continue;
+            $value = (string) ($scaleTokens[$kind][$id]['value'] ?? '');
+            if (preg_match('/^(\d{1,4})px$/', $value, $m) !== 1 || (int) $m[1] < $min || (int) $m[1] > $max) continue;
+            if ($key === 'content_max_width') $theme['layout'][$key] = (int) $m[1];
+            else $theme['layout'][$key]['d'] = (int) $m[1];
+        }
         return self::normalize($theme);
+    }
+
+    /** 布局项 → [刻度类, token id, 编辑器可显示的最小值, 最大值] */
+    private const TOKEN_LAYOUT = [
+        'content_max_width' => ['container', 'theme-content', 640, 1600],
+        'section_spacing' => ['space', 'theme-section', 0, 200],
+        'container_gap' => ['space', 'theme-gap', 0, 96],
+    ];
+
+    /** @return array<string,array<string,array<string,mixed>>> 刻度类 → (id → 项)，只含本类用到的两类 */
+    private static function layoutTokens(): array
+    {
+        if (!class_exists(BloxDesignSystem::class)) return [];
+        $state = BloxDesignSystem::snapshot();
+        return ['container' => array_column($state['containers'] ?? [], null, 'id'), 'space' => array_column($state['spaces'] ?? [], null, 'id')];
+    }
+
+    /** 布局间距的桌面值改引用 token：只在本类确有桌面值、且 token 存在时（只设了平板 / 手机的不成 token） */
+    private static function layoutTokenVar(array $scaleTokens, string $key, array $theme): ?string
+    {
+        [$kind, $id] = self::TOKEN_LAYOUT[$key];
+        return isset($theme['layout'][$key]['d'], $scaleTokens[$kind][$id]) ? 'var(--yk-' . $kind . '-' . $id . ')' : null;
     }
 
     /** 排版角色对应的 token id 前缀：theme-h1、theme-body … */
@@ -263,10 +299,11 @@ final class BloxDesignTheme
     }
 
     /**
-     * 把排版角色写成 theme-<角色> 排版 token（发布时；设计系统页打开时补缺）。只写字号、字重、行高——
-     * token 管不了字体与颜色，这两项留在本类。$onlyMissing=true 时只补还没有的（不覆盖站长在设计系统页改过的值）。
+     * 把排版角色写成 theme-<角色> 排版 token、布局写成 theme-content / theme-section / theme-gap 刻度 token
+     * （发布时；设计系统页打开时补缺）。排版只写字号、字重、行高——token 管不了字体与颜色，这两项留在本类；
+     * 布局间距只写桌面值。$onlyMissing=true 时只补还没有的（不覆盖站长在设计系统页改过的值）。
      */
-    public static function syncTypographyTokens(array $state, bool $onlyMissing = false): void
+    public static function syncTokens(array $state, bool $onlyMissing = false): void
     {
         $theme = self::normalize($state);
         $items = [];
@@ -289,8 +326,17 @@ final class BloxDesignTheme
         $synced = array_column($items, 'id');
         $remove = $onlyMissing ? [] : array_values(array_filter(array_map(static fn (string $role): string => self::TOKEN_ROLE_PREFIX . $role, self::ROLES),
             static fn (string $id): bool => !in_array($id, $synced, true)));
-        if (($items !== [] || $remove !== []) && class_exists(BloxDesignSystem::class)) {
-            BloxDesignSystem::upsertTypography($items, $onlyMissing, $remove);
+        $changes = ['type' => ['items' => $items, 'remove' => $remove]];
+        foreach (self::TOKEN_LAYOUT as $key => [$kind, $id]) {
+            $value = $key === 'content_max_width' ? ($theme['layout'][$key] ?? null) : ($theme['layout'][$key]['d'] ?? null);
+            if ($value === null) {
+                if (!$onlyMissing) $changes[$kind]['remove'][] = $id;
+                continue;
+            }
+            $changes[$kind]['items'][] = ['id' => $id, 'name' => __('blox_typo_theme_role', ['role' => __('blox_scale_theme_' . $key)]), 'value' => $value . 'px'];
+        }
+        if (class_exists(BloxDesignSystem::class)) {
+            BloxDesignSystem::upsertTokens($changes, $onlyMissing);
         }
     }
 
@@ -402,7 +448,7 @@ final class BloxDesignTheme
         }, '', 'blox');
         if ($publish) {
             // 三源归一：发布即把排版角色写成 theme-<角色> 排版 token（覆盖），前台改为引用 token
-            self::syncTypographyTokens($normalized);
+            self::syncTokens($normalized);
         }
         self::resetCache();
         return self::snapshot();
@@ -419,20 +465,21 @@ final class BloxDesignTheme
      * @param array{base:list<string>,tablet:list<string>,desktop:list<string>} $vars
      * @param array<string,int> $value
      */
-    private static function addResponsive(array &$vars, string $name, array $value, string $unit): void
+    private static function addResponsive(array &$vars, string $name, array $value, string $unit, ?string $desktopVar = null): void
     {
         // 平板/手机为空时继承上一档；只在该断点值与更宽断点不同时输出，避免冗余覆盖。
-        $desktop = $value['d'] ?? null;
-        $tablet = $value['t'] ?? $desktop;
-        $mobile = $value['m'] ?? $tablet;
+        // $desktopVar：桌面值改为引用 token（继承桌面值的平板 / 手机也跟着引用）。
+        $desktop = isset($value['d']) ? ($desktopVar ?? $value['d'] . $unit) : null;
+        $tablet = isset($value['t']) ? $value['t'] . $unit : $desktop;
+        $mobile = isset($value['m']) ? $value['m'] . $unit : $tablet;
         if ($mobile !== null) {
-            $vars['base'][] = $name . ':' . $mobile . $unit;
+            $vars['base'][] = $name . ':' . $mobile;
         }
         if ($tablet !== null && $tablet !== $mobile) {
-            $vars['tablet'][] = $name . ':' . $tablet . $unit;
+            $vars['tablet'][] = $name . ':' . $tablet;
         }
         if ($desktop !== null && $desktop !== $tablet) {
-            $vars['desktop'][] = $name . ':' . $desktop . $unit;
+            $vars['desktop'][] = $name . ':' . $desktop;
         }
     }
 
@@ -458,10 +505,10 @@ final class BloxDesignTheme
      * @param list<string> $rules
      * @param array<string,int> $value
      */
-    private static function responsiveDeclaration(array &$vars, array &$rules, string $selector, string $property, string $name, array $value): string
+    private static function responsiveDeclaration(array &$vars, array &$rules, string $selector, string $property, string $name, array $value, ?string $desktopVar = null): string
     {
         if (isset($value['d'])) {
-            self::addResponsive($vars, $name, $value, 'px');
+            self::addResponsive($vars, $name, $value, 'px', $desktopVar);
             return $property . ':var(' . $name . ');';
         }
         foreach (['t' => self::DESKTOP_MIN, 'm' => self::TABLET_MIN] as $device => $limit) {
