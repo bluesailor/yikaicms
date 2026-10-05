@@ -2,6 +2,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/ImageEditPlan.php';
+require_once dirname(__DIR__) . '/image.php';   // imageLoadUpright：按 EXIF 方向转正
 
 /**
  * 按操作历史重放图片编辑（GD）。预览与保存走同一段 render()，所见即所得。
@@ -23,13 +24,8 @@ final class ImageEditor
     public static function render(string $path, string $ext, array $ops, int $maxSide = 0): GdImage
     {
         $ext = strtolower($ext);
-        $image = match ($ext) {
-            'jpg', 'jpeg' => @imagecreatefromjpeg($path),
-            'png' => @imagecreatefrompng($path),
-            'gif' => @imagecreatefromgif($path),
-            'webp' => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
-            default => false,
-        };
+        // 从转正后的图开始编辑（手机照片的 EXIF 方向）；与编辑器里显示的尺寸一致（media_edit.php 用 imageUprightSize）
+        $image = imageLoadUpright($path, $ext);
         if (!$image instanceof GdImage) throw new RuntimeException('image_edit_load_failed');
         if (!imageistruecolor($image)) imagepalettetotruecolor($image);
         imagealphablending($image, false);
