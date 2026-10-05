@@ -1187,7 +1187,10 @@ function getChannels(int $parentId = 0, bool $isNav = true): array
  */
 function getNavChannels(): array
 {
-    return channelModel()->getNav();
+    // 一页里页头、手机抽屉、页脚等各取一次导航：只读请求内按语言记住（见 readOnlyWebRequest）
+    static $memo = [];
+    if (!readOnlyWebRequest()) return channelModel()->getNav();
+    return $memo[siteLang()] ??= channelModel()->getNav();
 }
 
 /**
@@ -1264,7 +1267,20 @@ function getChannelTree(int $parentId = 0): array
  */
 function getChannel(int $id): ?array
 {
-    return channelModel()->findWhere(['id' => $id, 'status' => 1]);
+    // 同一页里同一栏目会被反复取（面包屑、侧栏、菜单里每个单页子栏目的父级别名）：只读的网页请求（GET）内记住结果。
+    // 会写栏目的请求（POST）与命令行（测试、导入工具）照旧每次查，免得读到改之前的值
+    static $memo = [];
+    $cacheable = readOnlyWebRequest();
+    if ($cacheable && array_key_exists($id, $memo)) return $memo[$id];
+    $row = channelModel()->findWhere(['id' => $id, 'status' => 1]);
+    if ($cacheable) $memo[$id] = $row;
+    return $row;
+}
+
+/** 只读的网页请求（GET / HEAD，非命令行）：请求内可以记住查过的栏目等结构数据（2.0.5 性能回归）。 */
+function readOnlyWebRequest(): bool
+{
+    return PHP_SAPI !== 'cli' && in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true);
 }
 
 /**
@@ -1529,9 +1545,10 @@ function channelDefaultPrettyUrl(array $channel): string
 
     if ($channel['type'] === 'page') {
         if (!empty($channel['parent_id'])) {
-            $parent = getChannel((int)$channel['parent_id']);
-            if ($parent && !empty($parent['slug'])) {
-                return $prefix . '/' . rawurlencode((string) $parent['slug']) . '/' . $slug . '.html';
+            // 导航树已带上父级别名（ChannelModel::getNav），没有才查
+            $parentSlug = (string) ($channel['_parent_slug'] ?? ((getChannel((int) $channel['parent_id']) ?? [])['slug'] ?? ''));
+            if ($parentSlug !== '') {
+                return $prefix . '/' . rawurlencode($parentSlug) . '/' . $slug . '.html';
             }
         }
         return $prefix . '/' . $slug . '.html';

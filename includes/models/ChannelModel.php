@@ -202,10 +202,17 @@ class ChannelModel extends Model
             $langWhere = ' AND lang = ?';
             $langParams[] = siteLang();
         }
-        $channels = db()->fetchAll(
-            "SELECT * FROM {$this->tableName()} WHERE parent_id = 0 AND status = 1 AND is_nav = 1{$langWhere} ORDER BY {$this->defaultOrder}",
+        // 一次取出本语言全部导航栏目，在内存里按父级分组（2.0.5 性能回归：此前每个栏目、每个子栏目各查一次，
+        // 一页导航渲染 4 次，光导航就 90 来条查询）。顺序与条件不变：仍只从顶级往下走两层
+        $all = db()->fetchAll(
+            "SELECT * FROM {$this->tableName()} WHERE status = 1 AND is_nav = 1{$langWhere} ORDER BY {$this->defaultOrder}",
             $langParams
         );
+        $byParent = [];
+        foreach ($all as $row) {
+            $byParent[(int) $row['parent_id']][] = $row;
+        }
+        $channels = $byParent[0] ?? [];
 
         foreach ($channels as &$channel) {
             if ($channel['type'] === 'product') {
@@ -242,17 +249,14 @@ class ChannelModel extends Model
                 };
                 $channel['children'] = $build(0);
             } else {
-                $channel['children'] = db()->fetchAll(
-                    "SELECT * FROM {$this->tableName()} WHERE parent_id = ? AND status = 1 AND is_nav = 1{$langWhere} ORDER BY {$this->defaultOrder}",
-                    array_merge([(int) $channel['id']], $langParams)
-                );
+                $channel['children'] = $byParent[(int) $channel['id']] ?? [];
                 // 孙级（r12 mega menu 消费：子栏目=面板列、孙栏目=列内链接）。
                 // 既有消费者（主题导航/移动抽屉）只读两级，多出的 children 不影响它们。
+                // _parent_slug：单页子栏目的网址要父级别名，带上免得生成链接时再逐个查父栏目
                 foreach ($channel['children'] as &$child) {
-                    $child['children'] = db()->fetchAll(
-                        "SELECT * FROM {$this->tableName()} WHERE parent_id = ? AND status = 1 AND is_nav = 1{$langWhere} ORDER BY {$this->defaultOrder}",
-                        array_merge([(int) $child['id']], $langParams)
-                    );
+                    $child['_parent_slug'] = (string) $channel['slug'];
+                    $child['children'] = array_map(static fn (array $grand): array => $grand + ['_parent_slug' => (string) $child['slug']],
+                        $byParent[(int) $child['id']] ?? []);
                 }
                 unset($child);
             }
