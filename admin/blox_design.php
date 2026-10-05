@@ -357,6 +357,66 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </div>
             <?php endforeach; ?>
         </div>
+
+        <?php /* 2.0.5 设计系统 2.0：排版 token（字号三档、行高、字距、字重）。标题、文本元素可直接选用 */ ?>
+        <div class="mt-6 min-w-0 border-y border-gray-200 bg-white" data-testid="blox-design-typography">
+            <div class="px-4 py-3">
+                <h3 class="text-sm font-semibold text-gray-800"><?php echo e(__('blox_design_typography')); ?></h3>
+                <p class="mt-1 text-xs text-gray-500"><?php echo e(__('blox_design_typography_hint')); ?></p>
+            </div>
+            <div class="hidden grid-cols-[minmax(7rem,1fr)_repeat(3,5rem)_4rem_5rem_5rem_auto] gap-2 border-t border-gray-100 px-4 py-2 text-[11px] font-medium text-gray-500 lg:grid">
+                <span><?php echo e(__('blox_design_name')); ?></span>
+                <span><?php echo e(__('blox_typo_size_d')); ?></span><span><?php echo e(__('blox_typo_size_t')); ?></span><span><?php echo e(__('blox_typo_size_m')); ?></span>
+                <span><?php echo e(__('blox_typo_line_height')); ?></span><span><?php echo e(__('blox_typo_letter_spacing')); ?></span><span><?php echo e(__('blox_typo_weight')); ?></span><span></span>
+            </div>
+            <template x-for="item in typeItems()" :key="'type-' + item.id">
+                <div class="grid grid-cols-2 items-center gap-2 border-t border-gray-100 px-4 py-3 lg:grid-cols-[minmax(7rem,1fr)_repeat(3,5rem)_4rem_5rem_5rem_auto]" :data-testid="'blox-design-type-row-' + item.id">
+                    <div class="col-span-2 min-w-0 lg:col-span-1">
+                        <input type="text" x-model="item.name" maxlength="60" :disabled="item.locked" aria-label="<?php echo e(__('blox_design_name')); ?>"
+                               class="h-9 w-full min-w-0 border border-gray-300 px-2 text-sm disabled:bg-gray-50">
+                        <span class="mt-1 block truncate text-gray-900" :style="typePreview(item)" x-text="item.name"></span>
+                    </div>
+                    <template x-for="device in ['d', 't', 'm']" :key="item.id + '-size-' + device">
+                        <input type="text" x-model="item.size[device]" :disabled="item.locked" :placeholder="device === 'd' ? '16px' : typeInherited(item, device)"
+                               :aria-label="typeDeviceLabel(device)" :data-testid="'blox-design-type-size-' + device + '-' + item.id"
+                               class="h-9 min-w-0 border border-gray-300 px-2 font-mono text-xs disabled:bg-gray-50">
+                    </template>
+                    <input type="text" x-model="item.line_height" :disabled="item.locked" placeholder="1.5" aria-label="<?php echo e(__('blox_typo_line_height')); ?>"
+                           class="h-9 min-w-0 border border-gray-300 px-2 font-mono text-xs disabled:bg-gray-50">
+                    <input type="text" x-model="item.letter_spacing" :disabled="item.locked" placeholder="0.01em" aria-label="<?php echo e(__('blox_typo_letter_spacing')); ?>"
+                           class="h-9 min-w-0 border border-gray-300 px-2 font-mono text-xs disabled:bg-gray-50">
+                    <select x-model="item.weight" :disabled="item.locked" aria-label="<?php echo e(__('blox_typo_weight')); ?>" class="h-9 min-w-0 border border-gray-300 bg-white px-1 text-xs disabled:bg-gray-50">
+                        <option value=""><?php echo e(__('blox_typo_weight_inherit')); ?></option>
+                        <template x-for="weight in ['300', '400', '500', '600', '700', '800']" :key="item.id + '-w-' + weight"><option :value="weight" x-text="weight"></option></template>
+                    </select>
+                    <div class="flex items-center justify-end gap-1">
+                        <button type="button" @click="mutate('type_lock', { id: item.id, locked: !item.locked })" class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:text-amber-600"
+                                :title="item.locked ? text.unlock : text.lock"><i class="ti" :class="item.locked ? 'ti-lock' : 'ti-lock-open'"></i></button>
+                        <button x-show="!item.locked" type="button" @click="saveType(item)" :data-testid="'blox-design-type-save-' + item.id"
+                                class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:text-emerald-600" title="<?php echo e(__('blox_design_save')); ?>"><i class="ti ti-device-floppy"></i></button>
+                        <button x-show="!item.locked" type="button" @click="mutate('type_archive', { id: item.id })"
+                                class="inline-flex h-8 w-8 items-center justify-center text-gray-400 hover:text-red-600" title="<?php echo e(__('blox_design_archive')); ?>"><i class="ti ti-trash"></i></button>
+                    </div>
+                    <code class="col-span-2 text-[10px] text-gray-400 lg:col-span-8" x-text="'.yk-typo-' + item.id"></code>
+                </div>
+            </template>
+            <form @submit.prevent="addType()" class="flex flex-wrap items-center gap-3 border-t border-gray-200 bg-gray-50 px-4 py-3">
+                <input type="text" x-model="newType.name" maxlength="60" required placeholder="<?php echo e(__('blox_design_name')); ?>" class="h-9 w-32 min-w-0 border border-gray-300 bg-white px-2 text-sm">
+                <input type="text" x-model="newType.size" required placeholder="<?php echo e(__('blox_typo_size_d')); ?> 16px" class="h-9 w-28 min-w-0 border border-gray-300 bg-white px-2 font-mono text-xs">
+                <button type="submit" :disabled="busy || !newType.name.trim() || !newType.size.trim()" data-testid="blox-design-type-add"
+                        title="<?php echo e(__('blox_design_add')); ?>" aria-label="<?php echo e(__('blox_design_add')); ?>"
+                        class="inline-flex h-9 items-center justify-center bg-emerald-600 px-3 text-white hover:bg-emerald-500 disabled:opacity-40"><i class="ti ti-plus"></i></button>
+            </form>
+            <details x-show="archivedType().length" class="border-t border-gray-200">
+                <summary class="cursor-pointer px-4 py-2 text-xs font-medium text-gray-500"><?php echo e(__('blox_design_archived')); ?></summary>
+                <template x-for="item in archivedType()" :key="'archived-type-' + item.id">
+                    <div class="flex items-center gap-3 border-t border-gray-100 px-4 py-2">
+                        <span class="min-w-0 flex-1 text-sm text-gray-600" x-text="item.name"></span>
+                        <button type="button" @click="mutate('type_restore', { id: item.id })" class="inline-flex items-center gap-1 text-sm text-emerald-700 hover:text-emerald-600"><i class="ti ti-restore"></i><?php echo e(__('blox_design_restore')); ?></button>
+                    </div>
+                </template>
+            </details>
+        </div>
     </section>
 
     <section x-show="tab === 'styles' && advanced" x-cloak data-testid="blox-design-page-styles">
@@ -1013,6 +1073,25 @@ function bloxDesignManager() {
             if (await this.mutate(kind + '_add', { name: draft.name, value: draft.value })) this.newScale[kind] = { name: '', value: '' };
         },
         toggleScaleLock(kind, item) { this.mutate(kind + '_lock', { id: item.id, locked: !item.locked }); },
+        newType: { name: '', size: '' },
+        typeItems() { return (this.state.typography || []).filter((item) => item.status !== 'archived').map((item) => { item.size = Object.assign({ d: '', t: '', m: '' }, item.size || {}); return item; }); },
+        archivedType() { return (this.state.typography || []).filter((item) => item.status === 'archived'); },
+        typeDeviceLabel(device) { return { d: <?php echo json_encode(__('blox_typo_size_d'), JSON_UNESCAPED_UNICODE); ?>, t: <?php echo json_encode(__('blox_typo_size_t'), JSON_UNESCAPED_UNICODE); ?>, m: <?php echo json_encode(__('blox_typo_size_m'), JSON_UNESCAPED_UNICODE); ?> }[device]; },
+        /** 平板缺省继承桌面、手机缺省继承平板（与前台输出一致），作为占位提示 */
+        typeInherited(item, device) { return device === 't' ? (item.size.d || '') : (item.size.t || item.size.d || ''); },
+        typePreview(item) {
+            return 'font-size:' + (item.size.d || '16px') + ';line-height:' + (item.line_height || 'normal')
+                + ';letter-spacing:' + (item.letter_spacing || 'normal') + ';font-weight:' + (item.weight || 'inherit');
+        },
+        saveType(item) {
+            var size = {};
+            ['d', 't', 'm'].forEach((device) => { if (String(item.size[device] || '').trim() !== '') size[device] = String(item.size[device]).trim(); });
+            return this.mutate('type_update', { id: item.id, name: item.name,
+                type: JSON.stringify({ size: size, line_height: item.line_height || '', letter_spacing: item.letter_spacing || '', weight: item.weight || '' }) });
+        },
+        async addType() {
+            if (await this.mutate('type_add', { name: this.newType.name, type: JSON.stringify({ size: { d: this.newType.size.trim() } }) })) this.newType = { name: '', size: '' };
+        },
         tokenRef(id) { return 'var(--yk-color-' + String(id || '') + ')'; },
         tokenId(value) {
             var match = String(value || '').match(/^var\(--yk-color-([a-z][a-z0-9_-]{0,47})\)$/);

@@ -683,6 +683,30 @@ abstract class AbstractElement
         ];
     }
 
+    /** 是否提供设计系统的排版 token 选项（2.0.5：标题、文本、页面标题） */
+    public function supportsTypeToken(): bool
+    {
+        return false;
+    }
+
+    /**
+     * 排版 token 选择：字号（三档）、行高、字距、字重一并取全站排版刻度。
+     * 它压过上面的字号档位；单独填的精确字号 / 行高仍然优先。
+     *
+     * @return list<array<string,mixed>>
+     */
+    protected function typeTokenControls(): array
+    {
+        if (!$this->supportsTypeToken()) {
+            return [];
+        }
+        return [
+            ['key' => 'type_token', 'type' => 'select', 'label' => __('blox_type_token'), 'default' => '', 'tab' => 'style',
+                'options' => ['' => __('blox_scale_token_none')] + BloxDesignSystem::typeOptions(),
+                'help' => __('blox_type_token_help')],
+        ];
+    }
+
     /** 圆角 / 阴影 token → 根标签内联声明（var 带回退）；未设置返回 ''。 */
     public static function designScaleDeclarations(array $data): string
     {

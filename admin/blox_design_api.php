@@ -93,6 +93,7 @@ try {
         'background' => (string) post('background', ''),
         'border_color' => (string) post('border_color', ''),
         'radius' => (string) post('radius', 'none'),
+        'type' => (string) post('type', ''),   // 排版 token 字段（JSON）
         'locked' => (string) post('locked', '') === '1',
     ];
     $state = BloxDesignSystem::mutate($action, $input, BloxFeaturePolicy::allows('style_presets'));

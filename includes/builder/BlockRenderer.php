@@ -1057,6 +1057,22 @@ final class BlockRenderer
         return $processor->getUpdatedHtml();
     }
 
+    /** 设计系统排版 token（2.0.5）：根标签挂 yk-typo-<id>，样式由设计系统样式表里的类规则给。 */
+    private static function applyTypeToken(string $html, array $data): string
+    {
+        $class = BloxDesignType::className($data['type_token'] ?? null);
+        if ($html === '' || $class === null) {
+            return $html;
+        }
+        $processor = new HtmlTagRewriter($html);
+        if (!$processor->nextTag()) {
+            return $html;
+        }
+        $existing = $processor->getAttribute('class');
+        $processor->setAttribute('class', trim((is_string($existing) ? $existing : '') . ' ' . $class));
+        return $processor->getUpdatedHtml();
+    }
+
     /** 设计系统圆角 / 阴影 token（2.0.4）：var 声明接在根标签已有内联样式之后。 */
     private static function applyDesignScale(string $html, array $data): string
     {
@@ -1344,6 +1360,7 @@ final class BlockRenderer
         $html = self::applyElementSharedStyles($html, $data, $element);
         if ($element->supportsAurora()) $html = BloxAurora::apply($html, $data);
         if ($element->supportsDesignScale()) $html = self::applyDesignScale($html, $data);
+        if ($element->supportsTypeToken()) $html = self::applyTypeToken($html, $data);
         $html = self::applyCompiledCss($html, $data, $element);
         $stateTarget = $element->stateStyleTarget();
         if ($stateTarget !== null) $html = BloxStateStyles::apply($html, $data, $stateTarget);
