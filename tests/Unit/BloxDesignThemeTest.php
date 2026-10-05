@@ -22,6 +22,15 @@ namespace Yikai\Tests\Unit {
             require_once ROOT_PATH . '/includes/builder/bootstrap.php';
         }
 
+        protected function setUp(): void
+        {
+            parent::setUp();
+            // 别的测试类可能在 _test_config 里留下设计系统（含 theme-* 排版 token）：编译会改走 token 别名，
+            // 按顺序偶发失败。每个用例从空配置开始
+            $GLOBALS['_test_config'] = [];
+            \BloxDesignTheme::resetCache();
+        }
+
         protected function schemaSql(): array
         {
             return ['CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, "group" TEXT DEFAULT \'basic\', "key" TEXT UNIQUE, value TEXT, type TEXT DEFAULT \'text\', name TEXT DEFAULT \'\', tip TEXT DEFAULT \'\', options TEXT, sort_order INT DEFAULT 0)'];

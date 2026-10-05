@@ -43,7 +43,7 @@ if (!ImageEditor::supported($ext)) error(__('image_edit_unsupported'));
 
 $originalPath = ROOT_PATH . '/storage/backups/media/originals/' . $id . '.' . $ext;
 $source = is_file($originalPath) ? $originalPath : $current;   // 编辑永远从原图开始
-[$sw, $sh] = array_map('intval', array_slice((array) (@getimagesize($source) ?: [0, 0]), 0, 2));
+[$sw, $sh] = imageUprightSize($source, $ext);   // 按 EXIF 方向转正后的尺寸，与编辑时读到的图一致
 if ($sw < 1 || !imageDimensionsWithinPixelLimit($sw, $sh, uploadMaxImageMegapixels() * 1000000)) error(__('image_edit_too_large'));
 @ini_set('memory_limit', '512M');   // GD 解码后是未压缩位图：宽 × 高 × 4 字节
 
