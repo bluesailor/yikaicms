@@ -87,7 +87,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     $slug = trim($_POST['slug'] ?? '');
     // 2.0.5：升级随整站模板装上的主题时，target 是它的 sitepack-* 目录；回执里记着的市场 slug 必须就是这次的 slug
     $target = $action === 'market_install' ? trim((string) ($_POST['target'] ?? '')) : '';
-    $targetLink = null;
     if ($target !== '') {
         $targetLink = MarketInstallOrigin::linked(ROOT_PATH . '/themes', $target);
         if ($targetLink === null || $targetLink['market_slug'] !== $slug) {
