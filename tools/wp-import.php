@@ -13,6 +13,7 @@
  *   --dry-run             试运行：完整跑一遍、出报告，然后回滚，不改数据
  *   --default-lang=en     WordPress 默认语言（不填则读 WPML 设置）
  *   --lang-map=pt-br:pt   WPML 语言代码与 CMS 代码不同时的对应（逗号分隔）
+ *   --type-map=portfolio:case  自定义内容类型导成案例（case）或文章（article），逗号分隔；报告的「没迁移的内容类型」里列着候选
  *   --uploads=DIR         原站的 wp-content/uploads 目录：复制到本站 /wp-content/uploads（保留原路径，已有同大小的跳过）
  *   --urls=FILE           原站网址清单（每行一个，可直接用站点地图里的地址）：检查哪些没被导入覆盖
  *   --report=FILE         报告另存为 JSON
@@ -28,7 +29,7 @@ require ROOT_PATH . '/includes/models/autoload.php';
 require ROOT_PATH . '/includes/migrate/WordPressImporter.php';
 require_once ROOT_PATH . '/includes/Redirects.php';
 
-$opts = getopt('', ['dsn:', 'user::', 'prefix::', 'dry-run', 'default-lang::', 'lang-map::', 'uploads::', 'urls::', 'report::', 'help']);
+$opts = getopt('', ['dsn:', 'user::', 'prefix::', 'dry-run', 'default-lang::', 'lang-map::', 'type-map::', 'uploads::', 'urls::', 'report::', 'help']);
 if (isset($opts['help']) || empty($opts['dsn'])) {
     fwrite(STDOUT, "用法：php tools/wp-import.php --dsn=\"mysql:host=127.0.0.1;dbname=wp_old;charset=utf8mb4\" --user=root [--dry-run] [--uploads=DIR] [--urls=FILE]\n"
         . "密码从环境变量 WP_DB_PASSWORD 读取。完整说明见文件开头。\n");
@@ -43,8 +44,13 @@ foreach (array_filter(explode(',', (string) ($opts['lang-map'] ?? ''))) as $pair
 
 try {
     $pdo = new PDO((string) $opts['dsn'], (string) ($opts['user'] ?? ''), (string) (getenv('WP_DB_PASSWORD') ?: ''), [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION]);
+    $typeMap = [];
+    foreach (array_filter(explode(',', (string) ($opts['type-map'] ?? ''))) as $pair) {
+        [$from, $to] = array_pad(explode(':', $pair, 2), 2, '');
+        if (trim($from) !== '') $typeMap[strtolower(trim($from))] = trim($to);
+    }
     $importer = new WordPressImporter(new WordPressSource($pdo, (string) ($opts['prefix'] ?? 'wp_')),
-        array_filter(['default_lang' => $opts['default-lang'] ?? null, 'lang_map' => $langMap]));
+        array_filter(['default_lang' => $opts['default-lang'] ?? null, 'lang_map' => $langMap, 'type_map' => $typeMap]));
     $dryRun = isset($opts['dry-run']);
     $report = $importer->run($dryRun);
 } catch (Throwable $e) {
@@ -70,6 +76,16 @@ foreach (['created' => '新建', 'updated' => '更新', 'skipped' => '跳过'] a
     if ($report[$bucket] !== []) fwrite($out, $label . '：' . implode('，', array_map(static fn ($k, $v) => "{$k} {$v}", array_keys($report[$bucket]), $report[$bucket])) . "\n");
 }
 fwrite($out, '登记网址：' . $report['urls'] . " 个\n");
+$levels = $report['levels'];
+fwrite($out, "迁移程度：完整 {$levels['complete']}，部分 {$levels['partial']}（去掉或没认出短代码），降级 {$levels['degraded']}（从页面构建器数据抽出文字和图片，排版需重做）"
+    . '，跳过 ' . array_sum($report['skipped']) . "\n");
+if ($report['unsupported'] !== []) {
+    fwrite($out, '没迁移的内容类型：' . implode('，', array_map(static fn ($k, $v) => "{$k} {$v}", array_keys($report['unsupported']), $report['unsupported']))
+        . "\n  → 要导入的用 --type-map=类型:case（案例）或 类型:article（文章）\n");
+}
+foreach (array_slice($report['review'], 0, 50) as $r) {
+    fwrite($out, '待人工检查（' . ($r['level'] === 'degraded' ? '降级，来自 ' . $r['source'] : '部分') . "）：{$r['kind']} {$r['title']}\n");
+}
 if ($report['language_domains'] !== []) {
     fwrite($out, 'WPML 用了语言子域名：' . json_encode($report['language_domains'], JSON_UNESCAPED_SLASHES)
         . "\n  → 在「设置 → 多语言 → 语言域名」里照此配置并解析、绑定这些域名，原来的子域名网址才能保留。\n");

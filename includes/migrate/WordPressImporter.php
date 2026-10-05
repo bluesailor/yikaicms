@@ -18,7 +18,9 @@ require_once dirname(__DIR__) . '/LegacyUrls.php';
  *   单页 page            → 单页栏目（channels.type=page），保留父子
  *   商品 product         → 产品（参数、图集、SKU→型号；只做询盘，不导价格）
  *   商品分类 / 标签       → 产品分类 / 产品标签
- *   Yoast 标题、描述、焦点词 → SEO 标题 / 描述 / 关键词（产品存在 metas）
+ *   Yoast 标题、描述、焦点词 → SEO 标题 / 描述 / 关键词（产品存在 metas）；没有 Yoast 时依次读 Rank Math、
+ *                            All in One SEO、Easy WP Meta Description、Betheme 自带 SEO 字段（2.0.5）
+ *   自定义内容类型（如 Betheme 作品集 portfolio）→ 按 type_map 映射成案例或文章，它的分类法 → 案例分类（2.0.5）
  *   WPML 翻译组           → translation_group_id；非默认语言网址加 /xx 前缀（语言子域名由「语言域名」设置接管）
  *   Contact Form 7 表单   → 表单模板（各语言字段），正文里的 [contact-form-7] 换成 [form-别名]（2.0.4）
  *   导航菜单 nav_menu     → 菜单组（最多三级），各语言菜单记成默认语言组的语言版本（2.0.4）
@@ -63,13 +65,27 @@ final class WordPressImporter
     /** @var array<string,list<array{key:string,acf:array<string,mixed>}>> ACF 字段（按本站归属），写值时用 */
     private array $acfFields = [];
 
-    /** @var array{created:array<string,int>,updated:array<string,int>,skipped:array<string,int>,urls:int,warnings:list<string>,dropped:array<string,int>,unknown:array<string,int>,languages:list<string>,menus:list<array<string,mixed>>,forms:list<array{name:string,slug:string,lang:string,translations:list<string>}>,acf:list<array{group:string,owner:string,fields:int}>} */
-    private array $report = ['created' => [], 'updated' => [], 'skipped' => [], 'urls' => 0, 'warnings' => [], 'dropped' => [], 'unknown' => [], 'languages' => [], 'menus' => [], 'forms' => [], 'acf' => []];
+    /**
+     * levels：每条正文的迁移程度——complete 完整、partial 部分（去掉或没认出短代码）、degraded 降级（从构建器数据抽出，排版丢失）；
+     * skipped 跳过的条目数；unsupported 没迁移的内容类型 → 条数。review 列出需要人工看的条目（降级、部分）。
+     * @var array{created:array<string,int>,updated:array<string,int>,skipped:array<string,int>,urls:int,warnings:list<string>,dropped:array<string,int>,unknown:array<string,int>,languages:list<string>,menus:list<array<string,mixed>>,forms:list<array{name:string,slug:string,lang:string,translations:list<string>}>,acf:list<array{group:string,owner:string,fields:int}>,levels:array{complete:int,partial:int,degraded:int},unsupported:array<string,int>,review:list<array{level:string,kind:string,title:string,source:string}>}
+     */
+    private array $report = ['created' => [], 'updated' => [], 'skipped' => [], 'urls' => 0, 'warnings' => [], 'dropped' => [], 'unknown' => [], 'languages' => [], 'menus' => [], 'forms' => [], 'acf' => [],
+        'levels' => ['complete' => 0, 'partial' => 0, 'degraded' => 0], 'unsupported' => [], 'review' => []];
     /** @var list<string> 本次登记的全部网址（覆盖检查用） */
     private array $paths = [];
+    /** @var array<string,string> 自定义内容类型 → 本站类型（case / article），见构造参数 type_map */
+    private array $typeMap = [];
+    /** @var array<string,int> 各语言默认案例栏目的缓存 */
+    private array $caseChannels = [];
+    /** WordPress 内部类型：不算「没迁移的内容」 */
+    private const INTERNAL_TYPES = ['attachment', 'revision', 'nav_menu_item', 'custom_css', 'customize_changeset', 'oembed_cache', 'user_request',
+        'wp_block', 'wp_template', 'wp_template_part', 'wp_global_styles', 'wp_navigation', 'wp_font_family', 'wp_font_face', 'wpcf7_contact_form',
+        'acf-field-group', 'acf-field', 'product_variation', 'shop_order', 'shop_order_refund', 'shop_coupon', 'scheduled-action', 'post', 'page', 'product'];
 
     /**
-     * @param array{default_lang?:string,lang_map?:array<string,string>} $options
+     * @param array{default_lang?:string,lang_map?:array<string,string>,type_map?:array<string,string>} $options
+     *        type_map：自定义内容类型 → case（案例）或 article（文章），如 ['portfolio' => 'case']
      */
     public function __construct(WordPressSource $src, array $options = [])
     {
@@ -78,6 +94,13 @@ final class WordPressImporter
         $this->langMap = ($options['lang_map'] ?? []) + ['pt-br' => 'pt', 'pt-pt' => 'pt', 'zh-hans' => 'zh-CN', 'zh-hant' => 'zh-TW', 'zh-cn' => 'zh-CN', 'zh-tw' => 'zh-TW'];
         $wpDefault = (string) ($options['default_lang'] ?? $src->defaultLanguage() ?? config('site_lang', 'zh-CN'));
         $this->defaultLang = $this->cmsLang($wpDefault) ?? $wpDefault;
+        foreach ($options['type_map'] ?? [] as $type => $target) {
+            $type = strtolower(trim((string) $type));
+            if (!in_array($target, ['case', 'article'], true) || preg_match('/^[a-z0-9_-]{1,20}$/', $type) !== 1 || in_array($type, self::INTERNAL_TYPES, true)) {
+                throw new InvalidArgumentException("type_map 只支持「自定义类型:case」或「自定义类型:article」：{$type}:{$target}");
+            }
+            $this->typeMap[$type] = $target;
+        }
         $this->links = new WordPressPermalinks((string) $src->option('permalink_structure'), (string) $src->option('category_base'),
             (string) $src->option('tag_base'), $src->optionArray('woocommerce_permalinks'));
     }
@@ -116,6 +139,7 @@ final class WordPressImporter
             $this->importPages();
             $this->importPosts();
             $this->importProducts();
+            $this->importCustomTypes();
             $this->importAcfValues();
             // 菜单最后导：菜单项指向的页面、分类、产品都已经有了
             $this->importMenus();
@@ -130,6 +154,9 @@ final class WordPressImporter
         $this->report['dropped'] = $this->content->dropped;
         $this->report['unknown'] = $this->content->unknown;
         $this->report['languages'] = array_values(array_unique(array_merge([$this->defaultLang], $this->report['languages'])));
+        foreach ($this->src->postTypeCounts() as $type => $n) {
+            if (!in_array($type, self::INTERNAL_TYPES, true) && !isset($this->typeMap[$type])) $this->report['unsupported'][$type] = $n;
+        }
         return $this->report + ['dry_run' => $dryRun, 'default_lang' => $this->defaultLang, 'language_domains' => $this->languageDomains()];
     }
 
@@ -155,7 +182,9 @@ final class WordPressImporter
         $this->attachments = $this->src->attachments();
         $this->translations = $this->src->translations();
         $this->relationships = $this->src->relationships();
-        $this->terms = $this->src->terms(['category', 'post_tag', 'product_cat', 'product_tag']);
+        $taxonomies = ['category', 'post_tag', 'product_cat', 'product_tag'];
+        foreach (array_keys($this->typeMap) as $type) $taxonomies = array_merge($taxonomies, $this->src->taxonomiesOf($type));
+        $this->terms = $this->src->terms(array_values(array_unique($taxonomies)));
         foreach ($this->terms as $tt => $term) $this->ttByTerm[$term['taxonomy'] . ':' . $term['term_id']] = $tt;
         $this->users = $this->src->users();
         $languageHosts = [];
@@ -168,6 +197,16 @@ final class WordPressImporter
     private function count(string $bucket, string $kind): void
     {
         $this->report[$bucket][$kind] = ($this->report[$bucket][$kind] ?? 0) + 1;
+    }
+
+    /** 记下刚清理完的这条正文的迁移程度（WordPressContent 的 lastSource / lastIssues）。 */
+    private function level(string $kind, string $title): void
+    {
+        $level = $this->content->lastSource !== 'html' ? 'degraded' : ($this->content->lastIssues > 0 ? 'partial' : 'complete');
+        $this->report['levels'][$level]++;
+        if ($level !== 'complete' && count($this->report['review']) < 300) {
+            $this->report['review'][] = ['level' => $level, 'kind' => $kind, 'title' => $title, 'source' => $this->content->lastSource];
+        }
     }
 
     private function warn(string $message): void
@@ -444,12 +483,22 @@ final class WordPressImporter
 
     // ── 文章、单页、产品 ──────────────────────────────────────────────────
 
-    /** @param array<string,string> $meta @return array{title:string,description:string,keywords:string} */
+    /**
+     * 条目 SEO：Yoast 优先，其次 Rank Math、All in One SEO、Easy WP Meta Description、Betheme 自带字段（各取第一个非空）。
+     * @param array<string,string> $meta @return array{title:string,description:string,keywords:string}
+     */
     private function postSeo(array $meta, string $title): array
     {
-        return ['title' => $this->yoast((string) ($meta['_yoast_wpseo_title'] ?? ''), $title),
-            'description' => $this->yoast((string) ($meta['_yoast_wpseo_metadesc'] ?? ''), $title),
-            'keywords' => trim((string) ($meta['_yoast_wpseo_focuskw'] ?? ''))];
+        $first = function (array $keys) use ($meta, $title): string {
+            foreach ($keys as $key) {
+                $value = $this->yoast(html_entity_decode((string) ($meta[$key] ?? ''), ENT_QUOTES | ENT_HTML5, 'UTF-8'), $title);
+                if ($value !== '') return $value;
+            }
+            return '';
+        };
+        return ['title' => $first(['_yoast_wpseo_title', 'rank_math_title', '_aioseo_title', 'mfn-meta-seo-title']),
+            'description' => $first(['_yoast_wpseo_metadesc', 'rank_math_description', '_aioseo_description', '_easy_wp_meta_description', 'mfn-meta-seo-description']),
+            'keywords' => trim((string) ($meta['_yoast_wpseo_focuskw'] ?? $meta['rank_math_focus_keyword'] ?? $meta['mfn-meta-seo-keywords'] ?? ''))];
     }
 
     private function time(string $gmt, string $local): int
@@ -489,11 +538,12 @@ final class WordPressImporter
             $existing = $this->mapped('page', $wpId, 'channels');
             $data = ['lang' => $lang, 'parent_id' => $parent, 'name' => $title, 'type' => 'page',
                 'slug' => $this->slug((string) $page['post_name'], $title, 'channels', $existing),
-                'content' => $this->content->clean((string) $page['post_content'], (string) ($m['_elementor_data'] ?? '')),
+                'content' => $this->content->clean((string) $page['post_content'], (string) ($m['_elementor_data'] ?? ''), (string) ($m['mfn-page-items'] ?? '')),
                 'image' => $this->attachments[(int) ($m['_thumbnail_id'] ?? 0)] ?? '',
                 'seo_title' => $seo['title'], 'seo_keywords' => $seo['keywords'], 'seo_description' => $seo['description'],
                 'redirect_type' => 'none', 'is_nav' => 0, 'status' => 1, 'sort_order' => (int) $page['menu_order'], 'updated_at' => time()];
             if ($existing === 0) $data['created_at'] = $this->time((string) $page['post_date_gmt'], (string) $page['post_date']);
+            $this->level('page', $title);
             $id = $this->upsert('page', $wpId, 'channels', $data);
             $this->group('page', 'channels', $this->trid('post_page', $wpId), $id);
             $ancestors = [];
@@ -739,16 +789,103 @@ final class WordPressImporter
                 'slug' => $this->slug((string) $post['post_name'], $title, 'contents', $existing),
                 'cover' => $this->attachments[(int) ($m['_thumbnail_id'] ?? 0)] ?? '',
                 'summary' => trim(strip_tags((string) $post['post_excerpt'])),
-                'content' => $this->content->clean((string) $post['post_content'], (string) ($m['_elementor_data'] ?? '')),
+                'content' => $this->content->clean((string) $post['post_content'], (string) ($m['_elementor_data'] ?? ''), (string) ($m['mfn-page-items'] ?? '')),
                 'content_type' => 'html', 'tags' => implode(', ', $tags),
                 'seo_title' => $seo['title'], 'seo_keywords' => $seo['keywords'], 'seo_description' => $seo['description'],
                 'status' => 1, 'publish_time' => $time, 'updated_at' => $this->time((string) $post['post_modified_gmt'], '')];
             if ($existing === 0) $data['created_at'] = $time;
+            $this->level('post', $title);
             $id = $this->upsert('post', $wpId, 'contents', $data);
             $this->group('post', 'contents', $this->trid('post_post', $wpId), $id);
             $categoryPath = $primary !== null ? $this->termPath('category', (int) $primary['term_id']) : '';
             $this->register('content', $id, $this->langPrefix($lang) . $this->links->post($post, $categoryPath, $this->users[(int) $post['post_author']] ?? ''), $lang, "文章 {$title}");
         }
+    }
+
+    // ── 自定义内容类型（2.0.5）────────────────────────────────────────────
+
+    /**
+     * type_map 里的自定义类型：映射成案例时，它的分类法变成案例分类（type=case 的栏目，保留父子），
+     * 没分类的条目放进本语言的第一个顶层案例栏目（没有就建一个「案例」）；映射成文章时放进新闻栏目。
+     * 网址按原站重写规则里的前缀登记（如 /portfolio-item/别名/、/portfolio-types/别名/）。
+     */
+    private function importCustomTypes(): void
+    {
+        foreach ($this->typeMap as $type => $target) {
+            $base = $this->src->rewriteBase($type) ?? $type;
+            $termChannels = [];
+            if ($target === 'case') {
+                foreach ($this->src->taxonomiesOf($type) as $taxonomy) {
+                    $taxBase = $this->src->rewriteBase($taxonomy) ?? $taxonomy;
+                    $done = [];
+                    $make = function (array $term) use (&$make, &$done, $taxonomy, $taxBase): int {
+                        $tt = (int) $term['tt_id'];
+                        if (isset($done[$tt])) return $done[$tt];
+                        $lang = $this->langOf('tax_' . $taxonomy, $tt);
+                        if ($lang === null) return $done[$tt] = 0;
+                        $parentTerm = (int) $term['parent'] > 0 ? $this->term($taxonomy, (int) $term['parent']) : null;
+                        $existing = $this->mapped('tax_' . $taxonomy, $tt, 'channels');
+                        $data = ['lang' => $lang, 'parent_id' => $parentTerm !== null ? $make($parentTerm) : 0, 'name' => $term['name'], 'type' => 'case',
+                            'slug' => $this->slug((string) $term['slug'], (string) $term['name'], 'channels', $existing),
+                            'description' => strip_tags((string) $term['description']), 'status' => 1, 'is_nav' => 0, 'updated_at' => time()];
+                        if ($existing === 0) $data['created_at'] = time();
+                        $id = $this->upsert('tax_' . $taxonomy, $tt, 'channels', $data);
+                        $this->group('tax_' . $taxonomy, 'channels', $this->trid('tax_' . $taxonomy, $tt), $id);
+                        $path = $this->termPath($taxonomy, (int) $term['term_id']);
+                        $this->register('channel', $id, $this->langPrefix($lang) . '/' . $taxBase . '/' . $path . '/', $lang, "案例分类 {$term['name']}");
+                        return $done[$tt] = $id;
+                    };
+                    foreach ($this->termsIn($taxonomy) as $term) $termChannels[$taxonomy][(int) $term['tt_id']] = $make($term);
+                }
+            }
+            $items = $this->src->posts([$type]);
+            $meta = $this->src->meta(array_map(static fn (array $p): int => (int) $p['ID'], $items));
+            foreach ($this->defaultLanguageFirst($items, 'post_' . $type, 'ID') as $item) {
+                $wpId = (int) $item['ID'];
+                $lang = $this->langOf('post_' . $type, $wpId);
+                if ($lang === null) continue;
+                $m = $meta[$wpId] ?? [];
+                $title = html_entity_decode((string) $item['post_title'], ENT_QUOTES | ENT_HTML5, 'UTF-8');
+                $channel = 0;
+                if ($target === 'case') {
+                    foreach ($termChannels as $taxonomy => $map) {
+                        foreach ($this->termsOf($wpId, $taxonomy) as $t) { $channel = (int) ($map[(int) $t['tt_id']] ?? 0); if ($channel > 0) break 2; }
+                    }
+                    if ($channel === 0) $channel = $this->caseChannel($lang, $base);
+                } else {
+                    $channel = $this->newsChannel($lang);
+                }
+                $seo = $this->postSeo($m, $title);
+                $existing = $this->mapped('cpt_' . $type, $wpId, 'contents');
+                $time = $this->time((string) $item['post_date_gmt'], (string) $item['post_date']);
+                $data = ['lang' => $lang, 'channel_id' => $channel, 'type' => $target, 'title' => $title,
+                    'slug' => $this->slug((string) $item['post_name'], $title, 'contents', $existing),
+                    'cover' => $this->attachments[(int) ($m['_thumbnail_id'] ?? 0)] ?? '',
+                    'summary' => trim(strip_tags((string) $item['post_excerpt'])),
+                    'content' => $this->content->clean((string) $item['post_content'], (string) ($m['_elementor_data'] ?? ''), (string) ($m['mfn-page-items'] ?? '')),
+                    'content_type' => 'html',
+                    'seo_title' => $seo['title'], 'seo_keywords' => $seo['keywords'], 'seo_description' => $seo['description'],
+                    'status' => 1, 'publish_time' => $time, 'updated_at' => $this->time((string) $item['post_modified_gmt'], '')];
+                if ($existing === 0) $data['created_at'] = $time;
+                $this->level($type, $title);
+                $id = $this->upsert('cpt_' . $type, $wpId, 'contents', $data);
+                $this->group('cpt_' . $type, 'contents', $this->trid('post_' . $type, $wpId), $id);
+                $this->register('content', $id, $this->langPrefix($lang) . '/' . $base . '/' . rawurldecode((string) $item['post_name']) . '/', $lang, "{$type} {$title}");
+            }
+        }
+    }
+
+    /** 本语言的第一个顶层案例栏目；没有就建一个（名称「案例」，别名取原站前缀）。 */
+    private function caseChannel(string $lang, string $base): int
+    {
+        $cache = &$this->caseChannels;
+        if (isset($cache[$lang])) return $cache[$lang];
+        $row = db()->fetchOne('SELECT id FROM ' . DB_PREFIX . "channels WHERE type = 'case' AND parent_id = 0 AND lang = ? ORDER BY sort_order, id LIMIT 1", [$lang]);
+        if ($row) return $cache[$lang] = (int) $row['id'];
+        $id = (int) db()->insert('channels', ['lang' => $lang, 'parent_id' => 0, 'name' => '案例', 'type' => 'case',
+            'slug' => $this->slug(basename($base), 'case', 'channels', 0), 'status' => 1, 'is_nav' => 0, 'created_at' => time(), 'updated_at' => time()]);
+        $this->count('created', 'case_channel');
+        return $cache[$lang] = $id;
     }
 
     private function importProducts(): void
@@ -774,11 +911,12 @@ final class WordPressImporter
                 'cover' => $this->attachments[(int) ($m['_thumbnail_id'] ?? 0)] ?? '',
                 'images' => json_encode(array_values(array_unique($gallery)), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE),
                 'summary' => trim(strip_tags((string) $product['post_excerpt'])),
-                'content' => $this->content->clean((string) $product['post_content'], (string) ($m['_elementor_data'] ?? '')),
+                'content' => $this->content->clean((string) $product['post_content'], (string) ($m['_elementor_data'] ?? ''), (string) ($m['mfn-page-items'] ?? '')),
                 'model' => trim((string) ($m['_sku'] ?? '')), 'specs' => $this->specs($wpId, (string) ($m['_product_attributes'] ?? '')),
                 'tags' => implode(', ', array_map(static fn (array $t): string => (string) $t['name'], $tagTerms)),
                 'status' => 1, 'updated_at' => time()];
             if ($existing === 0) $data['created_at'] = $this->time((string) $product['post_date_gmt'], (string) $product['post_date']);
+            $this->level('product', $title);
             $id = $this->upsert('product', $wpId, 'products', $data);
             $this->group('product', 'products', $this->trid('post_product', $wpId), $id);
             db()->delete('product_tag_map', 'product_id = ?', [$id]);
