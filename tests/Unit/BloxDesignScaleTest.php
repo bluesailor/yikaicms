@@ -94,6 +94,88 @@ final class BloxDesignScaleTest extends TestCase
         ]])), '默认输出不变');
     }
 
+    /** 2.0.5 设计系统 2.0：间距与容器宽度两类，同一套取值校验、出厂刻度、引用与输出。 */
+    public function testSpaceAndContainerTokens(): void
+    {
+        self::assertSame('16px', BloxDesignScale::normalizeValue('space', 16));
+        self::assertSame('1.5rem', BloxDesignScale::normalizeValue('space', '1.5rem'));
+        self::assertSame('0px', BloxDesignScale::normalizeValue('space', '0'));
+        foreach (['401px', '30rem', '10%', '-4px', 'auto', '{md'] as $bad) self::assertNull(BloxDesignScale::normalizeValue('space', $bad), $bad);
+        self::assertSame('1200px', BloxDesignScale::normalizeValue('container', 1200));
+        self::assertSame('100%', BloxDesignScale::normalizeValue('container', '100%'));
+        self::assertSame('80rem', BloxDesignScale::normalizeValue('container', '80rem'));
+        foreach (['100px', '5000px', '90%', '100vw'] as $bad) self::assertNull(BloxDesignScale::normalizeValue('container', $bad), $bad);
+
+        $GLOBALS['_test_config'][BloxDesignSystem::SETTING_KEY] = json_encode(['tokens' => [],
+            'spaces' => [['id' => 'md', 'name' => 'M', 'value' => '18px'], ['id' => 'gutter', 'name' => 'Gutter', 'value' => '{md}']]], JSON_THROW_ON_ERROR);
+        $state = BloxDesignSystem::snapshot();
+        self::assertSame(['md', 'gutter'], array_column($state['spaces'], 'id'));
+        self::assertSame(['narrow', 'content', 'wide', 'full'], array_column($state['containers'], 'id'), '从未保存过给出厂刻度');
+        $tag = BloxDesignSystem::styleTag();
+        self::assertStringContainsString('--yk-space-md:18px;--yk-space-gutter:var(--yk-space-md);', $tag);
+        self::assertStringContainsString('--yk-container-content:1200px;', $tag);
+        self::assertStringContainsString('--yk-container-full:100%;', $tag);
+        self::assertSame('var(--yk-space-gutter,16px)', BloxDesignScale::cssVar('space', 'gutter', '16px'));
+
+        BloxDesignSystem::mutate('container_update', ['id' => 'content', 'value' => '1280px'], false);
+        $stored = json_decode((string) db()->fetchColumn("SELECT value FROM settings WHERE \"key\" = ?", [BloxDesignSystem::SETTING_KEY]), true);
+        self::assertSame('1280px', array_column($stored['containers'], 'value', 'id')['content']);
+        self::assertSame('18px', array_column($stored['spaces'], 'value', 'id')['md'], '改容器宽度不动间距');
+        $GLOBALS['_test_config'][BloxDesignSystem::SETTING_KEY] = json_encode($stored, JSON_THROW_ON_ERROR);
+        BloxDesignSystem::mutate('space_add', ['name' => 'Section', 'value' => '96px'], false);
+        $stored = json_decode((string) db()->fetchColumn("SELECT value FROM settings WHERE \"key\" = ?", [BloxDesignSystem::SETTING_KEY]), true);
+        $last = end($stored['spaces']);
+        self::assertStringStartsWith('sp_', (string) $last['id']);
+        self::assertSame('96px', $last['value']);
+    }
+
+    /** 元素外边距 / 内边距选全站间距刻度：token:<id> → var(--yk-space-<id>, 出厂值)；四档响应式照常。 */
+    public function testBoxSpacingUsesSpaceTokens(): void
+    {
+        $GLOBALS['_test_config'][BloxDesignSystem::SETTING_KEY] = json_encode(['tokens' => []], JSON_THROW_ON_ERROR);
+        self::assertSame(['2xs', 'xs', 'sm', 'md', 'lg', 'xl', '2xl', '3xl'], array_column(BloxDesignSystem::snapshot()['spaces'], 'id'), '数字开头的出厂 id 保留');
+        self::assertStringContainsString('--yk-space-2xs:4px;', BloxDesignSystem::styleTag());
+        $render = static fn (array $data): string => BlockRenderer::render((string) json_encode([[
+            'type' => 'custom', 'id' => 's1',
+            'columns' => [['width' => 'w-full', 'elements' => [['type' => 'container', 'id' => 'c1', 'data' => $data]]]],
+        ]]));
+        self::assertStringContainsString('padding:var(--yk-space-lg,24px)!important;', $render(['style_padding' => 'token:lg']));
+        self::assertStringContainsString('margin-top:var(--yk-space-sp_custom,0)!important;', $render(['style_margin_top' => 'token:sp_custom']), '自建刻度回退 0');
+        $responsive = $render(['style_padding' => ['d' => 'token:xl', 'm' => 'token:sm']]);
+        self::assertStringContainsString('--yk-sp-p-d:var(--yk-space-xl,32px);', $responsive);
+        self::assertStringContainsString('--yk-sp-p-m:var(--yk-space-sm,12px);', $responsive);
+        self::assertStringNotContainsString('padding', $render(['style_padding' => 'token:x;}y{']), '非法 id 不输出');
+    }
+
+    /** 区块容器宽度选全站容器刻度：token:<id> → max-width:var(--yk-container-<id>, 出厂值)。 */
+    public function testSectionWidthUsesContainerTokens(): void
+    {
+        $section = static fn (string $width): string => BlockRenderer::render((string) json_encode([[
+            'type' => 'custom', 'id' => 's1', 'settings' => ['max_width' => $width],
+            'columns' => [['width' => 'w-full', 'elements' => [['type' => 'container', 'id' => 'c1', 'data' => ['bg_color' => '#ffffff']]]]],
+        ]]));
+        $html = $section('token:narrow');
+        self::assertStringContainsString('max-width:var(--yk-container-narrow,768px);', $html);
+        self::assertStringNotContainsString('max-w-6xl mx-auto', $html, '不再叠默认版心类');
+        self::assertStringContainsString('max-width:var(--yk-container-ct_mine,72rem);', $section('token:ct_mine'), '自建刻度回退默认版心');
+        self::assertStringContainsString('max-w-6xl mx-auto', $section('token:bad;}x{'), '非法值回落默认宽度');
+        self::assertStringContainsString('max-w-4xl mx-auto', $section('narrow'), '原四档不变');
+    }
+
+    public function testScaleImportOnlyAddsMissingIds(): void
+    {
+        $GLOBALS['_test_config'][BloxDesignSystem::SETTING_KEY] = json_encode(['tokens' => [['id' => 'c_ink', 'name' => 'Ink', 'value' => '#111111']],
+            'spaces' => [['id' => 'md', 'name' => 'M', 'value' => '20px']]], JSON_THROW_ON_ERROR);
+        BloxDesignSystem::applyScaleImport([
+            'space' => [['id' => 'md', 'name' => 'M', 'value' => '16px', 'status' => 'active', 'locked' => false, 'version' => 1],
+                ['id' => 'sp_hero', 'name' => 'Hero', 'value' => '72px', 'status' => 'active', 'locked' => false, 'version' => 1]],
+        ]);
+        $stored = json_decode((string) db()->fetchColumn("SELECT value FROM settings WHERE \"key\" = ?", [BloxDesignSystem::SETTING_KEY]), true);
+        self::assertSame(['md' => '20px', 'sp_hero' => '72px'], array_column($stored['spaces'], 'value', 'id'), '同 id 不覆盖，缺的补上');
+        self::assertSame('c_ink', $stored['tokens'][0]['id']);
+        self::assertSame(2, $stored['revision']);
+    }
+
     public function testMutationsKeepColorTokensAndValidateReferences(): void
     {
         $GLOBALS['_test_config'][BloxDesignSystem::SETTING_KEY] = json_encode([

@@ -241,6 +241,7 @@ final class BloxRemoteTemplateInstaller
             );
             // 新版本包带来的全局类与草稿更新同一事务（复用 / 稳定改名 / 新建，不覆盖本站类）
             BloxGlobalClasses::applyImportPlan($prepared['class_plan']);
+            BloxDesignSystem::applyScaleImport($prepared['scale_plan'] ?? []);   // 2.0.5：模板带来的设计刻度，只补本站没有的
             bloxTemplateModel()->updateDraft(
                 $id,
                 $prepared['draft_json'],
@@ -450,6 +451,7 @@ final class BloxRemoteTemplateInstaller
             );
             // 新版本包带来的全局类与草稿更新同一事务（复用 / 稳定改名 / 新建，不覆盖本站类）
             BloxGlobalClasses::applyImportPlan($prepared['class_plan']);
+            BloxDesignSystem::applyScaleImport($prepared['scale_plan'] ?? []);   // 2.0.5：模板带来的设计刻度，只补本站没有的
             bloxTemplateModel()->updateDraft(
                 $id,
                 $prepared['draft_json'],

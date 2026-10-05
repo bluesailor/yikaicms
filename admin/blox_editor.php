@@ -2209,6 +2209,12 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 ['k' => 'md', 'label' => __('blox_spacing_md'), 'short' => 'M'],
                 ['k' => 'lg', 'label' => __('blox_spacing_lg'), 'short' => 'L'],
                 ['k' => 'xl', 'label' => __('blox_spacing_xl'), 'short' => 'XL'],
+                // 2.0.5 设计系统 2.0：全站间距刻度（在「设计系统 → 尺寸与效果」里维护；改刻度，用到的地方一起变）
+                ...array_values(array_map(static fn (array $item): array => [
+                    'k' => 'token:' . $item['id'],
+                    'label' => __('blox_design_spaces') . ' · ' . $item['name'] . ' (' . $item['value'] . ')',
+                    'short' => (string) $item['name'],
+                ], array_filter(BloxDesignSystem::snapshot()['spaces'], static fn (array $item): bool => ($item['status'] ?? '') !== 'archived'))),
                 ['k' => 'auto', 'label' => __('blox_spacing_auto'), 'short' => 'A'],
                 ['k' => 'exact', 'label' => __('blox_spacing_exact'), 'short' => '#'],
                 ['k' => 'custom', 'label' => __('blox_spacing_custom'), 'short' => '✎'],

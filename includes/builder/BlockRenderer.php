@@ -434,6 +434,15 @@ final class BlockRenderer
                     $innerStyle .= 'max-width:' . $px . 'px;';
                 }
             }
+            // 2.0.5 设计系统 2.0：全站容器宽度刻度 token:<id>；回退值取出厂刻度（自建的回退默认版心 72rem）
+            if (preg_match('/^token:([a-z0-9][a-z0-9_-]{0,47})$/', (string) ($settings['max_width'] ?? ''), $widthToken) === 1) {
+                $seeds = array_column(BloxDesignScale::seeds('container'), 'value', 'id');
+                $var = BloxDesignScale::cssVar('container', $widthToken[1], $seeds[$widthToken[1]] ?? '72rem');
+                if ($var !== null) {
+                    $innerCls = 'mx-auto' . $containerGutter;
+                    $innerStyle .= 'max-width:' . $var . ';';
+                }
+            }
             // 底边装饰输出在容器之后，不抬层级就会盖住正文（点击不受影响，但看得见）。
             // 放在自定义宽度分支之后：那个分支会重置 $innerCls，写在前面会被冲掉。
             if ($hasDivider && !str_contains($innerCls, ' z-10')) {
@@ -1048,6 +1057,22 @@ final class BlockRenderer
         return $processor->getUpdatedHtml();
     }
 
+    /** 设计系统排版 token（2.0.5）：根标签挂 yk-typo-<id>，样式由设计系统样式表里的类规则给。 */
+    private static function applyTypeToken(string $html, array $data): string
+    {
+        $class = BloxDesignType::className($data['type_token'] ?? null);
+        if ($html === '' || $class === null) {
+            return $html;
+        }
+        $processor = new HtmlTagRewriter($html);
+        if (!$processor->nextTag()) {
+            return $html;
+        }
+        $existing = $processor->getAttribute('class');
+        $processor->setAttribute('class', trim((is_string($existing) ? $existing : '') . ' ' . $class));
+        return $processor->getUpdatedHtml();
+    }
+
     /** 设计系统圆角 / 阴影 token（2.0.4）：var 声明接在根标签已有内联样式之后。 */
     private static function applyDesignScale(string $html, array $data): string
     {
@@ -1335,6 +1360,7 @@ final class BlockRenderer
         $html = self::applyElementSharedStyles($html, $data, $element);
         if ($element->supportsAurora()) $html = BloxAurora::apply($html, $data);
         if ($element->supportsDesignScale()) $html = self::applyDesignScale($html, $data);
+        if ($element->supportsTypeToken()) $html = self::applyTypeToken($html, $data);
         $html = self::applyCompiledCss($html, $data, $element);
         $stateTarget = $element->stateStyleTarget();
         if ($stateTarget !== null) $html = BloxStateStyles::apply($html, $data, $stateTarget);

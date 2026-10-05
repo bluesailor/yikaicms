@@ -5,6 +5,7 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/BloxFeaturePolicy.php';
 require_once __DIR__ . '/BloxDesignScale.php';
+require_once __DIR__ . '/BloxDesignType.php';
 
 final class BloxDesignSystem
 {
@@ -36,7 +37,7 @@ final class BloxDesignSystem
         }
     }
 
-    /** @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>,radii:list<array<string,mixed>>,shadows:list<array<string,mixed>>} */
+    /** @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>,radii:list<array<string,mixed>>,shadows:list<array<string,mixed>>,spaces:list<array<string,mixed>>,containers:list<array<string,mixed>>,typography:list<array<string,mixed>>} */
     public static function snapshot(): array
     {
         $raw = (string) config(self::SETTING_KEY, '');
@@ -58,7 +59,7 @@ final class BloxDesignSystem
      * catalog instead of duplicated into JSON, so the existing site color setting
      * remains the single owner of primary/secondary.
      *
-     * @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>,radii:list<array<string,mixed>>,shadows:list<array<string,mixed>>}
+     * @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>,radii:list<array<string,mixed>>,shadows:list<array<string,mixed>>,spaces:list<array<string,mixed>>,containers:list<array<string,mixed>>,typography:list<array<string,mixed>>}
      */
     public static function fromRaw(string $raw, string $primary, string $secondary): array
     {
@@ -97,7 +98,22 @@ final class BloxDesignSystem
             // 圆角与阴影 token（BloxDesignScale）：从未保存过时给出厂刻度
             'radii' => BloxDesignScale::normalizeList('radius', $state['radii'] ?? null),
             'shadows' => BloxDesignScale::normalizeList('shadow', $state['shadows'] ?? null),
+            // 2.0.5 间距与容器宽度 token
+            'spaces' => BloxDesignScale::normalizeList('space', $state['spaces'] ?? null),
+            'containers' => BloxDesignScale::normalizeList('container', $state['containers'] ?? null),
+            // 2.0.5 排版 token（BloxDesignType）
+            'typography' => BloxDesignType::normalizeList($state['typography'] ?? null),
         ];
+    }
+
+    /** 编辑器下拉用：排版 token 的可选项（只含未归档的）。 @return array<string,string> id => 名称 */
+    public static function typeOptions(): array
+    {
+        $options = [];
+        foreach (self::snapshot()['typography'] as $item) {
+            if (($item['status'] ?? '') !== 'archived') $options[(string) $item['id']] = (string) $item['name'];
+        }
+        return $options;
     }
 
     /**
@@ -134,8 +150,12 @@ final class BloxDesignSystem
         }
         $snapshot = self::snapshot();
         $declarations .= BloxDesignScale::declarations('radius', $snapshot['radii'])
-            . BloxDesignScale::declarations('shadow', $snapshot['shadows']);
-        $tag = $declarations === '' ? '' : '<style id="yk-blox-design-tokens">:root{' . $declarations . '}</style>';
+            . BloxDesignScale::declarations('shadow', $snapshot['shadows'])
+            . BloxDesignScale::declarations('space', $snapshot['spaces'])
+            . BloxDesignScale::declarations('container', $snapshot['containers']);
+        $typography = BloxDesignType::css($snapshot['typography']);
+        $tag = $declarations === '' && $typography === '' ? ''
+            : '<style id="yk-blox-design-tokens">' . ($declarations !== '' ? ':root{' . $declarations . '}' : '') . $typography . '</style>';
         // 已发布的全站主题（E04）；未配置时为空串，输出与之前逐字节一致。
         $theme = class_exists(BloxDesignTheme::class) ? BloxDesignTheme::compile(BloxDesignTheme::published()) : '';
         return $theme === '' ? $tag : $tag . '<style id="yk-blox-design-theme">' . $theme . '</style>';
@@ -269,7 +289,7 @@ final class BloxDesignSystem
      * Apply one API mutation with optimistic revision checking.
      *
      * @param array<string,mixed> $input
-     * @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>,radii:list<array<string,mixed>>,shadows:list<array<string,mixed>>}
+     * @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>,radii:list<array<string,mixed>>,shadows:list<array<string,mixed>>,spaces:list<array<string,mixed>>,containers:list<array<string,mixed>>,typography:list<array<string,mixed>>}
      */
     public static function mutate(string $action, array $input, bool $advanced): array
     {
@@ -291,9 +311,11 @@ final class BloxDesignSystem
 
         if (str_starts_with($action, 'token_')) {
             $state['tokens'] = self::mutateCollection($state['tokens'], substr($action, 6), $input, false);
-        } elseif (preg_match('/^(radius|shadow)_(add|update|archive|restore|lock)$/', $action, $scale) === 1) {
+        } elseif (preg_match('/^(radius|shadow|space|container)_(add|update|archive|restore|lock)$/', $action, $scale) === 1) {
             $bucket = BloxDesignScale::KINDS[$scale[1]];
             $state[$bucket] = self::mutateScale($scale[1], $state[$bucket], $scale[2], $input);
+        } elseif (preg_match('/^type_(add|update|archive|restore|lock)$/', $action, $type) === 1) {
+            $state['typography'] = self::mutateType($state['typography'], $type[1], $input);
         } elseif ($isStyleAction) {
             $state['styles'] = self::mutateCollection($state['styles'], substr($action, 6), $input, true);
         } else {
@@ -387,7 +409,7 @@ final class BloxDesignSystem
                 throw new RuntimeException(__('blox_design_limit'));
             }
             $item = BloxDesignScale::normalizeItem($kind, [
-                'id' => ($kind === 'radius' ? 'r_' : 'sh_') . bin2hex(random_bytes(4)),
+                'id' => (BloxDesignScale::ID_PREFIX[$kind] ?? 'x_') . bin2hex(random_bytes(4)),
                 'name' => $input['name'] ?? '', 'value' => $input['value'] ?? null,
             ]);
             if ($item === null || !BloxDesignScale::referenceValid($items, $item['id'], $item['value'])) {
@@ -424,6 +446,75 @@ final class BloxDesignSystem
         throw new RuntimeException(__('blox_design_not_found'));
     }
 
+    /**
+     * 排版 token 的增改归档恢复（免费，同一把写锁与 revision）。$input['type'] 是 JSON：{size:{d,t,m},line_height,letter_spacing,weight}。
+     * @param list<array<string,mixed>> $items @param array<string,mixed> $input @return list<array<string,mixed>>
+     */
+    private static function mutateType(array $items, string $operation, array $input): array
+    {
+        $fields = json_decode((string) ($input['type'] ?? ''), true);
+        $fields = is_array($fields) ? array_intersect_key($fields, array_flip(['size', 'line_height', 'letter_spacing', 'weight'])) : [];
+        if ($operation === 'add') {
+            if (count($items) >= BloxDesignType::MAX_ITEMS) throw new RuntimeException(__('blox_design_limit'));
+            $item = BloxDesignType::normalizeItem(['id' => 'ty_' . bin2hex(random_bytes(4)), 'name' => $input['name'] ?? ''] + $fields);
+            if ($item === null) throw new RuntimeException(__('blox_design_invalid'));
+            $items[] = $item;
+            return $items;
+        }
+        $id = trim((string) ($input['id'] ?? ''));
+        foreach ($items as $index => $item) {
+            if (($item['id'] ?? '') !== $id) continue;
+            if ($operation === 'lock') {
+                $items[$index]['locked'] = !empty($input['locked']);
+            } elseif ($operation === 'restore') {
+                $items[$index]['status'] = 'active';
+            } elseif (!empty($item['locked'])) {
+                throw new RuntimeException(__('blox_design_locked'));
+            } elseif ($operation === 'archive') {
+                $items[$index]['status'] = 'archived';
+            } else {
+                $next = BloxDesignType::normalizeItem(array_merge($item, $fields, ['name' => ($input['name'] ?? '') !== '' ? $input['name'] : $item['name']]));
+                if ($next === null) throw new RuntimeException(__('blox_design_invalid'));
+                $items[$index] = $next;
+            }
+            $items[$index]['version'] = (int) $item['version'] + 1;
+            return $items;
+        }
+        throw new RuntimeException(__('blox_design_not_found'));
+    }
+
+    /**
+     * 模板导入带来的刻度（BloxDesignDependencies::planScaleImport 的结果）：只新增本站没有的 id，不改已有项。
+     * 与模板草稿同一事务调用；计划为空时不写库。
+     * @param array<string,list<array<string,mixed>>> $plan
+     */
+    public static function applyScaleImport(array $plan): void
+    {
+        if ($plan === []) return;
+        $raw = BloxDocumentWriteLock::rawSettings([self::SETTING_KEY]);
+        if (function_exists('settingModel')) settingModel()->clearCache();
+        $state = self::snapshot();
+        $buckets = BloxDesignScale::KINDS + ['type' => 'typography'];
+        $changed = false;
+        foreach ($plan as $kind => $items) {
+            $bucket = $buckets[$kind] ?? null;
+            if ($bucket === null) continue;
+            $ids = array_column($state[$bucket], 'id');
+            $limit = $kind === 'type' ? BloxDesignType::MAX_ITEMS : BloxDesignScale::MAX_ITEMS;
+            foreach ($items as $item) {
+                if (in_array($item['id'], $ids, true) || count($state[$bucket]) >= $limit) continue;
+                $state[$bucket][] = $item;
+                $ids[] = $item['id'];
+                $changed = true;
+            }
+        }
+        if (!$changed) return;
+        $state['revision']++;
+        BloxDocumentWriteLock::settings(self::SETTING_KEY, $raw, static function () use ($state): void {
+            self::persist($state);
+        }, '', 'blox');
+    }
+
     /** @param array<string,mixed> $state */
     private static function persist(array $state): void
     {
@@ -437,6 +528,9 @@ final class BloxDesignSystem
             'styles' => array_values($state['styles']),
             'radii' => array_values($state['radii'] ?? []),
             'shadows' => array_values($state['shadows'] ?? []),
+            'spaces' => array_values($state['spaces'] ?? []),
+            'containers' => array_values($state['containers'] ?? []),
+            'typography' => array_values($state['typography'] ?? []),
         ];
         settingModel()->saveBatch([
             self::SETTING_KEY => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),

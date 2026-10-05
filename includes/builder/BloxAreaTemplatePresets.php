@@ -364,6 +364,7 @@ final class BloxAreaTemplatePresets
             db()->beginTransaction();
             try {
                 BloxGlobalClasses::applyImportPlan($prepared['class_plan'], $adminId);
+                BloxDesignSystem::applyScaleImport($prepared['scale_plan'] ?? []);   // 2.0.5：模板带来的设计刻度，只补本站没有的
                 bloxTemplateModel()->updateDraft(
                     (int) $existing['id'],
                     $prepared['draft_json'],
