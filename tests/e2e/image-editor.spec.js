@@ -39,6 +39,37 @@ test('image editor rotates, crops, saves in place and restores the original @ci'
     expect(info.altFor).toBe('Red corner sample');
     expect(info.original).toBe(true);
 
+    // 2.0.5：再次打开接着上次的结果编辑——只改替代文字不能把图恢复成原图，再加一步也不能丢掉之前的裁剪
+    const reopen = async () => {
+      await page.waitForLoadState('load');
+      await page.evaluate(mediaId => window.YkImageEditor.open(mediaId), id);
+      await expect(modal).toBeVisible();
+      await expect(modal.locator('[data-ie-loading]')).toBeHidden();
+    };
+    const save = async () => {
+      const done = page.waitForResponse(r => r.request().method() === 'POST' && r.url().includes('/admin/media_edit.php'));
+      const reloaded = page.waitForEvent('load');   // 媒体库保存后会刷新整页
+      await modal.getByTestId('image-edit-save').click();
+      expect((await (await done).json()).code).toBe(0);
+      await reloaded;
+    };
+    await reopen();
+    await expect(modal.locator('[data-ie-size]')).toContainText('200 × 200');
+    await modal.locator('[data-ie-alt]').fill('Only the alt changed');
+    await save();
+    info = fixture('inspect');
+    expect([info.w, info.h], 'alt-only save keeps the edit').toEqual([200, 200]);
+    expect(info.alt).toBe('Only the alt changed');
+    expect(info.original).toBe(true);
+
+    await reopen();
+    const flipped = page.waitForResponse(r => r.url().includes('action=preview') && r.status() === 200);
+    await modal.locator('[data-ie-op="flip:h"]').click();
+    await flipped;
+    await save();
+    info = fixture('inspect');
+    expect([info.w, info.h], 'a second edit builds on the first').toEqual([200, 200]);
+
     await page.waitForLoadState('load');
     await page.evaluate(mediaId => window.YkImageEditor.open(mediaId), id);
     await expect(modal.getByTestId('image-edit-restore')).toBeVisible();
