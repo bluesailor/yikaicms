@@ -285,8 +285,12 @@ final class BloxDesignTheme
                 'letter_spacing' => '',
             ];
         }
-        if ($items !== [] && class_exists(BloxDesignSystem::class)) {
-            BloxDesignSystem::upsertTypography($items, $onlyMissing);
+        // 发布时：没成 token 的角色（未设置、或只设了平板 / 手机）删掉旧的 theme-* token；只补缺时不删
+        $synced = array_column($items, 'id');
+        $remove = $onlyMissing ? [] : array_values(array_filter(array_map(static fn (string $role): string => self::TOKEN_ROLE_PREFIX . $role, self::ROLES),
+            static fn (string $id): bool => !in_array($id, $synced, true)));
+        if (($items !== [] || $remove !== []) && class_exists(BloxDesignSystem::class)) {
+            BloxDesignSystem::upsertTypography($items, $onlyMissing, $remove);
         }
     }
 

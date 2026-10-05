@@ -73,8 +73,8 @@ test('site theme drafts stay private until published and then reach the front en
   expect(published.published_revision).toBe(published.revision);
 
   const css = await frontTheme();
-  expect(css).toContain('--yk-type-h2-size:28px');
-  expect(css).toContain('@media (min-width:768px){:root{--yk-type-h2-size:36px;');
+  // 2.0.5 三源归一：发布后字号写进排版 token theme-h2，旧变量成为别名；实际字号由下方计算样式断言守护
+  expect(css).toContain('--yk-type-h2-size:var(--yk-typo-theme-h2-size)');
   expect(css).toContain('h2.yk-type-h2{font-size:var(--yk-type-h2-size);}');
   // 显式 0 是有效值，不能被当成“未设置”丢掉。
   expect(css).toContain('--yk-layout-gap:0px');
