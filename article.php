@@ -65,7 +65,7 @@ $navChannels = getNavChannels();
 // SEO: OpenGraph & JSON-LD
 $ogType = 'article';
 $siteUrl = siteBaseUrl();
-$canonicalUrl = $siteUrl . contentPrettyUrl($article + ['type' => 'article']);   // 设了登记网址时即登记网址
+$canonicalUrl = LocalizedUrl::canonical('content', $article + ['type' => 'article'], contentPrettyUrl($article + ['type' => 'article']));   // 设了登记网址时即登记网址
 if (!empty($article['cover'])) {
     $ogImage = $article['cover'];
 }

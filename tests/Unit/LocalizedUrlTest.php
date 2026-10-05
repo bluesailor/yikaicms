@@ -60,7 +60,7 @@ final class LocalizedUrlTest extends TestCase
         self::assertIsInt($custom);
         self::assertIsInt($entity);
         self::assertIsInt($dynamic);
-        self::assertTrue($custom < $entity && $entity < $dynamic, '登记网址 → 条目 → 动态网址 → 按路径');
+        self::assertTrue($entity < $custom && $custom < $dynamic, '条目（含登记网址的条目）→ 其余登记网址 → 动态网址 → 按路径');
         self::assertStringContainsString('function contentLang(): string', $functions);
         $switcher = (string) file_get_contents(ROOT_PATH . '/includes/builder/elements/LanguageSwitcherElement.php');
         self::assertStringContainsString('$target = LocalizedUrl::switchTarget($language);', $switcher);

@@ -146,6 +146,17 @@ final class LocalizedUrl
         return $alternates[$lang] ?? langUrl('/', $lang);
     }
 
+    /**
+     * 详情 / 单页的 canonical（完整地址）。伪静态下照旧用页面传进来的美化地址；动态网址模式下改用本条目的动态地址
+     * （2.0.5 网址回归：此前动态模式也给 /news/article/x.html，「无需 Rewrite」的服务器上 canonical 指向 404）。
+     * @param array<string,mixed> $row
+     */
+    public static function canonical(string $kind, array $row, string $prettyPath): string
+    {
+        $url = isDynamicUrlMode() ? self::urlFor($kind, $row, displayLang()) : '';
+        return self::absolute($url !== '' ? $url : $prettyPath);
+    }
+
     // ── 内部 ───────────────────────────────────────────────────────────────
 
     /** @param array<string,mixed> $row @return list<array<string,mixed>> 同一翻译组里已发布的行（含自己） */
