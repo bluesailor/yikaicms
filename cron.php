@@ -24,6 +24,7 @@ if ($token === '' || !hash_equals(Cron::token(), $token)) {
 // ?task=<name>：只跑指定任务且无视间隔（如 task=demo_reset 作为站长一键重置链接收藏）
 $task = (string) ($_GET['task'] ?? '');
 if ($task !== '') {
+    Cron::beat();
     $r = Cron::runOne($task);
     if (!$r['ran']) {
         http_response_code(404);
