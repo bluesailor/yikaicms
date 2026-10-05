@@ -563,6 +563,14 @@ final class BloxLoopQuery
             }
         }
         $plan['ids'] = array_map('intval', $ids);
+        // 译文页面：关联 id 是从原文复制来的，换成本语言的版本（否则按语言过滤后整组为空）
+        $table = $plan['kind'] === 'product' ? 'products' : 'contents';
+        if (function_exists('isMultiLangEnabled') && isMultiLangEnabled($table) && function_exists('siteLang')) {
+            $plan['ids'] = ExtFields::localizeIds($table, $plan['ids'], siteLang());
+            if ($plan['ids'] === []) {
+                return null;
+            }
+        }
         if ($plan['order'] === 'default') {
             $plan['order'] = 'manual';
         }
