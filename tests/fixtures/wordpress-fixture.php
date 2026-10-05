@@ -247,5 +247,16 @@ function wordPressFixture(PDO $pdo, string $p = 'wp_'): array
     $opt('options_certificates_0_name', 'ISO 9001');
     $opt('options_certificates_0_image', (string) $ids['img_ring']);
 
+    // 2.0.5：主题自带的自定义类型（Betheme 作品集），网址前缀被主题改成 portfolio-item；正文在 Muffin 构建器里，SEO 用 Easy WP Meta Description
+    $opt('rewrite_rules', ['portfolio-item/([^/]+)(?:/([0-9]+))?/?$' => 'index.php?portfolio=$matches[1]&page=$matches[2]',
+        'portfolio-types/([^/]+)/?$' => 'index.php?portfolio-types=$matches[1]', '([^/]+)(?:/([0-9]+))?/?$' => 'index.php?name=$matches[1]&page=$matches[2]']);
+    $ptWorks = $term('Customer Projects', 'customer-projects', 'portfolio-types');
+    $ids['portfolio_crane'] = $post(['post_type' => 'portfolio', 'post_title' => 'Tower Crane Retrofit', 'post_name' => 'tower-crane-retrofit', 'post_content' => '']);
+    $meta($ids['portfolio_crane'], 'mfn-page-items', base64_encode(serialize([['jsclass' => 'section', 'wraps' => [['items' => [
+        ['type' => 'visual', 'attr' => ['content' => '<p>Replaced a 2.5 m slewing ring on site.</p>']]]]]]])));
+    $meta($ids['portfolio_crane'], '_easy_wp_meta_description', 'Tower crane slewing ring retrofit case.');
+    $relate($ids['portfolio_crane'], $ptWorks);
+    $ids['event_expo'] = $post(['post_type' => 'tribe_events', 'post_title' => 'Expo 2026', 'post_name' => 'expo-2026']);
+
     return $ids;
 }
