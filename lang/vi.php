@@ -7714,6 +7714,8 @@ return [
     'blox_tpl_remote_origin_changed' => 'Nguồn danh mục khác với lúc cài đặt, đã chặn cập nhật. Vui lòng kiểm tra nguồn chính thức hoặc cộng đồng; các trang hiện có không bị ảnh hưởng.',
     'market_origin_unknown' => 'Tài nguyên này được cài đặt cục bộ hoặc thiếu bản ghi nguồn đáng tin cậy, đã dừng cập nhật ghi đè từ chợ. Nội dung hiện có không bị ảnh hưởng, vui lòng kiểm tra nguồn rồi dùng gói cài đặt đã xác nhận.',
     'market_origin_changed' => 'Nguồn danh mục khác với nguồn chính thức hoặc cộng đồng lúc cài đặt, đã chặn cập nhật ghi đè.',
+    'theme_link_update_notice' => 'Giao diện này được cài cùng một mẫu trang web. Nâng cấp sẽ ghi đè các tệp có trong phiên bản mới trên chợ và giữ lại các tệp khác; thư mục giao diện hiện tại được sao lưu trước.',
+    'theme_link_local_changes' => 'Giao diện này có tệp đã sửa hoặc thêm (~ đã sửa, + đã thêm, ? không xác định). Nâng cấp sẽ ghi đè các tệp có trong phiên bản mới; thư mục hiện tại được sao lưu trước. Tiếp tục?',
     'pl_package_unsafe' => 'Gói plugin chứa đường dẫn, liên kết không an toàn hoặc vượt giới hạn tài nguyên, chưa cài đặt.',
     'pl_install_busy' => 'Plugin này đang được cài đặt, vui lòng thử lại sau.',
     'pl_install_recovery_required' => 'Thay thế plugin thất bại và không thể tự khôi phục. Không cài lại, hãy kiểm tra thư mục cũ được giữ trong storage/plugin-backup và khôi phục.',

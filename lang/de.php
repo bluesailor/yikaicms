@@ -7714,6 +7714,8 @@ return [
     'blox_tpl_remote_origin_changed' => 'Die Katalogquelle unterscheidet sich von der Installationsquelle. Das Update wurde verhindert. Prüfen Sie die offizielle oder Community-Quelle; bestehende Seiten bleiben unverändert.',
     'market_origin_unknown' => 'Diese Ressource wurde lokal installiert oder hat keinen vertrauenswürdigen Herkunftsnachweis. Das Ersetzen über den Markt wurde verhindert. Bestehende Inhalte bleiben unverändert; prüfen Sie die Quelle und verwenden Sie ein bestätigtes Installationspaket.',
     'market_origin_changed' => 'Die offizielle oder Community-Katalogquelle unterscheidet sich von der Installationsquelle. Das Ersetzen wurde verhindert.',
+    'theme_link_update_notice' => 'Dieses Theme wurde mit einer Website-Vorlage installiert. Das Upgrade überschreibt Dateien, die in der neuen Marktversion enthalten sind, und behält die übrigen; der aktuelle Theme-Ordner wird vorher gesichert.',
+    'theme_link_local_changes' => 'Dieses Theme enthält geänderte oder hinzugefügte Dateien (~ geändert, + hinzugefügt, ? unbekannt). Das Upgrade überschreibt Dateien aus der neuen Version; der aktuelle Ordner wird vorher gesichert. Fortfahren?',
     'pl_package_unsafe' => 'Das Plugin-Paket enthält unsichere Pfade oder Links oder überschreitet Ressourcengrenzen. Es wurde nichts installiert.',
     'pl_install_busy' => 'Dieses Plugin wird gerade installiert. Bitte später erneut versuchen.',
     'pl_install_recovery_required' => 'Das Ersetzen des Plugins und die automatische Wiederherstellung sind fehlgeschlagen. Installieren Sie es nicht erneut. Prüfen Sie das alte Verzeichnis in storage/plugin-backup und stellen Sie es wieder her.',

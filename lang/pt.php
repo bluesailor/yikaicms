@@ -7714,6 +7714,8 @@ return [
     'blox_tpl_remote_origin_changed' => 'A origem do catálogo difere da origem da instalação. Atualização bloqueada. Confira a origem oficial ou comunitária; as páginas existentes não são afetadas.',
     'market_origin_unknown' => 'Este recurso foi instalado localmente ou não tem registro de origem confiável. A atualização por substituição no mercado foi bloqueada. O conteúdo existente não é afetado; verifique a origem antes de usar um pacote confirmado.',
     'market_origin_changed' => 'A origem oficial ou comunitária do catálogo difere da origem da instalação. A atualização por substituição foi bloqueada.',
+    'theme_link_update_notice' => 'Este tema foi instalado com um modelo de site. A atualização substitui os arquivos que existem na nova versão do mercado e mantém os demais; antes é feito backup da pasta atual do tema.',
+    'theme_link_local_changes' => 'Este tema tem arquivos alterados ou adicionados (~ alterado, + adicionado, ? desconhecido). A atualização substitui os arquivos que existem na nova versão; antes é feito backup da pasta atual. Continuar?',
     'pl_package_unsafe' => 'O pacote do plugin contém caminhos ou links inseguros, ou excede os limites de recursos. Nada foi instalado.',
     'pl_install_busy' => 'Este plugin está sendo instalado. Tente novamente mais tarde.',
     'pl_install_recovery_required' => 'A substituição do plugin e a restauração automática falharam. Não reinstale. Verifique e restaure o diretório anterior preservado em storage/plugin-backup.',

@@ -7714,6 +7714,8 @@ return [
     'blox_tpl_remote_origin_changed' => 'Asal katalog berbeda dari asal pemasangan. Pembaruan diblokir. Periksa sumber resmi atau komunitas; halaman yang ada tidak terpengaruh.',
     'market_origin_unknown' => 'Sumber daya ini dipasang secara lokal atau tidak punya catatan asal tepercaya. Penimpaan marketplace dihentikan. Konten yang ada tidak terpengaruh; verifikasi sumber sebelum memakai paket tepercaya.',
     'market_origin_changed' => 'Asal resmi atau komunitas berbeda dari sumber daya terpasang. Penimpaan diblokir.',
+    'theme_link_update_notice' => 'Tema ini dipasang bersama templat situs. Pembaruan menimpa berkas yang ada di versi baru pasar dan mempertahankan sisanya; folder tema saat ini dicadangkan lebih dulu.',
+    'theme_link_local_changes' => 'Tema ini memiliki berkas yang diubah atau ditambahkan (~ diubah, + ditambahkan, ? tidak diketahui). Pembaruan menimpa berkas yang ada di versi baru; folder saat ini dicadangkan lebih dulu. Lanjutkan?',
     'pl_package_unsafe' => 'Paket plugin memuat jalur atau tautan tidak aman, atau melebihi batas sumber daya. Tidak ada yang dipasang.',
     'pl_install_busy' => 'Plugin ini sedang dipasang. Coba lagi nanti.',
     'pl_install_recovery_required' => 'Penggantian plugin dan pemulihan otomatis gagal. Jangan pasang ulang. Periksa dan pulihkan direktori lama di storage/plugin-backup.',
