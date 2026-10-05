@@ -99,6 +99,39 @@ final class WordPressSource
             FROM {$this->p}posts WHERE post_type IN ({$tp}) AND post_status IN ({$sp}) ORDER BY ID", array_merge($types, $statuses));
     }
 
+    /** 各内容类型已发布的条数。 @return array<string,int> */
+    public function postTypeCounts(): array
+    {
+        $out = [];
+        foreach ($this->rows("SELECT post_type, COUNT(*) AS n FROM {$this->p}posts WHERE post_status = 'publish' GROUP BY post_type") as $r) {
+            $out[(string) $r['post_type']] = (int) $r['n'];
+        }
+        return $out;
+    }
+
+    /** 某内容类型的条目挂了哪些分类法。 @return list<string> */
+    public function taxonomiesOf(string $postType): array
+    {
+        return array_map(static fn (array $r): string => (string) $r['taxonomy'], $this->rows(
+            "SELECT DISTINCT tt.taxonomy FROM {$this->p}term_relationships tr
+                JOIN {$this->p}term_taxonomy tt ON tt.term_taxonomy_id = tr.term_taxonomy_id
+                JOIN {$this->p}posts p ON p.ID = tr.object_id
+            WHERE p.post_type = ? AND p.post_status = 'publish'", [$postType]));
+    }
+
+    /**
+     * 自定义内容类型 / 分类法的网址前缀，从 WordPress 存下的重写规则里找（主题常把它改掉，如 Betheme 的 portfolio-item）。
+     * 规则形如「portfolio-item/([^/]+)(?:/([0-9]+))?/?$ => index.php?portfolio=$matches[1]…」。找不到返回 null。
+     */
+    public function rewriteBase(string $queryVar): ?string
+    {
+        foreach ($this->optionArray('rewrite_rules') as $pattern => $target) {
+            if (!is_string($target) || !str_starts_with($target, 'index.php?' . $queryVar . '=$matches[1]')) continue;
+            if (preg_match('#^([a-z0-9_\-/]+?)/\(\[\^/\]\+\)(?:\(\?:/\(\[0-9\]\+\)\)\?)?/\?\$$#i', (string) $pattern, $m)) return trim($m[1], '/');
+        }
+        return null;
+    }
+
     /** @param list<int> $ids @return array<int,array<string,string>> 每篇的 meta（同名取第一条） */
     public function meta(array $ids): array
     {

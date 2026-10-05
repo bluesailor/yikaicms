@@ -17,13 +17,18 @@ test('WordPress import keeps every original URL with content, SEO and translatio
     expect(dry).toContain('试运行');
     expect((await visitor.request.get('/slewing-bearing-installation-procedure/', { maxRedirects: 0 })).status()).toBe(404);
 
-    const first = importer();
+    const first = importer('--type-map=portfolio:case');
     expect(first).toContain('新建：');
     expect(first).toContain('表单：Request a Quote → 表单模板「request-a-quote」，含翻译 ja/de');
     expect(first).toContain('菜单：Main Menu（en');
     expect(first).toContain('原站位置 primary');
     expect(first).toContain('{"contact-form-7":1}');   // 导入的表单换成本站短代码；只有没导入的 id=5 算「去掉」
     expect(first).not.toContain('没认出的短代码');
+    // 2.0.5：没映射的自定义类型列在报告里；作品集按 type-map 导成案例，正文来自 Muffin 构建器，记为降级
+    expect(first).toContain('没迁移的内容类型：tribe_events 1');
+    expect(first).toContain('迁移程度：完整 5，部分 1（去掉或没认出短代码），降级 2');
+    expect(first).toContain('待人工检查（降级，来自 elementor）：page Engineer Team');
+    expect(first).toContain('待人工检查（降级，来自 muffin）：portfolio Tower Crane Retrofit');
 
     // Contact Form 7 → 表单模板（英文为主，日文进列、德文进 metas）；菜单 → 菜单组（日文菜单挂为语言版本）
     const imported = JSON.parse(fixture('inspect', JSON.stringify(ids)));
@@ -105,8 +110,14 @@ test('WordPress import keeps every original URL with content, SEO and translatio
     await expect(page).toHaveTitle(/^SE7 Worm Gear Slew Drive/);
     expect(await page.content()).toContain('73:1');   // 参数在默认收起的选项卡里
 
+    // 作品集 → 案例：主题改过的网址前缀 /portfolio-item/ 与分类 /portfolio-types/ 原样可访问，SEO 描述来自 Easy WP Meta Description
+    expect((await page.goto('/portfolio-item/tower-crane-retrofit/')).status()).toBe(200);
+    await expect(page.getByText('Replaced a 2.5 m slewing ring on site.').first()).toBeVisible();
+    await expect(page.locator('meta[name=description]')).toHaveAttribute('content', 'Tower crane slewing ring retrofit case.');
+    expect((await visitor.request.get('/portfolio-types/customer-projects/', { maxRedirects: 0 })).status()).toBe(200);
+
     expect((await visitor.request.get('/draft-post/', { maxRedirects: 0 })).status()).toBe(404);
-    const again = importer();
+    const again = importer('--type-map=portfolio:case');
     expect(again).toContain('更新：');
     expect(again).not.toContain('新建：');
   } finally {
