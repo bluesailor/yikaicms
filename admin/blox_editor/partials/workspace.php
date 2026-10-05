@@ -2871,6 +2871,10 @@ declare(strict_types=1);
                                         <option value="narrow"><?= __('blox_width_narrow') ?></option>
                                         <option value="wide"><?= __('blox_width_wide') ?></option>
                                         <option value="full"><?= __('blox_width_full') ?></option>
+                                        <?php // 2.0.5 设计系统 2.0：全站容器宽度刻度（设计系统 → 尺寸与效果） ?>
+                                        <?php foreach (BloxDesignSystem::snapshot()['containers'] as $ykContainerToken): if (($ykContainerToken['status'] ?? '') === 'archived') continue; ?>
+                                        <option value="<?= e('token:' . $ykContainerToken['id']) ?>"><?= e(__('blox_design_containers') . ' · ' . $ykContainerToken['name'] . ' (' . $ykContainerToken['value'] . ')') ?></option>
+                                        <?php endforeach; ?>
                                         <option value="custom"><?= __('blox_width_custom') ?></option>
                                     </select>
                                     <div x-show="sel.settings.max_width === 'custom'" class="mt-1.5 flex items-center gap-2">

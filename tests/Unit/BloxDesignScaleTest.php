@@ -147,6 +147,21 @@ final class BloxDesignScaleTest extends TestCase
         self::assertStringNotContainsString('padding', $render(['style_padding' => 'token:x;}y{']), '非法 id 不输出');
     }
 
+    /** 区块容器宽度选全站容器刻度：token:<id> → max-width:var(--yk-container-<id>, 出厂值)。 */
+    public function testSectionWidthUsesContainerTokens(): void
+    {
+        $section = static fn (string $width): string => BlockRenderer::render((string) json_encode([[
+            'type' => 'custom', 'id' => 's1', 'settings' => ['max_width' => $width],
+            'columns' => [['width' => 'w-full', 'elements' => [['type' => 'container', 'id' => 'c1', 'data' => ['bg_color' => '#ffffff']]]]],
+        ]]));
+        $html = $section('token:narrow');
+        self::assertStringContainsString('max-width:var(--yk-container-narrow,768px);', $html);
+        self::assertStringNotContainsString('max-w-6xl mx-auto', $html, '不再叠默认版心类');
+        self::assertStringContainsString('max-width:var(--yk-container-ct_mine,72rem);', $section('token:ct_mine'), '自建刻度回退默认版心');
+        self::assertStringContainsString('max-w-6xl mx-auto', $section('token:bad;}x{'), '非法值回落默认宽度');
+        self::assertStringContainsString('max-w-4xl mx-auto', $section('narrow'), '原四档不变');
+    }
+
     public function testMutationsKeepColorTokensAndValidateReferences(): void
     {
         $GLOBALS['_test_config'][BloxDesignSystem::SETTING_KEY] = json_encode([
