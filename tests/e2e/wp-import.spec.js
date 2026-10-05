@@ -26,7 +26,8 @@ test('WordPress import keeps every original URL with content, SEO and translatio
     expect(first).not.toContain('没认出的短代码');
     // 2.0.5：没映射的自定义类型列在报告里；作品集按 type-map 导成案例，正文来自 Muffin 构建器，记为降级
     expect(first).toContain('没迁移的内容类型：tribe_events 1');
-    expect(first).toContain('降级 1');
+    expect(first).toContain('迁移程度：完整 5，部分 1（去掉或没认出短代码），降级 2');
+    expect(first).toContain('待人工检查（降级，来自 elementor）：page Engineer Team');
     expect(first).toContain('待人工检查（降级，来自 muffin）：portfolio Tower Crane Retrofit');
 
     // Contact Form 7 → 表单模板（英文为主，日文进列、德文进 metas）；菜单 → 菜单组（日文菜单挂为语言版本）
