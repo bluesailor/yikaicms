@@ -278,6 +278,10 @@ final class BloxDocumentPipeline
                 $clean[$key] = in_array($settings[$key], [true, 1, '1'], true);
             }
         }
+        // 本页的页面切换动画（2.0.5）：进入本页时用哪种；不存 = 跟随全站，none = 进入本页不播
+        if (array_key_exists('page_transition', $settings) && in_array($settings['page_transition'], BloxMotion::TRANSITIONS, true)) {
+            $clean['page_transition'] = $settings['page_transition'];
+        }
         if (array_key_exists('dot_nav', $settings)) {
             $clean['dot_nav'] = BloxDotNav::normalizeSettings($settings['dot_nav']);
         }

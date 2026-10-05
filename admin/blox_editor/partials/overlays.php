@@ -125,6 +125,19 @@ declare(strict_types=1);
                 </div>
                 <p class="text-xs text-gray-500"><?= e(__('blox_dotnav_hint')) ?></p>
             </div>
+            <?php if (!$isHomeBlox && !$templateId && ($pageType ?? '') === 'page'): ?>
+            <div class="space-y-2 border-t p-4" data-testid="blox-page-frame-transition">
+                <label for="blox-page-transition" class="block text-sm text-gray-900"><?= e(__('blox_page_transition')) ?></label>
+                <select id="blox-page-transition" x-model="pageFrameDraft.page_transition" data-testid="blox-page-transition"
+                        class="w-full border border-gray-300 rounded px-3 py-2 text-sm">
+                    <option value=""><?= e(__('blox_page_transition_inherit', ['value' => __('page_transition_' . BloxMotion::transition())])) ?></option>
+                    <?php foreach (BloxMotion::TRANSITIONS as $transitionOption): ?>
+                    <option value="<?= e($transitionOption) ?>"><?= e(__('page_transition_' . $transitionOption)) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <p class="text-xs text-gray-500"><?= e(__('blox_page_transition_hint')) ?></p>
+            </div>
+            <?php endif; ?>
             <div class="space-y-2 border-t p-4">
                 <?php // 标题区入口复用画布里的同一个设置弹窗（同一份数据，不存两份值） ?>
                 <button type="button" x-show="pageHero && pageHero.available" x-cloak

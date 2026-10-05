@@ -97,4 +97,31 @@ final class BloxMotionTest extends TestCase
         self::assertSame('', BloxMotion::transitionHtml());
         self::assertFalse(SiteTemplateData::settingAllowed('page_transition'), '站点偏好不随整站模板迁移');
     }
+
+    public function testSinglePagesOverrideTheSiteTransition(): void
+    {
+        // 2.0.5：Blox 单页的文档设置 page_transition 决定进入该页时的效果；不设 = 跟随全站
+        $GLOBALS['_test_config'] = ['page_transition' => 'fade'];
+        try {
+            BloxMotion::setPageOverride('zoom');
+            self::assertStringContainsString('data-yk-page-transition="zoom"', BloxMotion::transitionHtml());
+            BloxMotion::setPageOverride('none');
+            self::assertSame('', BloxMotion::transitionHtml(), '本页选「无」：不声明 @view-transition，进入本页不播');
+            BloxMotion::setPageOverride('</style>');
+            self::assertStringContainsString('data-yk-page-transition="fade"', BloxMotion::transitionHtml(), '非法值当作跟随全站');
+            BloxMotion::setPageOverride(null);
+            self::assertSame('fade', BloxMotion::transition());
+            $GLOBALS['_test_config']['page_transition'] = 'none';
+            BloxMotion::setPageOverride('slide');
+            self::assertStringContainsString('data-yk-page-transition="slide"', BloxMotion::transitionHtml(), '全站关闭时单页仍可单独开启');
+            $GLOBALS['_test_config']['motion_intensity'] = 'none';
+            self::assertSame('', BloxMotion::transitionHtml(), '无动效的站点单页也不播');
+        } finally {
+            BloxMotion::setPageOverride(null);
+        }
+        $doc = \BloxDocumentPipeline::normalizeDocSettings(['page_transition' => 'slide']);
+        self::assertSame('slide', $doc['page_transition']);
+        self::assertArrayNotHasKey('page_transition', \BloxDocumentPipeline::normalizeDocSettings(['page_transition' => 'spin']));
+        self::assertArrayNotHasKey('page_transition', \BloxDocumentPipeline::normalizeDocSettings(['page_transition' => '']), '空 = 跟随全站，不存');
+    }
 }

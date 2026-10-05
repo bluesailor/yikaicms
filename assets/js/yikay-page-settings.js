@@ -8,7 +8,7 @@
                 // 对话框标记在打开前就会被 Alpine 求值，初始形状必须完整：
                 // 只给 {} 会让 dot_nav.position / dot_nav.mobile 这类绑定在初始化时读到
                 // undefined 的属性（2026-09-16 回归：控制台刷 Alpine Expression Error）。
-                pageFrameDraft: { page_header_hidden: false, page_footer_hidden: false, dot_nav: { enabled: false, position: "right", mobile: false } },
+                pageFrameDraft: { page_header_hidden: false, page_footer_hidden: false, page_transition: "", dot_nav: { enabled: false, position: "right", mobile: false } },
                 pageLayout: initial.layout || { values: {}, fields: {} },
                 pageFrameModes: {},
                 pageFrameError: "",
@@ -56,6 +56,8 @@
                     this.pageFrameDraft = {
                         page_header_hidden: !!this.docSettings.page_header_hidden,
                         page_footer_hidden: !!this.docSettings.page_footer_hidden,
+                        // 本页的页面切换动画（2.0.5）：空 = 跟随全站
+                        page_transition: typeof this.docSettings.page_transition === "string" ? this.docSettings.page_transition : "",
                         // R7A：圆点导航是布局设置——应用到草稿，发布后生效
                         dot_nav: {
                             enabled: !!dotNav.enabled,
@@ -96,6 +98,7 @@
                     }
                     this.runCommand("page-frame", function () {
                         Object.assign(this.docSettings, this.pageFrameDraft);
+                        if (!this.pageFrameDraft.page_transition) delete this.docSettings.page_transition;
                         Object.keys(this.pageLayout.fields).forEach((key) => {
                             var mode = this.pageFrameModes[key];
                             if (mode === "inherit") delete this.docSettings[key];
