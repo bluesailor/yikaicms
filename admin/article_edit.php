@@ -96,8 +96,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     // 发布状态以用户选择为准：已发布即上线（未来时间只作显示日期）、定时到点上线、草稿不上线
     require_once ROOT_PATH . '/includes/ScheduledPublish.php';
+    $postedTime = (string) post('publish_time');
+    $existingTime = (int) ($article['publish_time'] ?? 0);
+    if ((int) $data['status'] === 1 && post('publish_now') === '1') {
+        // 「立即发布」（新建或草稿转发布）：发布时间记为现在，不沿用草稿里留下的旧时间
+        $postedTime = '';
+        $existingTime = 0;
+    }
     try {
-        $sched = ScheduledPublish::normalize((int) $data['status'], (string) post('publish_time'), (int) ($article['publish_time'] ?? 0));
+        $sched = ScheduledPublish::normalize((int) $data['status'], $postedTime, $existingTime);
     } catch (InvalidArgumentException) {
         error(__('admin_scheduled_time_required'));
     }
@@ -288,40 +295,64 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
 
 
+                    <?php
+                    // 发布状态：立即发布 / 草稿 / 定时发布。发布时间只在「定时发布」时出现；
+                    // 已发布的文章编辑时也显示——发布时间同时是前台显示的文章日期，要能改。
+                    $_status = (int) ($article['status'] ?? 1);
+                    $_wasPublished = $id > 0 && $_status === 1;
+                    $_pubTs = !empty($article['publish_time']) ? (int) $article['publish_time'] : time();   // 新建默认当前时间
+                    ?>
                     <div>
-                        <label class="block text-gray-700 mb-1"><?php echo __('label_publish_status'); ?></label>
-                        <select name="status" id="publishStatus" class="w-full border rounded px-4 py-2" data-testid="article-status">
-                            <option value="1" <?php echo ($article['status'] ?? 1) == 1 ? 'selected' : ''; ?>><?php echo __('admin_published'); ?></option>
-                            <option value="0" <?php echo ($article['status'] ?? 1) == 0 ? 'selected' : ''; ?>><?php echo __('admin_draft'); ?></option>
-                            <option value="3" <?php echo ($article['status'] ?? 1) == 3 ? 'selected' : ''; ?>><?php echo __('admin_scheduled'); ?></option>
+                        <label class="block text-gray-700 mb-1" for="publishStatus"><?php echo __('label_publish_status'); ?></label>
+                        <select name="status" id="publishStatus" class="w-full border rounded px-4 py-2" data-testid="article-status"
+                                data-was-published="<?php echo $_wasPublished ? '1' : '0'; ?>">
+                            <option value="1" <?php echo $_status === 1 ? 'selected' : ''; ?>><?php echo e($_wasPublished ? __('admin_published') : __('admin_publish_now')); ?></option>
+                            <option value="0" <?php echo $_status === 0 ? 'selected' : ''; ?>><?php echo __('admin_draft'); ?></option>
+                            <option value="3" <?php echo $_status === 3 ? 'selected' : ''; ?>><?php echo __('admin_scheduled'); ?></option>
                         </select>
                     </div>
 
-                    <div>
-                        <label class="block text-gray-700 mb-1"><?php echo __('label_publish_time'); ?></label>
-                        <input type="datetime-local" name="publish_time" id="publishTime" data-testid="article-publish-time"
-                               value="<?php echo !empty($article['publish_time']) ? date('Y-m-d\TH:i', (int)$article['publish_time']) : ''; ?>"
-                               class="w-full border rounded px-4 py-2">
+                    <div id="publishTimeRow" data-testid="article-publish-time-row">
+                        <span class="block text-gray-700 mb-1" id="publishTimeLabel"><?php echo __('label_publish_time'); ?></span>
+                        <div class="grid grid-cols-2 gap-2" role="group" aria-labelledby="publishTimeLabel">
+                            <input type="date" id="publishDate" data-testid="article-publish-date" aria-label="<?php echo e(__('admin_publish_date')); ?>"
+                                   value="<?php echo date('Y-m-d', $_pubTs); ?>" class="w-full border rounded px-3 py-2">
+                            <input type="time" id="publishClock" data-testid="article-publish-clock" step="60" aria-label="<?php echo e(__('admin_publish_clock')); ?>"
+                                   value="<?php echo date('H:i', $_pubTs); ?>" class="w-full border rounded px-3 py-2">
+                        </div>
+                        <input type="hidden" name="publish_time" id="publishTime" data-testid="article-publish-time" value="<?php echo date('Y-m-d\TH:i', $_pubTs); ?>">
                         <p id="publishTimeHint" class="text-xs text-orange-500 mt-1 hidden" data-testid="article-schedule-hint"
                            data-scheduled="<?php echo e(__('admin_scheduled_hint')); ?>"
                            data-future="<?php echo e(__('admin_future_time_hint')); ?>"></p>
                     </div>
+                    <input type="hidden" name="publish_now" id="publishNow" value="0">
                     <script>
                     (function () {
-                        // 与保存规则一致：定时需要时间；「已发布」配未来时间仍立即上线，提示想到点上线就选「定时发布」
+                        // 日期 + 时间合成隐藏字段 publish_time（Y-m-dTH:i）；「立即发布」不显示时间，保存时记为当前时间
                         var sel = document.getElementById('publishStatus');
+                        var row = document.getElementById('publishTimeRow');
+                        var date = document.getElementById('publishDate');
+                        var clock = document.getElementById('publishClock');
                         var time = document.getElementById('publishTime');
+                        var now = document.getElementById('publishNow');
                         var hint = document.getElementById('publishTimeHint');
-                        if (!sel || !time || !hint) return;
+                        if (!sel || !row || !date || !clock || !time || !now || !hint) return;
+                        var wasPublished = sel.dataset.wasPublished === '1';
                         function sync() {
+                            var scheduled = sel.value === '3';
+                            var showTime = scheduled || (sel.value === '1' && wasPublished);
+                            row.classList.toggle('hidden', !showTime);
+                            date.required = clock.required = scheduled;
+                            time.value = date.value ? date.value + 'T' + (clock.value || '00:00') : '';
+                            now.value = sel.value === '1' && !wasPublished ? '1' : '0';
                             var future = time.value !== '' && new Date(time.value).getTime() > Date.now();
-                            var text = sel.value === '3' ? hint.dataset.scheduled : (sel.value === '1' && future ? hint.dataset.future : '');
-                            time.required = sel.value === '3';
+                            var text = scheduled ? hint.dataset.scheduled : (sel.value === '1' && wasPublished && future ? hint.dataset.future : '');
                             hint.textContent = text;
                             hint.classList.toggle('hidden', text === '');
                         }
                         sel.addEventListener('change', sync);
-                        time.addEventListener('input', sync);
+                        date.addEventListener('input', sync);
+                        clock.addEventListener('input', sync);
                         sync();
                     })();
                     </script>

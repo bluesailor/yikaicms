@@ -92,5 +92,34 @@ final class ArticleAdminScopeContractTest extends TestCase
         self::assertStringContainsString("if (\$childCount(\$id) > 0) error(__('pcat_has_children'));", $page, '有下级的分类不能删');
         self::assertStringContainsString("if (\$articleCount(\$id) > 0) error(__('acat_has_articles'));", $page, '有文章的分类不能删');
         self::assertStringContainsString("'/admin/article_category.php'", (string) file_get_contents($root . '/includes/admin_pages_catalog.php'));
+        self::assertStringContainsString('renderAdminLangSwitcher($_viewLang)', $page, '多语言站可切换查看语言');
+        self::assertStringContainsString("renderTransPills((int) \$item['id'], \$transStatus, '/admin/channel.php', 'edit')", $page, '默认语言下显示各语言翻译状态');
+    }
+
+    /** 下载与文章一样：「下载列表 / 下载分类」共用标签，不再各自放跳转按钮。 */
+    public function testDownloadPagesShareWorkflowTabs(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $nav = (string) file_get_contents($root . '/admin/includes/workflow_nav.php');
+        self::assertStringContainsString("'download', 'download_category' => ['admin_download'", $nav);
+        foreach (['download.php', 'download_category.php'] as $file) {
+            $src = (string) file_get_contents($root . '/admin/' . $file);
+            self::assertStringContainsString("require ROOT_PATH . '/admin/includes/workflow_nav.php'", $src, $file);
+            self::assertStringContainsString('adminModuleEnd()', $src, $file);
+        }
+        self::assertStringNotContainsString("__('admin_back')", (string) file_get_contents($root . '/admin/download_category.php'), '分类页不再需要「返回」按钮');
+    }
+
+    /** 文章发布：立即发布 / 草稿 / 定时发布；时间分日期与时刻，只在定时（或编辑已发布文章）时显示。 */
+    public function testArticlePublishControls(): void
+    {
+        $edit = (string) file_get_contents(dirname(__DIR__, 2) . '/admin/article_edit.php');
+        self::assertStringContainsString("__('admin_publish_now')", $edit);
+        self::assertStringContainsString('type="date" id="publishDate"', $edit);
+        self::assertStringContainsString('type="time" id="publishClock"', $edit);
+        self::assertStringContainsString('type="hidden" name="publish_time" id="publishTime"', $edit, '日期与时刻合成 publish_time，保存规则不变');
+        self::assertStringContainsString("var showTime = scheduled || (sel.value === '1' && wasPublished);", $edit);
+        self::assertStringContainsString("if ((int) \$data['status'] === 1 && post('publish_now') === '1') {", $edit, '立即发布记为当前时间');
+        self::assertStringContainsString(': time();   // 新建默认当前时间', $edit);
     }
 }
