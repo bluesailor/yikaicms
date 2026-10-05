@@ -33,6 +33,7 @@ CLI::register('cron:list', '列出定时任务及状态', function (array $args,
 
 CLI::register('cron:run', '运行到点的定时任务', function (array $args, array $opts): int {
     if (!empty($opts['task']) && is_string($opts['task'])) {
+        Cron::beat();
         $r = Cron::runOne($opts['task']);
         if (!$r['ran']) {
             CLI::err($r['msg']);

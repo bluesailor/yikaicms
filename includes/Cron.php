@@ -98,6 +98,7 @@ final class Cron
     {
         self::boot();
         $now = time();
+        self::beat();
         $results = [];
         foreach (self::$tasks as $name => $task) {
             $last = (int) settingModel()->get("cron_{$name}_last", '0');
@@ -108,6 +109,39 @@ final class Cron
             $results[] = self::execute($name, $task) + ['ran' => true];
         }
         return $results;
+    }
+
+    /** 心跳：计划任务真的在调用本站。只由 cron.php 与命令行入口调用；后台「立即运行」不算。 */
+    public static function beat(): void
+    {
+        settingModel()->set('cron_heartbeat', (string) time(), 'cron');
+    }
+
+    /** 超过这么久没有心跳，就算定时任务停了（自动升级一小时检查一次、备份一天一次，两天没动静肯定是没配或坏了） */
+    public const STALE_AFTER = 2 * 86400;
+
+    /**
+     * 定时任务是否在跑：never（从未有计划任务调用过）、stale（超过 STALE_AFTER 没调用）、ok。
+     * 2.0.5 之前没有心跳，老站回落看各任务的最后运行时间。
+     * @return array{state:string,last:int,days:int}
+     */
+    public static function health(?int $now = null): array
+    {
+        $now ??= time();
+        $last = (int) settingModel()->get('cron_heartbeat', '0');
+        if ($last === 0) {
+            foreach (['publish_sweep', 'recycle_purge', 'backup', 'mail_retry', 'auto_upgrade'] as $name) {
+                $last = max($last, (int) settingModel()->get("cron_{$name}_last", '0'));
+            }
+        }
+        return self::healthFrom($last, $now);
+    }
+
+    /** @return array{state:string,last:int,days:int} */
+    public static function healthFrom(int $last, int $now): array
+    {
+        $state = $last <= 0 ? 'never' : (($now - $last) > self::STALE_AFTER ? 'stale' : 'ok');
+        return ['state' => $state, 'last' => max(0, $last), 'days' => $last <= 0 ? 0 : intdiv(max(0, $now - $last), 86400)];
     }
 
     /** 手动运行单个任务（后台「立即运行」用），无视间隔 */

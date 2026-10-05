@@ -62,6 +62,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_rewrite
     success([], 'ok');
 }
 
+// 定时任务提示：关掉后 30 天内不再出现（仍没修好会再提示）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_cron_notice') {
+    verifyCsrf();
+    requirePermission('*');
+    settingModel()->saveBatch(['cron_notice_dismissed_at' => (string) time()]);
+    success([], 'ok');
+}
+
 // 「开始建站」引导：步骤定义（顺序即推荐顺序）。只对全新安装的超管显示，见 install/index.php。
 require_once ROOT_PATH . '/includes/SiteSetup.php';
 $onbStartSteps = [
@@ -116,6 +124,11 @@ $showRewriteOnboarding = hasPermission('*')
     && (string) config('onboarding_rewrite_dismissed', '1') === '0';
 $showStartOnboarding = hasPermission('*')
     && (string) config('onboarding_start_dismissed', '1') === '0';
+// 定时任务从未运行 / 两天没运行：定时发布、自动备份、自动升级都不会发生。新站正在走开始建站引导时先不打扰。
+require_once ROOT_PATH . '/includes/Cron.php';
+$cronHealth = Cron::health();
+$showCronNotice = hasPermission('*') && !$showStartOnboarding && $cronHealth['state'] !== 'ok'
+    && (int) config('cron_notice_dismissed_at', '0') < time() - 30 * 86400;
 $onbStartDoneList = $showStartOnboarding ? $onbStartDone() : [];
 $onbTemplateOffer = false;
 if ($showStartOnboarding) {
@@ -220,6 +233,57 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             card.remove();
         } catch (error) {
             dismiss.disabled = false;
+            if (typeof showMessage === 'function') showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+        }
+    });
+})();
+</script>
+<?php endif; ?>
+
+<?php if ($showCronNotice): ?>
+<div id="cronHealthNotice" data-testid="cron-health-notice" class="mb-6 flex flex-col gap-4 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex min-w-0 items-start gap-3">
+        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
+            <i class="ti ti-clock-pause text-xl" aria-hidden="true"></i>
+        </span>
+        <div class="min-w-0">
+            <p class="text-sm font-semibold text-amber-950"><?php echo e($cronHealth['state'] === 'never' ? __('cron_health_never') : __('cron_health_stale', ['days' => (string) $cronHealth['days']])); ?></p>
+            <p class="mt-1 max-w-3xl text-sm leading-6 text-amber-900"><?php echo e(__('cron_health_body')); ?></p>
+        </div>
+    </div>
+    <div class="flex shrink-0 flex-wrap items-center gap-3 self-end sm:flex-nowrap sm:self-auto">
+        <a href="/admin/cron.php" data-testid="cron-health-setup"
+           class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded bg-amber-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2">
+            <i class="ti ti-settings text-base" aria-hidden="true"></i>
+            <?php echo e(__('cron_health_setup')); ?>
+        </a>
+        <button type="button" id="cronHealthDismiss" data-testid="cron-health-dismiss"
+                class="min-h-10 px-2 py-2 text-sm font-medium text-amber-900 hover:text-amber-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60">
+            <?php echo e(__('cron_health_dismiss')); ?>
+        </button>
+    </div>
+</div>
+<script>
+(function () {
+    var card = document.getElementById('cronHealthNotice');
+    var dismissButton = document.getElementById('cronHealthDismiss');
+    if (!card || !dismissButton) return;
+    dismissButton.addEventListener('click', async function () {
+        dismissButton.disabled = true;
+        dismissButton.setAttribute('aria-busy', 'true');
+        var body = new FormData();
+        body.set('_token', '<?php echo csrfToken(); ?>');
+        body.set('action', 'dismiss_cron_notice');
+        try {
+            var response = await fetch((window.YK_BASE || '') + '/admin/index.php', {
+                method: 'POST', body: body, credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            });
+            var result = await response.json();
+            if (!response.ok || Number(result.code) !== 0) throw new Error(result.msg || 'request failed');
+            card.remove();
+        } catch (error) {
+            dismissButton.disabled = false;
+            dismissButton.removeAttribute('aria-busy');
             if (typeof showMessage === 'function') showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         }
     });
