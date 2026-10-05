@@ -33,10 +33,15 @@ for (const mode of ['pretty', 'query']) for (const kind of ['article', 'product'
   });
 }
 for (const kind of ['article', 'product']) for (const state of ['missing', 'draft', 'deleted']) {
+  // 2.0.5 TranslationPolicy::STRICT：英文译文缺失 / 草稿 / 已删除时，/en 请求 302 到中文原文自己的网址，
+  // 不再在英文界面下挂中文正文（此前 200 + lang="en" + 中文标题）；未发布的英文内容照样不暴露。
   test(`${kind} ${state} translation never exposes unpublished content @ci`, async ({ page }) => {
     const rows = JSON.parse(fixture('prepare', 'query', 'zh-CN', 'default', state))[kind];
+    const first = await page.request.get(route(kind, rows['zh-CN'], 'query', 'en'), { maxRedirects: 0 });
+    expect(first.status()).toBe(302);
+    expect(first.headers().location).not.toContain('lang=en');
     expect((await page.goto(route(kind, rows['zh-CN'], 'query', 'en'))).status()).toBe(200);
-    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'zh-CN');
     await expect(page.getByRole('heading', { name: rows['zh-CN'].title, exact: true }).first()).toBeVisible();
     await expect(page.getByRole('heading', { name: rows.en.title, exact: true })).toHaveCount(0);
   });

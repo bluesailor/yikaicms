@@ -153,6 +153,11 @@ final class LanguageSwitcherElement extends AbstractElement
     /** @param list<string> $knownLanguages */
     public static function switchUrl(string $requestUri, string $language, string $defaultLanguage, array $knownLanguages): string
     {
+        // 内容 / 产品详情：去该语言真实存在的版本，没有译文去该语言首页（不再拼出 404 或假译文地址）
+        if (class_exists('LocalizedUrl') && !str_starts_with($requestUri, '/admin/')) {
+            $target = LocalizedUrl::switchTarget($language);
+            if ($target !== null) return $target;
+        }
         $parts = parse_url($requestUri);
         $path = is_array($parts) && isset($parts['path']) ? (string) $parts['path'] : '/';
         $keepQuery = true;

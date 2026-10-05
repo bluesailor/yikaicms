@@ -39,6 +39,9 @@ if ($_vars === null) {
     render404(__('error_article_not_found'));
 }
 
+// 记下本页条目（hreflang / 语言切换）；请求的语言没有这篇的译文时 302 到它自己的语言版本
+LocalizedUrl::enter('content', $_vars['content'], $isNativeArticlePreview || isset($_GET['preview']));
+
 // 模板沿用 $article / $prevArticle / $nextArticle / $relatedArticles 命名
 $article         = $_vars['content'];
 $prevArticle     = $_vars['prevContent'];

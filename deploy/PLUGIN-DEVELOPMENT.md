@@ -196,6 +196,8 @@ return [
 
 ### 5.5 前台输出的多语言要求
 
+- 语言函数分清两种（2.0.5 起有语义别名）：`displayLang()` 是访客看到的语言（界面文字、网址前缀）；`contentLang()` 是数据语言，查内容、产品、栏目、设置时用它——繁体视图（zh-TW）读的是简体数据，两者此时不同。旧代码里的 `siteLang()` 与 `contentLang()` 永远相同，可以继续用。
+- 内容、产品详情的各语言网址（2.0.5）：核心按翻译组里真实存在、已发布的版本给 hreflang 与语言切换链接，没有译文的语言不出现；请求的语言没有这一条的译文时 302 到它自己的语言版本（不在英文界面下显示中文正文）。插件要拿某条内容在某语言下的网址，用 `LocalizedUrl::urlFor('content'|'product', $row, $lang)`，不要自己拼前缀或换 `lang=` 参数。
 - 站内链接用 `langUrl()`、`langPrefix()`，不手工拼 `/en/`。站点启用语言域名（`en.example.com`）后，带前缀的地址会被 301 到语言域名（`LanguageDomains::redirectTarget()`）：页面 HTML 里 `<a>`、`<form>` 等的地址有输出兜底改写，脚本里拼出的地址和 JSON 返回的地址没有，AJAX 请求会多一次跳转，POST 经 301 后会被浏览器改成 GET。语言列表用 `enabledLanguages()`，不写死。
 - 繁体中文（2.0.4 起）分两层：**界面文案**有自己的语言包，后台也可选繁体；**内容**仍只存简体，前台整页转换。插件的繁体文案放 `lang/zh-TW.php`，缺了回落 `zh-CN.php`——前台会被整页转成繁体，但繁体后台里显示简体。仓库内的插件由 `php tools/i18n/zh-tw.php` 从 `zh-CN.php` 生成（含产品术语表 `tools/i18n/glossary/zh-TW.json`），第三方插件可照此生成后再人工审。
 - 前台的整页转换（`includes/i18n/S2T.php`）：页面正文、行内 `<script>` 和前台 AJAX 返回的 JSON 都会转成繁体（`/api/` 不转）。如果页面上的数据会原样提交回服务器、并在服务器上按简体比对（选项值、地区名等），服务器端用 `S2T::canonical($value, $allowed)` 映射回简体原值，或给那段 `<script>` 加 `data-s2t="skip"`；整个响应不能转换时发 `X-S2T: skip` 响应头。详见 [多语言部署](./LANGUAGES.md) 第四节。
@@ -228,6 +230,7 @@ has_filter(string $hook): bool;
 | `admin_sidebar` filter | 修改后台菜单数据 | 菜单可见不是服务端权限检查 |
 | `content_output` filter | 修改经过该过滤器的正文 | 当前已核对 `detail.php`；不能据此保证所有文章路由都会触发 |
 | `blox_icon_sets` filter | 给网页构建器注册图标集（2.0.4，见 6.1） | 只认合法前缀与站内样式表，不合法的整项忽略 |
+| `admin_article_categories` filter | 接管后台「文章管理」的分类（2.0.5）：参数 `(null, $lang)`，返回该语言下的栏目行数组（每行至少有 `id`、`name`）；文章列表只显示这些栏目里的文章，编辑页只能选这些栏目 | 返回 `null` 走默认（`news` 栏目的子栏目）。老站把文章挂在别的栏目下时用它，别再改 `admin/article*.php`——在线升级会覆盖核心文件 |
 | `render_404` action | 页面即将输出 404，参数为请求路径（`render404()`） | 2.0.4 起核心先挂了旧地址兜底（`LegacyUrls::onNotFound`：跳转里的前缀规则 `/旧目录/*`、导入过 WordPress 的站点的 feed / 作者 / 附件 / 日期归档地址），命中就 301 并结束请求，插件的处理不再执行；没命中才轮到插件（如 SEO 插件记录死链）。插件要接管某类旧地址时同样在这里跳转后 `exit` |
 
 ### 6.1 注册图标集（2.0.4）
