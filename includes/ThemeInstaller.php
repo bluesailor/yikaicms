@@ -142,12 +142,136 @@ final class ThemeInstaller
         MarketInstallOrigin::assertAllowed($this->themesRoot, 'theme', $slug, $origin);
     }
 
-    private function installValidated(ZipArchive $zip, array $inspection, string $origin): array
+    /**
+     * 2.0.5：随官方整站模板装上的主题（目录 sitepack-*，回执里记着市场 slug）用市场新版升级。
+     * 包仍是市场原包（调用方已按市场目录验过哈希与签名）；装进原别名目录，照导入时的路径改写再改一遍，
+     * 新包里没有的本地文件（模板作者加的页面模板、站长加的文件）保留。站长改过或加过文件时，
+     * 不带 $acceptLocalChanges 就返回 local_changes 与文件清单，确认后再装（照常先备份原目录）。
+     *
+     * @return array{ok:bool,code:string,detail:string,slug:string,name:string,warnings:list<string>,backup:string}
+     */
+    public function installLinked(string $zipPath, string $directory, string $expectedVersion, bool $acceptLocalChanges = false): array
+    {
+        $link = MarketInstallOrigin::linked($this->themesRoot, $directory);
+        if ($link === null || $expectedVersion === '') return $this->result(false, 'origin_unknown', '', $directory);
+        if (!class_exists('ZipArchive')) return $this->result(false, 'no_zip');
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath) !== true) return $this->result(false, 'open_zip');
+        $inspection = $this->inspectArchive($zip);
+        if (!$inspection['ok']) {
+            $zip->close();
+            return $this->result(false, $inspection['code'], $inspection['detail']);
+        }
+        if (!hash_equals($link['market_slug'], $inspection['slug'])) {
+            $zip->close();
+            return $this->result(false, 'slug_mismatch', '', $inspection['slug'], $inspection['name'], $inspection['warnings']);
+        }
+        if (!hash_equals($expectedVersion, $inspection['version'])) {
+            $zip->close();
+            return $this->result(false, 'version_mismatch', '', $inspection['slug'], $inspection['name'], $inspection['warnings']);
+        }
+        $lock = null;
+        try {
+            $lockRoot = $this->storageRoot . '/theme-locks';
+            if (is_link($this->storageRoot) || is_link($lockRoot) || !(($this->makeDirectory)($lockRoot))) throw new RuntimeException('staging_create');
+            $lockPath = $lockRoot . '/' . $directory . '.lock';
+            if (is_link($lockPath)) throw new RuntimeException('unsafe');
+            $lock = @fopen($lockPath, 'c');
+            if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) throw new RuntimeException('busy');
+            $changes = $this->localChanges($directory);
+            if (!$acceptLocalChanges && $changes !== []) {
+                throw new RuntimeException('local_changes');
+            }
+        } catch (RuntimeException $error) {
+            $zip->close();
+            if (is_resource($lock)) fclose($lock);
+            return $this->result(false, $error->getMessage(), $error->getMessage() === 'local_changes' ? implode("\n", array_slice($changes ?? [], 0, 30)) : '',
+                $directory, $inspection['name'], $inspection['warnings']);
+        }
+        $current = $this->themesRoot . '/' . $directory;
+        $prepare = function (string $staged) use ($link, $current): void {
+            require_once __DIR__ . '/SiteTemplateArchive.php';
+            $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($staged, FilesystemIterator::SKIP_DOTS));
+            foreach ($files as $file) {
+                if (!$file->isFile() || $file->isLink()) continue;
+                if (!in_array(strtolower($file->getExtension()), ['php', 'css', 'js', 'json', 'svg'], true)) continue;
+                $bytes = (string) file_get_contents($file->getPathname());
+                $rewritten = (string) SiteTemplateArchive::rewrite($bytes, $link['rewrite']);
+                if ($rewritten !== $bytes && @file_put_contents($file->getPathname(), $rewritten) !== strlen($rewritten)) throw new RuntimeException('staging_create');
+            }
+            // 新包里没有的本地文件原样带过去（回执与文件清单除外，安装器会重写）
+            foreach (self::fileList($current) as $relative) {
+                if (MarketInstallOrigin::isReceiptPath($relative) || file_exists($staged . '/' . $relative)) continue;
+                if (!(($this->makeDirectory)(dirname($staged . '/' . $relative)))
+                    || !@copy($current . '/' . $relative, $staged . '/' . $relative)) throw new RuntimeException('staging_create');
+            }
+        };
+        try {
+            return $this->installValidated($zip, $inspection, 'official', $directory, $prepare, $link);
+        } finally {
+            flock($lock, LOCK_UN);
+            fclose($lock);
+        }
+    }
+
+    /**
+     * 与安装时的文件清单比，站长改过（~）和新加（+）的文件；没有清单（2.0.5 之前装的）时整个目录都算未知（?）。
+     * @return list<string>
+     */
+    public function localChanges(string $directory): array
+    {
+        $root = $this->themesRoot . '/' . $directory;
+        $manifestFile = $root . '/' . MarketInstallOrigin::FILES;
+        $manifest = is_file($manifestFile) && !is_link($manifestFile) && (int) @filesize($manifestFile) <= 2_000_000
+            ? json_decode((string) @file_get_contents($manifestFile), true) : null;
+        if (!is_array($manifest)) return ['? ' . MarketInstallOrigin::FILES];
+        $changes = [];
+        foreach (self::fileList($root) as $relative) {
+            if (MarketInstallOrigin::isReceiptPath($relative)) continue;
+            if (!isset($manifest[$relative])) { $changes[] = '+ ' . $relative; continue; }
+            if (!hash_equals((string) $manifest[$relative], (string) hash_file('sha256', $root . '/' . $relative))) $changes[] = '~ ' . $relative;
+        }
+        return $changes;
+    }
+
+    /** 写入安装后的文件清单（相对路径 → sha256）。写不进去不影响安装，只是下次升级会当成「未知改动」要求确认。 */
+    private function writeFileManifest(string $directory): void
+    {
+        $hashes = [];
+        foreach (self::fileList($directory) as $relative) {
+            if (MarketInstallOrigin::isReceiptPath($relative)) continue;
+            $hashes[$relative] = (string) hash_file('sha256', $directory . '/' . $relative);
+        }
+        ksort($hashes);
+        $file = $directory . '/' . MarketInstallOrigin::FILES;
+        if (!is_link($file)) @file_put_contents($file, json_encode($hashes, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE), LOCK_EX);
+    }
+
+    /** @return list<string> 目录下全部普通文件的相对路径（/ 分隔，跳过符号链接） */
+    private static function fileList(string $directory): array
+    {
+        if (!is_dir($directory) || is_link($directory)) return [];
+        $out = [];
+        $files = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($directory, FilesystemIterator::SKIP_DOTS));
+        foreach ($files as $file) {
+            if (!$file->isFile() || $file->isLink()) continue;
+            $out[] = str_replace('\\', '/', substr($file->getPathname(), strlen($directory) + 1));
+        }
+        sort($out);
+        return $out;
+    }
+
+    /**
+     * @param ?Closure(string):void $prepare 校验通过后、换入前对暂存目录做的加工（关联升级：路径改写与保留本地文件）
+     * @param array{market_slug?:string,rewrite?:array<string,string>} $link 写进回执的市场关联
+     */
+    private function installValidated(ZipArchive $zip, array $inspection, string $origin, string $targetSlug = '', ?Closure $prepare = null, array $link = []): array
     {
         $slug = $inspection['slug'];
         $name = $inspection['name'];
         $version = $inspection['version'];
         $warnings = $inspection['warnings'];
+        $target = $targetSlug !== '' ? $targetSlug : $slug;
         $token = date('Ymd-His') . '-' . bin2hex(random_bytes(5));
         $stagingRoot = $this->storageRoot . '/theme-staging';
         $stagingDir = $stagingRoot . '/' . $token;
@@ -197,14 +321,20 @@ final class ThemeInstaller
         }
 
         try {
-            $this->assertOrigin($slug, $origin);
-            if (!MarketInstallOrigin::write($stagedTheme, 'theme', $slug, $version, $origin)) {
+            if ($link !== []) {
+                if ((MarketInstallOrigin::linked($this->themesRoot, $target)['market_slug'] ?? '') !== $slug) throw new RuntimeException('origin_unknown');
+            } else {
+                $this->assertOrigin($slug, $origin);
+            }
+            if ($prepare !== null) $prepare($stagedTheme);
+            if (!MarketInstallOrigin::write($stagedTheme, 'theme', $target, $version, $origin, $link)) {
                 throw new RuntimeException('staging_create');
             }
         } catch (RuntimeException $error) {
             ($this->removeDirectory)($stagingDir);
             return $this->result(false, $error->getMessage(), '', $slug, $name, $warnings);
         }
+        $slug = $target;
         $targetDir = $this->themesRoot . '/' . $slug;
         $backupDir = '';
         if (is_dir($targetDir)) {
@@ -264,6 +394,7 @@ final class ThemeInstaller
             );
         }
 
+        $this->writeFileManifest($targetDir);
         return $this->result(true, 'installed', '', $slug, $name, $warnings, $backupDir);
     }
 

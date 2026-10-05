@@ -7714,6 +7714,8 @@ return [
     'blox_tpl_remote_origin_changed' => 'Katalog kaynağı yükleme kaynağından farklı. Güncelleme engellendi. Resmi veya topluluk kaynağını kontrol edin; mevcut sayfalar etkilenmez.',
     'market_origin_unknown' => 'Bu kaynak yerel olarak yüklenmiş ya da güvenilir kaynak kaydı yok. Pazaryeri değişikliği engellendi. Mevcut içerik etkilenmez; güvenilir bir paket kullanmadan önce kaynağı doğrulayın.',
     'market_origin_changed' => 'Resmi veya topluluk kaynağı yüklü kaynaktan farklı. Değiştirme engellendi.',
+    'theme_link_update_notice' => 'Bu tema bir site şablonuyla birlikte kuruldu. Yükseltme, pazardaki yeni sürümde bulunan dosyaların üzerine yazar ve diğerlerini korur; mevcut tema klasörü önce yedeklenir.',
+    'theme_link_local_changes' => 'Bu temada değiştirilmiş veya eklenmiş dosyalar var (~ değiştirildi, + eklendi, ? bilinmiyor). Yükseltme yeni sürümdeki dosyaların üzerine yazar; mevcut klasör önce yedeklenir. Devam edilsin mi?',
     'pl_package_unsafe' => 'Eklenti paketi güvenli olmayan yollar veya bağlantılar içeriyor ya da kaynak sınırlarını aşıyor. Hiçbir şey yüklenmedi.',
     'pl_install_busy' => 'Bu eklenti yükleniyor. Lütfen daha sonra tekrar deneyin.',
     'pl_install_recovery_required' => 'Eklenti değiştirme ve otomatik kurtarma başarısız oldu. Yeniden yüklemeyin. storage/plugin-backup içinde saklanan önceki dizini kontrol edip geri yükleyin.',

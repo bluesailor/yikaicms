@@ -7714,6 +7714,8 @@ return [
     'blox_tpl_remote_origin_changed' => 'Asal katalog berbeza daripada asal pemasangan. Kemas kini disekat. Semak sumber rasmi atau komuniti; halaman sedia ada tidak terjejas.',
     'market_origin_unknown' => 'Sumber ini dipasang secara setempat atau tiada rekod asal yang dipercayai. Penggantian pasaran disekat. Kandungan sedia ada tidak terjejas; sahkan sumber sebelum menggunakan pakej yang dipercayai.',
     'market_origin_changed' => 'Asal rasmi atau komuniti berbeza daripada sumber yang dipasang. Penggantian disekat.',
+    'theme_link_update_notice' => 'Tema ini dipasang bersama templat laman. Naik taraf akan menulis ganti fail yang ada dalam versi baharu pasaran dan mengekalkan yang lain; folder tema semasa disandarkan dahulu.',
+    'theme_link_local_changes' => 'Tema ini mempunyai fail yang diubah atau ditambah (~ diubah, + ditambah, ? tidak diketahui). Naik taraf menulis ganti fail yang ada dalam versi baharu; folder semasa disandarkan dahulu. Teruskan?',
     'pl_package_unsafe' => 'Pakej pemalam mengandungi laluan atau pautan tidak selamat, atau melebihi had sumber. Tiada apa-apa dipasang.',
     'pl_install_busy' => 'Pemalam ini sedang dipasang. Sila cuba lagi kemudian.',
     'pl_install_recovery_required' => 'Penggantian dan pemulihan automatik pemalam gagal. Jangan pasang semula. Semak dan pulihkan direktori lama yang disimpan dalam storage/plugin-backup.',

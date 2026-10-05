@@ -85,6 +85,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     header('Content-Type: application/json; charset=utf-8');
     $action = $_POST['action'];
     $slug = trim($_POST['slug'] ?? '');
+    // 2.0.5：升级随整站模板装上的主题时，target 是它的 sitepack-* 目录；回执里记着的市场 slug 必须就是这次的 slug
+    $target = $action === 'market_install' ? trim((string) ($_POST['target'] ?? '')) : '';
+    $targetLink = null;
+    if ($target !== '') {
+        $targetLink = MarketInstallOrigin::linked(ROOT_PATH . '/themes', $target);
+        if ($targetLink === null || $targetLink['market_slug'] !== $slug) {
+            http_response_code(422);
+            echo json_encode(['code' => 1, 'msg' => __('market_origin_unknown')]);
+            exit;
+        }
+    }
 
     if ($action === 'market_install' && !preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/', $slug)) {
         http_response_code(422);
@@ -127,6 +138,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
 
     $remoteVersion = (string) ($item['version'] ?? '');
     $localVersions = ThemeMarket::localVersions(ROOT_PATH . '/themes');
+    if ($target !== '') {
+        // 关联目录按它自己的版本比；不存在的目录（版本读不出）一律拒绝
+        $localVersions = isset($localVersions[$target]) ? [$slug => $localVersions[$target]] : [];
+        if ($localVersions === []) {
+            echo json_encode(['code' => 1, 'msg' => __('market_origin_unknown')]);
+            exit;
+        }
+    }
     if (!ThemeMarket::isRemoteVersionNewer($localVersions, $slug, $remoteVersion)) {
         adminLog('theme', 'market_install_blocked', 'Theme marketplace downgrade blocked: ' . $slug
             . ' local=' . ($localVersions[$slug] ?? 'unknown') . ' remote=' . $remoteVersion);
@@ -188,12 +207,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array($_POST['action'] ?? '', ['
     }
 
     $installer = new ThemeInstaller(ROOT_PATH . '/themes', ROOT_PATH . '/storage');
-    $installResult = $installer->install($tmpZip, $slug, $remoteVersion, (string) ($item['source'] ?? 'official'), (string) ($item['sig'] ?? ''));
+    if ($target !== '') {
+        if (($item['source'] ?? 'official') !== 'official') {
+            themeDiscardStaged($tmpZip);
+            echo json_encode(['code' => 1, 'msg' => __('market_origin_changed')]);
+            exit;
+        }
+        $installResult = $installer->installLinked($tmpZip, $target, $remoteVersion, ($_POST['accept_local_changes'] ?? '') === '1');
+    } else {
+        $installResult = $installer->install($tmpZip, $slug, $remoteVersion, (string) ($item['source'] ?? 'official'), (string) ($item['sig'] ?? ''));
+    }
     themeDiscardStaged($tmpZip);
+    if (!$installResult['ok'] && $installResult['code'] === 'local_changes') {
+        // 站长改过 / 加过文件：把清单交给前端确认，确认后带 accept_local_changes=1 再来一次（照常先备份原目录）
+        echo json_encode(['code' => 2, 'msg' => __('theme_link_local_changes'),
+            'changes' => array_values(array_filter(explode("\n", $installResult['detail'])))], JSON_UNESCAPED_UNICODE);
+        exit;
+    }
     $msg = themeInstallMessage($installResult);
     if ($installResult['ok']) {
         do_action('data_changed');
-        adminLog('theme', 'market_install', 'Theme marketplace install: ' . $installResult['slug'] . ' v' . ($item['version'] ?? ''));
+        adminLog('theme', 'market_install', 'Theme marketplace install: ' . $installResult['slug'] . ' v' . ($item['version'] ?? '')
+            . ($target !== '' ? ' (site template theme, market ' . $slug . ')' : ''));
     } else {
         adminLog('theme', 'market_install_failed', 'Theme marketplace install failed: ' . $slug
             . ' [' . $installResult['code'] . '] ' . $installResult['detail']);
@@ -416,6 +451,13 @@ $themeColorPresets = (array) ($activeThemePalette['palettes'] ?? []);
 $localThemeVersions = [];
 foreach ($themes as $t) {
     $localThemeVersions[$t['slug']] = (string) ($t['version'] ?? '0');
+}
+// 随官方整站模板装上的主题（sitepack-* 目录）：市场 slug → 目录与版本，市场页据此显示「可升级」（当前启用的优先）
+$linkedThemeTargets = [];
+foreach (ThemeMarket::linkedThemes(ROOT_PATH . '/themes') as $directory => $link) {
+    if (!isset($linkedThemeTargets[$link['market_slug']]) || $directory === $currentTheme) {
+        $linkedThemeTargets[$link['market_slug']] = ['target' => $directory, 'version' => $link['version']];
+    }
 }
 
 require_once ROOT_PATH . '/admin/includes/header.php';
@@ -877,6 +919,7 @@ function themeManager() {
         installing: '',
         error: '',
         local: <?php echo json_encode($localThemeVersions, JSON_UNESCAPED_UNICODE); ?>,
+        linked: <?php echo json_encode((object) $linkedThemeTargets, JSON_UNESCAPED_UNICODE); ?>,
         lang: <?php echo json_encode(getLang()); ?>,
 
         init() {
@@ -923,8 +966,14 @@ function themeManager() {
             return 0;
         },
         statusOf(t) {
-            if (!(t.slug in this.local)) return 'none';
+            if (!(t.slug in this.local)) {
+                if (!(t.slug in this.linked)) return 'none';
+                return this.verCmp(t.version, this.linked[t.slug].version) > 0 ? 'upgrade' : 'installed';
+            }
             return this.verCmp(t.version, this.local[t.slug]) > 0 ? 'upgrade' : 'installed';
+        },
+        targetOf(t) {
+            return !(t.slug in this.local) && (t.slug in this.linked) ? this.linked[t.slug].target : '';
         },
         async install(t) {
             if (t.download_blocked) { showMessage(t.download_message, 'error'); return; }
@@ -933,15 +982,26 @@ function themeManager() {
             var verb = st === 'upgrade' ? '<?php echo __('theme_market_upgrade'); ?>' : '<?php echo __('theme_market_install'); ?>';
             var prompt = verb + '「' + t.name + '」 v' + t.version + ' ?';
             if (t.slug === 'default') prompt += '\n\n' + <?php echo json_encode(__('theme_default_update_notice'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
+            var target = this.targetOf(t);
+            if (target) prompt += '\n\n' + <?php echo json_encode(__('theme_link_update_notice'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
             if (!confirm(prompt)) return;
             this.installing = t.slug;
             var body = new URLSearchParams();
             body.set('action', 'market_install');
             body.set('slug', t.slug);
+            if (target) body.set('target', target);
             try {
                 var resp = await fetch('', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body });
                 if (resp.status === 401) { showMessage(<?php echo json_encode(__('admin_session_expired'), JSON_UNESCAPED_UNICODE); ?>, 'error'); this.installing = ''; return; }
                 var data = await resp.json();
+                if (data.code === 2 && Array.isArray(data.changes)) {
+                    // 站长改过或加过文件：列出来再确认一次（原目录会先备份）
+                    var list = data.changes.slice(0, 15).join('\n') + (data.changes.length > 15 ? '\n…' : '');
+                    if (!confirm(data.msg + '\n\n' + list)) { this.installing = ''; return; }
+                    body.set('accept_local_changes', '1');
+                    resp = await fetch('', { method: 'POST', headers: { 'X-Requested-With': 'XMLHttpRequest' }, body: body });
+                    data = await resp.json();
+                }
                 if (data.code === 0) {
                     showMessage(data.msg);
                     setTimeout(function() { location.reload(); }, 900);

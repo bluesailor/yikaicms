@@ -7714,6 +7714,8 @@ return [
     'blox_tpl_remote_origin_changed' => 'El origen del catálogo no coincide con el de la instalación; se bloqueó la actualización. Compruebe el origen oficial o comunitario. Las páginas existentes no se ven afectadas.',
     'market_origin_unknown' => 'Este recurso se instaló localmente o no tiene un registro de origen fiable; se bloqueó su sustitución desde el mercado. El contenido existente no se ve afectado. Compruebe el origen y utilice un paquete de instalación verificado.',
     'market_origin_changed' => 'El origen oficial o comunitario del catálogo no coincide con el de la instalación; se bloqueó la actualización que sustituye el recurso.',
+    'theme_link_update_notice' => 'Este tema se instaló con una plantilla de sitio. La actualización sobrescribe los archivos que existen en la nueva versión del mercado y conserva el resto; antes se hace una copia de seguridad de la carpeta actual del tema.',
+    'theme_link_local_changes' => 'Este tema tiene archivos modificados o añadidos (~ modificado, + añadido, ? desconocido). La actualización sobrescribe los archivos que existen en la nueva versión; antes se hace una copia de seguridad de la carpeta actual. ¿Continuar?',
     'pl_package_unsafe' => 'El paquete del Plugin contiene rutas o enlaces inseguros, o supera los límites de recursos. No se instaló.',
     'pl_install_busy' => 'Este Plugin se está instalando. Inténtelo de nuevo más tarde.',
     'pl_install_recovery_required' => 'La sustitución del Plugin y la recuperación automática fallaron. No vuelva a instalarlo. Compruebe y restaure el directorio anterior conservado en storage/plugin-backup.',

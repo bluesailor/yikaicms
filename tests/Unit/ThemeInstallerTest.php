@@ -366,6 +366,114 @@ final class ThemeInstallerTest extends TestCase
         self::assertSame('signed-url', $allowed['download_url']);
     }
 
+    /** 2.0.5：随官方整站模板装上的主题（sitepack-* 目录）关联市场主题后，用市场新版升级到原目录。 */
+    public function testSiteTemplateThemeUpgradesFromMarketIntoItsAlias(): void
+    {
+        $alias = $this->importedSitepackTheme();
+        $installer = new ThemeInstaller($this->themesRoot, $this->storageRoot);
+        $linked = ThemeMarket::linkedThemes($this->themesRoot);
+        self::assertSame([$alias => ['market_slug' => 'business', 'version' => '1.0.0']], $linked);
+        $updates = ThemeMarket::availableUpdates(ThemeMarket::localVersions($this->themesRoot),
+            [['slug' => 'business', 'name' => 'Business', 'version' => '1.1.0']], $linked);
+        self::assertCount(1, $updates);
+        self::assertSame(['business', $alias, '1.0.0', '1.1.0'],
+            [$updates[0]['slug'], $updates[0]['target'], $updates[0]['current_version'], $updates[0]['latest_version']]);
+
+        $market = $this->themeZip('business', '<img src="/themes/business/logo.png"><img src="/uploads/hero.jpg">', '1.1.0');
+        $result = $installer->installLinked($market, $alias, '1.1.0');
+        self::assertTrue($result['ok'], $result['code'] . ' ' . $result['detail']);
+        self::assertSame($alias, $result['slug']);
+        self::assertDirectoryDoesNotExist($this->themesRoot . '/business', '装进原别名目录，不新建 business');
+        self::assertSame('<img src="/themes/' . $alias . '/logo.png"><img src="/uploads/' . $alias . '/hero.jpg">',
+            file_get_contents($this->themesRoot . '/' . $alias . '/layouts/header.php'), '照导入时的路径改写再改一遍');
+        self::assertSame('custom page', file_get_contents($this->themesRoot . '/' . $alias . '/layouts/page-custom.php'), '新包里没有的文件保留');
+        self::assertSame(['market_slug' => 'business', 'version' => '1.1.0'], ThemeMarket::linkedThemes($this->themesRoot)[$alias], '关联与新版本号写回回执');
+        self::assertDirectoryExists($result['backup']);
+        self::assertSame([], $installer->localChanges($alias), '升级后重写文件清单');
+        self::assertSame('version_mismatch', $installer->installLinked($market, $alias, '1.2.0')['code']);
+    }
+
+    public function testLocalChangesToALinkedThemeNeedConfirmation(): void
+    {
+        $alias = $this->importedSitepackTheme();
+        file_put_contents($this->themesRoot . '/' . $alias . '/layouts/footer.php', 'edited by owner');
+        file_put_contents($this->themesRoot . '/' . $alias . '/layouts/extra.php', 'added by owner');
+        $installer = new ThemeInstaller($this->themesRoot, $this->storageRoot);
+        self::assertSame(['+ layouts/extra.php', '~ layouts/footer.php'], $installer->localChanges($alias));
+
+        $market = $this->themeZip('business', 'new header', '1.1.0');
+        $refused = $installer->installLinked($market, $alias, '1.1.0');
+        self::assertSame('local_changes', $refused['code']);
+        self::assertSame("+ layouts/extra.php\n~ layouts/footer.php", $refused['detail']);
+        self::assertSame('edited by owner', file_get_contents($this->themesRoot . '/' . $alias . '/layouts/footer.php'), '没确认就不动');
+
+        $accepted = $installer->installLinked($market, $alias, '1.1.0', true);
+        self::assertTrue($accepted['ok']);
+        self::assertSame('footer', file_get_contents($this->themesRoot . '/' . $alias . '/layouts/footer.php'), '新包里有的文件用新版');
+        self::assertSame('added by owner', file_get_contents($this->themesRoot . '/' . $alias . '/layouts/extra.php'));
+        self::assertSame('edited by owner', file_get_contents($accepted['backup'] . '/layouts/footer.php'), '改过的原文件在备份里');
+    }
+
+    public function testUnlinkedOrMismatchedThemesAreNotUpgradedThroughALink(): void
+    {
+        $alias = 'sitepack-00112233445566ff';
+        $installer = new ThemeInstaller($this->themesRoot, $this->storageRoot);
+        self::assertTrue($installer->install($this->themeZip($alias, 'imported'), $alias)['ok']);
+        $market = $this->themeZip('business', 'new', '1.1.0');
+        self::assertSame('origin_unknown', $installer->installLinked($market, $alias, '1.1.0')['code'], '手动上传的整站包（local 回执）不关联');
+        self::assertSame([], ThemeMarket::linkedThemes($this->themesRoot));
+
+        MarketInstallOrigin::write($this->themesRoot . '/' . $alias, 'theme', $alias, '1.0.0', 'official', ['market_slug' => 'minimal']);
+        self::assertSame('slug_mismatch', $installer->installLinked($market, $alias, '1.1.0')['code'], '包必须是回执里记的那个市场主题');
+        self::assertSame('imported', file_get_contents($this->themesRoot . '/' . $alias . '/layouts/header.php'));
+
+        $this->expectException(RuntimeException::class);
+        MarketInstallOrigin::write($this->themesRoot . '/' . $alias, 'theme', $alias, '1.0.0', 'official',
+            ['market_slug' => 'business', 'rewrite' => ['/themes/business/' => 'https://evil.example/']]);
+    }
+
+    public function testOnlyOfficialSiteTemplatesLinkAndTheMarketChecksTheLinkFirst(): void
+    {
+        $service = (string) file_get_contents(ROOT_PATH . '/includes/SiteTemplateService.php');
+        self::assertStringContainsString("\$this->installFiles(\$package['files'], \$alias, \$map, !empty(\$plan['origin']['official']) ? \$oldTheme : '');", $service,
+            '只有模板市场下载并验签的整站包才关联市场主题');
+        self::assertStringContainsString("['market_slug' => \$marketTheme, 'rewrite' => \$map]", $service);
+        $page = (string) file_get_contents(ROOT_PATH . '/admin/theme.php');
+        $link = strpos($page, "\$targetLink = MarketInstallOrigin::linked(ROOT_PATH . '/themes', \$target);");
+        $download = strpos($page, 'ThemeMarket::downloadPackageToFile(');
+        $signature = strpos($page, 'ThemeMarket::verifyPackageSignature(');
+        $install = strpos($page, '->installLinked($tmpZip, $target, $remoteVersion');
+        self::assertIsInt($link);
+        self::assertIsInt($install);
+        self::assertTrue($link < $download && $download < $signature && $signature < $install, '先核关联，再下载、验签，最后才装');
+        self::assertStringContainsString("\$targetLink['market_slug'] !== \$slug", $page);
+    }
+
+    public function testThemePackageCannotSupplyFileManifest(): void
+    {
+        $zipPath = $this->themeZip('business', 'header');
+        $zip = new ZipArchive();
+        self::assertTrue($zip->open($zipPath));
+        self::assertTrue($zip->addFromString('business/' . MarketInstallOrigin::FILES, '{}'));
+        self::assertTrue($zip->close());
+        self::assertSame('unsafe', (new ThemeInstaller($this->themesRoot, $this->storageRoot))->install($zipPath)['code']);
+    }
+
+    /** 模拟官方整站模板导入：装成 sitepack-* 目录、多一个模板作者加的文件，再写关联回执（同 SiteTemplateService::installFiles）。 */
+    private function importedSitepackTheme(): string
+    {
+        $alias = 'sitepack-0123456789abcdef';
+        $zipPath = $this->themeZip($alias, '<img src="/themes/' . $alias . '/logo.png">');
+        $zip = new ZipArchive();
+        self::assertTrue($zip->open($zipPath));
+        self::assertTrue($zip->addFromString($alias . '/layouts/page-custom.php', 'custom page'));
+        self::assertTrue($zip->close());
+        self::assertTrue((new ThemeInstaller($this->themesRoot, $this->storageRoot))->install($zipPath, $alias)['ok']);
+        self::assertTrue(MarketInstallOrigin::write($this->themesRoot . '/' . $alias, 'theme', $alias, '1.0.0', 'official',
+            ['market_slug' => 'business', 'rewrite' => ['/themes/business/' => '/themes/' . $alias . '/', '/uploads/' => '/uploads/' . $alias . '/']]));
+        return $alias;
+    }
+
     private function themeZip(string $slug, string $header, string $version = '1.0.0'): string
     {
         $zipPath = $this->root . '/' . $slug . '-' . bin2hex(random_bytes(3)) . '.zip';
