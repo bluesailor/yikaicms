@@ -4,11 +4,16 @@ const { frame, waitPreviewSettled, observeConsole } = require('./helpers');
 
 async function theme(page, slug) {
     await page.goto('/admin/theme.php');
-    const form = page.locator('form:has(input[name="action"][value="activate"]):has(input[name="slug"][value="' + slug + '"])');
-    if (await form.count()) {
-        page.once('dialog', dialog => dialog.accept());
-        await form.getByRole('button').click();
-        await page.waitForLoadState('domcontentloaded');
+    // 2.0.5 起启用按钮打开切换对话框；这里沿用旧行为：应用主题自带配色
+    const card = page.getByTestId('theme-local-list').locator('[data-theme-slug="' + slug + '"]');
+    if (await card.getByTestId('theme-activate').count()) {
+        await card.getByTestId('theme-activate').click();
+        const dialog = card.getByTestId('theme-switch-dialog');
+        await dialog.getByTestId('theme-switch-colors-theme').check();
+        await Promise.all([
+            page.waitForURL(url => url.pathname === '/admin/theme.php' && url.search === ''),
+            dialog.getByTestId('theme-switch-confirm').click(),
+        ]);
     }
 }
 
