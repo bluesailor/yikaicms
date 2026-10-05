@@ -7722,6 +7722,8 @@ return [
     'blox_tpl_remote_origin_changed' => 'La source du catalogue diffère de celle enregistrée à l’installation ; la mise à jour est bloquée. Vérifiez la source officielle ou communautaire ; les pages existantes ne sont pas affectées.',
     'market_origin_unknown' => 'Cette ressource a été installée localement ou ne dispose pas d’une source fiable. Son remplacement depuis le marché est bloqué ; le contenu existant n’est pas affecté. Vérifiez la provenance avant d’utiliser un paquet confirmé.',
     'market_origin_changed' => 'La source officielle ou communautaire du catalogue diffère de celle enregistrée à l’installation ; le remplacement est bloqué.',
+    'theme_link_update_notice' => 'Ce thème a été installé avec un modèle de site. La mise à jour remplace les fichiers présents dans la nouvelle version du marché et conserve les autres ; le dossier actuel du thème est d\'abord sauvegardé.',
+    'theme_link_local_changes' => 'Ce thème contient des fichiers modifiés ou ajoutés (~ modifié, + ajouté, ? inconnu). La mise à jour remplace les fichiers présents dans la nouvelle version ; le dossier actuel est d\'abord sauvegardé. Continuer ?',
     'pl_package_unsafe' => 'Le paquet de l’extension contient des chemins ou liens non sécurisés, ou dépasse les limites de ressources. L’extension n’a pas été installée.',
     'pl_install_busy' => 'Cette extension est en cours d’installation. Réessayez plus tard.',
     'pl_install_recovery_required' => 'Le remplacement de l’extension a échoué et la restauration automatique n’a pas abouti. Ne relancez pas l’installation. Vérifiez et restaurez l’ancien dossier conservé dans storage/plugin-backup.',

@@ -7723,6 +7723,8 @@ return [
     'blox_tpl_remote_origin_changed' => '目錄來源與安裝時不一致，已阻止更新。請核對官方或社群來源；現有頁面不受影響。',
     'market_origin_unknown' => '此資源為本地安裝或缺少可信來源記錄，已停止市場覆蓋更新。現有內容不受影響，請核對來源後使用已確認的安裝包。',
     'market_origin_changed' => '目錄來源與安裝時的官方或社群來源不一致，已阻止覆蓋更新。',
+    'theme_link_update_notice' => '這個主題是隨整站範本安裝的。升級會用市場新版覆蓋同名檔案，新版裡沒有的檔案保留；原主題目錄會先完整備份。',
+    'theme_link_local_changes' => '這個主題有改過或新加的檔案（~ 改過，+ 新加，? 無法判斷）。升級會用市場新版覆蓋同名檔案，原目錄先完整備份。繼續升級嗎？',
     'pl_package_unsafe' => '外掛包包含不安全路徑、連結或超出資源限制，未安裝。',
     'pl_install_busy' => '此外掛正在安裝，請稍後重試。',
     'pl_install_recovery_required' => '外掛替換失敗且未能自動恢復。請勿重複安裝，檢查 storage/plugin-backup 中保留的舊目錄並恢復。',
