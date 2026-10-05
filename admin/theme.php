@@ -348,12 +348,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'activ
                 }
                 $targetColors = $colorProfiles[(string) $slug]
                     ?? ThemePalette::definition(ROOT_PATH . '/themes', basename((string) $slug))['colors'];
+                // 2.0.5 设计系统 2.0（RFC-1）：切换主题默认保留当前配色，站长在对话框里看过两组配色后才换成主题的
+                $useThemeColors = ($_POST['colors'] ?? 'keep') === 'theme';
                 settingModel()->saveBatch([
                     'current_theme' => (string) $slug,
+                    'theme_color_profiles' => ThemePalette::encodeProfiles($colorProfiles),
+                ] + ($useThemeColors ? [
                     'primary_color' => $targetColors['primary'],
                     'secondary_color' => $targetColors['secondary'],
-                    'theme_color_profiles' => ThemePalette::encodeProfiles($colorProfiles),
-                ]);
+                ] : []));
                 $_SESSION['theme_flash'] = [
                     'message' => __('theme_switched') . '「' . (string) $slug . '」',
                     'type' => 'success',
@@ -442,6 +445,9 @@ foreach ($themes as $themeMeta) {
     }
 }
 $activeThemeName = (string) ($activeThemeMeta['name'] ?? $currentTheme);
+// 切换对话框用：当前站点配色与各主题保存过的配色档案
+$switchColorProfiles = ThemePalette::profiles((string) config('theme_color_profiles', '{}'));
+$switchCurrentColors = ['primary' => strtoupper((string) config('primary_color', '#2563EB')), 'secondary' => strtoupper((string) config('secondary_color', '#1D4ED8'))];
 $activeThemePalette = (array) ($activeThemeMeta['_palette']
     ?? ThemePalette::definition(ROOT_PATH . '/themes', $currentTheme));
 $themeColorPresets = (array) ($activeThemePalette['palettes'] ?? []);
@@ -592,14 +598,41 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
                 <div class="mt-4 flex gap-2">
                     <?php if (!$isActive): ?>
-                    <form method="POST" class="inline" onsubmit="return confirm('<?php echo __('theme_confirm_switch'); ?>')">
-                        <?php echo csrfField(); ?>
-                        <input type="hidden" name="action" value="activate">
-                        <input type="hidden" name="slug" value="<?php echo e($theme['slug']); ?>">
-                        <button type="submit" data-testid="theme-activate" class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:opacity-90 transition cursor-pointer">
-                            <?php echo __('theme_activate'); ?>
-                        </button>
-                    </form>
+                    <?php
+                    // 2.0.5：启用前先看两组配色（当前站点 / 该主题保存过的或出厂的），默认保留当前
+                    $__switchColors = $switchColorProfiles[(string) $theme['slug']] ?? (array) ($theme['_palette']['colors'] ?? []);
+                    $__switchId = 'theme-switch-' . preg_replace('/[^a-z0-9-]/', '', (string) $theme['slug']);
+                    ?>
+                    <button type="button" data-testid="theme-activate" onclick="document.getElementById('<?php echo e($__switchId); ?>').showModal()"
+                            class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:opacity-90 transition cursor-pointer">
+                        <?php echo __('theme_activate'); ?>
+                    </button>
+                    <dialog id="<?php echo e($__switchId); ?>" aria-labelledby="<?php echo e($__switchId); ?>-title" class="w-[min(28rem,calc(100vw-2rem))] rounded-lg p-0 backdrop:bg-black/40">
+                        <form method="POST" class="p-5" data-testid="theme-switch-dialog">
+                            <?php echo csrfField(); ?>
+                            <input type="hidden" name="action" value="activate">
+                            <input type="hidden" name="slug" value="<?php echo e($theme['slug']); ?>">
+                            <h2 id="<?php echo e($__switchId); ?>-title" class="text-base font-semibold text-gray-900"><?php echo e(__('theme_switch_title', ['name' => (string) ($theme['name'] ?? $theme['slug'])])); ?></h2>
+                            <p class="mt-1 text-sm text-gray-600"><?php echo e(__('theme_switch_colors_hint')); ?></p>
+                            <fieldset class="mt-4 space-y-2">
+                                <legend class="sr-only"><?php echo e(__('theme_switch_colors_legend')); ?></legend>
+                                <?php foreach (['keep' => [__('theme_switch_keep_colors'), [$switchCurrentColors['primary'], $switchCurrentColors['secondary']]],
+                                    'theme' => [__('theme_switch_theme_colors'), [(string) ($__switchColors['primary'] ?? ''), (string) ($__switchColors['secondary'] ?? '')]]] as $__choice => [$__label, $__swatches]): ?>
+                                <label class="flex cursor-pointer items-center gap-3 rounded-lg border border-gray-200 px-3 py-2.5 has-[:checked]:border-primary has-[:checked]:bg-primary/5">
+                                    <input type="radio" name="colors" value="<?php echo $__choice; ?>" <?php echo $__choice === 'keep' ? 'checked' : ''; ?> data-testid="theme-switch-colors-<?php echo $__choice; ?>">
+                                    <span class="flex-1 text-sm text-gray-800"><?php echo e($__label); ?></span>
+                                    <?php foreach ($__swatches as $__swatch): if (preg_match('/^#[0-9A-Fa-f]{6}$/', $__swatch) !== 1) continue; ?>
+                                    <span class="h-6 w-6 rounded border border-black/10" style="background:<?php echo e($__swatch); ?>" title="<?php echo e(strtoupper($__swatch)); ?>"></span>
+                                    <?php endforeach; ?>
+                                </label>
+                                <?php endforeach; ?>
+                            </fieldset>
+                            <div class="mt-5 flex justify-end gap-2">
+                                <button type="button" onclick="this.closest('dialog').close()" class="px-4 py-2 text-sm text-gray-600 hover:text-gray-900"><?php echo e(__('admin_cancel')); ?></button>
+                                <button type="submit" data-testid="theme-switch-confirm" class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:opacity-90"><?php echo __('theme_activate'); ?></button>
+                            </div>
+                        </form>
+                    </dialog>
                     <?php if ($theme['slug'] !== 'default'): ?>
                     <form method="POST" class="inline" onsubmit="return confirm('<?php echo e(__('theme_delete_confirm')); ?>')">
                         <?php echo csrfField(); ?>
