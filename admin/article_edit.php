@@ -65,6 +65,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         error('请输入文章标题');
     }
 
+    // 插件接管文章分类时（见 adminArticleCategories），只接受插件给出的栏目，不回落 news
+    $pluginCategories = adminArticleCategories((string) ($article['lang'] ?? get('lang', config('site_lang', 'zh-CN'))));
+    if ($pluginCategories !== null
+        && !in_array($data['channel_id'], array_map(static fn(array $c): int => (int) $c['id'], $pluginCategories), true)) {
+        error('请选择所属分类');
+    }
+
     // 未选分类 → 默认归到「新闻资讯」根栏目（WP 式兜底：文章至少有一个分类，不会变成
     // channel_id=0 的孤儿而在前后台"消失"）。按文章所属语言取对应语言的 news 栏目。
     if ($data['channel_id'] <= 0) {
@@ -153,6 +160,7 @@ if ($srcNews) {
 }
 $newsChannelId = $newsChannel ? (int)$newsChannel['id'] : 0;
 $categories = $newsChannelId > 0 ? channelModel()->getFlatList($newsChannelId) : [];
+$categories = adminArticleCategories((string) $_editLang) ?? $categories;
 
 $pageTitle = $article ? __('admin_edit') : __('admin_add');
 $currentMenu = 'article';
