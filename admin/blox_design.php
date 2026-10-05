@@ -26,7 +26,7 @@ $advancedBloxEnabled = BloxFeaturePolicy::allows('style_presets');
 // 样式预设收编为全局类（RFC-1 第 4 点）：设计系统页同样触发一次性转换
 BloxPresetClasses::convert((int) ($_SESSION['admin_id'] ?? 0));
 // 三源归一（2.0.5）：已发布的全站排版角色补成 theme-<角色> 排版 token（只补缺，不覆盖设计系统页里改过的）
-BloxDesignTheme::syncTypographyTokens(BloxDesignTheme::published(), true);
+BloxDesignTheme::syncTokens(BloxDesignTheme::published(), true);
 $designState = BloxDesignSystem::snapshot();
 // 预设已转成的全局类：class_id => 类名（只读行里显示「→ .yk-c-xxx」）
 $presetClassNames = [];

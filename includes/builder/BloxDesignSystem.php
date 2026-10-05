@@ -516,32 +516,49 @@ final class BloxDesignSystem
     }
 
     /**
-     * 按 id 新增或覆盖排版 token（全站排版发布时双写用）。$onlyMissing=true 只新增不覆盖。
-     * @param list<array<string,mixed>> $items
+     * 按 id 新增或覆盖 token（全站排版发布时双写用），多类一次写库。
+     * $changes：类（'type' 或 BloxDesignScale::KINDS 的键）→ ['items' => 新增 / 覆盖的项, 'remove' => 先删除的 id]；
+     * $onlyMissing=true 只新增不覆盖。
+     * @param array<string,array{items?:list<array<string,mixed>>,remove?:list<string>}> $changes
      */
-    public static function upsertTypography(array $items, bool $onlyMissing = false): void
+    public static function upsertTokens(array $changes, bool $onlyMissing = false): void
     {
         $raw = BloxDocumentWriteLock::rawSettings([self::SETTING_KEY]);
         if (function_exists('settingModel')) settingModel()->clearCache();
         $state = self::snapshot();
-        $index = array_flip(array_column($state['typography'], 'id'));
         $changed = false;
-        foreach ($items as $item) {
-            $id = (string) ($item['id'] ?? '');
-            if (isset($index[$id])) {
-                if ($onlyMissing) continue;
-                $current = $state['typography'][$index[$id]];
-                $next = BloxDesignType::normalizeItem(array_merge($current, $item, ['status' => $current['status'], 'locked' => $current['locked'],
-                    'version' => (int) $current['version'] + 1]));
-                if ($next === null || array_diff_key($next, ['version' => 1]) == array_diff_key($current, ['version' => 1])) continue;
-                $state['typography'][$index[$id]] = $next;
-            } else {
-                $next = BloxDesignType::normalizeItem($item);
-                if ($next === null || count($state['typography']) >= BloxDesignType::MAX_ITEMS) continue;
-                $state['typography'][] = $next;
-                $index[$id] = count($state['typography']) - 1;
+        foreach ($changes as $kind => $change) {
+            $bucket = $kind === 'type' ? 'typography' : (BloxDesignScale::KINDS[$kind] ?? null);
+            if ($bucket === null) continue;
+            $normalize = $kind === 'type'
+                ? static fn (array $item): ?array => BloxDesignType::normalizeItem($item)
+                : static fn (array $item): ?array => BloxDesignScale::normalizeItem($kind, $item);
+            $limit = $kind === 'type' ? BloxDesignType::MAX_ITEMS : BloxDesignScale::MAX_ITEMS;
+            $removeIds = $change['remove'] ?? [];
+            if ($removeIds !== []) {
+                // 全站排版里已不再成 token 的项：删掉对应 theme-* token，前台回到原值输出（留着会让旧值残留）
+                $kept = array_values(array_filter($state[$bucket], static fn (array $t): bool => !in_array($t['id'], $removeIds, true)));
+                $changed = $changed || count($kept) !== count($state[$bucket]);
+                $state[$bucket] = $kept;
             }
-            $changed = true;
+            $index = array_flip(array_column($state[$bucket], 'id'));
+            foreach ($change['items'] ?? [] as $item) {
+                $id = (string) ($item['id'] ?? '');
+                if (isset($index[$id])) {
+                    if ($onlyMissing) continue;
+                    $current = $state[$bucket][$index[$id]];
+                    $next = $normalize(array_merge($current, $item, ['status' => $current['status'], 'locked' => $current['locked'],
+                        'version' => (int) $current['version'] + 1]));
+                    if ($next === null || array_diff_key($next, ['version' => 1]) == array_diff_key($current, ['version' => 1])) continue;
+                    $state[$bucket][$index[$id]] = $next;
+                } else {
+                    $next = $normalize($item);
+                    if ($next === null || count($state[$bucket]) >= $limit) continue;
+                    $state[$bucket][] = $next;
+                    $index[$id] = count($state[$bucket]) - 1;
+                }
+                $changed = true;
+            }
         }
         if (!$changed) return;
         $state['revision']++;

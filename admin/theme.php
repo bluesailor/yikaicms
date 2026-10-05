@@ -320,6 +320,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_
     }
 }
 
+// 清除旧外观设置里的字体（2.0.5：字体统一在字体页设置；这里只清当前主题档案的三项，其余设置不动）
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'clear_legacy_fonts') {
+    verifyCsrf();
+    requirePermission('*');
+    $activeTheme = currentTheme();
+    $styleSettings = ThemeSettings::read($activeTheme);
+    $styleSettings['typography'] = ThemeSettings::defaults()['typography'];
+    settingModel()->saveBatch([ThemeSettings::KEY => ThemeSettings::encodeProfile($activeTheme, $styleSettings, (string) config(ThemeSettings::KEY, ''))]);
+    adminLog('theme', 'clear_legacy_fonts', 'Cleared legacy theme fonts for ' . $activeTheme);
+    do_action('data_changed');
+    $_SESSION['theme_flash'] = ['message' => __('theme_fonts_cleared'), 'type' => 'success'];
+    redirect('/admin/theme.php');
+}
+
 // 处理主题切换（页面表单，刷新式）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'activate') {
     verifyCsrf();
@@ -833,9 +847,34 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_content_background')); ?></span><input type="color" name="theme_style[general][content_background]" value="<?php echo e($themeStyle['general']['content_background']); ?>" class="w-11 h-10 p-1 border border-gray-200 rounded-lg"></label>
                     <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_color_mode')); ?></span><select name="theme_style[general][color_mode]" class="w-full border border-gray-200 rounded-lg px-3 py-2"><option value="light" <?php echo $themeStyle['general']['color_mode'] === 'light' ? 'selected' : ''; ?>><?php echo e(__('theme_settings_light')); ?></option><option value="dark" <?php echo $themeStyle['general']['color_mode'] === 'dark' ? 'selected' : ''; ?>><?php echo e(__('theme_settings_dark')); ?></option><option value="auto" <?php echo $themeStyle['general']['color_mode'] === 'auto' ? 'selected' : ''; ?>><?php echo e(__('theme_settings_auto')); ?></option></select></label>
                     <?php endif; ?>
-                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_base_font')); ?></span><input type="number" name="theme_style[typography][html_font_size]" value="<?php echo (int) $themeStyle['typography']['html_font_size']; ?>" min="14" max="20" class="w-full border border-gray-200 rounded-lg px-3 py-2"></label>
-                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_body_font')); ?></span><input type="text" name="theme_style[typography][body_font]" value="<?php echo e((string) $themeStyle['typography']['body_font']); ?>" maxlength="160" class="w-full border border-gray-200 rounded-lg px-3 py-2 font-mono text-xs" placeholder="system / Arial, sans-serif"></label>
-                    <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_heading_font')); ?></span><input type="text" name="theme_style[typography][heading_font]" value="<?php echo e((string) $themeStyle['typography']['heading_font']); ?>" maxlength="160" class="w-full border border-gray-200 rounded-lg px-3 py-2 font-mono text-xs" placeholder="system / Arial, sans-serif"></label>
+                    <?php
+                    // 2.0.5 设计系统 2.0（RFC-1 决策 2）：字体统一在「外观 → 字体」（按语言）设置。这里的旧字体项只读、照旧生效：
+                    // 隐藏字段原样提交，保存模板设置时不会被清空；站长确认后可一键清除，之后完全由字体页决定。
+                    $legacyFonts = [
+                        __('theme_settings_base_font') => (int) $themeStyle['typography']['html_font_size'] !== 16 ? (int) $themeStyle['typography']['html_font_size'] . 'px' : '',
+                        __('theme_settings_body_font') => (string) $themeStyle['typography']['body_font'] !== 'system' ? (string) $themeStyle['typography']['body_font'] : '',
+                        __('theme_settings_heading_font') => (string) $themeStyle['typography']['heading_font'] !== 'system' ? (string) $themeStyle['typography']['heading_font'] : '',
+                    ];
+                    $legacyFonts = array_filter($legacyFonts, static fn (string $value): bool => $value !== '');
+                    ?>
+                    <input type="hidden" name="theme_style[typography][html_font_size]" value="<?php echo (int) $themeStyle['typography']['html_font_size']; ?>">
+                    <input type="hidden" name="theme_style[typography][body_font]" value="<?php echo e((string) $themeStyle['typography']['body_font']); ?>">
+                    <input type="hidden" name="theme_style[typography][heading_font]" value="<?php echo e((string) $themeStyle['typography']['heading_font']); ?>">
+                    <div class="md:col-span-2 rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 text-sm" data-testid="theme-legacy-fonts">
+                        <p class="text-gray-700"><?php echo e(__('theme_fonts_moved')); ?>
+                            <a href="/admin/appearance.php" class="font-medium text-primary hover:underline"><?php echo e(__('theme_fonts_open_appearance')); ?></a></p>
+                        <?php if ($legacyFonts !== []): ?>
+                        <dl class="mt-2 grid gap-x-6 gap-y-1 text-xs text-gray-600 sm:grid-cols-[auto_1fr]">
+                            <?php foreach ($legacyFonts as $legacyLabel => $legacyValue): ?>
+                            <dt class="font-medium"><?php echo e($legacyLabel); ?></dt><dd class="font-mono break-all"><?php echo e($legacyValue); ?></dd>
+                            <?php endforeach; ?>
+                        </dl>
+                        <p class="mt-2 text-xs text-amber-800"><?php echo e(__('theme_fonts_legacy_active')); ?></p>
+                        <button type="submit" form="clearLegacyFontsForm" data-testid="theme-clear-legacy-fonts"
+                                onclick="return confirm(<?php echo e(json_encode(__('theme_fonts_clear_confirm'), JSON_UNESCAPED_UNICODE)); ?>)"
+                                class="mt-2 rounded border border-amber-300 bg-white px-3 py-1.5 text-xs font-medium text-amber-900 hover:bg-amber-50"><?php echo e(__('theme_fonts_clear')); ?></button>
+                        <?php endif; ?>
+                    </div>
                     <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_section_spacing')); ?></span><input type="number" name="theme_style[spacing][section_padding_y]" value="<?php echo (int) $themeStyle['spacing']['section_padding_y']; ?>" min="0" max="240" class="w-full border border-gray-200 rounded-lg px-3 py-2"></label>
                     <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_button_radius')); ?></span><input type="number" name="theme_style[button][radius]" value="<?php echo (int) $themeStyle['button']['radius']; ?>" min="0" max="32" class="w-full border border-gray-200 rounded-lg px-3 py-2"></label>
                     <label class="block"><span class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('theme_settings_button_background')); ?></span><input type="color" name="theme_style[button][background]" value="<?php echo e($themeStyle['button']['background']); ?>" class="w-11 h-10 p-1 border border-gray-200 rounded-lg"></label>
@@ -1049,4 +1088,6 @@ function themeManager() {
 }
 </script>
 
+<?php // 清除旧字体设置：独立表单，按钮在模板设置表单里用 form 属性指向这里（表单不能嵌套） ?>
+<form id="clearLegacyFontsForm" method="POST" class="hidden"><?php echo csrfField(); ?><input type="hidden" name="action" value="clear_legacy_fonts"></form>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
