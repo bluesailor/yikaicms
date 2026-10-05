@@ -317,5 +317,47 @@ namespace Yikai\Tests\Unit {
             self::assertSame('', \BloxDesignTheme::compile(\BloxDesignTheme::published()));
             self::assertSame(0, (int) db()->fetchColumn('SELECT COUNT(*) FROM settings'));
         }
+    
+        /** 2.0.5 三源归一：排版角色以 theme-<角色> 排版 token 为准，旧变量名保留为别名；没 token 时输出不变。 */
+        public function testTypographyRolesAliasTypographyTokens(): void
+        {
+            $theme = ['typography' => ['h2' => ['size' => ['d' => 40, 'm' => 28], 'weight' => '700', 'line_height' => '1.2', 'family' => 'system-serif']]];
+            $GLOBALS['_test_config'] = [];
+            $literal = \BloxDesignTheme::compile($theme);
+            self::assertStringContainsString(':root{--yk-type-h2-size:28px;}', $literal, '没有 token：原样输出');
+            self::assertStringContainsString('font-weight:700;line-height:1.2;', $literal);
+
+            $GLOBALS['_test_config'] = [\BloxDesignSystem::SETTING_KEY => json_encode(['tokens' => [], 'typography' => [
+                ['id' => 'theme-h2', 'name' => 'H2', 'size' => ['d' => '40px', 'm' => '28px'], 'line_height' => '1.2', 'weight' => '700'],
+            ]], JSON_THROW_ON_ERROR)];
+            $aliased = \BloxDesignTheme::compile($theme);
+            self::assertStringContainsString('--yk-type-h2-size:var(--yk-typo-theme-h2-size)', $aliased);
+            self::assertStringContainsString('h2.yk-type-h2{font-size:var(--yk-type-h2-size);font-family:', $aliased);
+            self::assertStringContainsString('font-weight:var(--yk-typo-theme-h2-weight);line-height:var(--yk-typo-theme-h2-lh);', $aliased);
+            self::assertStringNotContainsString('28px', $aliased, '断点值改由 token 变量的媒体查询给');
+        }
+
+        public function testPublishWritesRoleTokensAndEditorShowsTokenValues(): void
+        {
+            $GLOBALS['_test_config'] = [];
+            \BloxDesignTheme::publish(['typography' => ['h1' => ['size' => ['d' => 52, 't' => 44, 'm' => 34], 'weight' => '700', 'line_height' => 1.15],
+                'caption' => ['size' => ['m' => 13]]]], 0);
+            $stored = json_decode((string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', [\BloxDesignSystem::SETTING_KEY]), true);
+            $tokens = array_column($stored['typography'], null, 'id');
+            self::assertSame(['d' => '52px', 't' => '44px', 'm' => '34px'], $tokens['theme-h1']['size']);
+            self::assertSame(['700', '1.2'], [$tokens['theme-h1']['weight'], $tokens['theme-h1']['line_height']]);
+            self::assertArrayNotHasKey('theme-caption', $tokens, '没有桌面字号的角色不成 token');
+
+            // 站长在设计系统页把 theme-h1 改成 48px：全站排版编辑器显示 48；只补缺的同步不覆盖它
+            $stored['typography'] = array_map(static fn (array $t): array => $t['id'] === 'theme-h1' ? ['size' => ['d' => '48px', 't' => '44px', 'm' => '34px']] + $t : $t, $stored['typography']);
+            $GLOBALS['_test_config'] = [\BloxDesignSystem::SETTING_KEY => json_encode($stored, JSON_THROW_ON_ERROR),
+                \BloxDesignTheme::PUBLISHED_KEY => (string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', [\BloxDesignTheme::PUBLISHED_KEY])];
+            db()->execute('UPDATE settings SET value = ? WHERE "key" = ?', [json_encode($stored, JSON_THROW_ON_ERROR), \BloxDesignSystem::SETTING_KEY]);
+            \BloxDesignTheme::resetCache();
+            self::assertSame(48, \BloxDesignTheme::snapshot()['published']['typography']['h1']['size']['d']);
+            \BloxDesignTheme::syncTypographyTokens(\BloxDesignTheme::published(), true);
+            $again = json_decode((string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', [\BloxDesignSystem::SETTING_KEY]), true);
+            self::assertSame('48px', array_column($again['typography'], null, 'id')['theme-h1']['size']['d']);
+        }
     }
 }

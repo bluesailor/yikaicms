@@ -19,7 +19,11 @@ const PROBES = {
   'cn-h1': 'h1', 'cn-h2': 'h2', 'cn-h3': 'h3', 'cn-body': 'p',
   'cn-btn-filled': 'a', 'cn-btn-outline': 'a', 'cn-btn-pill': 'a',
   'cn-box': null, 'cn-token-text': 'h3', 'cn-scale': null,
+  // 2.0.5：间距 / 排版 token 的消费方；html / body 收旧外观设置与字体页的根字号、正文字体
+  'cn-space': null, 'cn-typo': 'h2', '__html': null, '__body': null,
 };
+// :root 上非 --yk-* 的设计变量（主题头里内联的 Tailwind 主色）
+const ROOT_EXTRA = ['--color-primary', '--color-secondary'];
 const PROPS = [
   'font-family', 'font-size', 'font-weight', 'line-height', 'color', 'background-color',
   'border-top-width', 'border-top-style', 'border-top-color', 'border-top-left-radius',
@@ -40,7 +44,7 @@ test.beforeEach(async ({}, info) => {
 });
 
 async function sample(page) {
-  return page.evaluate(({ probes, props }) => {
+  return page.evaluate(({ probes, props, extra }) => {
     const pick = (style) => Object.fromEntries(props.map(name => [name, style.getPropertyValue(name).trim()]));
     // :root 上所有 --yk-* 变量：从样式表里收集名字再逐个取计算值（getComputedStyle 不枚举自定义属性）
     const names = new Set();
@@ -55,6 +59,7 @@ async function sample(page) {
       scan(rules);
     }
     const rootStyle = getComputedStyle(document.documentElement);
+    extra.forEach(name => names.add(name));
     const vars = {};
     Array.from(names).sort().forEach(name => {
       const value = rootStyle.getPropertyValue(name).trim();
@@ -62,14 +67,14 @@ async function sample(page) {
     });
     const elements = {};
     for (const [id, inner] of Object.entries(probes)) {
-      const host = document.getElementById(id);
+      const host = id === '__html' ? document.documentElement : (id === '__body' ? document.body : document.getElementById(id));
       const node = host && inner ? (host.matches(inner) ? host : host.querySelector(inner)) : host;
       elements[id] = node ? pick(getComputedStyle(node)) : null;
     }
     const anchor = document.getElementById('cn-h1');
     const main = anchor ? anchor.closest('section') : null;
     return { vars, elements, section: main ? pick(getComputedStyle(main)) : null };
-  }, { probes: PROBES, props: PROPS });
+  }, { probes: PROBES, props: PROPS, extra: ROOT_EXTRA });
 }
 
 test('design canary page keeps the same computed styles @ci', async ({ browser, baseURL }, info) => {
