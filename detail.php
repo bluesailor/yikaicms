@@ -38,6 +38,8 @@ if ($_vars === null) {
     header('HTTP/1.1 404 Not Found');
     render404(__('error_content_not_found'));
 }
+// 记下本页条目（hreflang / 语言切换）；请求的语言没有这一条的译文时 302 到它自己的语言版本
+LocalizedUrl::enter('content', $_vars['content'], isset($_GET['preview']));
 // 详情模板渲染上下文需要控制器原始返回值（下面 extract 后 $_vars 即销毁）
 $contentTemplateVars = $_vars;
 extract($_vars, EXTR_OVERWRITE);
