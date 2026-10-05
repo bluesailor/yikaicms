@@ -78,6 +78,53 @@ final class WordPressContentTest extends TestCase
         self::assertSame('<p>Kept</p>', $this->cleaner()->clean('<p>Kept</p>', (string) $json), '正文不空时不用 Elementor 数据');
     }
 
+    /** 2026-10-05 jpfoodgate：Betheme 的 Muffin 构建器页正文为空，内容在 mfn-page-items（base64 + 序列化）。 */
+    public function testMuffinBuilderItemsAreUsedWhenContentIsEmpty(): void
+    {
+        $items = base64_encode(serialize([['jsclass' => 'section', 'wraps' => [['jsclass' => 'wrap', 'items' => [
+            ['type' => 'image', 'attr' => ['src' => 'https://www.slewing-bearing.com/wp-content/uploads/2019/02/title.jpg']],
+            ['type' => 'heading', 'attr' => ['title' => '关于我们']],
+            ['type' => 'visual', 'attr' => ['content' => '<p>十几年初心不变。</p>[button title="报名" link="/contact-us/"]']],
+            ['type' => 'divider', 'attr' => []],
+            ['type' => 'icon_box', 'attr' => ['title' => '小班教学', 'content' => '每班 6 人']],
+        ]]]]]));
+        $c = $this->cleaner();
+        $out = $c->clean('', '', $items);
+        self::assertSame('muffin', $c->lastSource, '构建器抽出的正文记为降级迁移');
+        self::assertSame("<p><img src=\"/wp-content/uploads/2019/02/title.jpg\" alt=\"\"></p>\n<h2>关于我们</h2>\n<p>十几年初心不变。</p>\n"
+            . "<p><a href=\"/contact-us/\">报名</a></p>\n<h3>小班教学</h3>\n<p>每班 6 人</p>", $out);
+        self::assertSame('', $c->clean('', '', base64_encode(serialize(new \ArrayObject([1])))), '序列化对象一律不还原');
+        self::assertSame('html', $this->cleaner()->lastSource);
+    }
+
+    /** 2026-10-05 jpfoodgate：从 ChatGPT 网页整段复制的正文带着 Tailwind 类名与 data-*，方括号还会被当成短代码。 */
+    public function testPastedWebAttributesAreStrippedButWordPressClassesKept(): void
+    {
+        $html = '<article class="text-token-text-primary [--shadow-height:45px] has-data-writing-block:pointer-events-none" dir="auto" tabindex="-1" data-turn-id="09">'
+            . '<div class="[--thread-content-max-width:40rem]"><h2 data-start="1" class="font-bold"></h2><p data-start="2">排烟是关键。</p></div></article>'
+            . '<img class="alignnone size-large wp-image-507 rounded-xl" src="/a.jpg" alt="卷">';
+        $c = $this->cleaner();
+        $out = $c->clean($html);
+        self::assertSame([], $c->unknown, '类名里的方括号不再当成短代码');
+        self::assertSame(0, $c->lastIssues);
+        self::assertStringNotContainsString('data-', $out);
+        self::assertStringNotContainsString('tabindex', $out);
+        self::assertStringNotContainsString('<h2', $out, '空标题去掉');
+        self::assertStringContainsString('<article dir="auto">', $out, '其余属性保留');
+        self::assertStringContainsString('<p>排烟是关键。</p>', $out);
+        self::assertStringContainsString('<img class="alignnone size-large wp-image-507" src="/a.jpg" alt="卷">', $out);
+    }
+
+    public function testGalleryAndCalendarPluginShortcodesAreDroppedAndCountAsPartial(): void
+    {
+        $c = $this->cleaner();
+        self::assertSame('<p>相册：</p>', $c->clean("相册：\n\n[huge_it_gallery id=\"2\"]\n\n[metaslider id=\"9\"]"));
+        self::assertEqualsCanonicalizing(['huge_it_gallery' => 1, 'metaslider' => 1], $c->dropped);
+        self::assertSame(2, $c->lastIssues);
+        $c->clean('<p>ok</p>');
+        self::assertSame(0, $c->lastIssues, '按条计数，不累计上一条');
+    }
+
     public function testAutopForClassicEditorText(): void
     {
         self::assertSame("<p>Line one<br>\nline two</p>\n<p>Second paragraph</p>\n<ul>\n<li>a</li>\n</ul>",
