@@ -68,6 +68,13 @@ if ($sitemapLangs !== []) {
 }
 
 $urls = [];
+// 各行按自己的语言出网址（2.0.5：LocalizedUrl::urlFor；动态网址带 lang 参数、语言域名给完整地址）
+$sitemapLoc = static function (string $kind, array $row, string $fallback) use ($siteUrl): string {
+    $lang = (string) ($row['lang'] ?? '');
+    $url = $lang !== '' ? LocalizedUrl::urlFor($kind, $row, $lang) : '';
+    if ($url === '') $url = $fallback;
+    return preg_match('#^https?://#i', $url) === 1 ? $url : $siteUrl . $url;
+};
 
 // 首页
 $urls[] = [
@@ -82,7 +89,7 @@ foreach ($channels as $channel) {
     if ($channel['type'] === 'link') continue;
     if ($sitemapLangs !== [] && !in_array((string) ($channel['lang'] ?? ''), $sitemapLangs, true)) continue;
     $urls[] = [
-        'loc'        => $siteUrl . channelUrl($channel),
+        'loc'        => $sitemapLoc('channel', $channel, channelUrl($channel)),
         'lastmod'    => sitemapLastmod($channel['updated_at'] ?? null, $channel['created_at'] ?? null),
         'changefreq' => 'weekly',
         'priority'   => '0.8',
@@ -92,7 +99,7 @@ foreach ($channels as $channel) {
         foreach ($channel['children'] as $child) {
             if ($child['type'] === 'link') continue;
             $urls[] = [
-                'loc'        => $siteUrl . channelUrl($child),
+                'loc'        => $sitemapLoc('channel', $child, channelUrl($child)),
                 'lastmod'    => sitemapLastmod($child['updated_at'] ?? null, $child['created_at'] ?? null),
                 'changefreq' => 'weekly',
                 'priority'   => '0.7',
@@ -116,7 +123,7 @@ $contents = db()->fetchAll(
 
 foreach ($contents as $content) {
     $url = [
-        'loc'        => $siteUrl . contentUrl($content),
+        'loc'        => $sitemapLoc('content', $content, contentUrl($content)),
         'lastmod'    => sitemapLastmod($content['updated_at'] ?? null, $content['publish_time'] ?? null, $content['created_at'] ?? null),
         'changefreq' => 'monthly',
         'priority'   => '0.6',
@@ -141,7 +148,7 @@ $products = db()->fetchAll(
 
 foreach ($products as $product) {
     $url = [
-        'loc'        => $siteUrl . productUrl($product),
+        'loc'        => $sitemapLoc('product', $product, productUrl($product)),
         'lastmod'    => sitemapLastmod($product['updated_at'] ?? null, $product['created_at'] ?? null),
         'changefreq' => 'monthly',
         'priority'   => '0.6',
