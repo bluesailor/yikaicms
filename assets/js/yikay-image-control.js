@@ -96,6 +96,26 @@
                 if (self.imageControlTarget(scope) === target) self.setImageControl(scope, key, url);
             }, scope === "element" ? {} : { usage: "hero-bg" });
         },
+        /** 媒体库里的位图才能编辑（有 media 权限时页面才带编辑弹窗）；外链、SVG 不显示编辑按钮。 */
+        imageControlEditable(scope, key) {
+            var url = this.imageControlValue(scope, key).split(/[?#]/)[0];
+            return !!window.YkImageEditor && /\/uploads\/.+\.(?:jpe?g|png|gif|webp)$/i.test(url);
+        },
+        editImageControl(scope, key) {
+            if (!this.imageControlEditable(scope, key)) return;
+            var url = this.imageControlValue(scope, key).split(/[?#]/)[0], self = this;
+            window.YkImageEditor.open(url, {
+                notify: function (message) { self.toast(message); },
+                onDone: function () {
+                    // 网址不变、文件已换：先绕过浏览器缓存重新取原图和 WebP 副本，再重渲染画布
+                    var urls = [url], webp = url.replace(/\.(?:jpe?g|png)$/i, ".webp");
+                    if (webp !== url) urls.push(webp);
+                    Promise.all(urls.map(function (u) {
+                        return fetch(u, { cache: "reload", credentials: "same-origin" }).catch(function () { return null; });
+                    })).then(function () { self.refreshPreview(); });
+                }
+            });
+        },
         videoControlTarget(scope) {
             if (scope === "element") return this.selEl && this.selEl.data;
             if (scope === "section") return this.sel && this.sel.settings;

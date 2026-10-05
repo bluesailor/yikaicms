@@ -20,6 +20,11 @@ $imageValue = 'imageControlValue(' . $imageArgs . ')';
                 class="min-w-0 flex-1 h-8 rounded border border-gray-300 bg-white text-xs text-gray-700 hover:bg-gray-50 inline-flex items-center justify-center gap-1">
             <i class="ti ti-photo-edit" aria-hidden="true"></i><span><?= e(__('blox_home_banner_replace_image')) ?></span>
         </button>
+        <button type="button" x-show="imageControlEditable(<?= e($imageArgs) ?>)" @click="editImageControl(<?= e($imageArgs) ?>)"
+                data-testid="<?= e($imageControl['id']) ?>-edit" title="<?= e(__('image_edit')) ?>" aria-label="<?= e(__('image_edit')) ?>"
+                class="w-8 h-8 shrink-0 rounded border border-gray-300 text-gray-600 hover:bg-gray-50 inline-flex items-center justify-center">
+            <i class="ti ti-crop" aria-hidden="true"></i>
+        </button>
         <button type="button" @click="setImageControl(<?= e($imageArgs) ?>, '')" :disabled="!<?= e($imageValue) ?>"
                 data-testid="<?= e($imageControl['id']) ?>-clear" title="<?= e(__('blox_clear')) ?>" aria-label="<?= e(__('blox_clear')) ?>"
                 class="w-8 h-8 shrink-0 rounded border border-gray-300 text-gray-600 hover:bg-red-50 hover:text-red-700 disabled:opacity-30 disabled:cursor-not-allowed inline-flex items-center justify-center">

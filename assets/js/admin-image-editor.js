@@ -14,7 +14,7 @@
     var MIN_BOX = 12;
 
     var modal, stage, img, box, els = {};
-    var state = null;   // { id, width, height, history, undone, ratio, edited, opener }
+    var state = null;   // { id, width, height, history, undone, ratio, edited, opener, options }
     var sel = null;     // 选区（预览显示像素）{ x, y, w, h }
 
     function q(name) { return modal.querySelector("[data-ie-" + name + "]"); }
@@ -86,15 +86,21 @@
 
     // ── 打开 / 关闭 ──────────────────────────────────────────────────────
 
-    function open(id) {
+    /**
+     * ref：媒体 id，或媒体库里图片的网址（网页构建器的图片控件只存网址）。
+     * options.onDone(data)：保存 / 恢复成功后调用，不再刷新整页；options.notify(message, isError)：提示方式。
+     */
+    function open(ref, options) {
         if (!setup()) return;
-        fetch(ENDPOINT + "?action=info&id=" + encodeURIComponent(id), { credentials: "same-origin" })
+        options = options || {};
+        var query = typeof ref === "number" || /^\d+$/.test(String(ref)) ? "id=" + encodeURIComponent(ref) : "url=" + encodeURIComponent(ref);
+        fetch(ENDPOINT + "?action=info&" + query, { credentials: "same-origin" })
             .then(function (r) { return r.json(); })
             .then(function (data) {
-                if (!data || data.code !== 0) { (window.showMessage || window.alert)(data && data.msg ? data.msg : I18N.failed, "error"); return; }
+                if (!data || data.code !== 0) { notify(options, data && data.msg ? data.msg : I18N.failed, true); return; }
                 var info = data.data;
                 state = { id: info.id, width: info.width, height: info.height, history: [], undone: 0, ratio: "free",
-                    edited: !!info.edited, alt: info.alt || "", opener: document.activeElement };
+                    edited: !!info.edited, alt: info.alt || "", opener: document.activeElement, options: options };
                 els.alt.value = state.alt;
                 els.restore.hidden = !state.edited;
                 els.animated.hidden = !info.animated;
@@ -103,7 +109,12 @@
                 refresh();
                 q("close").focus();
             })
-            .catch(function () { (window.showMessage || window.alert)(I18N.failed, "error"); });
+            .catch(function () { notify(options, I18N.failed, true); });
+    }
+
+    function notify(options, message, isError) {
+        if (options && typeof options.notify === "function") options.notify(message, !!isError);
+        else (window.showMessage || window.alert)(message, isError ? "error" : "success");
     }
 
     function close() {
@@ -235,15 +246,24 @@
     function post(fields) {
         var fd = new FormData();
         Object.keys(fields).forEach(function (k) { fd.append(k, fields[k]); });
+        if (window.YK_IMAGE_EDIT_TOKEN && !fd.has("_token")) fd.append("_token", window.YK_IMAGE_EDIT_TOKEN);
         return fetch(ENDPOINT, { method: "POST", body: fd, credentials: "same-origin" }).then(function (r) { return r.json(); });
     }
 
     function done(data, message) {
         if (!data || data.code !== 0) { announce(data && data.msg ? data.msg : I18N.failed, true); return; }
         state.history = []; state.undone = 0; state.alt = els.alt.value;
-        if (window.showMessage) window.showMessage(data.msg || message);
+        var options = state.options || {}, opener = state.opener;
         modal.classList.add("hidden");
+        img.removeAttribute("src");
         state = null;
+        if (typeof options.onDone === "function") {
+            notify(options, data.msg || message, false);
+            if (opener && opener.focus) opener.focus();
+            options.onDone(data.data || {});
+            return;
+        }
+        if (window.showMessage) window.showMessage(data.msg || message);
         // 网址不变、文件已换：刷新列表让缩略图换新
         window.setTimeout(function () { window.location.reload(); }, 500);
     }
@@ -266,7 +286,7 @@
     function announce(message, isError) {
         if (!els.status || !message) return;
         els.status.textContent = message;
-        if (isError && window.showMessage) window.showMessage(message, "error");
+        if (isError) notify(state && state.options, message, true);
     }
 
     window.YkImageEditor = Object.freeze({ open: open });

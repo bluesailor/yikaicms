@@ -36,6 +36,12 @@ if (!$channel || $channel['status'] != 1) {
 // 设了登记网址：旧地址 301 过去（产品分类 / 标签筛选另有自己的登记网址，不按栏目跳）
 if ((string) ($_GET['cat'] ?? '') === '' && (string) ($_GET['tag'] ?? '') === '') {
     redirectToRegisteredUrl('channel', $channelId);
+    // 多语言网址（2.0.5 第二步）：hreflang / 语言切换按翻译组真实版本。列表栏目的条目本就按当前语言筛选，
+    // 栏目没翻译只是名称没翻，不算冒充译文——回落到别的语言行时不登记、不跳，仍按路径给 hreflang；
+    // 单页栏目的正文就是栏目自己的内容，由 page.php 严格处理。产品分类、标签筛选是另一套地址，不登记
+    if (!in_array($channel['type'], ['link', 'page'], true) && in_array((string) ($channel['lang'] ?? ''), ['', siteLang()], true)) {
+        LocalizedUrl::enter('channel', $channel, isset($_GET['preview']), max(1, getInt('page', 1)));
+    }
 }
 
 // page / link 走 PageRedirectController（短路：要么 include page.php，要么 302）

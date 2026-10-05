@@ -32,6 +32,21 @@ test('hreflang, switcher and missing translations follow the real translation gr
     expect(fake.status()).toBe(302);
     expect(new URL(fake.headers().location, baseURL).pathname).toBe('/news/article/only-chinese-e2e.html');
 
+    // 栏目（第二步）：有英文版的单页栏目——hreflang 指向英文栏目自己的网址；只有中文的单页栏目 /en/ 地址 302 回原文
+    expect((await page.goto(state.pageZh)).status()).toBe(200);
+    const about = await hreflangs();
+    expect(about['zh-CN']).toBe(state.pageZh);
+    expect(about.en).toBe(state.pageEn);
+    expect((await visitor.request.get(about.en, { maxRedirects: 0 })).status()).toBe(200);
+    expect((await page.goto('/only-chinese-channel-e2e.html')).status()).toBe(200);
+    await expect(page.locator('link[rel=alternate][hreflang]')).toHaveCount(0);
+    const fakeChannel = await visitor.request.get('/en/only-chinese-channel-e2e.html', { maxRedirects: 0 });
+    expect(fakeChannel.status()).toBe(302);
+    expect(new URL(fakeChannel.headers().location, baseURL).pathname).toBe('/only-chinese-channel-e2e.html');
+    // 站点地图：英文栏目带 /en 前缀、用自己的别名
+    const sitemap = await (await visitor.request.get('/sitemap.xml')).text();
+    expect(sitemap).toContain(`${state.pageEn}</loc>`);
+
     // 动态网址模式
     fixture('mode', 'query');
     expect((await page.goto(`/index.php?yk_route=article&slug=${state.translated}`)).status()).toBe(200);
@@ -45,6 +60,9 @@ test('hreflang, switcher and missing translations follow the real translation gr
     expect(fakeDynamic.status()).toBe(302);
     expect(fakeDynamic.headers().location).toContain('yk_route=article&slug=only-chinese-e2e');
     expect(fakeDynamic.headers().location).not.toContain('lang=en');
+    // 动态网址下站点地图里的英文条目带 lang=en（此前按当前语言出网址，英文条目指向中文页）
+    const dynamicSitemap = await (await visitor.request.get('/sitemap.xml')).text();
+    expect(dynamicSitemap).toMatch(new RegExp(`slug=${state.en}&amp;lang=en</loc>`));
   } finally {
     fixture('restore');
     await visitor.close().catch(() => {});
