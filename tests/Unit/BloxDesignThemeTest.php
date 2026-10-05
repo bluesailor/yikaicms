@@ -337,6 +337,22 @@ namespace Yikai\Tests\Unit {
             self::assertStringNotContainsString('28px', $aliased, '断点值改由 token 变量的媒体查询给');
         }
 
+        /** 重新发布时某角色不再有桌面字号（或被清空）：删掉它的 theme-* token，不让旧值残留在前台和编辑器里。 */
+        public function testRepublishingRemovesStaleRoleTokens(): void
+        {
+            $GLOBALS['_test_config'] = [];
+            \BloxDesignTheme::publish(['typography' => ['h2' => ['size' => ['d' => 36]]]], 0);
+            $tokens = static fn (): array => array_column(json_decode((string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', [\BloxDesignSystem::SETTING_KEY]), true)['typography'], null, 'id');
+            self::assertArrayHasKey('theme-h2', $tokens());
+            // 测试里 config() 读 _test_config：把刚写入的设计系统同步过去（线上 config 直接读库）
+            $GLOBALS['_test_config'] = [\BloxDesignSystem::SETTING_KEY => (string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', [\BloxDesignSystem::SETTING_KEY])];
+            \BloxDesignTheme::publish(['typography' => ['h2' => ['size' => ['t' => 30, 'm' => 26]]]], 1);
+            self::assertArrayNotHasKey('theme-h2', $tokens(), '只剩平板 / 手机字号时不成 token，旧 token 删除');
+            self::assertArrayHasKey('text-base', $tokens(), '其它排版 token 不动');
+            $GLOBALS['_test_config'] = [\BloxDesignSystem::SETTING_KEY => (string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', [\BloxDesignSystem::SETTING_KEY])];
+            self::assertStringNotContainsString('var(--yk-typo-theme-h2', \BloxDesignTheme::compile(['typography' => ['h2' => ['size' => ['t' => 30, 'm' => 26]]]]));
+        }
+
         public function testPublishWritesRoleTokensAndEditorShowsTokenValues(): void
         {
             $GLOBALS['_test_config'] = [];

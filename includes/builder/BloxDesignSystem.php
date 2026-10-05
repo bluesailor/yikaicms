@@ -516,16 +516,22 @@ final class BloxDesignSystem
     }
 
     /**
-     * 按 id 新增或覆盖排版 token（全站排版发布时双写用）。$onlyMissing=true 只新增不覆盖。
-     * @param list<array<string,mixed>> $items
+     * 按 id 新增或覆盖排版 token（全站排版发布时双写用）。$onlyMissing=true 只新增不覆盖；$removeIds 里的先删除。
+     * @param list<array<string,mixed>> $items @param list<string> $removeIds
      */
-    public static function upsertTypography(array $items, bool $onlyMissing = false): void
+    public static function upsertTypography(array $items, bool $onlyMissing = false, array $removeIds = []): void
     {
         $raw = BloxDocumentWriteLock::rawSettings([self::SETTING_KEY]);
         if (function_exists('settingModel')) settingModel()->clearCache();
         $state = self::snapshot();
-        $index = array_flip(array_column($state['typography'], 'id'));
         $changed = false;
+        if ($removeIds !== []) {
+            // 全站排版里已不再成 token 的角色：删掉对应 theme-* token，前台回到原值输出（留着会让旧值残留）
+            $kept = array_values(array_filter($state['typography'], static fn (array $t): bool => !in_array($t['id'], $removeIds, true)));
+            $changed = count($kept) !== count($state['typography']);
+            $state['typography'] = $kept;
+        }
+        $index = array_flip(array_column($state['typography'], 'id'));
         foreach ($items as $item) {
             $id = (string) ($item['id'] ?? '');
             if (isset($index[$id])) {
