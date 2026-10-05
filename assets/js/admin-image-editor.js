@@ -82,7 +82,7 @@
         img.src = ENDPOINT + "?action=preview&id=" + state.id + "&history=" + encodeURIComponent(JSON.stringify(activeHistory())) + "&t=" + Date.now();
     }
 
-    function dirty() { return state && (activeHistory().length > 0 || els.alt.value !== state.alt); }
+    function dirty() { return state && (JSON.stringify(activeHistory()) !== state.saved || els.alt.value !== state.alt); }
 
     // ── 打开 / 关闭 ──────────────────────────────────────────────────────
 
@@ -99,8 +99,11 @@
             .then(function (data) {
                 if (!data || data.code !== 0) { notify(options, data && data.msg ? data.msg : I18N.failed, true); return; }
                 var info = data.data;
-                state = { id: info.id, width: info.width, height: info.height, history: [], undone: 0, ratio: "free",
-                    edited: !!info.edited, alt: info.alt || "", opener: document.activeElement, options: options };
+                // 接着上次保存的操作编辑（2.0.5）：保存时服务端从原图按整段历史重放，只交这次新加的几步
+                // 会丢掉之前的裁剪；只改替代文字（历史为空）更会被当成「恢复原图」
+                var saved = Array.isArray(info.history) ? info.history : [];
+                state = { id: info.id, width: info.width, height: info.height, history: saved.slice(), undone: 0, ratio: "free",
+                    saved: JSON.stringify(saved), edited: !!info.edited, alt: info.alt || "", opener: document.activeElement, options: options };
                 els.alt.value = state.alt;
                 els.restore.hidden = !state.edited;
                 els.animated.hidden = !info.animated;
