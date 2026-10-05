@@ -439,6 +439,8 @@ final class BloxDocumentPipeline
                         min(100, (int) $column['card_bg_overlay_opacity'])
                     );
                 }
+                // 区块列的极光背景（2.0.5）
+                $normalizedColumn += BloxAurora::normalizeStored($column);
                 $columns[] = $normalizedColumn;
             }
 
