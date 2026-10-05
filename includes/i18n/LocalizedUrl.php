@@ -36,13 +36,16 @@ final class LocalizedUrl
         exit;
     }
 
-    /** @return array{kind:string,row:array<string,mixed>}|null */
+    /**
+     * @return array{kind:string,row:array<string,mixed>}|null
+     * @psalm-suppress PossiblyUnusedMethod 公开 API（插件可取本页条目），测试也用
+     */
     public static function current(): ?array
     {
         return self::$entity;
     }
 
-    /** 测试用 */
+    /** @psalm-suppress PossiblyUnusedMethod 测试用 */
     public static function reset(): void
     {
         self::$entity = null;
