@@ -136,4 +136,17 @@ final class LanguageRegistryTest extends TestCase
             }
         }
     }
+
+    /** 后台语言列表（设置 → 语言、语言设置）：界面语言名 · 本族语名；相同或互含时只留本族语名。 */
+    public function testLanguageTitlesPairInterfaceAndNativeNames(): void
+    {
+        self::assertSame('德语 · Deutsch', LanguageRegistry::title('de', 'Deutsch', 'zh-CN'));
+        self::assertSame('马来语 · Bahasa Melayu', LanguageRegistry::title('ms', 'Bahasa Melayu', 'zh-CN'));
+        self::assertSame('German · Deutsch', LanguageRegistry::title('de', 'Deutsch', 'en'));
+        self::assertSame('中文', LanguageRegistry::title('zh-CN', '中文', 'zh-CN'));
+        self::assertSame('English', LanguageRegistry::title('en', 'English', 'en'));
+
+        $setting = (string) file_get_contents(ROOT_PATH . '/admin/setting.php');
+        self::assertStringContainsString('LanguageRegistry::title($_lc, $_native, getLang())', $setting, '设置 → 语言也显示界面语言名');
+    }
 }
