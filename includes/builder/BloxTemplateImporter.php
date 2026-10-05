@@ -39,6 +39,7 @@ final class BloxTemplateImporter
             BloxTemplateMedia::register($prepared['media'], $adminId);
             // 包里带来的全局类与模板草稿同一事务：任一步失败都不留半套类
             BloxGlobalClasses::applyImportPlan($prepared['class_plan'], $adminId);
+            BloxDesignSystem::applyScaleImport($prepared['scale_plan']);
             $id = bloxTemplateModel()->createDraft(
                 $prepared['type'],
                 $prepared['name'],
@@ -148,7 +149,9 @@ final class BloxTemplateImporter
             'name' => $name,
             'thumbnail' => $thumbnail,
             'requires' => $requirements,
-            'design' => BloxDesignDependencies::exportDefinitions($requirements),
+            // 2.0.5：文档用到的设计刻度（间距 / 容器 / 圆角 / 阴影 / 排版）定义随包走，导入端只补本站没有的
+            'design' => BloxDesignDependencies::exportDefinitions($requirements)
+                + (($scales = BloxDesignDependencies::exportScales(BloxDesignDependencies::scaleReferences($sections))) !== [] ? ['scales' => $scales] : []),
         ] + ($classes !== [] ? ['classes' => $classes] : []) + [
             'metadata' => BloxSectionMetadata::normalize(self::decodeStoredMetadata($template['metadata'] ?? null)),
             'meta' => [
@@ -199,6 +202,7 @@ final class BloxTemplateImporter
      *   metadata:array<string,mixed>,design_diagnostics:array<string,mixed>,
      *   class_plan:list<array{class_id:string,name:string,settings:array<string,mixed>}>,
      *   class_diagnostics:array{reused:list<string>,created:list<string>,renamed:list<array{from:string,to:string}>,missing:list<string>},
+     *   scale_plan:array<string,list<array<string,mixed>>>,
      *   media:list<array{path:string,target:string,mime:string,sha256:string,bytes:string}>
      * }
      * @param array<string,mixed> $designOptions
@@ -345,6 +349,7 @@ final class BloxTemplateImporter
             'design_diagnostics' => $designDiagnostic,
             'class_plan' => $classPlan['create'],
             'class_diagnostics' => $classPlan['diagnostics'],
+            'scale_plan' => BloxDesignDependencies::planScaleImport(BloxDesignDependencies::scaleReferences($rawSections), $definitions['scales'] ?? null),
             'media' => $media,
         ];
     }

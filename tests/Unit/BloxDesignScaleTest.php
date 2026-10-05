@@ -162,6 +162,20 @@ final class BloxDesignScaleTest extends TestCase
         self::assertStringContainsString('max-w-4xl mx-auto', $section('narrow'), '原四档不变');
     }
 
+    public function testScaleImportOnlyAddsMissingIds(): void
+    {
+        $GLOBALS['_test_config'][BloxDesignSystem::SETTING_KEY] = json_encode(['tokens' => [['id' => 'c_ink', 'name' => 'Ink', 'value' => '#111111']],
+            'spaces' => [['id' => 'md', 'name' => 'M', 'value' => '20px']]], JSON_THROW_ON_ERROR);
+        BloxDesignSystem::applyScaleImport([
+            'space' => [['id' => 'md', 'name' => 'M', 'value' => '16px', 'status' => 'active', 'locked' => false, 'version' => 1],
+                ['id' => 'sp_hero', 'name' => 'Hero', 'value' => '72px', 'status' => 'active', 'locked' => false, 'version' => 1]],
+        ]);
+        $stored = json_decode((string) db()->fetchColumn("SELECT value FROM settings WHERE \"key\" = ?", [BloxDesignSystem::SETTING_KEY]), true);
+        self::assertSame(['md' => '20px', 'sp_hero' => '72px'], array_column($stored['spaces'], 'value', 'id'), '同 id 不覆盖，缺的补上');
+        self::assertSame('c_ink', $stored['tokens'][0]['id']);
+        self::assertSame(2, $stored['revision']);
+    }
+
     public function testMutationsKeepColorTokensAndValidateReferences(): void
     {
         $GLOBALS['_test_config'][BloxDesignSystem::SETTING_KEY] = json_encode([

@@ -117,6 +117,89 @@ final class BloxDesignDependencies
         return $result;
     }
 
+    /** 文档里引用设计刻度的数据键 → 刻度类别（值是 id；间距与容器宽度写作 token:<id>） */
+    private const SCALE_KEYS = ['radius_token' => 'radius', 'shadow_token' => 'shadow', 'type_token' => 'type'];
+    private const SCALE_ID = '/^[a-z0-9][a-z0-9_-]{0,47}$/';
+
+    /**
+     * 文档引用到的设计刻度（2.0.5）：圆角、阴影、排版用 *_token 键，间距用 style_margin… 与 style_padding… 键的 token:<id>（含四档），
+     * 容器宽度用区块 max_width 的 token:<id>。
+     * @param array<int,mixed> $sections @return array<string,list<string>> 类别 → id 列表
+     */
+    public static function scaleReferences(array $sections): array
+    {
+        $found = [];
+        $walk = static function (mixed $node) use (&$walk, &$found): void {
+            if (!is_array($node)) return;
+            foreach ($node as $key => $value) {
+                if (is_string($key) && isset(self::SCALE_KEYS[$key]) && is_string($value) && preg_match(self::SCALE_ID, $value) === 1) {
+                    $found[self::SCALE_KEYS[$key]][$value] = true;
+                } elseif (is_string($key) && (str_starts_with($key, 'style_margin') || str_starts_with($key, 'style_padding') || $key === 'max_width')) {
+                    foreach (is_array($value) ? $value : [$value] as $tier) {
+                        if (is_string($tier) && preg_match('/^token:([a-z0-9][a-z0-9_-]{0,47})$/', $tier, $m) === 1) {
+                            $found[$key === 'max_width' ? 'container' : 'space'][$m[1]] = true;
+                        }
+                    }
+                }
+                if (is_array($value)) $walk($value);
+            }
+        };
+        $walk($sections);
+        $out = [];
+        foreach ($found as $kind => $ids) {
+            $list = array_keys($ids);
+            sort($list);
+            $out[$kind] = $list;
+        }
+        ksort($out);
+        return $out;
+    }
+
+    /**
+     * 模板包要带的刻度定义：文档引用到的、本站存在的刻度（出厂刻度各站都有，也一并带上，导入端按 id 判断要不要补）。
+     * @param array<string,list<string>> $references @return array<string,list<array<string,mixed>>>
+     */
+    public static function exportScales(array $references): array
+    {
+        $snapshot = BloxDesignSystem::snapshot();
+        $buckets = BloxDesignScale::KINDS + ['type' => 'typography'];
+        $out = [];
+        foreach ($references as $kind => $ids) {
+            $bucket = $buckets[$kind] ?? null;
+            if ($bucket === null) continue;
+            $items = array_values(array_filter($snapshot[$bucket] ?? [], static fn (array $item): bool => in_array($item['id'], $ids, true)));
+            if ($items !== []) $out[$kind] = array_map(static fn (array $item): array => array_diff_key($item, ['locked' => 1, 'version' => 1, 'status' => 1]), $items);
+        }
+        return $out;
+    }
+
+    /**
+     * 导入计划：包里定义了、本站没有的刻度，按原 id 新增（不覆盖本站已有的同 id 刻度——那是本站的设计决定）。
+     * @param array<string,list<string>> $references @param mixed $definitions 包里 design.scales
+     * @return array<string,list<array<string,mixed>>>
+     */
+    public static function planScaleImport(array $references, mixed $definitions, ?array $snapshot = null): array
+    {
+        $snapshot ??= BloxDesignSystem::snapshot();
+        $buckets = BloxDesignScale::KINDS + ['type' => 'typography'];
+        $plan = [];
+        foreach ($references as $kind => $ids) {
+            $bucket = $buckets[$kind] ?? null;
+            $source = is_array($definitions) && is_array($definitions[$kind] ?? null) ? $definitions[$kind] : [];
+            if ($bucket === null || $source === []) continue;
+            $local = array_column($snapshot[$bucket] ?? [], null, 'id');
+            foreach ($source as $item) {
+                $id = is_array($item) ? (string) ($item['id'] ?? '') : '';
+                if ($id === '' || isset($local[$id]) || !in_array($id, $ids, true)) continue;
+                $normalized = $kind === 'type' ? BloxDesignType::normalizeItem($item) : BloxDesignScale::normalizeItem($kind, $item);
+                // 引用别的刻度的（{id}）不随包新建：对方站点的被引用项未必在这里
+                if ($normalized === null || ($kind !== 'type' && str_starts_with((string) $normalized['value'], '{'))) continue;
+                $plan[$kind][] = $normalized;
+            }
+        }
+        return $plan;
+    }
+
     /** @return array{tokens:array<string,array{count:int,sources:list<array<string,mixed>>}>,styles:array<string,array{count:int,sources:list<array<string,mixed>>}>} */
     public static function usageSnapshot(): array
     {

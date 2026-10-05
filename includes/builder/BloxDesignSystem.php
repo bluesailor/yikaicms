@@ -483,6 +483,38 @@ final class BloxDesignSystem
         throw new RuntimeException(__('blox_design_not_found'));
     }
 
+    /**
+     * 模板导入带来的刻度（BloxDesignDependencies::planScaleImport 的结果）：只新增本站没有的 id，不改已有项。
+     * 与模板草稿同一事务调用；计划为空时不写库。
+     * @param array<string,list<array<string,mixed>>> $plan
+     */
+    public static function applyScaleImport(array $plan): void
+    {
+        if ($plan === []) return;
+        $raw = BloxDocumentWriteLock::rawSettings([self::SETTING_KEY]);
+        if (function_exists('settingModel')) settingModel()->clearCache();
+        $state = self::snapshot();
+        $buckets = BloxDesignScale::KINDS + ['type' => 'typography'];
+        $changed = false;
+        foreach ($plan as $kind => $items) {
+            $bucket = $buckets[$kind] ?? null;
+            if ($bucket === null) continue;
+            $ids = array_column($state[$bucket], 'id');
+            $limit = $kind === 'type' ? BloxDesignType::MAX_ITEMS : BloxDesignScale::MAX_ITEMS;
+            foreach ($items as $item) {
+                if (in_array($item['id'], $ids, true) || count($state[$bucket]) >= $limit) continue;
+                $state[$bucket][] = $item;
+                $ids[] = $item['id'];
+                $changed = true;
+            }
+        }
+        if (!$changed) return;
+        $state['revision']++;
+        BloxDocumentWriteLock::settings(self::SETTING_KEY, $raw, static function () use ($state): void {
+            self::persist($state);
+        }, '', 'blox');
+    }
+
     /** @param array<string,mixed> $state */
     private static function persist(array $state): void
     {
