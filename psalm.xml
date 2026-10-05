@@ -146,6 +146,7 @@
                 <!-- 整站模板工作流新增独立入口 -->
                 <file name="admin/site_setup.php" />
                 <file name="admin/redirects.php" />
+                <file name="admin/article_category.php" />
                 <file name="admin/site_templates.php" />
                 <file name="admin/site_template_market.php" />
                 <file name="admin/site_content_check.php" />
