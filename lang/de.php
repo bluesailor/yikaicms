@@ -2452,6 +2452,7 @@ return [
     'blox_typo_weight_inherit' => 'Erben',
     'blox_type_token' => 'Textskala',
     'blox_type_token_help' => 'Verwendet die Textskala der Website für Größe, Zeilenhöhe, Laufweite und Stärke. Sie überschreibt die Größenvorgabe oben; eine hier gesetzte genaue Größe oder Zeilenhöhe hat weiterhin Vorrang.',
+    'blox_typo_theme_role' => 'Website-Schrift · :role',
     'blox_typo_text_xs' => 'Text XS',
     'blox_typo_text_sm' => 'Text S',
     'blox_typo_text_base' => 'Text M',

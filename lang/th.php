@@ -2452,6 +2452,7 @@ return [
     'blox_typo_weight_inherit' => 'สืบทอด',
     'blox_type_token' => 'สเกลข้อความ',
     'blox_type_token_help' => 'ใช้สเกลข้อความกลางสำหรับขนาด ระยะบรรทัด ระยะตัวอักษร และน้ำหนัก มีผลเหนือขนาดที่ตั้งไว้ด้านบน ขนาดหรือระยะบรรทัดที่ตั้งเฉพาะที่นี่ยังมีผลก่อน',
+    'blox_typo_theme_role' => 'ตัวอักษรของเว็บไซต์ · :role',
     'blox_typo_text_xs' => 'ข้อความ XS',
     'blox_typo_text_sm' => 'ข้อความ S',
     'blox_typo_text_base' => 'ข้อความ M',

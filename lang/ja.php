@@ -2649,6 +2649,7 @@ return [
     'blox_typo_weight_inherit' => '継承',
     'blox_type_token' => '文字スケール',
     'blox_type_token_help' => 'サイト共通の文字スケール（サイズ・行間・字間・太さ）を使います。上の文字サイズ設定より優先され、個別に指定したサイズや行間はさらに優先されます。',
+    'blox_typo_theme_role' => 'サイト共通の文字 · :role',
     'blox_typo_text_xs' => '本文 XS',
     'blox_typo_text_sm' => '本文 S',
     'blox_typo_text_base' => '本文 M',

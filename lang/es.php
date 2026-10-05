@@ -2452,6 +2452,7 @@ return [
     'blox_typo_weight_inherit' => 'Heredar',
     'blox_type_token' => 'Escala tipográfica',
     'blox_type_token_help' => 'Usa la escala tipográfica del sitio para tamaño, interlineado, espaciado y peso. Sustituye el tamaño predefinido de arriba; un tamaño o interlineado exacto aquí sigue teniendo prioridad.',
+    'blox_typo_theme_role' => 'Tipografía del sitio · :role',
     'blox_typo_text_xs' => 'Texto XS',
     'blox_typo_text_sm' => 'Texto S',
     'blox_typo_text_base' => 'Texto M',

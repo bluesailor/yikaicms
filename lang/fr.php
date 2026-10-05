@@ -2452,6 +2452,7 @@ return [
     'blox_typo_weight_inherit' => 'Hériter',
     'blox_type_token' => 'Échelle typographique',
     'blox_type_token_help' => 'Utilise l\'échelle typographique du site pour la taille, l\'interligne, l\'interlettrage et la graisse. Elle remplace la taille prédéfinie ci-dessus ; une taille ou un interligne exact défini ici reste prioritaire.',
+    'blox_typo_theme_role' => 'Typo du site · :role',
     'blox_typo_text_xs' => 'Texte XS',
     'blox_typo_text_sm' => 'Texte S',
     'blox_typo_text_base' => 'Texte M',

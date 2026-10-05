@@ -2452,6 +2452,7 @@ return [
     'blox_typo_weight_inherit' => 'Наследовать',
     'blox_type_token' => 'Шкала текста',
     'blox_type_token_help' => 'Берёт размер, межстрочный интервал, трекинг и насыщенность из общей шкалы. Переопределяет размер выше; точный размер или интервал, заданный здесь, по-прежнему важнее.',
+    'blox_typo_theme_role' => 'Текст сайта · :role',
     'blox_typo_text_xs' => 'Текст XS',
     'blox_typo_text_sm' => 'Текст S',
     'blox_typo_text_base' => 'Текст M',

@@ -115,6 +115,9 @@ settingModel()->saveBatch([
     ]], JSON_THROW_ON_ERROR),
 ]);
 BloxDesignTheme::resetCache();
+// 三源归一（2.0.5）：排版角色转成 theme-<角色> 排版 token，前台改走 token 别名——计算结果必须与转换前逐项相同
+BloxDesignTheme::syncTypographyTokens(BloxDesignTheme::published());
+BloxDesignTheme::resetCache();
 
 $class = BloxGlobalClasses::mutate('class_add', [
     'name' => 'canary-card',

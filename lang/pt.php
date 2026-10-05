@@ -2452,6 +2452,7 @@ return [
     'blox_typo_weight_inherit' => 'Herdar',
     'blox_type_token' => 'Escala tipográfica',
     'blox_type_token_help' => 'Usa a escala tipográfica do site para tamanho, altura de linha, espaçamento e peso. Substitui o tamanho predefinido acima; um tamanho ou altura de linha exato definido aqui continua com prioridade.',
+    'blox_typo_theme_role' => 'Texto do site · :role',
     'blox_typo_text_xs' => 'Texto XS',
     'blox_typo_text_sm' => 'Texto S',
     'blox_typo_text_base' => 'Texto M',

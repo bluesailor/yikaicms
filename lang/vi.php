@@ -2452,6 +2452,7 @@ return [
     'blox_typo_weight_inherit' => 'Kế thừa',
     'blox_type_token' => 'Thang chữ',
     'blox_type_token_help' => 'Dùng thang chữ của trang cho cỡ chữ, chiều cao dòng, khoảng cách chữ và độ đậm. Ghi đè cỡ chữ đặt sẵn ở trên; cỡ chữ hoặc chiều cao dòng đặt riêng ở đây vẫn được ưu tiên.',
+    'blox_typo_theme_role' => 'Chữ toàn trang · :role',
     'blox_typo_text_xs' => 'Văn bản XS',
     'blox_typo_text_sm' => 'Văn bản S',
     'blox_typo_text_base' => 'Văn bản M',

@@ -2452,6 +2452,7 @@ return [
     'blox_typo_weight_inherit' => 'وراثة',
     'blox_type_token' => 'مقياس النص',
     'blox_type_token_help' => 'يستخدم مقياس النص الموحد للحجم وارتفاع السطر وتباعد الأحرف والسماكة. يتقدّم على إعداد الحجم أعلاه؛ والحجم أو ارتفاع السطر المحدد هنا يبقى هو الأولى.',
+    'blox_typo_theme_role' => 'نص الموقع · :role',
     'blox_typo_text_xs' => 'نص XS',
     'blox_typo_text_sm' => 'نص S',
     'blox_typo_text_base' => 'نص M',

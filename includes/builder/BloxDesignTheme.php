@@ -1,5 +1,14 @@
 <?php
-/** Blox site-wide typography, button and layout theme (E04): normalize, compile, draft and publish. */
+/**
+ * Blox site-wide typography, button and layout theme (E04): normalize, compile, draft and publish.
+ *
+ * 2.0.5 设计系统 2.0（RFC-1 决策 1，三源归一第一步）：排版角色的字号 / 字重 / 行高以排版 token
+ * theme-<角色>（BloxDesignType，存在 blox_design_system）为准，本类成为它们的编辑视图：
+ *   - 发布时双写 token（syncTypographyTokens）；设计系统页也能直接改这些 token；
+ *   - 编译时 token 存在就引用它（--yk-type-h1-size:var(--yk-typo-theme-h1-size) 等，旧变量名保留为别名），
+ *     不存在（老站还没同步过）就照旧输出原值——两种情况前台计算结果相同（金丝雀页守护）；
+ *   - 字体、颜色、按钮、布局仍在本类。
+ */
 
 declare(strict_types=1);
 
@@ -81,23 +90,32 @@ final class BloxDesignTheme
         $vars = ['base' => [], 'tablet' => [], 'desktop' => []];
         $rules = [];
 
+        $tokens = self::typographyTokens();
         foreach ($theme['typography'] as $role => $item) {
             $prefix = '--yk-type-' . $role;
             $selector = in_array($role, ['h1', 'h2', 'h3', 'h4', 'h5', 'h6'], true)
                 ? $role . '.yk-type-' . $role
                 : '.yk-type-' . $role;
+            $token = $tokens[self::TOKEN_ROLE_PREFIX . $role] ?? null;
+            $tokenVar = '--yk-typo-' . self::TOKEN_ROLE_PREFIX . $role;
             $declarations = '';
             if (isset($item['size'])) {
-                $declarations .= self::responsiveDeclaration($vars, $rules, $selector, 'font-size', $prefix . '-size', $item['size']);
+                if ($token !== null) {
+                    // token 的字号变量自带平板 / 手机改写；旧变量名保留为它的别名
+                    $vars['base'][] = $prefix . '-size:var(' . $tokenVar . '-size)';
+                    $declarations .= 'font-size:var(' . $prefix . '-size);';
+                } else {
+                    $declarations .= self::responsiveDeclaration($vars, $rules, $selector, 'font-size', $prefix . '-size', $item['size']);
+                }
             }
             if (isset($item['family'])) {
                 $declarations .= 'font-family:' . self::FAMILIES[$item['family']] . ';';
             }
             if (isset($item['weight'])) {
-                $declarations .= 'font-weight:' . $item['weight'] . ';';
+                $declarations .= 'font-weight:' . ($token !== null && ($token['weight'] ?? '') !== '' ? 'var(' . $tokenVar . '-weight)' : $item['weight']) . ';';
             }
             if (isset($item['line_height'])) {
-                $declarations .= 'line-height:' . $item['line_height'] . ';';
+                $declarations .= 'line-height:' . ($token !== null && ($token['line_height'] ?? '') !== '' ? 'var(' . $tokenVar . '-lh)' : $item['line_height']) . ';';
             }
             if (isset($item['color'])) {
                 $declarations .= 'color:var(--yk-color-' . $item['color'] . ');';
@@ -211,6 +229,67 @@ final class BloxDesignTheme
         self::$publishedCache = null;
     }
 
+    /**
+     * 把 theme-<角色> 排版 token 的字号（只认整数 px）、字重、行高叠回主题状态，供全站排版编辑器显示。
+     * @param array{typography:array<string,array<string,mixed>>,buttons:array<string,mixed>,layout:array<string,mixed>} $theme
+     * @return array{typography:array<string,array<string,mixed>>,buttons:array<string,mixed>,layout:array<string,mixed>}
+     */
+    private static function withTokenValues(array $theme): array
+    {
+        $tokens = self::typographyTokens();
+        foreach (array_keys($theme['typography']) as $role) {
+            $token = $tokens[self::TOKEN_ROLE_PREFIX . $role] ?? null;
+            if ($token === null) continue;
+            $size = [];
+            foreach ((array) ($token['size'] ?? []) as $device => $value) {
+                if (preg_match('/^(\d{2})px$/', (string) $value, $m) === 1 && (int) $m[1] >= 12 && (int) $m[1] <= 96) $size[$device] = (int) $m[1];
+            }
+            if (isset($size['d'])) $theme['typography'][$role]['size'] = $size;
+            if (in_array((string) ($token['weight'] ?? ''), self::WEIGHTS, true)) $theme['typography'][$role]['weight'] = (string) $token['weight'];
+            $lh = self::decimal($token['line_height'] ?? null, 1.0, 2.2);
+            if ($lh !== null) $theme['typography'][$role]['line_height'] = $lh;
+        }
+        return self::normalize($theme);
+    }
+
+    /** 排版角色对应的 token id 前缀：theme-h1、theme-body … */
+    public const TOKEN_ROLE_PREFIX = 'theme-';
+
+    /** @return array<string,array<string,mixed>> 设计系统里的排版 token（id → 项） */
+    private static function typographyTokens(): array
+    {
+        if (!class_exists(BloxDesignSystem::class)) return [];
+        return array_column(BloxDesignSystem::snapshot()['typography'] ?? [], null, 'id');
+    }
+
+    /**
+     * 把排版角色写成 theme-<角色> 排版 token（发布时；设计系统页打开时补缺）。只写字号、字重、行高——
+     * token 管不了字体与颜色，这两项留在本类。$onlyMissing=true 时只补还没有的（不覆盖站长在设计系统页改过的值）。
+     */
+    public static function syncTypographyTokens(array $state, bool $onlyMissing = false): void
+    {
+        $theme = self::normalize($state);
+        $items = [];
+        foreach ($theme['typography'] as $role => $item) {
+            if (!isset($item['size']['d'])) continue;   // 没有桌面字号的角色不成 token（token 要求桌面字号）
+            $size = [];
+            foreach (['d', 't', 'm'] as $device) {
+                if (isset($item['size'][$device])) $size[$device] = $item['size'][$device] . 'px';
+            }
+            $items[] = [
+                'id' => self::TOKEN_ROLE_PREFIX . $role,
+                'name' => __('blox_typo_theme_role', ['role' => str_starts_with($role, 'h') ? strtoupper($role) : __('blox_design_theme_role_' . $role)]),
+                'size' => $size,
+                'line_height' => isset($item['line_height']) ? rtrim(rtrim(number_format((float) $item['line_height'], 2, '.', ''), '0'), '.') : '',
+                'weight' => (string) ($item['weight'] ?? ''),
+                'letter_spacing' => '',
+            ];
+        }
+        if ($items !== [] && class_exists(BloxDesignSystem::class)) {
+            BloxDesignSystem::upsertTypography($items, $onlyMissing);
+        }
+    }
+
     public static function hasTypography(string $role): bool
     {
         return isset(self::published()['typography'][$role]);
@@ -273,7 +352,8 @@ final class BloxDesignTheme
         $raw = BloxDocumentWriteLock::rawSettings([self::DRAFT_KEY, self::PUBLISHED_KEY]);
         $published = self::decode($raw[self::PUBLISHED_KEY]);
         $draft = self::decode($raw[self::DRAFT_KEY]);
-        $publishedState = self::normalize($published['state'] ?? []);
+        // 三源归一：编辑器看到的已发布值以 theme-<角色> 排版 token 为准（站长可能在设计系统页改过）
+        $publishedState = self::withTokenValues(self::normalize($published['state'] ?? []));
         $draftState = isset($draft['state']) ? self::normalize($draft['state']) : $publishedState;
         return [
             'draft' => $draftState,
@@ -316,6 +396,10 @@ final class BloxDesignTheme
                 ], $flags), 'blox');
             }
         }, '', 'blox');
+        if ($publish) {
+            // 三源归一：发布即把排版角色写成 theme-<角色> 排版 token（覆盖），前台改为引用 token
+            self::syncTypographyTokens($normalized);
+        }
         self::resetCache();
         return self::snapshot();
     }
