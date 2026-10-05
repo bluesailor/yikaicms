@@ -31,11 +31,12 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET' && get('action') === 'theme_upd
     }
     $updates = ThemeMarket::availableUpdates(
         ThemeMarket::localVersions(ROOT_PATH . '/themes'),
-        $catalog['data']['themes']
+        $catalog['data']['themes'],
+        ThemeMarket::linkedThemes(ROOT_PATH . '/themes')
     );
     $activeTheme = currentTheme();
     usort($updates, static function (array $a, array $b) use ($activeTheme): int {
-        return (($b['slug'] === $activeTheme) <=> ($a['slug'] === $activeTheme))
+        return ((($b['target'] ?: $b['slug']) === $activeTheme) <=> (($a['target'] ?: $a['slug']) === $activeTheme))
             ?: strcmp($a['slug'], $b['slug']);
     });
     success([
