@@ -47,6 +47,7 @@ final class SiteHealth
             self::checkPasswordHashes(),
             self::checkPendingMigrations($root),
             self::checkRecentBackup($root),
+            self::checkCron(),
             // 性能中心：缓存 / 静态化 / 响应 / 大资源（只读诊断，操作项跳转对应管理页）
             self::checkHtmlCache(),
             self::checkStaticHtml(),
@@ -836,6 +837,17 @@ final class SiteHealth
         $recent = $latest > time() - 14 * 86400;
         return self::result('recent_backup', $recent ? self::GOOD : self::RECOMMENDED, 'operations',
             'health_backup_title', $recent ? 'health_backup_good' : 'health_backup_bad', '/admin/database.php?tab=backup');
+    }
+
+    /** 定时任务：定时发布、自动备份、自动升级都靠它；从未运行或两天没动静就提示去配置。 */
+    private static function checkCron(): array
+    {
+        if (!class_exists('Cron')) {
+            require_once ROOT_PATH . '/includes/Cron.php';
+        }
+        $ok = Cron::health()['state'] === 'ok';
+        return self::result('cron', $ok ? self::GOOD : self::RECOMMENDED, 'operations',
+            'health_cron_title', $ok ? 'health_cron_good' : 'health_cron_bad', '/admin/cron.php');
     }
 
     // ── 性能中心：缓存 / 静态化 / 响应 / 大资源 ─────────────────────
