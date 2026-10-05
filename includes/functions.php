@@ -26,6 +26,7 @@ require_once __DIR__ . '/ThemeSettings.php';
 require_once __DIR__ . '/ThemeContent.php';
 require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeEntry：安全函数单一来源
 require_once __DIR__ . '/Slug.php';       // generateSlug/normalizeSlugInput：URL 别名净化单一来源
+require_once __DIR__ . '/admin_article_categories.php';   // 文章分类可由插件接管（admin_article_categories 过滤器）
 require_once __DIR__ . '/i18n/LanguageRegistry.php';   // 支持哪些语言、前缀/hreflang/方向：单一来源
 require_once __DIR__ . '/i18n/LanguageDomains.php';    // 语言域名模式（en.example.com 等）
 require_once __DIR__ . '/i18n/LanguageRouting.php';    // 语言前缀能否访问：探针、.htaccess 一键更新

@@ -133,6 +133,9 @@ $categories = [];
 if ($newsChannelId > 0) {
     $categories = channelModel()->getFlatList($newsChannelId, 0, $_viewLang);
 }
+// 插件可接管文章分类（老站文章挂在 news 以外的栏目里）：返回栏目行数组即生效，列表范围随之改为这些栏目
+$pluginCategories = adminArticleCategories((string) $_viewLang);
+if ($pluginCategories !== null) $categories = $pluginCategories;
 
 // 查询参数
 $channelId = getInt('channel_id');
@@ -152,6 +155,11 @@ $params = [$_viewLang];
 if ($channelId > 0) {
     $where[] = 'a.channel_id = ?';
     $params[] = $channelId;
+} elseif ($pluginCategories !== null) {
+    $scopeIds = array_map(static fn(array $c): int => (int) $c['id'], $pluginCategories);
+    $placeholders = implode(',', array_fill(0, count($scopeIds), '?')) ?: '0';
+    $where[] = "(a.channel_id IN ({$placeholders}) OR (a.channel_id = 0 AND a.type = 'article'))";
+    $params = array_merge($params, $scopeIds);
 } elseif ($newsChannelId > 0) {
     // 编辑器未选子栏目时会回退到 news 根栏目，因此列表范围必须同时包含根栏目和子栏目。
     // channel_id=0 是更早版本留下的未分类文章，也继续显示，避免后台失去修改入口。
