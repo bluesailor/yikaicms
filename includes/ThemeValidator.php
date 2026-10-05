@@ -35,7 +35,8 @@ final class ThemeValidator
      * @deprecated 仅为兼容外部引用保留，读 TemplateCategories::keys()
      */
     public const CATEGORIES = [
-        'general', 'manufacturing', 'food', 'home', 'service', 'auto', 'energy', 'creative',
+        'general', 'tech', 'hospitality', 'manufacturing', 'construction', 'recycling', 'trade', 'food', 'home',
+        'service', 'health', 'auto', 'energy', 'creative',
     ];
 
     /** 缺了就无法渲染的文件（相对主题目录） */

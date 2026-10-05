@@ -21,9 +21,11 @@ final class TemplateContractsTest extends TestCase
 {
     public function testCategoriesComeFromOneConfigWithLegacyAliases(): void
     {
-        self::assertSame(['general', 'manufacturing', 'food', 'home', 'service', 'auto', 'energy', 'creative'], TemplateCategories::keys());
+        self::assertSame(['general', 'tech', 'hospitality', 'manufacturing', 'construction', 'recycling', 'trade', 'food', 'home',
+            'service', 'health', 'auto', 'energy', 'creative'], TemplateCategories::keys(), '与演示站首页的行业分类一致');
         self::assertSame('service', TemplateCategories::normalize('services'));
-        self::assertSame('creative', TemplateCategories::normalize(' Tech '));
+        self::assertSame('tech', TemplateCategories::normalize(' Tech '));
+        self::assertSame('home', TemplateCategories::normalize('retail'));
         self::assertSame('food', TemplateCategories::normalize('food'));
         self::assertSame('', TemplateCategories::normalize('banking'));
         self::assertSame('餐饮与食品', TemplateCategories::label('food', 'zh-CN'));

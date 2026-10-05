@@ -10,21 +10,26 @@
 declare(strict_types=1);
 
 return [
+    // 顺序即官网模板页、演示站首页（demo.yikaicms.com）与后台模板市场的显示顺序，三处保持一致
     'groups' => [
         'general' => ['zh-CN' => '通用模板', 'en' => 'General', 'ja' => '汎用'],
+        'tech' => ['zh-CN' => '科技与软件', 'en' => 'Technology & software', 'ja' => 'IT・ソフトウェア'],
+        'hospitality' => ['zh-CN' => '旅行与住宿', 'en' => 'Travel & hospitality', 'ja' => '旅行・宿泊'],
         'manufacturing' => ['zh-CN' => '制造与工业', 'en' => 'Manufacturing & industry', 'ja' => '製造・工業'],
+        'construction' => ['zh-CN' => '建筑与装修', 'en' => 'Construction & renovation', 'ja' => '建築・リフォーム'],
+        'recycling' => ['zh-CN' => '环保与回收', 'en' => 'Environment & recycling', 'ja' => '環境・リサイクル'],
+        'trade' => ['zh-CN' => '商贸与批发', 'en' => 'Trade & wholesale', 'ja' => '商社・卸売'],
         'food' => ['zh-CN' => '餐饮与食品', 'en' => 'Food & dining', 'ja' => '飲食・食品'],
         'home' => ['zh-CN' => '家居与生活', 'en' => 'Home & lifestyle', 'ja' => '住まい・暮らし'],
         'service' => ['zh-CN' => '专业服务', 'en' => 'Professional services', 'ja' => '専門サービス'],
+        'health' => ['zh-CN' => '医疗健康', 'en' => 'Healthcare', 'ja' => '医療・ヘルスケア'],
         'auto' => ['zh-CN' => '汽车服务', 'en' => 'Automotive', 'ja' => '自動車サービス'],
         'energy' => ['zh-CN' => '能源与物流', 'en' => 'Energy & logistics', 'ja' => 'エネルギー・物流'],
         'creative' => ['zh-CN' => '创意与教育', 'en' => 'Creative & education', 'ja' => 'クリエイティブ・教育'],
     ],
-    // 2026-09-28 之前主题校验器用的旧词表 → 现在的分组
+    // 2026-09-28 之前主题校验器用的旧词表 → 现在的分组（tech、trade 自 2026-10-05 起是正式分组）
     'aliases' => [
         'services' => 'service',
-        'tech' => 'creative',
-        'trade' => 'manufacturing',
         'retail' => 'home',
     ],
 ];

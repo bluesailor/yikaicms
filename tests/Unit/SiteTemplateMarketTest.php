@@ -253,6 +253,9 @@ final class SiteTemplateMarketTest extends TestCase
         self::assertLessThan($nav, $languages, 'language filter sits above the categories');
         self::assertLessThan($languages, (int) strpos($page, 'id="st-market-q"'), 'search sits above the language filter');
         self::assertStringContainsString('min-[1680px]:grid-cols-4', $page);
+        // 2026-10-05：分类顺序跟词表（演示站首页同序），不再按名称排
+        self::assertStringContainsString('array_flip(TemplateCategories::keys())', $page);
+        self::assertStringNotContainsString('asort($categories)', $page);
         self::assertStringContainsString("<?php if (\$hasLanguages): ?>", $page);
         self::assertStringContainsString('data-testid="st-market-languages"', $page);
         self::assertStringContainsString("in_array(get('lang'), SiteTemplateMarket::languageCodes(), true)", $page);
