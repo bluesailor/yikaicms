@@ -688,6 +688,52 @@ final class ExtFields
         return $rows;
     }
 
+    /**
+     * 关联字段的 id 换成指定语言的版本（2.0.5 稳定回归）：翻译条目时 copyValues 照搬原文的关联 id，
+     * 它们指向原文语言的条目；在译文页面上按翻译组换成同语言的兄弟，保持选择顺序，没有该语言版本的去掉。
+     * $table：products 或 contents（不带前缀）。
+     * @param list<int> $ids
+     * @return list<int>
+     */
+    public static function localizeIds(string $table, array $ids, string $lang): array
+    {
+        $ids = array_values(array_filter(array_map('intval', $ids), static fn (int $id): bool => $id > 0));
+        if ($ids === [] || !in_array($table, ['products', 'contents'], true)) {
+            return $ids;
+        }
+        $t = (defined('DB_PREFIX') ? DB_PREFIX : '') . $table;
+        $marks = implode(',', array_fill(0, count($ids), '?'));
+        $rows = array_column(db()->fetchAll("SELECT id, lang, translation_group_id FROM {$t} WHERE id IN ({$marks})", $ids), null, 'id');
+        $groups = [];
+        foreach ($rows as $row) {
+            if ((string) $row['lang'] !== $lang) {
+                $groups[] = (int) ($row['translation_group_id'] ?: $row['id']);
+            }
+        }
+        $siblings = [];
+        if ($groups !== []) {
+            $groups = array_values(array_unique($groups));
+            $marks = implode(',', array_fill(0, count($groups), '?'));
+            // 原文行的 translation_group_id 可能是 0（老数据：只有译文指向原文 id），所以也按 id 认
+            $sql = "SELECT id, translation_group_id FROM {$t} WHERE lang = ? AND (translation_group_id IN ({$marks}) OR id IN ({$marks})) ORDER BY id";
+            foreach (db()->fetchAll($sql, array_merge([$lang], $groups, $groups)) as $row) {
+                $siblings[(int) ($row['translation_group_id'] ?: $row['id'])] ??= (int) $row['id'];
+            }
+        }
+        $out = [];
+        foreach ($ids as $id) {
+            $row = $rows[$id] ?? null;
+            if ($row === null) {
+                continue;
+            }
+            $mapped = (string) $row['lang'] === $lang ? $id : ($siblings[(int) ($row['translation_group_id'] ?: $row['id'])] ?? 0);
+            if ($mapped > 0 && !in_array($mapped, $out, true)) {
+                $out[] = $mapped;
+            }
+        }
+        return $out;
+    }
+
     // ── 小工具 ──────────────────────────────────────────────────
 
     /** 行 / 组里是否有实际内容（开关默认的 0 不算）。 */
