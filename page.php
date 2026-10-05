@@ -251,7 +251,7 @@ $navChannels = getNavChannels();
 
 // SEO: OpenGraph & canonical
 $siteUrl = siteBaseUrl();
-$canonicalUrl = $siteUrl . channelPrettyUrl($channel);
+$canonicalUrl = LocalizedUrl::canonical('channel', $channel, channelPrettyUrl($channel));
 if (!empty($channel['image'])) {
     $ogImage = $channel['image'];
 }

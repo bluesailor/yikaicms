@@ -86,10 +86,7 @@ NavCurrent::markDetail();   // 详情页：所属栏目在导航里标为所在�
 // SEO: OpenGraph & JSON-LD
 $ogType = 'product';
 $siteUrl = siteBaseUrl();
-$canonicalUrl = $siteUrl . productPrettyUrl($product);
-if (isDynamicUrlMode() && productRouteModel()->pathFor('product', (int) $product['id']) !== '') {
-    $canonicalUrl = $siteUrl . productUrl($product);
-}
+$canonicalUrl = LocalizedUrl::canonical('product', $product, productPrettyUrl($product));   // 动态网址模式下用动态地址
 if (!empty($product['cover'])) {
     $ogImage = $product['cover'];
 }

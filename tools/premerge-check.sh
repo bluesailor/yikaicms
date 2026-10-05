@@ -233,6 +233,29 @@ else
         || fail "冒烟状态还原失败（工作树可能仍是冒烟配置，务必人工检查）"
 fi
 
+# ───── 网址回归矩阵（2.0.5 §5.3a，P0）─────
+# 一次性沙盒（根目录 / 子目录 × 伪静态 / 动态 × 单语 / 前缀 / 语言域名，两两组合），约 3 分钟。
+# --full 必跑；自动模式下改了路由 / 网址生成相关文件才跑；--quick 不跑。
+NEED_URLS=0
+if [ "$MODE" = "full" ]; then
+    NEED_URLS=1
+elif [ "$MODE" = "auto" ]; then
+    URL_PATHS='^(index|list|page|article|detail|product|news|sitemap)\.php$|^includes/(Router|Dispatcher|BasePath|LegacyUrls|Redirects|product_routes|LanguageRouting|LanguageDomains)|^includes/i18n/|^includes/models/ProductRouteModel'
+    if { git diff --name-only HEAD; git diff --cached --name-only; } 2>/dev/null | grep -qE "$URL_PATHS"; then NEED_URLS=1; fi
+fi
+echo ""
+if [ "$NEED_URLS" = "1" ]; then
+    echo "[+] 网址回归矩阵"
+    if php tests/e2e/url-matrix-sandbox.php "$ROOT_DIR" >/tmp/premerge_urls.log 2>&1; then
+        pass "网址回归矩阵（$(grep -c '^PASS' /tmp/premerge_urls.log) 项）"
+    else
+        fail "网址回归矩阵"
+        grep -E '^(FAIL|  )' /tmp/premerge_urls.log | head -20 | sed 's/^/      /'
+    fi
+else
+    echo "[+] 网址回归矩阵 —— ${D}跳过（未改路由与网址生成；--full 可强制）${X}"
+fi
+
 # ───── 汇总 ─────
 echo ""
 echo "============================================================"

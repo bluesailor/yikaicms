@@ -113,11 +113,15 @@ function redirectToRegisteredUrl(string $kind, int $id): void
     if (isset($params['preview'])) return;
     $registered = productRouteModel()->pathFor($kind, $id);
     if ($registered === '') return;
-    $page = (int) ($params['page'] ?? 1);
-    unset($params['page']);
+    $page = max((int) ($params['page'] ?? 1), getInt('page', 1));
     $target = customRoutePublicPath(viewLangPath($registered));
     if ($page > 1 && in_array($kind, ProductRouteModel::LISTING_KINDS, true)) $target = rtrim($target, '/') . '/page/' . $page . '/';
-    $query = http_build_query($params, '', '&', PHP_QUERY_RFC3986);
+    // 访客带来的参数（utm_*、筛选等）原样带到新地址（2.0.5 网址回归：此前只留筛选白名单，推广参数丢失）；
+    // 取原始请求里的查询串，不取 $_GET——伪静态重写注入的 slug / id 不该出现在新地址上
+    $all = [];
+    parse_str((string) parse_url($_SERVER['REQUEST_URI'] ?? '/', PHP_URL_QUERY), $all);
+    unset($all['page']);
+    $query = http_build_query(array_filter($all, 'is_scalar'), '', '&', PHP_QUERY_RFC3986);
     header('Location: ' . $target . ($query !== '' ? '?' . $query : ''), true, 301);
     exit;
 }
