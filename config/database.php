@@ -358,12 +358,16 @@ function db(): Database
     return Database::getInstance();
 }
 
-/** 只在 YK_QUERY_COUNT=1 / sql 时启用的语句类：数执行次数（见 Database::enableQueryCount） */
+/**
+ * 只在 YK_QUERY_COUNT=1 / sql 时启用的语句类：数执行次数（见 Database::enableQueryCount）
+ * @extends PDOStatement<mixed>
+ */
 class CountingStatement extends PDOStatement
 {
     public static int $count = 0;
     public static bool $logSql = false;
 
+    /** @psalm-suppress PossiblyUnusedMethod 由 PDO 按 ATTR_STATEMENT_CLASS 构造 */
     protected function __construct()
     {
     }
