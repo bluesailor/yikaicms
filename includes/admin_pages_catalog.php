@@ -19,6 +19,7 @@ if (!function_exists('adminPagesCatalog')) {
             ['url'=>'/admin/channel.php',          'title'=>'栏目管理',     'keywords'=>'栏目 分类 导航 菜单 频道 排序 首页栏目',                                  'group'=>'内容'],
             ['url'=>'/admin/page.php',             'title'=>'单页管理',     'keywords'=>'单页 关于我们 隐私政策 服务条款 公司简介 about privacy terms',         'group'=>'内容'],
             ['url'=>'/admin/article.php',          'title'=>'文章管理',     'keywords'=>'文章 新闻 资讯 博客 动态 article news blog',                            'group'=>'内容'],
+            ['url'=>'/admin/article_category.php', 'title'=>'文章分类',     'keywords'=>'文章分类 新闻分类 资讯分类 博客分类 article category',                 'group'=>'内容'],
 
             // 产品
             ['url'=>'/admin/product.php',          'title'=>'产品管理',     'keywords'=>'产品 商品 product item',                                               'group'=>'产品'],
