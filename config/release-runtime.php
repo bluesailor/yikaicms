@@ -102,6 +102,7 @@ return [
         'includes/SiteAsset.php',
         'includes/ErrorHandler.php',
         'includes/Slug.php',
+        'includes/i18n/LocalizedUrl.php',   // functions.php 顶部 require：条目各语言网址（2.0.5）
         'includes/admin_article_categories.php',   // functions.php 顶部 require：文章分类可由插件接管
         'includes/Pinyin.php',
         'includes/pinyin/chars.php',

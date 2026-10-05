@@ -40,6 +40,8 @@ if ($_vars === null) {
 // 详情模板上下文需要控制器的派生数据（相册 / 参数 / 上下篇 / 相关），
 // 产品行本身没有这些；extract 后 $_vars 会销毁，故先留一份。
 $productTemplateVars = $_vars;
+// 记下本页条目（hreflang / 语言切换）；请求的语言没有这个产品的译文时 302 到它自己的语言版本
+LocalizedUrl::enter('product', $_vars['product'], $isNativeProductPreview || isset($_GET['preview']));
 extract($_vars, EXTR_OVERWRITE);
 unset($_vars);
 
