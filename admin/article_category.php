@@ -146,12 +146,19 @@ if ($rootId > 0) {
     $rootName = (string) ($rootRow['name'] ?? '');
 }
 
+// 多语言：默认语言下每行显示各语言的翻译状态（点击到栏目管理里看译文或新建翻译）
+require_once ROOT_PATH . '/admin/includes/trans_pills.php';
+$isSourceLang = $_viewLang === (string) config('site_lang', 'zh-CN');
+$transStatus = $isSourceLang ? loadTransStatus('channels') : [];
+
 $pageTitle = __('article_tab_category');
 $currentMenu = 'article';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 require ROOT_PATH . '/admin/includes/workflow_nav.php';
 ?>
+
+<?php echo renderAdminLangSwitcher($_viewLang); ?>
 
 <div class="bg-blue-50 border border-blue-200 text-blue-800 text-sm rounded-lg px-4 py-3 mb-4">
     <i class="ti ti-info-circle mr-1"></i><?php echo e(__($tree['plugin'] ? 'acat_notice_plugin' : 'acat_notice')); ?>
@@ -205,6 +212,9 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
                         <span class="font-medium"><?php echo e((string) $item['name']); ?></span>
                         <?php if (!empty($item['slug'])): ?>
                         <code class="text-xs bg-gray-100 px-2 py-1 rounded ml-2"><?php echo e((string) $item['slug']); ?></code>
+                        <?php endif; ?>
+                        <?php if ($isSourceLang): ?>
+                        <span class="ml-2 align-middle" data-testid="article-category-trans"><?php echo renderTransPills((int) $item['id'], $transStatus, '/admin/channel.php', 'edit'); ?></span>
                         <?php endif; ?>
                     </td>
                     <td class="px-4 py-3 text-center">

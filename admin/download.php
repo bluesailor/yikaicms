@@ -112,6 +112,7 @@ require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 $transStatus = loadTransStatus('downloads');
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+require ROOT_PATH . '/admin/includes/workflow_nav.php';   // 「下载列表 / 下载分类」标签
 ?>
 
 <?php echo renderAdminLangSwitcher($_viewLang); ?>
@@ -147,10 +148,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </form>
 
         <div class="flex gap-2">
-            <a href="/admin/download_category.php" class="border border-gray-300 hover:bg-gray-100 px-4 py-2 rounded inline-flex items-center gap-1">
-                <i class="ti ti-tag text-base"></i>
-                <?php echo e(__('dl_categories')); ?>
-            </a>
             <a href="/admin/download_edit.php" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <i class="ti ti-plus text-base"></i>
                 <?php echo __('admin_add'); ?>
@@ -348,4 +345,5 @@ async function batchAction(action) {
 }
 </script>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>
