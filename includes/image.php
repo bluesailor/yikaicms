@@ -46,6 +46,60 @@ function imageDimensionsWithinPixelLimit(int $width, int $height, int $maxPixels
 }
 
 /**
+ * JPEG 的 EXIF 方向（1–8）。读不到、不是 JPEG、没有 exif 扩展时为 1（不转）。
+ * 手机竖拍的照片像素是横着存的，靠这个标记让看图软件转正；GD 读图不认它（2.0.5 媒体回归）。
+ */
+function imageExifOrientation(string $path, string $ext): int
+{
+    if (!in_array(strtolower($ext), ['jpg', 'jpeg'], true) || !function_exists('exif_read_data')) {
+        return 1;
+    }
+    $exif = @exif_read_data($path, 'IFD0');
+    $orientation = is_array($exif) ? (int) ($exif['Orientation'] ?? 1) : 1;
+    return $orientation >= 1 && $orientation <= 8 ? $orientation : 1;
+}
+
+/**
+ * 按 EXIF 方向把图像转正（EXIF 规范：2 水平镜像、3 转 180°、4 垂直镜像、5 镜像后逆时针 90°、
+ * 6 顺时针 90°、7 镜像后顺时针 90°、8 逆时针 90°）。imagerotate 的角度是逆时针。
+ */
+function imageApplyOrientation(GdImage $image, int $orientation): GdImage
+{
+    if (in_array($orientation, [2, 5, 7], true)) imageflip($image, IMG_FLIP_HORIZONTAL);
+    if ($orientation === 4) imageflip($image, IMG_FLIP_VERTICAL);
+    $angle = match ($orientation) { 3 => 180, 5, 8 => 90, 6, 7 => -90, default => 0 };
+    if ($angle !== 0) {
+        $rotated = imagerotate($image, $angle, 0);
+        if ($rotated instanceof GdImage) return $rotated;
+    }
+    return $image;
+}
+
+/** 读图并按 EXIF 方向转正（JPEG；其它格式原样）。缩略图、WebP、缩小超大图、图片编辑都走这里。 */
+function imageLoadUpright(string $path, string $ext): GdImage|false
+{
+    $image = match (strtolower($ext)) {
+        'jpg', 'jpeg' => @imagecreatefromjpeg($path),
+        'png'         => @imagecreatefrompng($path),
+        'gif'         => @imagecreatefromgif($path),
+        'webp'        => function_exists('imagecreatefromwebp') ? @imagecreatefromwebp($path) : false,
+        default       => false,
+    };
+    if (!$image instanceof GdImage) return false;
+    $orientation = imageExifOrientation($path, $ext);
+    return $orientation > 1 ? imageApplyOrientation($image, $orientation) : $image;
+}
+
+/** 转正后的宽高（方向 5–8 宽高互换）；读不到为 [0, 0]。 @return array{0:int,1:int} */
+function imageUprightSize(string $path, string $ext): array
+{
+    $size = @getimagesize($path);
+    if (!is_array($size)) return [0, 0];
+    [$w, $h] = [(int) $size[0], (int) $size[1]];
+    return imageExifOrientation($path, $ext) >= 5 ? [$h, $w] : [$w, $h];
+}
+
+/**
  * 为上传的图片生成缩略图
  */
 function generateThumbnails(string $filepath, string $ext): array
@@ -55,13 +109,7 @@ function generateThumbnails(string $filepath, string $ext): array
         return [];
     }
 
-    $srcImage = match ($ext) {
-        'jpg', 'jpeg' => @imagecreatefromjpeg($filepath),
-        'png'         => @imagecreatefrompng($filepath),
-        'gif'         => @imagecreatefromgif($filepath),
-        'webp'        => @imagecreatefromwebp($filepath),
-        default       => false,
-    };
+    $srcImage = imageLoadUpright($filepath, $ext);
 
     if (!$srcImage) return [];
 
@@ -151,12 +199,8 @@ function downscaleImage(string $filepath, string $ext, int $maxW, int $quality =
     if (!function_exists('imagecreatetruecolor') || $maxW <= 0) {
         return false;
     }
-    $src = match ($ext) {
-        'jpg', 'jpeg' => @imagecreatefromjpeg($filepath),
-        'png'         => @imagecreatefrompng($filepath),
-        'webp'        => @imagecreatefromwebp($filepath),
-        default       => false,
-    };
+    // 覆盖原文件会丢掉 EXIF：先按方向转正，否则手机竖拍的大图存下来就横了
+    $src = in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true) ? imageLoadUpright($filepath, $ext) : false;
     if (!$src) {
         return false;
     }
@@ -386,11 +430,7 @@ function convertToWebp(string $srcPath, string $dstPath, string $srcExt, int $qu
     }
 
     $srcExt = strtolower($srcExt);
-    $srcImage = match ($srcExt) {
-        'jpg', 'jpeg' => @imagecreatefromjpeg($srcPath),
-        'png'         => @imagecreatefrompng($srcPath),
-        default       => false,
-    };
+    $srcImage = in_array($srcExt, ['jpg', 'jpeg', 'png'], true) ? imageLoadUpright($srcPath, $srcExt) : false;
 
     if (!$srcImage) return false;
 
