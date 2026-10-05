@@ -523,7 +523,7 @@ final class SiteTemplateService
                     'snapshot' => SiteTemplateData::snapshot(), 'plugin_snapshot' => $pluginBefore,
                     'plugin_requirements' => $matchedRequirements, 'alias' => $alias];
                 $this->writeRecord('current', $journal);
-                $this->installFiles($package['files'], $alias, $map);
+                $this->installFiles($package['files'], $alias, $map, !empty($plan['origin']['official']) ? $oldTheme : '');
                 if (!empty($plan['replace_existing'])) {
                     // 清空前整表记入日志：「撤销导入并恢复」要连它们一起还原，
                     // 否则草稿 / 历史版本参与的数据指纹对不上，恢复会被拒绝。
@@ -710,7 +710,11 @@ final class SiteTemplateService
         } catch (Throwable $e) { db()->rollback(); throw $e; }
     }
 
-    private function installFiles(array $files, string $alias, array $map): void
+    /**
+     * @param string $marketTheme 官方模板市场下载、验过签的整站包才传：包内主题的原 slug。装好后在回执里记下它与路径改写，
+     *        之后主题市场出新版时，这个 sitepack-* 目录可以对上号单独升级（2.0.5）。手动上传的包不关联。
+     */
+    private function installFiles(array $files, string $alias, array $map, string $marketTheme = ''): void
     {
         // uploads/<别名> 可能是本次 stage() 建的（别名在 prepare 阶段生成、随计划固定），
         // 所以只拒绝主题目录冲突；媒体的重复写入由上面的摘要比对兜住。
@@ -729,6 +733,17 @@ final class SiteTemplateService
             $this->assertContained($this->root . '/themes');
             $result = (new ThemeInstaller($this->root . '/themes', $this->root . '/storage'))->install($temp, $alias);
             if (!$result['ok']) throw new RuntimeException('st_theme');
+            if ($marketTheme !== '' && $marketTheme !== $alias) {
+                $meta = json_decode((string) @file_get_contents($this->root . '/themes/' . $alias . '/theme.json'), true);
+                $version = is_array($meta) ? (string) ($meta['version'] ?? '') : '';
+                try {
+                    MarketInstallOrigin::write($this->root . '/themes/' . $alias, 'theme', $alias, $version, 'official',
+                        ['market_slug' => $marketTheme, 'rewrite' => $map]);
+                } catch (RuntimeException $e) {
+                    // 关联不上只影响以后的单独升级，不影响这次导入（主题 slug 不合规时就是这种情况）
+                    error_log('[SiteTemplateService] theme market link skipped for ' . $alias . ': ' . $e->getMessage());
+                }
+            }
         } finally { @unlink($temp); }
         foreach ($files as $path => $bytes) {
             if (!str_starts_with($path, 'media/')) continue;
