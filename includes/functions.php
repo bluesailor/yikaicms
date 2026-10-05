@@ -26,6 +26,7 @@ require_once __DIR__ . '/ThemeSettings.php';
 require_once __DIR__ . '/ThemeContent.php';
 require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeEntry：安全函数单一来源
 require_once __DIR__ . '/Slug.php';       // generateSlug/normalizeSlugInput：URL 别名净化单一来源
+require_once __DIR__ . '/ColorContrast.php';   // 品牌色写字时调到够读（WCAG AA）
 require_once __DIR__ . '/admin_article_categories.php';   // 文章分类可由插件接管（admin_article_categories 过滤器）
 require_once __DIR__ . '/i18n/LanguageRegistry.php';   // 支持哪些语言、前缀/hreflang/方向：单一来源
 require_once __DIR__ . '/i18n/LanguageDomains.php';    // 语言域名模式（en.example.com 等）
@@ -4074,7 +4075,8 @@ function timelineColorParts(string $color): array
             'gradClass' => '',
             'gradStyle' => 'background-image:linear-gradient(to right,' . $color . ',' . $dark . ');',
             'textClass' => '',
-            'textStyle' => 'color:' . $color . ';',
+            // 文字要可读（WCAG AA 4.5:1，浅灰底）：同色相调暗；圆点与渐变仍用原色
+            'textStyle' => 'color:' . ColorContrast::readableText($color) . ';',
         ];
     }
     $grad = [
@@ -4089,10 +4091,11 @@ function timelineColorParts(string $color): array
         'red' => 'bg-red-500', 'purple' => 'bg-purple-500', 'cyan' => 'bg-cyan-500',
         'indigo' => 'bg-indigo-500', 'pink' => 'bg-pink-500', 'gray' => 'bg-gray-500',
     ];
+    // 700 档：600 档的黄 / 绿 / 青在浅底上不到 4.5:1（2.0.5 前台无障碍）
     $text = [
-        'blue' => 'text-blue-600', 'green' => 'text-green-600', 'yellow' => 'text-yellow-600',
-        'red' => 'text-red-600', 'purple' => 'text-purple-600', 'cyan' => 'text-cyan-600',
-        'indigo' => 'text-indigo-600', 'pink' => 'text-pink-600', 'gray' => 'text-gray-600',
+        'blue' => 'text-blue-700', 'green' => 'text-green-700', 'yellow' => 'text-yellow-700',
+        'red' => 'text-red-700', 'purple' => 'text-purple-700', 'cyan' => 'text-cyan-700',
+        'indigo' => 'text-indigo-700', 'pink' => 'text-pink-700', 'gray' => 'text-gray-600',
     ];
     return [
         'dotClass'  => $dot[$color] ?? 'bg-primary',
