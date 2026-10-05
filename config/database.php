@@ -43,6 +43,26 @@ class Database
                 : '数据库连接失败，请检查配置';
             throw new RuntimeException($message, 0, $e);
         }
+        $this->enableQueryCount();
+    }
+
+    /**
+     * 性能回归用（2.0.5）：Web 服务器进程带环境变量 YK_QUERY_COUNT=1 时，统计本请求执行了多少条预处理语句，
+     * 请求结束往 storage/logs/query-count.log 追加一行「方法 地址<TAB>条数」；=sql 时另把每条语句写进 query-sql.log。默认关闭，线上不受影响；
+     * 由 tests/e2e/query-budget-sandbox.php 打开。
+     */
+    private function enableQueryCount(): void
+    {
+        $mode = getenv('YK_QUERY_COUNT');
+        if (PHP_SAPI === 'cli' || !in_array($mode, ['1', 'sql'], true)) return;
+        CountingStatement::$logSql = $mode === 'sql';   // 排查用：逐条记下语句
+        $this->pdo->setAttribute(PDO::ATTR_STATEMENT_CLASS, [CountingStatement::class, []]);
+        register_shutdown_function(static function (): void {
+            $dir = dirname(__DIR__) . '/storage/logs';
+            if (!is_dir($dir)) @mkdir($dir, 0755, true);
+            $uri = (string) ($_SERVER['YK_ORIGINAL_REQUEST_URI'] ?? $_SERVER['REQUEST_URI'] ?? '');
+            @file_put_contents($dir . '/query-count.log', ($_SERVER['REQUEST_METHOD'] ?? 'GET') . ' ' . $uri . "\t" . CountingStatement::$count . "\n", FILE_APPEND | LOCK_EX);
+        });
     }
 
     /**
@@ -336,4 +356,24 @@ class Database
 function db(): Database
 {
     return Database::getInstance();
+}
+
+/** 只在 YK_QUERY_COUNT=1 / sql 时启用的语句类：数执行次数（见 Database::enableQueryCount） */
+class CountingStatement extends PDOStatement
+{
+    public static int $count = 0;
+    public static bool $logSql = false;
+
+    protected function __construct()
+    {
+    }
+
+    public function execute(?array $params = null): bool
+    {
+        self::$count++;
+        if (self::$logSql) {
+            @file_put_contents(dirname(__DIR__) . '/storage/logs/query-sql.log', preg_replace('/\s+/', ' ', $this->queryString) . "\n", FILE_APPEND);
+        }
+        return parent::execute($params);
+    }
 }
