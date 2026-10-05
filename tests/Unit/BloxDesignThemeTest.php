@@ -337,6 +337,57 @@ namespace Yikai\Tests\Unit {
             self::assertStringNotContainsString('28px', $aliased, '断点值改由 token 变量的媒体查询给');
         }
 
+        /** 重新发布时某角色不再有桌面字号（或被清空）：删掉它的 theme-* token，不让旧值残留在前台和编辑器里。 */
+        public function testRepublishingRemovesStaleRoleTokens(): void
+        {
+            $GLOBALS['_test_config'] = [];
+            \BloxDesignTheme::publish(['typography' => ['h2' => ['size' => ['d' => 36]]]], 0);
+            $tokens = static fn (): array => array_column(json_decode((string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', [\BloxDesignSystem::SETTING_KEY]), true)['typography'], null, 'id');
+            self::assertArrayHasKey('theme-h2', $tokens());
+            // 测试里 config() 读 _test_config：把刚写入的设计系统同步过去（线上 config 直接读库）
+            $GLOBALS['_test_config'] = [\BloxDesignSystem::SETTING_KEY => (string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', [\BloxDesignSystem::SETTING_KEY])];
+            \BloxDesignTheme::publish(['typography' => ['h2' => ['size' => ['t' => 30, 'm' => 26]]]], 1);
+            self::assertArrayNotHasKey('theme-h2', $tokens(), '只剩平板 / 手机字号时不成 token，旧 token 删除');
+            self::assertArrayHasKey('text-base', $tokens(), '其它排版 token 不动');
+            $GLOBALS['_test_config'] = [\BloxDesignSystem::SETTING_KEY => (string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', [\BloxDesignSystem::SETTING_KEY])];
+            self::assertStringNotContainsString('var(--yk-typo-theme-h2', \BloxDesignTheme::compile(['typography' => ['h2' => ['size' => ['t' => 30, 'm' => 26]]]]));
+        }
+
+        public function testLayoutBecomesScaleTokensWithResponsiveOverridesKept(): void
+        {
+            $GLOBALS['_test_config'] = [];
+            $layout = ['layout' => ['content_max_width' => 1120, 'section_spacing' => ['d' => 96, 'm' => 56], 'container_gap' => ['t' => 20]]];
+            $literal = \BloxDesignTheme::compile($layout);
+            \BloxDesignTheme::publish($layout, 0);
+            $stored = static fn (): array => json_decode((string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', [\BloxDesignSystem::SETTING_KEY]), true);
+            self::assertSame('1120px', array_column($stored()['containers'], null, 'id')['theme-content']['value']);
+            $spaces = array_column($stored()['spaces'], null, 'id');
+            self::assertSame('96px', $spaces['theme-section']['value']);
+            self::assertArrayNotHasKey('theme-gap', $spaces, '只设了平板的间距不成 token');
+            self::assertArrayHasKey('md', $spaces, '出厂刻度不动');
+
+            $GLOBALS['_test_config'] = [\BloxDesignSystem::SETTING_KEY => json_encode($stored(), JSON_THROW_ON_ERROR)];
+            $css = \BloxDesignTheme::compile($layout);
+            self::assertStringContainsString('--yk-layout-max-width:var(--yk-container-theme-content)', $css);
+            // 手机单独改写仍是原值，桌面改引用 token；只改了平板的间隙照旧输出
+            self::assertStringContainsString(':root{--yk-layout-max-width:var(--yk-container-theme-content);--yk-layout-section-spacing:56px', $css);
+            self::assertStringContainsString('--yk-layout-section-spacing:var(--yk-space-theme-section)', $css);
+            self::assertStringNotContainsString('96px', $css);
+            self::assertSame(str_replace(['var(--yk-container-theme-content)', 'var(--yk-space-theme-section)'], ['1120px', '96px'], $css), $literal);
+
+            // 设计系统页把 theme-section 改成 80px：全站排版编辑器显示 80
+            $state = $stored();
+            $state['spaces'] = array_map(static fn (array $t): array => $t['id'] === 'theme-section' ? ['value' => '80px'] + $t : $t, $state['spaces']);
+            db()->execute('UPDATE settings SET value = ? WHERE "key" = ?', [json_encode($state, JSON_THROW_ON_ERROR), \BloxDesignSystem::SETTING_KEY]);
+            $GLOBALS['_test_config'] = [\BloxDesignSystem::SETTING_KEY => json_encode($state, JSON_THROW_ON_ERROR)];
+            self::assertSame(['d' => 80, 'm' => 56], \BloxDesignTheme::snapshot()['published']['layout']['section_spacing']);
+
+            // 再发布不带布局：theme-* 刻度 token 删除
+            \BloxDesignTheme::publish([], 1);
+            self::assertArrayNotHasKey('theme-content', array_column($stored()['containers'], null, 'id'));
+            self::assertArrayNotHasKey('theme-section', array_column($stored()['spaces'], null, 'id'));
+        }
+
         public function testPublishWritesRoleTokensAndEditorShowsTokenValues(): void
         {
             $GLOBALS['_test_config'] = [];
@@ -355,7 +406,7 @@ namespace Yikai\Tests\Unit {
             db()->execute('UPDATE settings SET value = ? WHERE "key" = ?', [json_encode($stored, JSON_THROW_ON_ERROR), \BloxDesignSystem::SETTING_KEY]);
             \BloxDesignTheme::resetCache();
             self::assertSame(48, \BloxDesignTheme::snapshot()['published']['typography']['h1']['size']['d']);
-            \BloxDesignTheme::syncTypographyTokens(\BloxDesignTheme::published(), true);
+            \BloxDesignTheme::syncTokens(\BloxDesignTheme::published(), true);
             $again = json_decode((string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', [\BloxDesignSystem::SETTING_KEY]), true);
             self::assertSame('48px', array_column($again['typography'], null, 'id')['theme-h1']['size']['d']);
         }

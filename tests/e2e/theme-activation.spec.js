@@ -44,3 +44,35 @@ test('activating a local theme redirects to its fresh active state @ci', async (
     }
   }
 });
+
+test('legacy theme fonts stay read-only and can be cleared @ci', async ({ page }, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'one focused settings check is sufficient');
+
+  // 2.0.5（RFC-1 决策 2）：字体统一到「外观 → 字体」；旧外观设置里的字体只读、照旧生效，确认后可清除
+  const settings = page.locator('form[action="/admin/theme.php?tab=settings"]');
+  const legacy = page.getByTestId('theme-legacy-fonts');
+  const front = async () => (await page.request.get('/?e2e_fonts=' + Date.now())).text();
+  await page.goto('/admin/theme.php?tab=settings', { waitUntil: 'domcontentloaded' });
+  await expect(legacy).toBeVisible();
+  await expect(settings.locator('input[type="text"][name="theme_style[typography][body_font]"]')).toHaveCount(0);
+
+  // 模拟老站：旧版本在这里存过正文字体。隐藏字段随设置表单原样提交，保存其他设置不会把它清掉
+  await settings.locator('input[name="theme_style[typography][body_font]"]').evaluate((input) => { input.value = 'Georgia, serif'; });
+  await Promise.all([
+    page.waitForLoadState('domcontentloaded'),
+    settings.locator('button[type="submit"]').last().click(),
+  ]);
+  await page.goto('/admin/theme.php?tab=settings', { waitUntil: 'domcontentloaded' });
+  await expect(legacy).toContainText('Georgia, serif');
+  expect(await front()).toContain('Georgia, serif');
+
+  page.once('dialog', (dialog) => dialog.accept());
+  await Promise.all([
+    page.waitForURL((url) => url.pathname === '/admin/theme.php'),
+    legacy.getByTestId('theme-clear-legacy-fonts').click(),
+  ]);
+  await page.goto('/admin/theme.php?tab=settings', { waitUntil: 'domcontentloaded' });
+  await expect(legacy).not.toContainText('Georgia, serif');
+  await expect(legacy.getByTestId('theme-clear-legacy-fonts')).toHaveCount(0);
+  expect(await front()).not.toContain('Georgia, serif');
+});
