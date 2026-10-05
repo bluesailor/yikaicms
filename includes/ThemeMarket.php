@@ -217,28 +217,48 @@ final class ThemeMarket
     }
 
     /**
+     * 随官方整站模板装上、关联了市场主题的目录（2.0.5）：目录名 → [市场 slug, 当前版本]。
+     * @return array<string,array{market_slug:string,version:string}>
+     */
+    public static function linkedThemes(string $themesRoot): array
+    {
+        $linked = [];
+        foreach (self::localVersions($themesRoot) as $directory => $version) {
+            $link = MarketInstallOrigin::linked($themesRoot, $directory);
+            if ($link !== null) $linked[$directory] = ['market_slug' => $link['market_slug'], 'version' => $version];
+        }
+        return $linked;
+    }
+
+    /**
      * @param array<string,string> $localVersions
      * @param list<array<string,mixed>> $marketThemes
-     * @return list<array{slug:string,name:string,name_en:string,name_ja:string,current_version:string,latest_version:string}>
+     * @param array<string,array{market_slug:string,version:string}> $linked linkedThemes() 的结果：别名目录也按市场 slug 对版本
+     * @return list<array{slug:string,name:string,name_en:string,name_ja:string,current_version:string,latest_version:string,target:string}>
      */
-    public static function availableUpdates(array $localVersions, array $marketThemes): array
+    public static function availableUpdates(array $localVersions, array $marketThemes, array $linked = []): array
     {
         $updates = [];
         foreach ($marketThemes as $theme) {
             $slug = (string) ($theme['slug'] ?? '');
             $latest = (string) ($theme['version'] ?? '');
-            $current = $localVersions[$slug] ?? '';
-            if ($current === '' || !self::isRemoteVersionNewer($localVersions, $slug, $latest)) {
-                continue;
+            $targets = isset($localVersions[$slug]) ? [$slug => $localVersions[$slug]] : [];
+            foreach ($linked as $directory => $link) {
+                if ($link['market_slug'] === $slug) $targets[$directory] = $link['version'];
             }
-            $updates[] = [
-                'slug' => $slug,
-                'name' => (string) ($theme['name'] ?? $slug),
-                'name_en' => (string) ($theme['name_en'] ?? $theme['name'] ?? $slug),
-                'name_ja' => (string) ($theme['name_ja'] ?? $theme['name'] ?? $slug),
-                'current_version' => $current,
-                'latest_version' => $latest,
-            ];
+            foreach ($targets as $directory => $current) {
+                if (!self::isRemoteVersionNewer([$slug => $current], $slug, $latest)) continue;
+                $updates[] = [
+                    'slug' => $slug,
+                    'name' => (string) ($theme['name'] ?? $slug),
+                    'name_en' => (string) ($theme['name_en'] ?? $theme['name'] ?? $slug),
+                    'name_ja' => (string) ($theme['name_ja'] ?? $theme['name'] ?? $slug),
+                    'current_version' => $current,
+                    'latest_version' => $latest,
+                    // 空 = 升级同名目录；非空 = 升级这个随整站模板装上的别名目录
+                    'target' => $directory === $slug ? '' : (string) $directory,
+                ];
+            }
         }
         return $updates;
     }
