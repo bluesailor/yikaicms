@@ -1226,6 +1226,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
     <?php require __DIR__ . '/blox_editor/partials/workspace.php'; ?>
     <?php require __DIR__ . '/blox_editor/partials/overlays.php'; ?>
     <?php require __DIR__ . '/blox_editor/partials/command-palette.php'; ?>
+    <?php if (hasPermission('media')) require __DIR__ . '/includes/image_edit_modal.php'; ?>
 
     <script>
     function bloxEditor() {

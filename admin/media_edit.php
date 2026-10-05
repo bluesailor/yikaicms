@@ -6,7 +6,7 @@
  * 之后每次保存都从这份原图按操作历史重放，再经 MediaReplacement 写回原路径——网址与全站引用不变，
  * 缩略图与 WebP 随之重建；「恢复原图」把原图写回并清掉历史。
  *
- *   GET  ?action=info&id=        编辑器初始化：原图尺寸、已保存的历史、替代文字
+ *   GET  ?action=info&id=        编辑器初始化：原图尺寸、已保存的历史、替代文字（也可 &url=：网页构建器的图片控件只存网址）
  *   GET  ?action=preview&id=&history=[...]   按历史从原图重放，缩到最长边 900，直接输出图片
  *   POST action=save    id, history, alt
  *   POST action=restore id
@@ -29,6 +29,11 @@ const YK_IMAGE_EDIT_PREVIEW = 900;
 
 $action = (string) ($_REQUEST['action'] ?? '');
 $id = (int) ($_REQUEST['id'] ?? 0);
+if ($id < 1 && $action === 'info' && is_string($_GET['url'] ?? null)) {
+    // 去掉查询串后按媒体库网址精确匹配（库里与文档里都存根相对网址）；外链或不在媒体库的图片照旧报「找不到」
+    $lookup = (string) parse_url($_GET['url'], PHP_URL_PATH);
+    $id = $lookup !== '' ? (int) (mediaModel()->findBy('url', $lookup)['id'] ?? 0) : 0;
+}
 $media = $id > 0 ? mediaModel()->find($id) : null;
 if (!$media) error(__('media_replace_source_missing'));
 $ext = strtolower((string) ($media['ext'] ?? pathinfo((string) $media['path'], PATHINFO_EXTENSION)));
