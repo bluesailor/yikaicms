@@ -23,19 +23,33 @@ async function save(page, url, fields) {
 test('articles and products can be scheduled and go live on time @ci', async ({ page, request }, info) => {
   test.skip(info.project.name !== 'desktop-1440', 'one viewport is enough');
 
-  // 文章编辑页：有「定时发布」，选中后提示并要求填时间；「已发布」配未来时间提示「仍立即上线」
+  // 文章编辑页（2.0.5）：立即发布 / 草稿 / 定时发布；新建默认立即发布、不显示时间；
+  // 选定时发布才出现日期与时刻（默认当前时间、必填），两者合成隐藏字段 publish_time
   await page.goto('/admin/article_edit.php');
   const status = page.getByTestId('article-status');
   await expect(status.locator('option[value="3"]')).toHaveCount(1);
+  await expect(status).toHaveValue('1');
+  await expect(page.getByTestId('article-publish-time-row')).toBeHidden();
   await status.selectOption('3');
+  await expect(page.getByTestId('article-publish-time-row')).toBeVisible();
   await expect(page.getByTestId('article-schedule-hint')).toBeVisible();
-  await expect(page.getByTestId('article-publish-time')).toHaveAttribute('required', '');
+  await expect(page.getByTestId('article-publish-date')).toHaveAttribute('required', '');
+  await expect(page.getByTestId('article-publish-date')).toHaveValue(local(0).slice(0, 10));
+  const tomorrow = local(86400000).slice(0, 10);
+  await page.getByTestId('article-publish-date').fill(tomorrow);
+  await page.getByTestId('article-publish-clock').fill('09:30');
+  await expect(page.getByTestId('article-publish-time')).toHaveValue(`${tomorrow}T09:30`);
   await status.selectOption('1');
-  await page.getByTestId('article-publish-time').fill(local(86400000));
-  await expect(page.getByTestId('article-schedule-hint')).toBeVisible();
+  await expect(page.getByTestId('article-publish-time-row')).toBeHidden();
 
   // 定时却没填时间：拒绝
   expect((await save(page, '/admin/article_edit.php', { title: 'E2E 定时文章', status: '3', publish_time: '' })).code).not.toBe(0);
+  // 「立即发布」（publish_now=1）：发布时间记为现在，忽略表单里残留的时间
+  const now = await save(page, '/admin/article_edit.php', { title: 'E2E 定时对照：立即发布', status: '1', publish_now: '1', publish_time: local(86400000) });
+  expect(now.code).toBe(0);
+  const nowState = state('contents', now.data.id);
+  expect(Number(nowState.status)).toBe(1);
+  expect(Math.abs(Number(nowState.publish_time) - Date.now() / 1000)).toBeLessThan(120);
   // 「已发布」+ 未来时间（2.0.4 起）：按用户的选择立即上线，时间只作显示日期，不自动改成定时
   const published = await save(page, '/admin/article_edit.php', { title: 'E2E 定时对照：选已发布', status: '1', publish_time: local(86400000) });
   expect(published.code).toBe(0);

@@ -5,6 +5,14 @@ require_once __DIR__ . '/trans_pills.php';
 
 $workflowRoute = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''), '.php');
 [$workflowLabel, $workflowRoutes] = match ($workflowRoute) {
+    'article', 'article_category' => ['admin_article', [
+        'article' => ['article_tab_list', 'article', 'edit_article'],
+        'article_category' => ['article_tab_category', 'category', 'edit_article'],
+    ]],
+    'download', 'download_category' => ['admin_download', [
+        'download' => ['download_tab_list', 'download', 'edit_download'],
+        'download_category' => ['download_tab_category', 'category', 'edit_download'],
+    ]],
     'case', 'case_category' => ['admin_case', [
         'case' => ['case_tab_list', 'briefcase', 'edit_case'],
         'case_category' => ['case_tab_category', 'category', 'edit_case'],
@@ -34,7 +42,7 @@ foreach ($workflowRoutes as $route => [$key, $icon, $permission]) {
     }
     $workflowItems[] = [
         'label' => __($key),
-        'url' => '/admin/' . $route . '.php' . (in_array($workflowRoute, ['case', 'case_category', 'form', 'form_design'], true) ? '?lang=' . rawurlencode($workflowLang) : ''),
+        'url' => '/admin/' . $route . '.php' . (in_array($workflowRoute, ['article', 'article_category', 'download', 'download_category', 'case', 'case_category', 'form', 'form_design'], true) ? '?lang=' . rawurlencode($workflowLang) : ''),
         'icon' => $icon,
         'active' => $workflowRoute === $route,
         'testid' => 'admin-module-' . $route,

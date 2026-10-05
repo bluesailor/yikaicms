@@ -60,6 +60,7 @@
                 <file name="admin/site_template_market.php" />
                 <file name="admin/theme_content.php" />
                 <file name="admin/site_content_check.php" />
+                <file name="admin/article_category.php" />
                 <!-- Variables consumed by ignored editor partials through require scope. -->
                 <file name="admin/blox_design.php" />
                 <file name="plugins/seo/admin.php" />
@@ -145,6 +146,7 @@
                 <!-- 整站模板工作流新增独立入口 -->
                 <file name="admin/site_setup.php" />
                 <file name="admin/redirects.php" />
+                <file name="admin/article_category.php" />
                 <file name="admin/site_templates.php" />
                 <file name="admin/site_template_market.php" />
                 <file name="admin/site_content_check.php" />

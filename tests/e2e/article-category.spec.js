@@ -1,0 +1,47 @@
+const { test, expect } = require('./site-diagnostics');
+
+// 文章分类管理页（2.0.5）：从文章列表的标签进入，新增 / 编辑 / 显示开关 / 删除；下载模块同样用标签切换列表与分类。
+test('article categories can be managed from the article tabs @ci', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop-1440', 'one viewport is enough');
+  const name = `E2E 分类 ${Date.now()}`;
+
+  await page.goto('/admin/article.php');
+  await page.getByTestId('admin-module-article_category').click();
+  await expect(page).toHaveURL(/\/admin\/article_category\.php/);
+  await expect(page.getByTestId('article-category-table')).toBeVisible();
+
+  // 新增
+  await page.getByTestId('article-category-add').click();
+  await page.locator('#editName').fill(name);
+  await page.locator('#editForm button[type="submit"]').click();
+  const row = page.locator('[data-testid="article-category-table"] tr', { hasText: name });
+  await expect(row).toBeVisible();
+
+  // 编辑名称
+  await row.getByRole('button', { name: /编辑|Edit/ }).click();
+  await page.locator('#editName').fill(`${name} 改`);
+  await page.locator('#editForm button[type="submit"]').click();
+  const edited = page.locator('[data-testid="article-category-table"] tr', { hasText: `${name} 改` });
+  await expect(edited).toBeVisible();
+
+  // 显示开关：启用 → 停用
+  const statusBtn = edited.locator('td').nth(4).locator('button');
+  const before = (await statusBtn.textContent()).trim();
+  await statusBtn.click();
+  await expect(statusBtn).not.toHaveText(before);
+
+  // 删除（空分类可删）
+  page.once('dialog', (d) => d.accept());
+  await edited.getByRole('button', { name: /删除|Delete/ }).click();
+  await expect(page.locator('[data-testid="article-category-table"] tr', { hasText: `${name} 改` })).toHaveCount(0);
+
+  // 文章编辑页的「分类管理」链接指向本页
+  await page.goto('/admin/article_edit.php');
+  await expect(page.getByTestId('article-category-manage')).toHaveAttribute('href', /\/admin\/article_category\.php\?lang=/);
+
+  // 下载：列表与分类两个标签
+  await page.goto('/admin/download.php');
+  await expect(page.getByTestId('admin-module-download')).toBeVisible();
+  await page.getByTestId('admin-module-download_category').click();
+  await expect(page).toHaveURL(/\/admin\/download_category\.php/);
+});
