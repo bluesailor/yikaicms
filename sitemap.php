@@ -85,10 +85,17 @@ $urls[] = [
 
 // 栏目页
 $channels = channelModel()->getTree();
+// 会跳走的单页不是规范网址（2.0.5 网址回归）：设了指定地址跳转的，或默认「自动跳到第一个子栏目」且有子栏目的父单页
+$sitemapRedirects = static function (array $channel): bool {
+    if (($channel['type'] ?? '') !== 'page') return false;
+    $type = (string) ($channel['redirect_type'] ?? 'auto');
+    if ($type === 'url') return trim((string) ($channel['redirect_url'] ?? '')) !== '';
+    return $type === 'auto' && channelModel()->getByParent((int) $channel['id'], true) !== [];
+};
 foreach ($channels as $channel) {
     if ($channel['type'] === 'link') continue;
     if ($sitemapLangs !== [] && !in_array((string) ($channel['lang'] ?? ''), $sitemapLangs, true)) continue;
-    $urls[] = [
+    if (!$sitemapRedirects($channel)) $urls[] = [
         'loc'        => $sitemapLoc('channel', $channel, channelUrl($channel)),
         'lastmod'    => sitemapLastmod($channel['updated_at'] ?? null, $channel['created_at'] ?? null),
         'changefreq' => 'weekly',
@@ -97,7 +104,7 @@ foreach ($channels as $channel) {
     // 子栏目
     if (!empty($channel['children'])) {
         foreach ($channel['children'] as $child) {
-            if ($child['type'] === 'link') continue;
+            if ($child['type'] === 'link' || $sitemapRedirects($child)) continue;
             $urls[] = [
                 'loc'        => $sitemapLoc('channel', $child, channelUrl($child)),
                 'lastmod'    => sitemapLastmod($child['updated_at'] ?? null, $child['created_at'] ?? null),

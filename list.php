@@ -709,14 +709,10 @@ $horizRootChannel = $channel;
                 return dynamicChannelPageUrl($channel, $p, $keyword !== '' ? ['keyword' => $keyword] : [])
                     ?? dynamicUrl('list', ['id' => (int) ($channel['id'] ?? 0), 'page' => $p]);
             }
-            $slug = $channel['slug'] ?? '';
+            // 栏目网址（登记网址优先、带语言前缀）上加页码：/news/page/2.html、/category/news/page/2/（2.0.5 网址回归：
+            // 此前固定拼 /{别名}/page/N.html，登记了网址的栏目翻页先 301 回第一页，外语栏目翻页丢掉语言前缀）
             $keywordParam = $keyword !== '' ? '?keyword=' . urlencode($keyword) : '';
-            if ($p === 1) {
-                $url = $slug ? "/{$slug}.html" : "/list/{$channel['id']}.html";
-            } else {
-                $url = $slug ? "/{$slug}/page/{$p}.html" : "/list/{$channel['id']}/page/{$p}.html";
-            }
-            return $url . $keywordParam;
+            return pagedUrl(channelPrettyUrl($channel), $p) . $keywordParam;
         };
         require theme_path('partials/pagination.php');
         ?>

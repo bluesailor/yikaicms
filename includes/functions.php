@@ -935,15 +935,15 @@ function renderHreflangs(): string
     if ($path === '') $path = '/';
 
     $domains = LanguageDomains::active();
-    // 从登记网址进来的条目：各语言版本的网址各不相同（/about/team/ ↔ /ja/会社/チーム/），按翻译组逐个给
+    // 内容 / 产品 / 栏目详情：只列翻译组里真实存在的语言版本（2.0.5，LocalizedUrl；各版本的登记网址由它自己取）
+    $entityTags = LocalizedUrl::hreflangTags();
+    if ($entityTags !== null) return $entityTags;
+    // 其余从登记网址进来的条目（产品分类、标签、相册、列表第 N 页）：各语言版本的网址各不相同，按登记表逐个给
     $entity = $GLOBALS['yk_route_entity'] ?? null;
     if (is_array($entity)) {
         return customRouteHreflangs(productRouteModel()->translationPaths((string) $entity['kind'], (int) $entity['id']),
             (int) ($entity['page'] ?? 1), $enabled, $defaultLang);
     }
-    // 内容 / 产品详情：只列翻译组里真实存在的语言版本（2.0.5，LocalizedUrl）
-    $entityTags = LocalizedUrl::hreflangTags();
-    if ($entityTags !== null) return $entityTags;
     // 动态网址：语言在查询参数里。此前照伪静态拼成 /en/index.php（404），且丢了 yk_route
     if (isDynamicUrlMode()) {
         $requestUri = BasePath::strip((string) ($_SERVER['REQUEST_URI'] ?? '/'));
