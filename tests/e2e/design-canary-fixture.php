@@ -3,7 +3,11 @@
  * 设计系统金丝雀页（v2.1 三源归一的安全网）：固定一组设计数据——色板 token、全站主题（排版 / 按钮 / 布局）、
  * 一个全局类——和一张覆盖它们消费方的 Blox 页面。design-canary.spec.js 采集计算样式与 :root 变量，
  * 与基线逐项比对：设计数据换存储、换输出方式，前台必须语义等价。
- * restore 删除页面与期间新建的类，并还原三项设计设置。
+ * restore 删除页面与期间新建的类，并还原设计设置。
+ *
+ * 2.0.5（三源归一前补的安全网）：再固定旧外观设置（theme_style_settings：根字号、正文 / 标题字体、区块上下留白、按钮）
+ * 与字体页（font_*：自定义字体、基准字号）——三源归一要搬的正是这两处，搬前搬后都要算出同样的结果；
+ * 另加 2.0.5 的间距 / 排版 token 消费方。
  */
 
 declare(strict_types=1);
@@ -26,7 +30,8 @@ if (DB_DRIVER !== 'sqlite' || parse_url(SITE_URL, PHP_URL_HOST) !== '127.0.0.1')
     throw new RuntimeException('Local SQLite required');
 }
 
-const CANARY_SETTINGS = [BloxDesignSystem::SETTING_KEY, BloxDesignTheme::PUBLISHED_KEY, 'primary_color', 'secondary_color'];
+const CANARY_SETTINGS = [BloxDesignSystem::SETTING_KEY, BloxDesignTheme::PUBLISHED_KEY, 'primary_color', 'secondary_color',
+    ThemeSettings::KEY, 'font_preset', 'font_body_custom', 'font_heading_custom', 'font_base_size'];
 $path = ROOT_PATH . '/storage/design-canary-fixture.json';
 $action = (string) ($argv[1] ?? '');
 $state = is_file($path) ? json_decode((string) file_get_contents($path), true, 16, JSON_THROW_ON_ERROR) : null;
@@ -67,6 +72,16 @@ foreach (CANARY_SETTINGS as $key) {
 settingModel()->saveBatch([
     'primary_color' => '#0B6E8A',
     'secondary_color' => '#C2410C',
+    // 旧外观设置（当前主题的档案）与字体页：值都选非默认
+    ThemeSettings::KEY => ThemeSettings::encodeProfile(currentTheme(), ThemeSettings::normalize(array_replace_recursive(ThemeSettings::defaults(), [
+        'typography' => ['html_font_size' => 17, 'body_font' => 'Georgia, serif', 'heading_font' => 'Verdana, sans-serif'],
+        'spacing' => ['section_padding_y' => 72, 'content_gutter' => 20],
+        'button' => ['radius' => 9, 'background' => '#0B6E8A', 'text' => '#FFFFFF', 'hover_background' => '#C2410C'],
+    ]))),
+    'font_preset' => 'custom',
+    'font_body_custom' => '"Trebuchet MS", sans-serif',
+    'font_heading_custom' => '',
+    'font_base_size' => '15px',
     BloxDesignSystem::SETTING_KEY => json_encode([
         'schema' => 1, 'revision' => 3,
         'tokens' => [
@@ -99,6 +114,9 @@ settingModel()->saveBatch([
         'layout' => ['content_max_width' => 1120, 'section_spacing' => ['d' => 96, 'm' => 56], 'container_gap' => ['d' => 40, 'm' => 20]],
     ]], JSON_THROW_ON_ERROR),
 ]);
+BloxDesignTheme::resetCache();
+// 三源归一（2.0.5）：排版角色转成 theme-<角色> 排版 token，前台改走 token 别名——计算结果必须与转换前逐项相同
+BloxDesignTheme::syncTypographyTokens(BloxDesignTheme::published());
 BloxDesignTheme::resetCache();
 
 $class = BloxGlobalClasses::mutate('class_add', [
@@ -135,6 +153,11 @@ $json = json_encode([
             $el('cn-scale', 'container', ['bg_color' => '#ffffff', 'padding' => 'md', 'radius_token' => 'card', 'shadow_token' => 'md', 'children' => [
                 ['id' => 'cn-scale-text', 'type' => 'text', 'data' => ['html' => '<p>Scale tokens</p>']],
             ]]),
+            // 间距 / 排版 token（2.0.5）：出厂刻度
+            $el('cn-space', 'container', ['bg_color' => '#ffffff', 'style_padding' => ['d' => 'token:xl', 'm' => 'token:sm'], 'children' => [
+                ['id' => 'cn-space-text', 'type' => 'text', 'data' => ['html' => '<p>Space tokens</p>']],
+            ]]),
+            $el('cn-typo', 'heading', ['text' => 'Typography token', 'level' => 'h2', 'type_token' => 'heading-lg']),
         ]]],
     ]],
 ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);

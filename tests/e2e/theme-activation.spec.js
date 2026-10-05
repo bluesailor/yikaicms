@@ -17,24 +17,30 @@ test('activating a local theme redirects to its fresh active state @ci', async (
   await page.goto('/admin/theme.php', { waitUntil: 'domcontentloaded' });
   const business = page.getByTestId('theme-local-list').locator('[data-theme-slug="business"]');
   const defaultTheme = page.getByTestId('theme-local-list').locator('[data-theme-slug="default"]');
-  page.on('dialog', (dialog) => dialog.accept());
-  const activateButton = (card) => card.getByTestId('theme-activate');
-
-  try {
+  // 2.0.5（RFC-1）：启用按钮打开对话框，并列当前配色与主题配色，默认保留当前配色
+  const activate = async (card, colors = 'keep') => {
+    await card.getByTestId('theme-activate').click();
+    const dialog = card.getByTestId('theme-switch-dialog');
+    await expect(dialog).toBeVisible();
+    await dialog.getByTestId(`theme-switch-colors-${colors}`).check();
     await Promise.all([
       page.waitForURL((url) => url.pathname === '/admin/theme.php' && url.search === ''),
-      activateButton(business).click(),
+      dialog.getByTestId('theme-switch-confirm').click(),
     ]);
+  };
+  // 前台主题头里内联的主色（后台页面不输出它）
+  const primary = async () => ((await (await page.request.get('/')).text()).match(/--color-primary:\s*(#[0-9a-fA-F]{6})/) || [])[1]?.toUpperCase();
+  const before = await primary();
 
+  try {
+    await activate(business);
     await expect(page.locator('body')).toContainText('business');
     await expect(business).toHaveClass(/ring-2/);
-    await expect(business.locator('button[type="submit"]')).toHaveCount(0);
+    await expect(business.getByTestId('theme-activate')).toHaveCount(0);
+    expect(await primary(), '默认保留当前配色').toBe(before);
   } finally {
-    if (await activateButton(defaultTheme).count()) {
-      await Promise.all([
-        page.waitForURL((url) => url.pathname === '/admin/theme.php' && url.search === ''),
-        activateButton(defaultTheme).click(),
-      ]);
+    if (await defaultTheme.getByTestId('theme-activate').count()) {
+      await activate(defaultTheme, 'theme');
     }
   }
 });
