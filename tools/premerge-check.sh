@@ -256,6 +256,21 @@ else
     echo "[+] 网址回归矩阵 —— ${D}跳过（未改路由与网址生成；--full 可强制）${X}"
 fi
 
+# ───── 关键页查询次数（2.0.5 §5.3a 性能回归）─────
+# 一次性沙盒，约 1.5 分钟；只在 --full 时跑。列表页条目多了查询数不能涨（N+1），每页不超预算。
+echo ""
+if [ "$MODE" = "full" ]; then
+    echo "[+] 关键页查询次数"
+    if php tests/e2e/query-budget-sandbox.php "$ROOT_DIR" >/tmp/premerge_queries.log 2>&1; then
+        pass "关键页查询次数（$(grep -c '^PASS' /tmp/premerge_queries.log) 项）"
+    else
+        fail "关键页查询次数"
+        grep -E '^(FAIL|  |page |[a-z-]+ +[0-9])' /tmp/premerge_queries.log | head -24 | sed 's/^/      /'
+    fi
+else
+    echo "[+] 关键页查询次数 —— ${D}跳过（--full 时跑）${X}"
+fi
+
 # ───── 汇总 ─────
 echo ""
 echo "============================================================"
