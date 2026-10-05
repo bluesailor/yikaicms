@@ -99,10 +99,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 // 获取所有分类
 $categories = downloadCategoryModel()->getAllWithCount();
 
-$pageTitle = __('admin_category');
+$pageTitle = __('download_tab_category');
 $currentMenu = 'download';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+require ROOT_PATH . '/admin/includes/workflow_nav.php';   // 「下载列表 / 下载分类」标签
 ?>
 
 <?php /* 工具栏 */ ?>
@@ -112,10 +113,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php echo str_replace(':n', (string) count($categories), e(__('dcat_total'))); ?>
         </div>
         <div class="flex gap-2">
-            <a href="/admin/download.php" class="border border-gray-300 hover:bg-gray-100 px-4 py-2 rounded inline-flex items-center gap-1">
-                <i class="ti ti-arrow-left text-base"></i>
-                <?php echo __('admin_back'); ?>
-            </a>
             <button onclick="openModal()" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded inline-flex items-center gap-1">
                 <i class="ti ti-plus text-base"></i>
                 <?php echo e(__('pcat_add')); ?>
@@ -359,4 +356,5 @@ document.addEventListener('keydown', function(e) {
 });
 </script>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

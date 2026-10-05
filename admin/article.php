@@ -201,16 +201,10 @@ require_once ROOT_PATH . '/admin/includes/trans_pills.php';
 $transStatus = loadTransStatus('contents');
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+require ROOT_PATH . '/admin/includes/workflow_nav.php';   // 「文章列表 / 文章分类」标签
 ?>
 
 <?php echo renderAdminLangSwitcher($_viewLang); ?>
-
-<?php /* Tab 导航 */ ?>
-<div class="bg-white rounded-lg shadow mb-6">
-    <div class="flex border-b">
-        <a href="/admin/article.php<?php echo e($_lang['qs']); ?>" class="px-6 py-3 text-sm font-medium border-b-2 border-primary text-primary"><?php echo __('admin_article'); ?></a>
-    </div>
-</div>
 
 <?php /* 筛选栏 */ ?>
 <div class="bg-white rounded-lg shadow mb-6">
@@ -265,7 +259,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <tr class="bg-gray-50 text-left">
                     <th class="px-4 py-3 w-8"><input type="checkbox" id="checkAll"></th>
                     <th class="px-4 py-3"><?php echo __('admin_title_label'); ?></th>
-                    <th class="px-4 py-3"><?php echo __('admin_channel'); ?></th>
+                    <th class="px-4 py-3"><?php echo __('admin_category'); ?></th>
                     <th class="px-4 py-3"><?php echo __('admin_top'); ?></th>
                     <th class="px-4 py-3"><?php echo __('admin_recommend'); ?></th>
                     <th class="px-4 py-3"><?php echo __('detail_views'); ?></th>
@@ -475,4 +469,5 @@ async function batchAction(action) {
 }
 </script>
 
+<?php adminModuleEnd(); ?>
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

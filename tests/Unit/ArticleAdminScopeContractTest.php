@@ -46,4 +46,80 @@ final class ArticleAdminScopeContractTest extends TestCase
         self::assertStringContainsString('adminArticleCategories((string) $_editLang) ?? $categories', $edit);
         self::assertStringContainsString("error('请选择所属分类')", $edit, '接管时只接受插件给出的栏目');
     }
+
+    /** 插件接管时，分类管理页按插件给的栏目排父子树；父级不在集合里的当顶层，新分类默认建在顶层。 */
+    public function testCategoryTreeFollowsPluginChannels(): void
+    {
+        global $ik_filters;
+        require_once dirname(__DIR__, 2) . '/includes/hooks.php';
+        require_once dirname(__DIR__, 2) . '/includes/admin_article_categories.php';
+        $saved = $ik_filters['admin_article_categories'] ?? null;
+        unset($ik_filters['admin_article_categories']);
+        try {
+            add_filter('admin_article_categories', static fn(): array => [
+                ['id' => 12, 'parent_id' => 10, 'name' => '技术文章'],
+                ['id' => 10, 'parent_id' => 3, 'name' => '烤肉资讯'],      // 父级 3（课程）不在集合里 → 顶层
+                ['id' => 15, 'parent_id' => 0, 'name' => '学员故事'],
+                ['id' => 13, 'parent_id' => 12, 'name' => '设备保养'],
+            ]);
+            $tree = adminArticleCategoryTree('zh-CN');
+            self::assertTrue($tree['plugin']);
+            self::assertSame(0, $tree['root'], '插件接管时新分类建在顶层');
+            self::assertSame([10, 12, 13, 15], array_map(static fn(array $r): int => (int) $r['id'], $tree['rows']));
+            self::assertSame([0, 1, 2, 0], array_map(static fn(array $r): int => $r['_depth'], $tree['rows']));
+            self::assertSame('', $tree['rows'][0]['_prefix']);
+            self::assertSame('　— 　— ', $tree['rows'][2]['_prefix']);
+        } finally {
+            if ($saved === null) unset($ik_filters['admin_article_categories']); else $ik_filters['admin_article_categories'] = $saved;
+        }
+    }
+
+    /** 文章分类管理页：从文章列表的标签进入；改、删、开关只接受分类树里的栏目。 */
+    public function testCategoryPageIsReachableAndScoped(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $nav = (string) file_get_contents($root . '/admin/includes/workflow_nav.php');
+        $list = (string) file_get_contents($root . '/admin/article.php');
+        $page = (string) file_get_contents($root . '/admin/article_category.php');
+
+        self::assertStringContainsString("'article', 'article_category' => ['admin_article'", $nav, '文章列表与文章分类共用标签');
+        self::assertStringContainsString("require ROOT_PATH . '/admin/includes/workflow_nav.php'", $list);
+        self::assertStringContainsString('adminModuleEnd()', $list);
+        self::assertStringContainsString("requirePermission('edit_article')", $page);
+        self::assertStringContainsString('adminArticleCategoryTree($_viewLang)', $page);
+        self::assertStringContainsString("if (\$id > 0 && !isset(\$byId[\$id])) error(__('ccat_invalid'));", $page, '保存只改分类树里的栏目');
+        self::assertSame(2, substr_count($page, "if (!isset(\$byId[\$id])) error(__('ccat_invalid'));"), '删除与开关只动分类树里的栏目');
+        self::assertStringContainsString("if (\$childCount(\$id) > 0) error(__('pcat_has_children'));", $page, '有下级的分类不能删');
+        self::assertStringContainsString("if (\$articleCount(\$id) > 0) error(__('acat_has_articles'));", $page, '有文章的分类不能删');
+        self::assertStringContainsString("'/admin/article_category.php'", (string) file_get_contents($root . '/includes/admin_pages_catalog.php'));
+        self::assertStringContainsString('renderAdminLangSwitcher($_viewLang)', $page, '多语言站可切换查看语言');
+        self::assertStringContainsString("renderTransPills((int) \$item['id'], \$transStatus, '/admin/channel.php', 'edit')", $page, '默认语言下显示各语言翻译状态');
+    }
+
+    /** 下载与文章一样：「下载列表 / 下载分类」共用标签，不再各自放跳转按钮。 */
+    public function testDownloadPagesShareWorkflowTabs(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $nav = (string) file_get_contents($root . '/admin/includes/workflow_nav.php');
+        self::assertStringContainsString("'download', 'download_category' => ['admin_download'", $nav);
+        foreach (['download.php', 'download_category.php'] as $file) {
+            $src = (string) file_get_contents($root . '/admin/' . $file);
+            self::assertStringContainsString("require ROOT_PATH . '/admin/includes/workflow_nav.php'", $src, $file);
+            self::assertStringContainsString('adminModuleEnd()', $src, $file);
+        }
+        self::assertStringNotContainsString("__('admin_back')", (string) file_get_contents($root . '/admin/download_category.php'), '分类页不再需要「返回」按钮');
+    }
+
+    /** 文章发布：立即发布 / 草稿 / 定时发布；时间分日期与时刻，只在定时（或编辑已发布文章）时显示。 */
+    public function testArticlePublishControls(): void
+    {
+        $edit = (string) file_get_contents(dirname(__DIR__, 2) . '/admin/article_edit.php');
+        self::assertStringContainsString("__('admin_publish_now')", $edit);
+        self::assertStringContainsString('type="date" id="publishDate"', $edit);
+        self::assertStringContainsString('type="time" id="publishClock"', $edit);
+        self::assertStringContainsString('type="hidden" name="publish_time" id="publishTime"', $edit, '日期与时刻合成 publish_time，保存规则不变');
+        self::assertStringContainsString("var showTime = scheduled || (sel.value === '1' && wasPublished);", $edit);
+        self::assertStringContainsString("if ((int) \$data['status'] === 1 && post('publish_now') === '1') {", $edit, '立即发布记为当前时间');
+        self::assertStringContainsString(': time();   // 新建默认当前时间', $edit);
+    }
 }

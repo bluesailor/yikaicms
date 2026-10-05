@@ -21,7 +21,8 @@ if (!in_array($table, ['contents', 'products'], true)) {
 }
 $t = DB_PREFIX . $table;
 if ($action === 'status') {
-    echo json_encode(db()->fetchOne("SELECT status FROM {$t} WHERE id = ?", [$id]));
+    $cols = $table === 'contents' ? 'status, publish_time' : 'status';   // 产品的上架时间在 metas
+    echo json_encode(db()->fetchOne("SELECT {$cols} FROM {$t} WHERE id = ?", [$id]));
 } elseif ($action === 'due') {
     // 把定时时间拨到过去，并清掉 60 秒限流，下一次前台访问就会扫描上线（产品的时间在 metas）
     if ($table === 'contents') {
