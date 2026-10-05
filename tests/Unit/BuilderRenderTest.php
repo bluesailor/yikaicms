@@ -744,7 +744,8 @@ final class BuilderRenderTest extends TestCase
         $this->assertSame([
             'text', 'site_field', 'site_fallback', 'loop_field', 'loop_fallback',
             'level', 'url', 'new_tab', 'link_rel', 'link_title', 'link_aria_label', 'site_url_field', 'loop_url_field', 'html_id',
-            'visual_size', 'type_font_size', 'type_line_height', 'color', 'align',
+            // 2.0.5 设计系统 2.0：排版 token 排在字号档位前
+            'type_token', 'visual_size', 'type_font_size', 'type_line_height', 'color', 'align',
             // E10：动态绑定为空时的处置，排在动效之前
             '_empty_binding',
             'animation', 'animation_trigger', 'animation_speed', 'animation_delay', 'animation_device',
@@ -767,6 +768,7 @@ final class BuilderRenderTest extends TestCase
             'site_url_field' => 'none',
             'loop_url_field' => 'none',
             'html_id' => '',
+            'type_token' => '',
             'visual_size' => 'auto',
             'type_font_size' => '',
             'type_line_height' => '',

@@ -45,6 +45,34 @@ final class BloxTemplateDesignImportTest extends TestCase
         return BloxTemplateImporter::prepare(json_encode($package ?? $this->package(), JSON_THROW_ON_ERROR), $options);
     }
 
+    /** 2.0.5：模板包带上文档用到的设计刻度；导入端只补本站没有的 id，同 id 的本站刻度不动。 */
+    public function testScaleTokensTravelWithTemplatesAndOnlyFillGaps(): void
+    {
+        $GLOBALS['_test_config']['blox_design_system'] = json_encode(['tokens' => [],
+            'spaces' => [['id' => 'sp_hero', 'name' => 'Hero gap', 'value' => '72px'], ['id' => 'md', 'name' => 'M', 'value' => '16px']],
+            'typography' => [['id' => 'ty_lead', 'name' => 'Lead', 'size' => ['d' => '22px', 'm' => '19px'], 'line_height' => '1.5']],
+        ], JSON_THROW_ON_ERROR);
+        $sections = [['type' => 'section', 'settings' => ['max_width' => 'token:narrow'],
+            'columns' => [['elements' => [
+                ['type' => 'heading', 'data' => ['text' => 'Hi', 'type_token' => 'ty_lead', 'style_padding' => ['d' => 'token:sp_hero', 'm' => 'token:md']]],
+            ]]]]];
+        self::assertSame(['container' => ['narrow'], 'space' => ['md', 'sp_hero'], 'type' => ['ty_lead']],
+            BloxDesignDependencies::scaleReferences($sections));
+        $package = BloxTemplateImporter::exportPackage(['type' => 'section', 'name' => 'Scales',
+            'published_data' => json_encode($sections, JSON_THROW_ON_ERROR)]);
+        self::assertSame(['sp_hero', 'md'], array_column($package['design']['scales']['space'], 'id'));
+        self::assertSame('ty_lead', $package['design']['scales']['type'][0]['id']);
+
+        // 目标站：没有 sp_hero / ty_lead；md 是本站自己的值（不同），不能被模板覆盖
+        $GLOBALS['_test_config']['blox_design_system'] = json_encode(['tokens' => [],
+            'spaces' => [['id' => 'md', 'name' => 'M', 'value' => '20px']]], JSON_THROW_ON_ERROR);
+        $prepared = BloxTemplateImporter::prepare(json_encode($package, JSON_THROW_ON_ERROR));
+        self::assertSame(['sp_hero'], array_column($prepared['scale_plan']['space'], 'id'));
+        self::assertSame('72px', $prepared['scale_plan']['space'][0]['value']);
+        self::assertSame(['ty_lead'], array_column($prepared['scale_plan']['type'], 'id'));
+        self::assertArrayNotHasKey('container', $prepared['scale_plan'], '出厂刻度本站已有，不补');
+    }
+
     public function testImportReportsConflictsWithoutChangingLocalDesign(): void
     {
         $before = BloxDesignSystem::snapshot();

@@ -76,6 +76,7 @@ final class HeadingElement extends AbstractElement
                 ]],
             ['key' => 'html_id', 'type' => 'text', 'label' => __('blox_heading_anchor'), 'default' => '', 'maxlength' => 64,
                 'outside_loop_only' => true, 'placeholder' => 'services'],
+            ...$this->typeTokenControls(),
             ['key' => 'visual_size', 'type' => 'select', 'label' => __('blox_font_size'), 'default' => 'auto',
                 'tab' => 'style', 'responsive' => true,
                 'options' => [
@@ -138,5 +139,10 @@ final class HeadingElement extends AbstractElement
         $themeCls = $autoSize && class_exists(BloxDesignTheme::class) && BloxDesignTheme::hasTypography($level) ? ' yk-type-' . $level : '';
         return '<' . $level . ' class="' . $size . ' font-bold mb-4' . $alignCls . ($id !== '' ? ' yk-blox-anchor' : '') . $themeCls . '"' . $style
             . $idAttr . $this->animationAttrs($data) . '>' . $text . '</' . $level . '>';
+    }
+
+    public function supportsTypeToken(): bool
+    {
+        return true;
     }
 }

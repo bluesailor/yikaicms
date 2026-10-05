@@ -45,6 +45,7 @@ final class TextElement extends AbstractElement
                 'required' => ['loop_field', '!=', 'none'],
             ],
             ...$this->backgroundControls(),
+            ...$this->typeTokenControls(),
             ['key' => 'typography_role', 'type' => 'select', 'label' => __('blox_design_theme_role'),
                 'default' => 'body', 'tab' => 'style', 'options' => [
                     'body' => __('blox_design_theme_role_body'), 'caption' => __('blox_design_theme_role_caption'),
@@ -82,5 +83,10 @@ final class TextElement extends AbstractElement
         $role = ($data['typography_role'] ?? 'body') === 'caption' ? 'caption' : 'body';
         $themeClass = class_exists(BloxDesignTheme::class) && BloxDesignTheme::hasTypography($role) ? ' yk-type-' . $role : '';
         return '<div class="prose prose-lg max-w-none' . $radius . $themeClass . '"' . $style . $this->animationAttrs($data) . '>' . $html . '</div>';
+    }
+
+    public function supportsTypeToken(): bool
+    {
+        return true;
     }
 }

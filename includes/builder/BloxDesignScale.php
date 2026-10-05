@@ -7,27 +7,42 @@
  * - 输出 --yk-radius-<id> / --yk-shadow-<id>；消费方一律写 var(--x, 回退值)，token 被删也不坏版面；
  * - token 可引用同类另一个 token（值写 {id}），只解析一层：被引用的若本身也是引用，则不输出（消费方走回退值）。
  * 与 BloxDesignTheme（排版 / 按钮 / 布局）不重叠，所以先于三源归一单独上线；全部免费。
+ *
+ * 2.0.5 设计系统 2.0：加间距（--yk-space-<id>，边距 / 内边距 / 间隙用）与容器宽度（--yk-container-<id>）两类，
+ * 同一套存取、引用与归档规则。
  */
 
 declare(strict_types=1);
 
 final class BloxDesignScale
 {
-    public const KINDS = ['radius' => 'radii', 'shadow' => 'shadows'];
+    public const KINDS = ['radius' => 'radii', 'shadow' => 'shadows', 'space' => 'spaces', 'container' => 'containers'];
+    /** 新建 token 的 id 前缀 */
+    public const ID_PREFIX = ['radius' => 'r_', 'shadow' => 'sh_', 'space' => 'sp_', 'container' => 'ct_'];
     public const MAX_ITEMS = 24;
-    private const ID_PATTERN = '/^[a-z][a-z0-9_-]{0,47}$/';
-    private const REF_PATTERN = '/^\{([a-z][a-z0-9_-]{0,47})\}$/';
+    // 2.0.5：出厂间距刻度 2xs / 2xl / 3xl 以数字开头，id 允许字母或数字开头（CSS 自定义属性名本就允许）
+    private const ID_PATTERN = '/^[a-z0-9][a-z0-9_-]{0,47}$/';
+    private const REF_PATTERN = '/^\{([a-z0-9][a-z0-9_-]{0,47})\}$/';
     private const SHADOW_COLOR = '(?:#[0-9a-f]{3,8}|rgba?\([0-9.,\s%]+\)|var\(--yk-color-[a-z][a-z0-9_-]{0,47}\))';
     private const SHADOW_LENGTH = '(?:-?\d{1,3}(?:\.\d+)?px|0)';
 
     /** 出厂刻度（站点从未保存过该类时使用） @return list<array{id:string,value:string}> */
     public static function seeds(string $kind): array
     {
-        return $kind === 'radius'
-            ? [['id' => 'sm', 'value' => '4px'], ['id' => 'md', 'value' => '8px'], ['id' => 'lg', 'value' => '12px'],
-                ['id' => 'xl', 'value' => '16px'], ['id' => 'full', 'value' => '9999px']]
-            : [['id' => 'sm', 'value' => '0 1px 2px rgba(15,23,42,.06)'], ['id' => 'md', 'value' => '0 4px 12px rgba(15,23,42,.08)'],
-                ['id' => 'lg', 'value' => '0 12px 32px rgba(15,23,42,.12)']];
+        return match ($kind) {
+            'radius' => [['id' => 'sm', 'value' => '4px'], ['id' => 'md', 'value' => '8px'], ['id' => 'lg', 'value' => '12px'],
+                ['id' => 'xl', 'value' => '16px'], ['id' => 'full', 'value' => '9999px']],
+            'shadow' => [['id' => 'sm', 'value' => '0 1px 2px rgba(15,23,42,.06)'], ['id' => 'md', 'value' => '0 4px 12px rgba(15,23,42,.08)'],
+                ['id' => 'lg', 'value' => '0 12px 32px rgba(15,23,42,.12)']],
+            // 间距刻度：4 的倍数为主，与路线建议一致（2xs 4 … 3xl 64）
+            'space' => [['id' => '2xs', 'value' => '4px'], ['id' => 'xs', 'value' => '8px'], ['id' => 'sm', 'value' => '12px'],
+                ['id' => 'md', 'value' => '16px'], ['id' => 'lg', 'value' => '24px'], ['id' => 'xl', 'value' => '32px'],
+                ['id' => '2xl', 'value' => '48px'], ['id' => '3xl', 'value' => '64px']],
+            // 容器宽度：窄栏（正文阅读）、内容（默认版心）、宽版、通栏
+            'container' => [['id' => 'narrow', 'value' => '768px'], ['id' => 'content', 'value' => '1200px'],
+                ['id' => 'wide', 'value' => '1440px'], ['id' => 'full', 'value' => '100%']],
+            default => [],
+        };
     }
 
     /** 出厂项的名称（按后台语言） */
@@ -40,7 +55,7 @@ final class BloxDesignScale
     public static function normalizeValue(string $kind, mixed $value): ?string
     {
         if (is_int($value) || (is_string($value) && preg_match('/^\d{1,4}$/', trim($value)) === 1)) {
-            $value = $kind === 'radius' ? ((int) $value) . 'px' : (string) $value;
+            $value = in_array($kind, ['radius', 'space', 'container'], true) ? ((int) $value) . 'px' : (string) $value;
         }
         if (!is_string($value)) {
             return null;
@@ -51,6 +66,18 @@ final class BloxDesignScale
         }
         if (preg_match(self::REF_PATTERN, $value) === 1) {
             return $value;
+        }
+        if ($kind === 'space') {
+            // 0–400px 或 0–25rem
+            if (preg_match('/^(\d{1,3}(?:\.\d{1,2})?)px$/', $value, $m) === 1 && (float) $m[1] <= 400) return $m[1] . 'px';
+            if (preg_match('/^(\d{1,2}(?:\.\d{1,3})?)rem$/', $value, $m) === 1 && (float) $m[1] <= 25) return $m[1] . 'rem';
+            return $value === '0' ? '0px' : null;
+        }
+        if ($kind === 'container') {
+            // 240–3000px、15–200rem 或 100%（通栏）
+            if (preg_match('/^(\d{3,4})px$/', $value, $m) === 1 && (int) $m[1] >= 240 && (int) $m[1] <= 3000) return $m[1] . 'px';
+            if (preg_match('/^(\d{2,3}(?:\.\d{1,2})?)rem$/', $value, $m) === 1 && (float) $m[1] >= 15 && (float) $m[1] <= 200) return $m[1] . 'rem';
+            return $value === '100%' ? $value : null;
         }
         if ($kind === 'radius') {
             if (preg_match('/^(\d{1,3}(?:\.\d{1,2})?)px$/', $value, $m) === 1) {
