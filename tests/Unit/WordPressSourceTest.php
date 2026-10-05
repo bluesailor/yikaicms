@@ -45,6 +45,22 @@ final class WordPressSourceTest extends TestCase
         self::assertSame('product-category', $src->optionArray('woocommerce_permalinks')['category_base']);
     }
 
+    /** 2.0.5：自定义类型的网址前缀从重写规则里找（主题会改），类型条数与挂的分类法供导入与报告用。 */
+    public function testCustomTypesBasesTaxonomiesAndCounts(): void
+    {
+        $pdo = new PDO('sqlite::memory:');
+        $ids = wordPressFixture($pdo);
+        $src = new WordPressSource($pdo);
+        self::assertSame('portfolio-item', $src->rewriteBase('portfolio'));
+        self::assertSame('portfolio-types', $src->rewriteBase('portfolio-types'));
+        self::assertNull($src->rewriteBase('tribe_events'), '没有规则时返回 null，由调用方回落到类型名');
+        self::assertSame(['portfolio-types'], $src->taxonomiesOf('portfolio'));
+        $counts = $src->postTypeCounts();
+        self::assertSame(1, $counts['portfolio']);
+        self::assertSame(1, $counts['tribe_events']);
+        self::assertGreaterThan(0, $ids['portfolio_crane']);
+    }
+
     public function testRejectsSerializedObjects(): void
     {
         self::assertSame([], WordPressSource::unserializeArray('O:8:"stdClass":0:{}'));
