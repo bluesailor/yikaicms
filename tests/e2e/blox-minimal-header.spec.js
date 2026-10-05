@@ -13,13 +13,16 @@ async function activateTheme(page, slug) {
   if (await page.locator('main').getByText(`当前主题：${slug}`, { exact: false }).isVisible()) {
     return;
   }
-  const form = page.locator(`form:has(input[name="action"][value="activate"]):has(input[name="slug"][value="${slug}"])`);
-  await expect(form).toBeVisible();
-  page.once('dialog', (dialog) => dialog.accept());
+  // 2.0.5 起启用按钮打开切换对话框；这里沿用旧行为：应用主题自带配色
+  const card = page.getByTestId('theme-local-list').locator(`[data-theme-slug="${slug}"]`);
+  await card.getByTestId('theme-activate').click();
+  const dialog = card.getByTestId('theme-switch-dialog');
+  await expect(dialog).toBeVisible();
+  await dialog.getByTestId('theme-switch-colors-theme').check();
   await Promise.all([
     page.waitForResponse((response) => response.request().method() === 'POST'
       && new URL(response.url()).pathname === '/admin/theme.php'),
-    form.getByRole('button').click(),
+    dialog.getByTestId('theme-switch-confirm').click(),
   ]);
   await page.waitForLoadState('domcontentloaded');
   await page.reload({ waitUntil: 'domcontentloaded' });
