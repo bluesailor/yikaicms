@@ -2452,6 +2452,7 @@ return [
     'blox_typo_weight_inherit' => 'Devral',
     'blox_type_token' => 'Metin ölçeği',
     'blox_type_token_help' => 'Boyut, satır yüksekliği, harf aralığı ve kalınlık için site metin ölçeğini kullanır. Yukarıdaki boyut ön ayarını geçersiz kılar; burada ayarlanan tam boyut veya satır yüksekliği yine önceliklidir.',
+    'blox_typo_theme_role' => 'Site yazısı · :role',
     'blox_typo_text_xs' => 'Metin XS',
     'blox_typo_text_sm' => 'Metin S',
     'blox_typo_text_base' => 'Metin M',

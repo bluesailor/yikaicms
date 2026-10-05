@@ -2452,6 +2452,7 @@ return [
     'blox_typo_weight_inherit' => '상속',
     'blox_type_token' => '글자 단계',
     'blox_type_token_help' => '사이트 공통 글자 단계(크기·줄 간격·자간·굵기)를 씁니다. 위의 글자 크기 설정보다 우선하며, 여기서 따로 지정한 크기와 줄 간격은 계속 우선합니다.',
+    'blox_typo_theme_role' => '사이트 글자 · :role',
     'blox_typo_text_xs' => '본문 XS',
     'blox_typo_text_sm' => '본문 S',
     'blox_typo_text_base' => '본문 M',

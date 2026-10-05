@@ -2452,6 +2452,7 @@ return [
     'blox_typo_weight_inherit' => 'Warisi',
     'blox_type_token' => 'Skala teks',
     'blox_type_token_help' => 'Menggunakan skala teks laman untuk saiz, ketinggian baris, jarak huruf dan ketebalan. Ia mengatasi pratetap saiz di atas; saiz atau ketinggian baris tepat yang ditetapkan di sini tetap diutamakan.',
+    'blox_typo_theme_role' => 'Teks laman · :role',
     'blox_typo_text_xs' => 'Teks XS',
     'blox_typo_text_sm' => 'Teks S',
     'blox_typo_text_base' => 'Teks M',

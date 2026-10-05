@@ -2452,6 +2452,7 @@ return [
     'blox_typo_weight_inherit' => 'ارث‌بری',
     'blox_type_token' => 'مقیاس متن',
     'blox_type_token_help' => 'از مقیاس متن سایت برای اندازه، ارتفاع خط، فاصلهٔ حروف و ضخامت استفاده می‌کند. بر تنظیم اندازهٔ بالا مقدم است؛ اندازه یا ارتفاع خط دقیق در اینجا همچنان مقدم است.',
+    'blox_typo_theme_role' => 'متن سایت · :role',
     'blox_typo_text_xs' => 'متن XS',
     'blox_typo_text_sm' => 'متن S',
     'blox_typo_text_base' => 'متن M',

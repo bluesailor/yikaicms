@@ -64,7 +64,17 @@
       "--yk-typo-text-xl-lh": "1.5",
       "--yk-typo-text-xl-size": "20px",
       "--yk-typo-text-xs-lh": "1.5",
-      "--yk-typo-text-xs-size": "12px"
+      "--yk-typo-text-xs-size": "12px",
+      "--yk-typo-theme-body-lh": "1.8",
+      "--yk-typo-theme-body-size": "17px",
+      "--yk-typo-theme-h1-lh": "1.2",
+      "--yk-typo-theme-h1-size": "52px",
+      "--yk-typo-theme-h1-weight": "700",
+      "--yk-typo-theme-h2-lh": "1.3",
+      "--yk-typo-theme-h2-size": "36px",
+      "--yk-typo-theme-h2-weight": "600",
+      "--yk-typo-theme-h3-size": "24px",
+      "--yk-typo-theme-h3-weight": "600"
     },
     "elements": {
       "cn-h1": {
@@ -404,7 +414,17 @@
       "--yk-typo-text-xl-lh": "1.5",
       "--yk-typo-text-xl-size": "18px",
       "--yk-typo-text-xs-lh": "1.5",
-      "--yk-typo-text-xs-size": "12px"
+      "--yk-typo-text-xs-size": "12px",
+      "--yk-typo-theme-body-lh": "1.8",
+      "--yk-typo-theme-body-size": "16px",
+      "--yk-typo-theme-h1-lh": "1.2",
+      "--yk-typo-theme-h1-size": "34px",
+      "--yk-typo-theme-h1-weight": "700",
+      "--yk-typo-theme-h2-lh": "1.3",
+      "--yk-typo-theme-h2-size": "28px",
+      "--yk-typo-theme-h2-weight": "600",
+      "--yk-typo-theme-h3-size": "24px",
+      "--yk-typo-theme-h3-weight": "600"
     },
     "elements": {
       "cn-h1": {

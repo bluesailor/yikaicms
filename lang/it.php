@@ -2452,6 +2452,7 @@ return [
     'blox_typo_weight_inherit' => 'Eredita',
     'blox_type_token' => 'Scala tipografica',
     'blox_type_token_help' => 'Usa la scala tipografica del sito per dimensione, interlinea, spaziatura e peso. Sostituisce la dimensione predefinita sopra; una dimensione o interlinea esatta impostata qui ha comunque la precedenza.',
+    'blox_typo_theme_role' => 'Testo del sito · :role',
     'blox_typo_text_xs' => 'Testo XS',
     'blox_typo_text_sm' => 'Testo S',
     'blox_typo_text_base' => 'Testo M',

@@ -2479,6 +2479,7 @@ return [
     'blox_typo_weight_inherit' => 'Inherit',
     'blox_type_token' => 'Type scale',
     'blox_type_token_help' => 'Uses the site type scale for size, line height, letter spacing and weight. It overrides the size preset above; an exact size or line height set here still wins.',
+    'blox_typo_theme_role' => 'Site type · :role',
     'blox_typo_text_xs' => 'Text XS',
     'blox_typo_text_sm' => 'Text S',
     'blox_typo_text_base' => 'Text M',

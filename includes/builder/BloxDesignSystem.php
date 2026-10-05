@@ -515,6 +515,41 @@ final class BloxDesignSystem
         }, '', 'blox');
     }
 
+    /**
+     * 按 id 新增或覆盖排版 token（全站排版发布时双写用）。$onlyMissing=true 只新增不覆盖。
+     * @param list<array<string,mixed>> $items
+     */
+    public static function upsertTypography(array $items, bool $onlyMissing = false): void
+    {
+        $raw = BloxDocumentWriteLock::rawSettings([self::SETTING_KEY]);
+        if (function_exists('settingModel')) settingModel()->clearCache();
+        $state = self::snapshot();
+        $index = array_flip(array_column($state['typography'], 'id'));
+        $changed = false;
+        foreach ($items as $item) {
+            $id = (string) ($item['id'] ?? '');
+            if (isset($index[$id])) {
+                if ($onlyMissing) continue;
+                $current = $state['typography'][$index[$id]];
+                $next = BloxDesignType::normalizeItem(array_merge($current, $item, ['status' => $current['status'], 'locked' => $current['locked'],
+                    'version' => (int) $current['version'] + 1]));
+                if ($next === null || array_diff_key($next, ['version' => 1]) == array_diff_key($current, ['version' => 1])) continue;
+                $state['typography'][$index[$id]] = $next;
+            } else {
+                $next = BloxDesignType::normalizeItem($item);
+                if ($next === null || count($state['typography']) >= BloxDesignType::MAX_ITEMS) continue;
+                $state['typography'][] = $next;
+                $index[$id] = count($state['typography']) - 1;
+            }
+            $changed = true;
+        }
+        if (!$changed) return;
+        $state['revision']++;
+        BloxDocumentWriteLock::settings(self::SETTING_KEY, $raw, static function () use ($state): void {
+            self::persist($state);
+        }, '', 'blox');
+    }
+
     /** @param array<string,mixed> $state */
     private static function persist(array $state): void
     {

@@ -2453,6 +2453,7 @@ return [
     'blox_typo_weight_inherit' => '跟隨',
     'blox_type_token' => '排版刻度',
     'blox_type_token_help' => '用全站排版刻度的字號、行高、字距和字重；會覆蓋上面的字號檔位，單獨填的精確字號、行高仍然優先。',
+    'blox_typo_theme_role' => '全站排版 · :role',
     'blox_typo_text_xs' => '正文 XS',
     'blox_typo_text_sm' => '正文 S',
     'blox_typo_text_base' => '正文 M',
