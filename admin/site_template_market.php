@@ -94,7 +94,9 @@ $marketUrl = static function (array $change) use ($search, $category, $contentLa
 };
 // 能导入的排在前面（稳定排序，目录内原有顺序不变）；暂不可用的仍然显示并说明原因
 usort($items, static fn(array $a, array $b): int => ($a['blocked_reason'] === '' ? 0 : 1) <=> ($b['blocked_reason'] === '' ? 0 : 1));
-asort($categories);
+// 分类按词表顺序排（与官网模板页、演示站首页一致），词表外的排最后
+$categoryOrder = array_flip(TemplateCategories::keys());
+uksort($categories, static fn($a, $b): int => [$categoryOrder[(string) $a] ?? PHP_INT_MAX, (string) $a] <=> [$categoryOrder[(string) $b] ?? PHP_INT_MAX, (string) $b]);
 $pageTitle = __('st_market_title');
 $currentMenu = 'site_setup';
 $sidebarCompact = true;  // 模板卡片需要宽度：进入本页先把后台侧栏收成图标栏
