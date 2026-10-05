@@ -670,6 +670,7 @@ try {
             db()->beginTransaction();
             try {
                 BloxGlobalClasses::applyImportPlan($prepared['class_plan'], (int) ($_SESSION['admin_id'] ?? 0));
+                BloxDesignSystem::applyScaleImport($prepared['scale_plan'] ?? []);   // 2.0.5：模板带来的设计刻度，只补本站没有的
                 db()->commit();
             } catch (Throwable $classError) {
                 db()->rollback();
