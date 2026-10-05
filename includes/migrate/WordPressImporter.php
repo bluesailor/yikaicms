@@ -878,14 +878,13 @@ final class WordPressImporter
     /** 本语言的第一个顶层案例栏目；没有就建一个（名称「案例」，别名取原站前缀）。 */
     private function caseChannel(string $lang, string $base): int
     {
-        $cache = &$this->caseChannels;
-        if (isset($cache[$lang])) return $cache[$lang];
+        if (isset($this->caseChannels[$lang])) return $this->caseChannels[$lang];
         $row = db()->fetchOne('SELECT id FROM ' . DB_PREFIX . "channels WHERE type = 'case' AND parent_id = 0 AND lang = ? ORDER BY sort_order, id LIMIT 1", [$lang]);
-        if ($row) return $cache[$lang] = (int) $row['id'];
+        if ($row) return $this->caseChannels[$lang] = (int) $row['id'];
         $id = (int) db()->insert('channels', ['lang' => $lang, 'parent_id' => 0, 'name' => '案例', 'type' => 'case',
             'slug' => $this->slug(basename($base), 'case', 'channels', 0), 'status' => 1, 'is_nav' => 0, 'created_at' => time(), 'updated_at' => time()]);
         $this->count('created', 'case_channel');
-        return $cache[$lang] = $id;
+        return $this->caseChannels[$lang] = $id;
     }
 
     private function importProducts(): void
