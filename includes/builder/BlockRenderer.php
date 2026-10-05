@@ -434,6 +434,15 @@ final class BlockRenderer
                     $innerStyle .= 'max-width:' . $px . 'px;';
                 }
             }
+            // 2.0.5 设计系统 2.0：全站容器宽度刻度 token:<id>；回退值取出厂刻度（自建的回退默认版心 72rem）
+            if (preg_match('/^token:([a-z0-9][a-z0-9_-]{0,47})$/', (string) ($settings['max_width'] ?? ''), $widthToken) === 1) {
+                $seeds = array_column(BloxDesignScale::seeds('container'), 'value', 'id');
+                $var = BloxDesignScale::cssVar('container', $widthToken[1], $seeds[$widthToken[1]] ?? '72rem');
+                if ($var !== null) {
+                    $innerCls = 'mx-auto' . $containerGutter;
+                    $innerStyle .= 'max-width:' . $var . ';';
+                }
+            }
             // 底边装饰输出在容器之后，不抬层级就会盖住正文（点击不受影响，但看得见）。
             // 放在自定义宽度分支之后：那个分支会重置 $innerCls，写在前面会被冲掉。
             if ($hasDivider && !str_contains($innerCls, ' z-10')) {
