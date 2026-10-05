@@ -727,11 +727,17 @@ abstract class AbstractElement
         'w' => '@media (min-width:1440px)',
     ];
 
-    /** 单个取值（档位或精确值）→ css 值；不合法返回 null。auto 档仅外边距可用。 */
+    /** 单个取值（档位、全站间距 token 或精确值）→ css 值；不合法返回 null。auto 档仅外边距可用。 */
     private static function boxValue(mixed $value, bool $isMargin): ?string
     {
         if (!is_string($value) || $value === '') {
             return null;
+        }
+        // 2.0.5 设计系统 2.0：token:<id> 用全站间距刻度，回退值取该 id 的出厂刻度（自建的回退 0），token 被删也不坏版面
+        if (preg_match('/^token:([a-z0-9][a-z0-9_-]{0,47})$/', $value, $token) === 1) {
+            static $seeds = null;
+            $seeds ??= array_column(BloxDesignScale::seeds('space'), 'value', 'id');
+            return BloxDesignScale::cssVar('space', $token[1], $seeds[$token[1]] ?? '0');
         }
         if (isset(self::BOX_SIZES[$value])) {
             return !$isMargin && $value === 'auto' ? null : self::BOX_SIZES[$value];

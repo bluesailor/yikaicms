@@ -36,7 +36,7 @@ final class BloxDesignSystem
         }
     }
 
-    /** @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>,radii:list<array<string,mixed>>,shadows:list<array<string,mixed>>} */
+    /** @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>,radii:list<array<string,mixed>>,shadows:list<array<string,mixed>>,spaces:list<array<string,mixed>>,containers:list<array<string,mixed>>} */
     public static function snapshot(): array
     {
         $raw = (string) config(self::SETTING_KEY, '');
@@ -58,7 +58,7 @@ final class BloxDesignSystem
      * catalog instead of duplicated into JSON, so the existing site color setting
      * remains the single owner of primary/secondary.
      *
-     * @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>,radii:list<array<string,mixed>>,shadows:list<array<string,mixed>>}
+     * @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>,radii:list<array<string,mixed>>,shadows:list<array<string,mixed>>,spaces:list<array<string,mixed>>,containers:list<array<string,mixed>>}
      */
     public static function fromRaw(string $raw, string $primary, string $secondary): array
     {
@@ -97,6 +97,9 @@ final class BloxDesignSystem
             // 圆角与阴影 token（BloxDesignScale）：从未保存过时给出厂刻度
             'radii' => BloxDesignScale::normalizeList('radius', $state['radii'] ?? null),
             'shadows' => BloxDesignScale::normalizeList('shadow', $state['shadows'] ?? null),
+            // 2.0.5 间距与容器宽度 token
+            'spaces' => BloxDesignScale::normalizeList('space', $state['spaces'] ?? null),
+            'containers' => BloxDesignScale::normalizeList('container', $state['containers'] ?? null),
         ];
     }
 
@@ -134,7 +137,9 @@ final class BloxDesignSystem
         }
         $snapshot = self::snapshot();
         $declarations .= BloxDesignScale::declarations('radius', $snapshot['radii'])
-            . BloxDesignScale::declarations('shadow', $snapshot['shadows']);
+            . BloxDesignScale::declarations('shadow', $snapshot['shadows'])
+            . BloxDesignScale::declarations('space', $snapshot['spaces'])
+            . BloxDesignScale::declarations('container', $snapshot['containers']);
         $tag = $declarations === '' ? '' : '<style id="yk-blox-design-tokens">:root{' . $declarations . '}</style>';
         // 已发布的全站主题（E04）；未配置时为空串，输出与之前逐字节一致。
         $theme = class_exists(BloxDesignTheme::class) ? BloxDesignTheme::compile(BloxDesignTheme::published()) : '';
@@ -269,7 +274,7 @@ final class BloxDesignSystem
      * Apply one API mutation with optimistic revision checking.
      *
      * @param array<string,mixed> $input
-     * @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>,radii:list<array<string,mixed>>,shadows:list<array<string,mixed>>}
+     * @return array{schema:int,revision:int,tokens:list<array<string,mixed>>,styles:list<array<string,mixed>>,radii:list<array<string,mixed>>,shadows:list<array<string,mixed>>,spaces:list<array<string,mixed>>,containers:list<array<string,mixed>>}
      */
     public static function mutate(string $action, array $input, bool $advanced): array
     {
@@ -291,7 +296,7 @@ final class BloxDesignSystem
 
         if (str_starts_with($action, 'token_')) {
             $state['tokens'] = self::mutateCollection($state['tokens'], substr($action, 6), $input, false);
-        } elseif (preg_match('/^(radius|shadow)_(add|update|archive|restore|lock)$/', $action, $scale) === 1) {
+        } elseif (preg_match('/^(radius|shadow|space|container)_(add|update|archive|restore|lock)$/', $action, $scale) === 1) {
             $bucket = BloxDesignScale::KINDS[$scale[1]];
             $state[$bucket] = self::mutateScale($scale[1], $state[$bucket], $scale[2], $input);
         } elseif ($isStyleAction) {
@@ -387,7 +392,7 @@ final class BloxDesignSystem
                 throw new RuntimeException(__('blox_design_limit'));
             }
             $item = BloxDesignScale::normalizeItem($kind, [
-                'id' => ($kind === 'radius' ? 'r_' : 'sh_') . bin2hex(random_bytes(4)),
+                'id' => (BloxDesignScale::ID_PREFIX[$kind] ?? 'x_') . bin2hex(random_bytes(4)),
                 'name' => $input['name'] ?? '', 'value' => $input['value'] ?? null,
             ]);
             if ($item === null || !BloxDesignScale::referenceValid($items, $item['id'], $item['value'])) {
@@ -437,6 +442,8 @@ final class BloxDesignSystem
             'styles' => array_values($state['styles']),
             'radii' => array_values($state['radii'] ?? []),
             'shadows' => array_values($state['shadows'] ?? []),
+            'spaces' => array_values($state['spaces'] ?? []),
+            'containers' => array_values($state['containers'] ?? []),
         ];
         settingModel()->saveBatch([
             self::SETTING_KEY => json_encode($payload, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR),

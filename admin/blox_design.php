@@ -314,7 +314,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <p class="mt-1 text-xs text-gray-500"><?php echo e(__('blox_design_scale_hint')); ?></p>
         </div>
         <div class="grid gap-6 xl:grid-cols-2">
-            <?php foreach (['radius' => ['blox_design_radii', 'blox_design_radius_value_ph'], 'shadow' => ['blox_design_shadows', 'blox_design_shadow_value_ph']] as $scaleKind => [$scaleTitle, $scalePlaceholder]): ?>
+            <?php foreach (['radius' => ['blox_design_radii', 'blox_design_radius_value_ph'], 'shadow' => ['blox_design_shadows', 'blox_design_shadow_value_ph'],
+                'space' => ['blox_design_spaces', 'blox_design_space_value_ph'], 'container' => ['blox_design_containers', 'blox_design_container_value_ph']] as $scaleKind => [$scaleTitle, $scalePlaceholder]): ?>
             <div class="min-w-0 border-y border-gray-200 bg-white" data-testid="blox-design-scale-<?php echo $scaleKind; ?>">
                 <h3 class="px-4 py-3 text-sm font-semibold text-gray-800"><?php echo e(__($scaleTitle)); ?></h3>
                 <template x-for="item in scaleItems('<?php echo $scaleKind; ?>')" :key="'<?php echo $scaleKind; ?>-' + item.id">
@@ -932,7 +933,7 @@ function bloxDesignManager() {
         recentColors: colorPicker.loadRecent(),
         picker: { open: false, key: '', title: '', value: '#3b82f6', style: '', apply: null, invalid: false },
         newStyle: { name: '', category: 'general', color: '', background: '', border_color: '', radius: 'none' },
-        newScale: { radius: { name: '', value: '' }, shadow: { name: '', value: '' } },
+        newScale: { radius: { name: '', value: '' }, shadow: { name: '', value: '' }, space: { name: '', value: '' }, container: { name: '', value: '' } },
         pageHeroHeightOptions: <?php echo json_encode([
             ['value' => 'compact', 'label' => __('blox_page_hero_height_compact')],
             ['value' => 'standard', 'label' => __('blox_page_hero_height_standard')],
@@ -992,17 +993,19 @@ function bloxDesignManager() {
         archivedTokens() { return (this.state.tokens || []).filter((item) => item.status === 'archived'); },
         activeStyles() { return (this.state.styles || []).filter((item) => item.status !== 'archived'); },
         archivedStyles() { return (this.state.styles || []).filter((item) => item.status === 'archived'); },
-        scaleBucket(kind) { return kind === 'radius' ? (this.state.radii || []) : (this.state.shadows || []); },
+        scaleBucket(kind) { return this.state[{ radius: 'radii', shadow: 'shadows', space: 'spaces', container: 'containers' }[kind]] || []; },
         scaleItems(kind) { return this.scaleBucket(kind).filter((item) => item.status !== 'archived'); },
         archivedScale(kind) { return this.scaleBucket(kind).filter((item) => item.status === 'archived'); },
         /** 预览：引用 {id} 在本地解析一层，和前台输出一致 */
         scalePreview(kind, item) {
             var value = String(item.value || '');
-            var ref = value.match(/^\{([a-z][a-z0-9_-]*)\}$/);
+            var ref = value.match(/^\{([a-z0-9][a-z0-9_-]*)\}$/);
             if (ref) {
                 var target = this.scaleBucket(kind).find((other) => other.id === ref[1]);
                 value = target && !/^\{/.test(String(target.value)) ? String(target.value) : '';
             }
+            if (kind === 'space') return 'background:linear-gradient(90deg,#10b981 0 ' + value + ',transparent ' + value + ')';   // 色条长度 = 间距
+            if (kind === 'container') return 'background:repeating-linear-gradient(90deg,#e5e7eb 0 2px,transparent 2px 6px)';
             return kind === 'radius' ? 'border-radius:' + value : 'box-shadow:' + value;
         },
         async addScale(kind) {
