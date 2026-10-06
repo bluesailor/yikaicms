@@ -18,11 +18,32 @@ declare(strict_types=1);
  * 第二步（2.0.5）：栏目（列表页、单页）也走这里——此前 /en/about.html 没有英文栏目时按 findBySlugLang 回落
  * 原文行、以 200 冒充英文页。分页第 2 页起仍按路径给 hreflang（别的语言的第 N 页未必是对应页）。
  * 站点地图的各条网址也用 urlFor 按行自己的语言生成（动态网址、语言域名此前会给错）。
+ *
+ * 2.1 收尾：相册（album）、产品分类（product_category）、文章标签（content_tag）也登记；插件实体用 registerKind()。
+ * 标签没有跨语言关联，只有它自己——hreflang 因此不再按路径指向别的语言里并不存在的同名标签页。
  */
 final class LocalizedUrl
 {
     /** @var array{kind:string,row:array<string,mixed>,page:int}|null */
     private static ?array $entity = null;
+
+    /** @var array<string,array{siblings:callable,url:callable}> 插件登记的实体类型 */
+    private static array $kinds = [];
+
+    /**
+     * 插件实体接入多语言网址：$siblings($row) 返回同一翻译组里已发布的行（含自己，每行要有 lang），
+     * $url($row, $lang) 返回该行在该语言下的站内路径（空串 = 没有地址）。详情页拿到行后照常 enter($kind, $row)。
+     *
+     * @psalm-suppress PossiblyUnusedMethod 公开 API，供插件调用
+     */
+    public static function registerKind(string $kind, callable $siblings, callable $url): void
+    {
+        if (preg_match('/^[a-z][a-z0-9_]{1,31}$/D', $kind) !== 1
+            || in_array($kind, ['content', 'product', 'channel', 'album', 'product_category', 'content_tag'], true)) {
+            throw new InvalidArgumentException('Invalid or reserved LocalizedUrl kind: ' . $kind);
+        }
+        self::$kinds[$kind] = ['siblings' => $siblings, 'url' => $url];
+    }
 
     /**
      * 详情 / 栏目页登记当前条目；必要时按严格策略 302 到条目自己的语言版本（预览不跳）。
@@ -96,6 +117,12 @@ final class LocalizedUrl
     public static function urlFor(string $kind, array $row, string $lang): string
     {
         $default = (string) config('site_lang', 'zh-CN');
+        if (isset(self::$kinds[$kind])) {
+            return (string) call_user_func(self::$kinds[$kind]['url'], $row, $lang);
+        }
+        if (in_array($kind, ['album', 'product_category', 'content_tag'], true)) {
+            return self::extraKindUrl($kind, $row, $lang, $default);
+        }
         if ($kind === 'channel' && ($row['type'] ?? '') === 'link') return '';
         if (isDynamicUrlMode()) {
             $url = match ($kind) { 'content' => contentUrl($row), 'product' => productUrl($row), 'channel' => channelUrl($row), default => '' };
@@ -180,10 +207,44 @@ final class LocalizedUrl
         } elseif ($kind === 'channel') {
             $rows = channelModel()->query('SELECT * FROM ' . channelModel()->tableName() . ' WHERE (translation_group_id = ? OR id = ?) AND status = 1 ORDER BY id',
                 [$group, $group]);
+        } elseif ($kind === 'album') {
+            $rows = db()->fetchAll('SELECT * FROM ' . DB_PREFIX . 'albums WHERE (translation_group_id = ? OR id = ?) AND status = 1 AND deleted_at IS NULL ORDER BY id', [$group, $group]);
+        } elseif ($kind === 'product_category') {
+            $rows = db()->fetchAll('SELECT * FROM ' . DB_PREFIX . 'product_categories WHERE (translation_group_id = ? OR id = ?) AND status = 1 ORDER BY id', [$group, $group]);
+        } elseif (isset(self::$kinds[$kind])) {
+            $rows = array_values(array_filter((array) call_user_func(self::$kinds[$kind]['siblings'], $row), 'is_array'));
         } else {
             $rows = [$row];
         }
         return $cache[$key] = $rows === [] ? [$row] : $rows;
+    }
+
+    /**
+     * 相册 / 产品分类 / 文章标签：登记网址优先（带自己的语言前缀），否则默认形态换前缀；动态网址换 lang 参数。
+     * 相册与标签只有登记网址或 ?id= 入口。 @param array<string,mixed> $row
+     */
+    private static function extraKindUrl(string $kind, array $row, string $lang, string $default): string
+    {
+        $id = (int) ($row['id'] ?? 0);
+        if ($id <= 0) return '';
+        $entry = match ($kind) { 'album' => '/album.php?id=' . $id, 'content_tag' => '/tag.php?id=' . $id, default => '' };
+        if (isDynamicUrlMode()) {
+            $url = $kind === 'product_category' ? productCategoryUrl($row) : $entry;
+            return self::withLangQuery($url, $lang === $default ? '' : $lang);
+        }
+        $registered = productRouteModel()->pathFor($kind === 'product_category' ? 'category' : $kind, $id);
+        if ($registered !== '') {
+            $path = $lang === (string) ($row['lang'] ?? '') ? $registered : self::prefix($lang, $default) . self::stripPrefix($registered);
+        } elseif ($kind === 'product_category') {
+            $slug = rawurlencode((string) ($row['slug'] ?? ''));
+            $path = self::prefix($lang, $default) . ($slug !== '' ? '/product/' . $slug . '.html' : '/product.html?cat=' . $id);
+        } else {
+            $path = self::prefix($lang, $default) . $entry;
+        }
+        if (class_exists('LanguageDomains') && LanguageDomains::active()) {
+            return LanguageDomains::url($lang, self::stripPrefix($path));
+        }
+        return $path;
     }
 
     /** 产品默认美化地址（不看登记网址；与 productPrettyUrl 的默认分支一致） @param array<string,mixed> $product */

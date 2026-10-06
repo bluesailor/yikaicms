@@ -19,6 +19,8 @@ if (!$albumData || !empty($albumData['deleted_at'])) {
     render404(__('error_page_not_found'));
 }
 redirectToRegisteredUrl('album', (int) $albumData['id']);   // /album.php?id= 直接访问：301 到登记网址
+// 2.1：hreflang / 语言切换按相册翻译组；请求的语言没有这本相册时 302 到它自己的语言版本
+LocalizedUrl::enter('album', $albumData, isset($_GET['preview']));
 $albumPhotos = albumPhotoModel()->where(['album_id' => (int) $albumData['id'], 'status' => 1]);
 
 if (!isCleanFrontendPreview() && !empty($_SESSION['admin_id'])) {
