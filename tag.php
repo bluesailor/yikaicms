@@ -20,6 +20,8 @@ if (!$tag || $tag['name'] === '') {
 }
 
 redirectToRegisteredUrl('content_tag', (int) $tag['id']);
+// 2.1：标签没有跨语言关联——登记后 hreflang 不再指向别的语言里不存在的同名标签页；语言不符时回标签自己的语言
+LocalizedUrl::enter('content_tag', $tag);
 $page = max(1, getInt('page', 1));
 $perPage = catalogPageSize('article', 10, 0);
 $filters = ['type' => 'article', 'tag' => $tag['name'], 'lang' => $tag['lang']];

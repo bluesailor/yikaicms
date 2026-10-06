@@ -44,6 +44,12 @@ final class ProductController extends ListController
             }
         }
 
+        // 2.1：产品分类页按分类的翻译组给 hreflang / 语言切换（覆盖 list.php 登记的栏目）。
+        // 与列表栏目一样不做跳转：分类不是本语言时不登记，仍按路径
+        if ($productCategory !== null && in_array((string) ($productCategory['lang'] ?? ''), ['', siteLang()], true)) {
+            LocalizedUrl::enter('product_category', $productCategory, isset($_GET['preview']), $page);
+        }
+
         // Sort param — validated against the ProductModel whitelist so a
         // crafted query string can't sneak unsupported SQL through.
         $currentSort = $catalogQuery['sort'] !== 'default'

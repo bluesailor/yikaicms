@@ -85,4 +85,29 @@ final class LocalizedUrlTest extends TestCase
         // 链接栏目没有自己的页面
         self::assertSame('', LocalizedUrl::urlFor('channel', ['id' => 1, 'type' => 'link', 'link_url' => 'https://example.com'], 'en'));
     }
+
+    public function testAlbumsCategoriesAndTagsRegisterThemselves(): void
+    {
+        // 2.1 收尾：相册详情严格（按翻译组 + 缺译文回原文）；标签只有它自己；产品分类同列表栏目，只登记不跳
+        self::assertStringContainsString("LocalizedUrl::enter('album', \$albumData, isset(\$_GET['preview']));", (string) file_get_contents(ROOT_PATH . '/album.php'));
+        self::assertStringContainsString("LocalizedUrl::enter('content_tag', \$tag);", (string) file_get_contents(ROOT_PATH . '/tag.php'));
+        $products = (string) file_get_contents(ROOT_PATH . '/controllers/list/ProductController.php');
+        self::assertStringContainsString("in_array((string) (\$productCategory['lang'] ?? ''), ['', siteLang()], true)", $products);
+        self::assertStringContainsString("LocalizedUrl::enter('product_category', \$productCategory, isset(\$_GET['preview']), \$page);", $products);
+    }
+
+    public function testPluginsRegisterTheirOwnKindsButNotCoreOnes(): void
+    {
+        LocalizedUrl::registerKind('acme_event', static fn (array $row): array => [$row], static fn (array $row, string $lang): string => '/' . $lang . '/events/' . $row['id']);
+        self::assertSame('/en/events/7', LocalizedUrl::urlFor('acme_event', ['id' => 7, 'lang' => 'en'], 'en'));
+        foreach (['album', 'content', 'Bad-Kind'] as $kind) {
+            try {
+                LocalizedUrl::registerKind($kind, static fn (): array => [], static fn (): string => '');
+                self::fail($kind . ' 不能被插件登记');
+            } catch (\InvalidArgumentException) {
+                self::assertTrue(true);
+            }
+        }
+    }
 }
+
