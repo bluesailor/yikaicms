@@ -26,6 +26,8 @@ $php = PHP_BINARY;
 const BUDGET = [
     'home' => 62, 'home-en' => 74, 'news-list' => 54, 'article' => 50, 'product-list' => 54, 'product' => 60,
     'case-list' => 54, 'page' => 44, 'search' => 42, 'sitemap' => 10,
+    // v2.1：12 行产品循环的 Blox 单页，2026-10-07 实测普通卡片 34、组件卡片 35（母版目录整页只取一次），留约 15%
+    'plain-cards' => 40, 'component-cards' => 41,
 ];
 const N1_SLACK = 4;
 
@@ -99,8 +101,34 @@ if ($argv[1] === "seed") {
     foreach ($copy("contents", $article, "qb-article-", 30) as $id) for ($k = 1; $k <= 6; $k++) setMeta("content", $id, "qb_field_" . $k, "v" . $k);
     foreach ($copy("contents", $case, "qb-case-", 30) as $id) for ($k = 1; $k <= 6; $k++) setMeta("content", $id, "qb_field_" . $k, "v" . $k);
     foreach ($copy("products", $product, "qb-product-", 30) as $id) for ($k = 1; $k <= 6; $k++) setMeta("product", $id, "qb_field_" . $k, "v" . $k);
+    // v2.1 组件：同一个 12 行产品循环，一页放普通卡片、一页放组件卡片——组件不能带来按实例的查询
+    require_once ROOT_PATH . "/includes/builder/bootstrap.php";
+    $master = BloxComponents::processMaster(json_encode(["schema" => 1,
+        "settings" => ["component" => ["props" => [["key" => "title", "type" => "text", "label" => "Title", "default" => "x", "targets" => [["node" => "qbc-t", "field" => "text"]]]]]],
+        "sections" => [["id" => "qbc-s", "settings" => [], "columns" => [["id" => "qbc-c", "elements" => [["id" => "qbc-root", "type" => "container", "data" => ["children" => [
+            ["id" => "qbc-t", "type" => "heading", "data" => ["text" => "x", "level" => "h3"]],
+            ["id" => "qbc-b", "type" => "button", "data" => ["text" => "More", "url" => "{{loop.url}}"]],
+        ]]]]]]]],
+    ]), "tpl0");
+    $tpl = bloxTemplateModel()->createDraft("component", "QB card", $master["json"]);
+    bloxTemplateModel()->publishDraft($tpl);
+    $uuid = (string) json_decode((string) bloxTemplateModel()->find($tpl)["metadata"], true)["component"]["uuid"];
+    $loopPage = static function (string $slug, array $card): string {
+        $id = (int) channelModel()->create(["name" => $slug, "slug" => $slug, "type" => "page", "lang" => "zh-CN", "status" => 1, "parent_id" => 0, "content" => "", "created_at" => time(), "updated_at" => time()]);
+        $json = json_encode(["schema" => 1, "sections" => [["id" => $slug . "-s", "settings" => [], "columns" => [["id" => $slug . "-c", "elements" => [
+            ["id" => $slug . "-loop", "type" => "container", "data" => ["_query" => ["source" => "type:product", "limit" => 12], "children" => [$card]]],
+        ]]]]]]);
+        BloxFeaturePolicy::asTrustedWrite(static fn () => PageBloxDocument::saveAndPublish($id, (string) $json));
+        return (string) parse_url(channelUrl(channelModel()->find($id) ?? []), PHP_URL_PATH);
+    };
+    $plain = $loopPage("qb-plain-cards", ["id" => "qbp-card", "type" => "container", "data" => ["children" => [
+        ["id" => "qbp-t", "type" => "heading", "data" => ["text" => "{{loop.title}}", "level" => "h3"]],
+        ["id" => "qbp-b", "type" => "button", "data" => ["text" => "More", "url" => "{{loop.url}}"]],
+    ]]]);
+    $components = $loopPage("qb-component-cards", ["id" => "qbk-card", "type" => "component", "data" => ["component" => $uuid, "props" => ["title" => "{{loop.title}}"]]]);
     settingModel()->rotateHtmlCacheGeneration();
-    echo json_encode(["article" => contentDefaultPrettyUrl($article + ["type" => "article"]), "product" => productPrettyUrl($product)], JSON_UNESCAPED_SLASHES);
+    echo json_encode(["article" => contentDefaultPrettyUrl($article + ["type" => "article"]), "product" => productPrettyUrl($product),
+        "plain_cards" => $plain, "component_cards" => $components], JSON_UNESCAPED_SLASHES);
 } elseif ($argv[1] === "pagesize") {
     foreach (["product", "article", "case"] as $kind) settingModel()->set("catalog_" . $kind . "_page_size", $argv[2]);
     settingModel()->rotateHtmlCacheGeneration();
@@ -134,6 +162,7 @@ try {
     $pages = [
         'home' => '/', 'home-en' => '/en/', 'news-list' => '/news.html', 'article' => $seed['article'], 'product-list' => '/product.html',
         'product' => $seed['product'], 'case-list' => '/cases.html', 'page' => '/about/company.html', 'search' => '/search.php?keyword=qb', 'sitemap' => '/sitemap.xml',
+        'plain-cards' => $seed['plain_cards'], 'component-cards' => $seed['component_cards'],
     ];
     // 搜索每页条数不随栏目设置变，结果链接也不带别名，不参与「条目多了查询数不涨」的对比
     $listPages = ['news-list', 'product-list', 'case-list'];
@@ -170,6 +199,11 @@ try {
         $check($listed[$name][24] > $listed[$name][6], "$name lists more entries at page size 24 ({$listed[$name][6]} → {$listed[$name][24]})");
         $check($table[$name][24] - $table[$name][6] <= N1_SLACK, "$name has no per-item queries (6 → 24 items: {$table[$name][6]} → {$table[$name][24]})");
     }
+    // 组件卡片页 vs 普通卡片页：同样 12 行循环，组件整页最多多一次查询（母版目录按请求只取一次）
+    $componentRendered = substr_count(http($port, $seed['component_cards'])['body'], 'data-yk-component=');
+    $check($componentRendered >= 12, "component loop renders one instance per row ($componentRendered)");
+    $check($table['component-cards'][24] <= $table['plain-cards'][24] + 1,
+        "component cards cost at most one extra query ({$table['plain-cards'][24]} → {$table['component-cards'][24]})");
     if (!$reportOnly) {
         foreach ($table as $name => $row) {
             $check($row[24] <= (BUDGET[$name] ?? 0), "$name stays within its budget ({$row[24]} ≤ " . (BUDGET[$name] ?? 0) . ')');
