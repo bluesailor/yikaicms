@@ -254,6 +254,16 @@ BloxIcon::registerSet('lucide', [
 
 旧示例注释列出的 `admin_init`、内容保存钩子等，不能单凭注释认定所有入口都触发。开发时用 `rg` 找真实 `do_action` / `apply_filters` 调用，核实参数、事务时机和路由覆盖；挂了回调不等于事件会发生。
 
+### 6.2 注册 AI 能力（2.1）
+
+后台 AI 助手、以后的 MCP 与 API 令牌共用一份能力注册表（`includes/Abilities.php`）。插件在 `plugins_loaded` 之后调用 `register_ability($name, $config)`：
+
+- 名称只用 `[a-zA-Z0-9_-]`，建议带插件前缀（如 `acme_list_orders`）。
+- **必须声明 `permissions`**：要求的后台权限键列表，全部满足才可用（`'@content'` = 任一内容权限，`'*'` = 超级管理员）；不读写站点数据的能力写空数组 `[]`。没声明的旧能力只按「已登录后台」兜底，以后会收紧，别依赖它。用户被降权，能力随之收回；没有权限的能力不会交给模型。
+- `tier`：`read`（直接执行）、`draft`（写草稿，直接执行、可撤销）、`confirm`（先出提案、人确认后生效）。写操作同时设 `'mutating' => true`，并提供 `preview` 与 `revert`。
+- 危险操作（装插件、管理用户、执行 SQL、改安全设置、写代码或自定义 CSS、上传 SVG）不要注册成能力——没注册就不可能被任何令牌调用。
+- 输出按用途裁剪（如列表只给 id / 标题 / 网址），不要返回数据库整行；读取访客提交内容（询盘、会员资料）的能力单独命名、单独授权。
+
 ## 7. 后台菜单
 
 最简单的插件可以仅使用插件列表中的管理入口。确需菜单时，可在 register.php 注册 `admin_sidebar` filter，在现有分组的 items 中追加插件项：
@@ -299,6 +309,15 @@ add_filter('admin_sidebar', static function (array $menu): array {
 - 写值：`ExtFields::save($owner, $id, $_POST['ext_fields'] ?? [])` 只写已定义的字段并按类型校验（链接、图片、文件网址过 `safeUrl`，富文本过 `sanitizeHtml`，下拉只收选项里的键）；单个值可用 `ExtFields::sanitize($field, $raw)` 后再 `setMeta()`。必填检查：`ExtFields::missingRequired($owner, $posted, $termId)`。
 - 在插件自己的后台页渲染字段区：`require_once ROOT_PATH . '/admin/includes/extfield_helpers.php'; efRenderFields($owner, $id);`，表单字段名为 `ext_fields[...]`。
 - 不要往扩展字段的配置（`metas` 里 `owner_type = 'extfield'`）写数据，也不要绕过 `BloxFeaturePolicy::allows('advanced_fields')` 去创建重复器、关联等专业版字段；插件自己的业务数据仍放插件自己的表或设置。
+
+### 8.2 保存密钥（2.1）
+
+接口令牌、第三方密码这类值用核心的统一密钥存储，不要明文写进设置：
+
+- 写：`SecretStore::put('acme_api_token', $value)`（AES-256-GCM 加密，空串 = 清空）；读：`SecretStore::get('acme_api_token')`。
+- 后台表单不回显：输入框显示 `SecretStore::masked($value)`（只露末四位），提交留空或仍是掩码时不修改。
+- 插件要兼容 2.0.x 核心时用 `class_exists('SecretStore')` 判断，旧核心退回 `config()` / `settingModel()->set()`（参考 `plugins/seo/lib.php` 的 `seo_baidu_token()`）。
+- 键名按下划线分段，有一段是 `key`、`secret`、`token`、`pass`、`password`、`auth` 等（规则见 `isSensitiveSettingKey()`）的设置不会随整站模板与配方导出，所以起名用 `acme_api_token` 而不是 `acme_apitoken`；不要把密钥写进日志或错误信息。
 
 ## 9. 安装、调试和打包
 
