@@ -9,6 +9,10 @@
 echo json_encode([
                 'master' => $templateId > 0 && $templateType === BloxComponents::TYPE,
                 'canManage' => hasPermission('blox_global') && BloxFeaturePolicy::allows('components'),
+                // 多语言首页是共享文档：非默认语言下编辑时，可多语言属性写进 props_i18n[该语言]
+                'instanceLang' => ($isHomeBlox && $homeEditorLangQuery !== '') ? $homeEditorLanguage : '',
+                // 母版里按语言填默认值：默认语言之外的已启用语言
+                'languages' => array_diff_key(enabledLanguages(), [(string) config('site_lang', 'zh-CN') => true]),
                 'text' => [
                     'tabElements' => __('blox_component_tab_elements'), 'tabComponents' => __('blox_component_tab_components'),
                     'search' => __('blox_component_search'), 'category' => __('blox_component_category'),
@@ -25,5 +29,6 @@ echo json_encode([
                     'unexpose' => __('blox_component_unexpose'), 'exposed' => __('blox_component_exposed'),
                     'urlPlaceholder' => __('blox_component_url_placeholder'), 'failed' => __('admin_failed'),
                     'exposeTitle' => __('blox_component_expose_title'),
+                    'byLanguage' => __('blox_component_by_language'), 'langValue' => __('blox_component_lang_value'),
                 ],
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT);

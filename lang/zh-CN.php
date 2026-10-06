@@ -2977,6 +2977,8 @@ return [
     'blox_component_prop_label' => '属性名称',
     'blox_component_prop_key' => '属性键',
     'blox_component_expose_title' => '可导出为属性的字段',
+    'blox_component_by_language' => '按语言填默认值',
+    'blox_component_lang_value' => '留空则用上面的默认值',
     'blox_component_used_in' => '用在 :docs 处（:n 个实例）',
     'blox_component_not_used' => '还没有页面使用',
     'blox_component_restore_confirm' => '把 v:v 恢复到母版草稿？发布前不影响网站。',

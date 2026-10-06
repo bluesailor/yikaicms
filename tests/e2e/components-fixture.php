@@ -46,6 +46,7 @@ $master = static fn (string $title): string => json_encode([
 ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
 
 if ($action === 'restore') {
+    settingModel()->set('enabled_languages', '');
     if (is_array($state)) {
         db()->delete('contents', 'channel_id = ?', [(int) $state['page']]);
         db()->delete('blox_page_drafts', 'page_id = ?', [(int) $state['page']]);
@@ -61,6 +62,15 @@ if ($action === 'restore') {
     cacheClear();
     HtmlCache::invalidate();
     echo "restored\n";
+    exit;
+}
+
+if ($action === 'languages') {
+    // on：启用中英两种语言（母版里出现按语言填默认值）；off：恢复单语言
+    settingModel()->set('enabled_languages', ($argv[2] ?? 'off') === 'on' ? json_encode(['zh-CN', 'en']) : '');
+    cacheClear();
+    echo "languages
+";
     exit;
 }
 

@@ -3079,6 +3079,8 @@ return [
     'blox_component_prop_label' => 'プロパティ名',
     'blox_component_prop_key' => 'プロパティキー',
     'blox_component_expose_title' => 'プロパティにできるフィールド',
+    'blox_component_by_language' => '言語ごとの既定値',
+    'blox_component_lang_value' => '空欄なら上の既定値を使用',
     'blox_component_used_in' => ':docs 箇所で使用（インスタンス :n 個）',
     'blox_component_not_used' => 'まだどのページでも使われていません',
     'blox_component_restore_confirm' => 'v:v をマスターの下書きに戻しますか？公開するまでサイトには影響しません。',

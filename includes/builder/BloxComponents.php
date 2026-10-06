@@ -26,6 +26,8 @@ final class BloxComponents
     public const MAX_TARGETS = 8;
     public const KEEP_REVISIONS = 20;
     private const KEY_PATTERN = '/^[a-z][a-z0-9_]{0,31}$/';
+    /** 可按语言给值的属性类型（文案与随语言换的图片、链接） */
+    public const LOCALIZABLE_TYPES = ['text', 'richtext', 'image', 'url'];
     private const LABEL_MAX = 40;
     private const DESCRIPTION_MAX = 200;
     private const SELECT_OPTIONS_MAX = 24;
@@ -185,6 +187,19 @@ final class BloxComponents
                 $normalized['options'] = $options;
             }
             $normalized['default'] = self::sanitizePropValue($normalized, $prop['default'] ?? '');
+            // 多语言（规划 §14）：文案类属性可按语言给默认值；结构只有一份
+            if (in_array($type, self::LOCALIZABLE_TYPES, true) && !empty($prop['localizable'])) {
+                $normalized['localizable'] = true;
+                $i18n = [];
+                foreach (is_array($prop['default_i18n'] ?? null) ? $prop['default_i18n'] : [] as $lang => $value) {
+                    if (self::validLang($lang) && is_scalar($value) && (string) $value !== '') {
+                        $i18n[(string) $lang] = self::sanitizePropValue($normalized, $value);
+                    }
+                }
+                if ($i18n !== []) {
+                    $normalized['default_i18n'] = $i18n;
+                }
+            }
             $out[] = $normalized;
             $seen[$key] = true;
         }
@@ -327,6 +342,56 @@ final class BloxComponents
 
     // ── 实例 ──────────────────────────────────────────────────────────
 
+    private static function validLang(mixed $lang): bool
+    {
+        if (!is_string($lang) || preg_match('/^[a-z]{2,3}(?:-[A-Z]{2})?$/D', $lang) !== 1) {
+            return false;
+        }
+        return !class_exists('LanguageRegistry') || LanguageRegistry::has($lang);
+    }
+
+    private static function currentLang(): string
+    {
+        return function_exists('contentLang') ? contentLang() : (function_exists('siteLang') ? siteLang() : '');
+    }
+
+    /**
+     * 某语言下实例实际生效的属性原值（未解析标签）：
+     * 可多语言的属性 = 实例本语言值 → 实例值 → 母版本语言默认 → 母版默认；其余 = 实例值 → 母版默认。
+     * 只返回有来源的键，交给 expand / detach 按普通实例属性处理。
+     *
+     * @param array<string,mixed> $definition @param array<string,mixed> $data 实例 data
+     * @return array<string,mixed>
+     */
+    public static function effectiveProps(array $definition, array $data, ?string $lang = null): array
+    {
+        $lang ??= self::currentLang();
+        $props = is_array($data['props'] ?? null) ? $data['props'] : [];
+        $byLang = is_array($data['props_i18n'][$lang] ?? null) ? $data['props_i18n'][$lang] : [];
+        $out = [];
+        foreach ($definition['props'] as $prop) {
+            $key = (string) $prop['key'];
+            if (!empty($prop['localizable'])) {
+                if (array_key_exists($key, $byLang)) {
+                    $out[$key] = $byLang[$key];
+                    continue;
+                }
+                if (array_key_exists($key, $props)) {
+                    $out[$key] = $props[$key];
+                    continue;
+                }
+                if (isset($prop['default_i18n'][$lang])) {
+                    $out[$key] = $prop['default_i18n'][$lang];
+                }
+                continue;
+            }
+            if (array_key_exists($key, $props)) {
+                $out[$key] = $props[$key];
+            }
+        }
+        return $out;
+    }
+
     /**
      * 文档保存时实例 data 的归一（管线 normalizeElement 调用）：
      * uuid 校验；props 只保留母版声明过的键并按类型清洗。母版暂不可用时原样保留标量值（不丢作者的覆盖）。
@@ -356,6 +421,28 @@ final class BloxComponents
             }
         }
         $data['props'] = $props;
+        // 共享文档（多语言首页）里实例的按语言覆盖：只收可多语言的属性
+        $i18n = [];
+        if ($definition !== null && is_array($data['props_i18n'] ?? null)) {
+            foreach ($data['props_i18n'] as $lang => $values) {
+                if (!self::validLang($lang) || !is_array($values)) {
+                    continue;
+                }
+                foreach ($definition['props'] as $prop) {
+                    $key = (string) $prop['key'];
+                    if (!empty($prop['localizable']) && array_key_exists($key, $values)) {
+                        $i18n[(string) $lang][$key] = self::sanitizePropValue($prop, $values[$key]);
+                    }
+                }
+            }
+        } elseif (is_array($data['props_i18n'] ?? null)) {
+            $i18n = $data['props_i18n'];   // 母版暂不可用：原样保留，不丢作者的译文
+        }
+        if ($i18n !== []) {
+            $data['props_i18n'] = $i18n;
+        } else {
+            unset($data['props_i18n']);
+        }
         return $data;
     }
 
@@ -410,7 +497,7 @@ final class BloxComponents
                     . e(__('blox_component_missing')) . '</div>'
                 : '';
         }
-        $root = self::expand($definition, is_array($data['props'] ?? null) ? $data['props'] : [], (string) ($context['node_id'] ?? 'cmp'));
+        $root = self::expand($definition, self::effectiveProps($definition, $data), (string) ($context['node_id'] ?? 'cmp'));
         $html = BlockRenderer::renderElementNode($root, (int) ($context['depth'] ?? 0) + 1, false, []);
         if ($html === '') {
             return '';
@@ -436,7 +523,8 @@ final class BloxComponents
         if ($definition === null) {
             return null;
         }
-        $instanceProps = is_array($data['props'] ?? null) ? $data['props'] : [];
+        // 脱离按当前语言取值（共享首页里其余语言的覆盖不随结构走，界面确认框已说明）
+        $instanceProps = self::effectiveProps($definition, $data);
         $values = [];
         foreach ($definition['props'] as $prop) {
             // 脱离后的结构是普通元素：保留动态标签原文，由元素自己解析（循环里照常工作）

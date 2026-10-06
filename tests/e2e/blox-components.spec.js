@@ -143,3 +143,23 @@ test('component manager lists usage places and archives without breaking instanc
   await page.getByText(/显示已归档|Show archived/).click();
   await expect(page.getByTestId(`blox-component-row-${state.uuid}`)).toBeVisible();
 });
+
+test('master props can carry defaults per language @ci', async ({ page }) => {
+  fixture('languages', 'on');
+  try {
+    await page.goto(`/admin/blox_editor.php?template=${state.template}`, { waitUntil: 'domcontentloaded' });
+    await expect(page.getByTestId('blox-canvas')).toBeVisible();
+    await page.getByTestId('blox-component-props').locator('summary').click();
+    const toggle = page.getByTestId('blox-master-prop-i18n-title');
+    await expect(toggle).toBeVisible();
+    await toggle.check();
+    const input = page.getByTestId('blox-master-prop-title').getByPlaceholder(/默认值|default/i);
+    await input.fill('Our product');
+    await input.press('Tab');
+    expect(await app(page, a => a.masterProps()[0])).toMatchObject({ key: 'title', localizable: true, default_i18n: { en: 'Our product' } });
+    // 数字属性之类不出现按语言开关
+    expect(await app(page, a => a.masterPropLocalizable({ type: 'number' }))).toBe(false);
+  } finally {
+    fixture('languages', 'off');
+  }
+});

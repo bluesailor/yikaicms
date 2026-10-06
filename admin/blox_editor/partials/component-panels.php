@@ -33,7 +33,10 @@
         <template x-for="prop in instanceProps()" :key="prop.key">
             <div :data-testid="'blox-component-prop-' + prop.key">
                 <div class="mb-1 flex items-center justify-between gap-2">
-                    <label class="text-[11px] font-semibold text-gray-700" x-text="prop.label"></label>
+                    <label class="text-[11px] font-semibold text-gray-700">
+                        <span x-text="prop.label"></span>
+                        <span x-show="instanceLangSlot(prop)" class="ml-1 rounded bg-sky-50 px-1 text-[10px] font-normal text-sky-700" x-text="instanceLangSlot(prop)"></span>
+                    </label>
                     <span x-show="!instanceOverridden(prop.key)" class="text-[10px] text-gray-400" x-text="componentText.followsMaster"></span>
                     <button type="button" x-show="instanceOverridden(prop.key)" @click="resetInstanceValue(prop)"
                             :data-testid="'blox-component-reset-' + prop.key"

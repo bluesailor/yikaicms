@@ -407,4 +407,42 @@ final class BloxComponentsTest extends TestCase
         self::assertSame(['home', 'page:1'], BloxComponents::usedIn($component['uuid']));
         self::assertSame([], BloxComponents::usedIn('cmp_ffffffffffffffff'), '旧站残留的用量清掉');
     }
+
+    // ── 多语言属性 ──────────────────────────────────────────────────
+
+    public function testLocalizablePropsResolvePerLanguageWithFallbacks(): void
+    {
+        $component = $this->publishComponent($this->masterJson('联系我们', '/contact', [
+            ['key' => 'title', 'type' => 'text', 'label' => '标题', 'default' => '联系我们', 'localizable' => true,
+                'default_i18n' => ['en' => 'Contact us', 'ja' => 'お問い合わせ', 'xx-bad' => 'nope'],
+                'targets' => [['node' => 'e_title', 'field' => 'text']]],
+            ['key' => 'link', 'type' => 'url', 'label' => '链接', 'default' => '/contact',
+                'default_i18n' => ['en' => '/en/contact'],   // 没开 localizable：按语言默认值不收
+                'targets' => [['node' => 'e_btn', 'field' => 'url']]],
+        ]));
+        $definition = BloxComponents::find($component['uuid']);
+        self::assertSame(['en' => 'Contact us', 'ja' => 'お問い合わせ'], $definition['props'][0]['default_i18n']);
+        self::assertArrayNotHasKey('default_i18n', $definition['props'][1]);
+
+        // 母版按语言默认
+        self::assertSame(['title' => 'Contact us'], BloxComponents::effectiveProps($definition, [], 'en'));
+        self::assertSame([], BloxComponents::effectiveProps($definition, [], 'zh-CN'), '没有该语言的默认：用母版默认');
+        // 实例值优先于母版按语言默认；实例本语言值再优先
+        $data = ['props' => ['title' => '实例标题'], 'props_i18n' => ['ja' => ['title' => '実例']]];
+        self::assertSame(['title' => '実例'], BloxComponents::effectiveProps($definition, $data, 'ja'));
+        self::assertSame(['title' => '实例标题'], BloxComponents::effectiveProps($definition, $data, 'en'));
+    }
+
+    public function testSavingKeepsOnlyLocalizablePerLanguageOverrides(): void
+    {
+        $component = $this->publishComponent($this->masterJson('标题', '/x', [
+            ['key' => 'title', 'type' => 'text', 'default' => 'T', 'localizable' => true, 'targets' => [['node' => 'e_title', 'field' => 'text']]],
+            ['key' => 'link', 'type' => 'url', 'default' => '/x', 'targets' => [['node' => 'e_btn', 'field' => 'url']]],
+        ]));
+        $json = json_encode(['schema' => 1, 'settings' => [], 'sections' => $this->pageWith($component['uuid'], [], [
+            'props_i18n' => ['en' => ['title' => 'Hello', 'link' => '/en'], 'bad lang' => ['title' => 'x']],
+        ])], JSON_UNESCAPED_UNICODE);
+        $data = BloxDocumentPipeline::process((string) $json, 'pg1')['sections'][0]['columns'][0]['elements'][0]['data'];
+        self::assertSame(['en' => ['title' => 'Hello']], $data['props_i18n']);
+    }
 }
