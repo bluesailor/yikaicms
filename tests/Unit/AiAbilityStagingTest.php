@@ -45,12 +45,20 @@ final class AiAbilityStagingTest extends TestCase
                   function adminLog(...$args): void {}
                   function aiService() { throw new RuntimeException("AI must not be called when tags are pinned"); }');
         }
+        // v2.1 按能力授权：能力只给已登录的后台用户（权限键之外先看登录态）
+        $_SESSION['admin_id'] = 1;
         require_once ROOT_PATH . '/includes/permissions.php';
         require_once ROOT_PATH . '/includes/Abilities.php';
         require_once ROOT_PATH . '/includes/abilities/cms_basics.php';
         require_once ROOT_PATH . '/includes/abilities/cms_admin.php';
         $this->insertRow('channels', ['name' => 'News', 'slug' => 'news']);
         $this->insertRow('contents', ['title' => 'Draft post', 'status' => 0, 'publish_time' => 0, 'tags' => 'old']);
+    }
+
+    protected function tearDown(): void
+    {
+        unset($_SESSION['admin_id']);
+        parent::tearDown();
     }
 
     public function testEveryWriteAbilityIsStagedUnlessExplicitlyAllowed(): void

@@ -31,7 +31,7 @@ register_ability('cms_search_content', [
         'required' => ['keyword'],
     ],
     // 只读，但会吐出内容标题/摘要：要求至少持有一种内容权限
-    'permission'   => fn() => hasAnyContentPerm(),
+    'permissions'  => ['@content'],
     'execute'      => function (array $input): array {
         $kw    = trim((string)($input['keyword'] ?? ''));
         $limit = max(1, min(50, (int)($input['limit'] ?? 10)));
@@ -59,7 +59,7 @@ register_ability('cms_list_drafts', [
             'limit' => ['type' => 'integer', 'description' => '最大返回数，默认 20'],
         ],
     ],
-    'permission'   => fn() => hasAnyContentPerm(),
+    'permissions'  => ['@content'],
     'execute'      => function (array $input): array {
         $limit = max(1, min(100, (int)($input['limit'] ?? 20)));
         $sql = 'SELECT id, title, channel_id, created_at FROM ' . DB_PREFIX . 'contents WHERE status = 0 ORDER BY id DESC LIMIT ?';
@@ -84,7 +84,7 @@ register_ability('cms_get_content', [
         'properties' => ['id' => ['type' => 'integer']],
         'required'   => ['id'],
     ],
-    'permission'   => fn() => hasAnyContentPerm(),
+    'permissions'  => ['@content'],
     'execute'      => function (array $input): array {
         $id   = (int)$input['id'];
         $row  = contentModel()->getDetail($id);
@@ -112,7 +112,7 @@ register_ability('cms_publish_content', [
         'required'   => ['id'],
     ],
     // 粗闸；真正的类型判定在 execute 里按行做（见 assertCanEditContentRow）
-    'permission'   => fn() => hasAnyContentPerm(),
+    'permissions'  => ['@content'],
     // 2.0.3：上线是对外可见的改动，AI 不得自行发布——先暂存，用户确认后才执行，并可撤销
     'mutating'     => true,
     'preview'      => function (array $input): array {
@@ -172,7 +172,8 @@ register_ability('cms_create_article_draft', [
         'required' => ['title', 'channel_id', 'content'],
     ],
     // 落库就是一篇文章，直接要求 edit_article
-    'permission'   => fn() => hasPermission('edit_article'),
+    'permissions'  => ['edit_article'],
+    'tier'         => 'draft',
     'execute'      => function (array $input): array {
         // 能力入口只校验了 edit_article；建其它类型（产品、案例……）要同时有该类型的编辑权
         $type = (string) ($input['type'] ?? 'article');
@@ -214,7 +215,7 @@ register_ability('cms_generate_seo_summary', [
         'required'   => ['id'],
     ],
     // 会写回 contents.summary；类型判定在 execute 里
-    'permission'   => fn() => hasAnyContentPerm(),
+    'permissions'  => ['@content'],
     'execute'      => function (array $input): array {
         $id = (int)$input['id'];
         $row = contentModel()->getDetail($id);
@@ -254,7 +255,7 @@ register_ability('cms_auto_tag_content', [
         'required' => ['id'],
     ],
     // 会写回 contents.tags；类型判定按行做
-    'permission'   => fn() => hasAnyContentPerm(),
+    'permissions'  => ['@content'],
     // 2.0.3：写操作走暂存确认。标签在预览阶段生成并固定进提案（预览返回 input），
     // 确认时写入的正是用户看到的那组，而不是再调一次 AI 得到另一组
     'mutating'     => true,
@@ -324,7 +325,7 @@ register_ability('cms_translate_text', [
         ],
         'required' => ['text', 'target_lang'],
     ],
-    'permission'   => fn() => !empty($_SESSION['admin_id']),
+    'permissions'  => [],
     'execute'      => function (array $input): string {
         $code = (string) $input['target_lang'];
         if (!LanguageRegistry::has($code)) throw new \RuntimeException('Unsupported language');

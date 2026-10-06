@@ -27,6 +27,7 @@ require_once __DIR__ . '/ThemeContent.php';
 require_once __DIR__ . '/security.php';   // sanitizeHtml/sanitizeSvg/zipUnsafeEntry：安全函数单一来源
 require_once __DIR__ . '/Slug.php';       // generateSlug/normalizeSlugInput：URL 别名净化单一来源
 require_once __DIR__ . '/ColorContrast.php';   // 品牌色写字时调到够读（WCAG AA）
+require_once __DIR__ . '/SecretStore.php';     // 统一密钥存储（v2.1）：AI 密钥 / SMTP 密码等加密保存
 require_once __DIR__ . '/admin_article_categories.php';   // 文章分类可由插件接管（admin_article_categories 过滤器）
 require_once __DIR__ . '/i18n/LanguageRegistry.php';   // 支持哪些语言、前缀/hreflang/方向：单一来源
 require_once __DIR__ . '/i18n/LanguageDomains.php';    // 语言域名模式（en.example.com 等）
@@ -2856,7 +2857,7 @@ function sendMailRaw(string $to, string $subject, string $body, array $attachmen
     $smtpHost = config('smtp_host');
     $smtpPort = (int)config('smtp_port', 465);
     $smtpUser = config('smtp_user');
-    $smtpPass = config('smtp_pass');
+    $smtpPass = SecretStore::get('smtp_pass');
     $smtpSecure = config('smtp_secure', 'ssl');
     $mailFrom = config('mail_from', $smtpUser);
     $mailName = config('mail_from_name', configRawLang('site_name', 'Yikai CMS'));

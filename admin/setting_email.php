@@ -159,6 +159,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action', 'save') === 'save') 
         }
     }
 
+    // 新密码加密保存（统一密钥存储），不走下面的明文写入
+    if (array_key_exists('smtp_pass', $settings)) {
+        SecretStore::put('smtp_pass', (string) $settings['smtp_pass']);
+        unset($settings['smtp_pass']);
+    }
+
     foreach ($settings as $key => $value) {
         // 模板 tab + 非默认语言：写入 <key>_<lang>
         if ($isLangTab && $_viewLang !== $_defaultLang && in_array($key, $EMAIL_LANG_KEYS, true)) {
