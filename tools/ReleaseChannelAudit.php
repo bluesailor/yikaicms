@@ -427,7 +427,8 @@ final class ReleaseChannelAudit
                 : self::check("下架 {$slug}", true, '确认不在注册表');
         }
 
-        $unexpected = array_diff(array_keys($listed), $approved);
+        $capableOnly = array_map('strval', (array) ($cfg['capable_only'] ?? []));
+        $unexpected = array_diff(array_keys($listed), $approved, $capableOnly);
         $checks[] = $unexpected === []
             ? self::check('无计划外上架', true, '注册表与批准清单一致')
             : self::check('无计划外上架', false, '注册表出现未批准的主题: ' . implode(', ', $unexpected), null, true);
