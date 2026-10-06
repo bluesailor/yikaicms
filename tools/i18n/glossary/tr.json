@@ -57,5 +57,9 @@
     "订单": "Sipariş",
     "退款": "İade",
     "运费": "Kargo ücreti",
-    "备案号": "ICP kayıt numarası"
+    "备案号": "ICP kayıt numarası",
+    "组件": "Bileşen",
+    "母版": "Ana",
+    "实例": "Örnek",
+    "脱离": "Ayır"
 }
