@@ -878,6 +878,7 @@ $typeLabels = [
     'archive' => __('blox_tpl_type_archive'),
     'search' => __('blox_tpl_type_search'),
     'error404' => __('blox_tpl_type_error404'),
+    'component' => __('blox_component'),
 ];
 $assignmentSourceLabels = [
     'default' => __('blox_assignment_source_default'),
@@ -1033,7 +1034,7 @@ $GLOBALS['pageTitle'] = __('admin_blox_templates');
 $GLOBALS['currentMenu'] = 'blox_templates';
 require_once ROOT_PATH . '/admin/includes/header.php';
 require_once ROOT_PATH . '/admin/includes/module_nav.php';
-$moduleTypeIcons = ['all' => 'layout-grid', 'section' => 'layout-rows', 'page' => 'file', 'header' => 'layout-navbar', 'footer' => 'layout-bottombar', 'popup' => 'app-window', 'product-detail' => 'package', 'article-detail' => 'article', 'archive' => 'list-details', 'search' => 'list-search', 'error404' => 'error-404'];
+$moduleTypeIcons = ['all' => 'layout-grid', 'section' => 'layout-rows', 'page' => 'file', 'header' => 'layout-navbar', 'footer' => 'layout-bottombar', 'popup' => 'app-window', 'product-detail' => 'package', 'article-detail' => 'article', 'archive' => 'list-details', 'search' => 'list-search', 'error404' => 'error-404', 'component' => 'components'];
 $moduleTypeItems = [];
 foreach (array_merge(['all'], BloxTemplateModel::TYPES) as $moduleType) {
     $moduleTypeItems[] = [
@@ -1694,6 +1695,10 @@ function confirmAreaPublish(form) {
 
     <?php if ($importReview !== null): ?>
         <?php require __DIR__ . '/blox_templates/partials/import-review.php'; ?>
+    <?php endif; ?>
+
+    <?php if ($filterType === BloxComponents::TYPE && hasPermission('blox_global')): ?>
+        <?php require __DIR__ . '/blox_templates/partials/component-manager.php'; ?>
     <?php endif; ?>
 
     <section class="border-y border-gray-200 bg-white">
