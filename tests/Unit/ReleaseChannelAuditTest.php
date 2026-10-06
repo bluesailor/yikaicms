@@ -257,6 +257,29 @@ final class ReleaseChannelAuditTest extends TestCase
         self::assertStringContainsString('已决定下架', $this->detailOf($report['channels']['market'], '下架 aurora'));
     }
 
+    public function testCapableOnlyThemeIsNotUnplannedButOthersStillAre(): void
+    {
+        $this->workspace = $this->buildFixture();
+        $path = $this->workspace . '/update.yikaicms/data/themes.json';
+        $registry = json_decode((string) file_get_contents($path), true);
+        // Default 以市场包发布、只对新协议客户端列出：在注册表里是计划内的。
+        $registry['themes'][] = ['slug' => 'default', 'version' => '1.0.6', 'package' => 'default-v1.0.6.zip',
+            'hash' => 'sha256:' . str_repeat('0', 64), 'sig' => 'x', 'requires_cms' => '>=1.19.9'];
+        file_put_contents($path, json_encode($registry));
+
+        $report = $this->audit(ReleaseChannelAudit::MODE_CANDIDATE);
+        self::assertSame('注册表与批准清单一致', $this->detailOf($report['channels']['market'], '无计划外上架'));
+
+        $registry['themes'][] = ['slug' => 'corporate', 'version' => '1.0.0', 'package' => 'corporate-v1.0.0.zip',
+            'hash' => 'sha256:' . str_repeat('0', 64), 'sig' => 'x', 'requires_cms' => '>=1.19.9'];
+        file_put_contents($path, json_encode($registry));
+
+        $report = $this->audit(ReleaseChannelAudit::MODE_CANDIDATE);
+        self::assertSame(ReleaseChannelAudit::FAILED, $report['channels']['market']['status']);
+        self::assertStringContainsString('corporate', $this->detailOf($report['channels']['market'], '无计划外上架'));
+        self::assertStringNotContainsString('default', $this->detailOf($report['channels']['market'], '无计划外上架'));
+    }
+
     public function testApprovedThemeMissingFromRegistryFails(): void
     {
         $this->workspace = $this->buildFixture();
@@ -468,6 +491,7 @@ final class ReleaseChannelAuditTest extends TestCase
                 'registry_url' => 'https://update.yikaicms.com/api/themes/list.php',
                 'registry' => 'data/themes.json',
                 'approved' => ['business', 'minimal'],
+                'capable_only' => ['default'],
                 'delisted' => ['aurora', 'trade'],
                 'package_url' => 'https://update.yikaicms.com/packages/themes/{package}',
             ],

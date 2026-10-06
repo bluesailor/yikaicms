@@ -61,11 +61,14 @@ return [
     ],
 
     // 模板市场。approved 是「当前批准上架清单」，不是「源码里有哪些主题」。
-    // default 随核心分发，不走市场包，因此不在这里。
+    // default 随核心分发，不在 approved 里；但自 2026-09-10 起以市场包发布新版
+    // （Default 1.0.6+，只对带 protocol_version 的新客户端列出，旧版列表不出现），记在 capable_only。
     'market' => [
         'registry_url' => 'https://update.yikaicms.com/api/themes/list.php',
         'registry' => 'data/themes.json',
         'approved' => ['business', 'minimal'],
+        // 注册表里有、但只对新协议客户端列出的主题：不算计划外上架，也不要求出现在旧版线上列表。
+        'capable_only' => ['default'],
         // 明确记录已下架的 slug：它们**必须不在**注册表里，出现即失败。
         'delisted' => ['aurora', 'trade'],
         'package_url' => 'https://update.yikaicms.com/packages/themes/{package}',
@@ -82,7 +85,8 @@ return [
     'demo' => [
         'dir_env' => 'YK_DEMO_DIR',
         'dir_default' => 'demo.yikaicms.yikai',
-        'url' => 'https://demo.yikaicms.com/',
+        // 根目录现在是模板总览页（不是 CMS 站），探针打一个子站；各子站同批升级。
+        'url' => 'https://demo.yikaicms.com/yikai-business/',
         'asset_version_pattern' => '/\/assets\/[^"\'>\s]+\?v=(\d+\.\d+\.\d+(?:\.\d+)?)/',
     ],
 
