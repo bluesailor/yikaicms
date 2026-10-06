@@ -345,7 +345,7 @@
     "outputs": {
         "assets/icons/site-icons.min.css": {
             "bytes": 5855,
-            "sha256": "7fa2c609aa7ddfa11cbccff65acf376864183b764716405596ebb4452cdf78b8"
+            "sha256": "26e3f9dc145ceb8efd1b2a207d359afaa54003a2e357cdc87c2e036ac975f652"
         },
         "assets/icons/fonts/tabler-icons-site.woff2": {
             "bytes": 17780,
