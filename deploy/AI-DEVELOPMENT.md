@@ -11,6 +11,7 @@
 5. 阅读指南指定的实际源码和相邻实现，再给出修改范围并动手。
 
 2.0.4 起常用的现成能力，先查它们再决定要不要自己写：扩展字段（`includes/ExtFields.php`，插件指南 8.1、模板指南 8.5）、自定义网址与 301 跳转（`ProductRouteModel`、`includes/Redirects.php`，支持 `/旧目录/*` 前缀规则）、从 WordPress 迁移（命令行 `tools/wp-import.php`，含 Contact Form 7 表单、菜单、ACF 字段与旧地址兜底；2.0.5 起支持 Betheme / Muffin 页面、`--type-map` 自定义类型映射与迁移程度报告）。
+2.1 起（开发中，以发版时为准）：网页构建器组件（母版 + 引用实例，模板指南 9.5）；插件密钥统一存 `SecretStore`（插件指南 8.2）；AI 能力注册必须声明权限键与确认档位（插件指南 6.2）。
 2.0.5 起：多语言网址统一走 `LocalizedUrl`（内容、产品、栏目的各语言网址、hreflang、语言切换与 canonical，插件指南 5.5），设计变量扩到间距 / 容器宽度 / 排版（`BloxDesignScale`、`BloxDesignType`，模板指南 9.x），后台文章分类可由插件接管（`admin_article_categories` 过滤器）。
 
 本文档中的源码路径相对于项目根目录。指南是接入说明，不覆盖用户授权或目标版本真实接口；找不到接口时说明差异，不要虚构替代 API。
