@@ -303,6 +303,11 @@ final class BloxDocumentPipeline
         if (array_key_exists('header_states', $settings)) {
             $clean['header_states'] = BloxHeaderStates::normalize($settings['header_states']);
         }
+        // 组件母版的属性定义（v2.1）：这里只限量保留，逐项校验要等节点 id 归一之后（BloxComponents::processMaster）
+        if (is_array($settings['component'] ?? null)) {
+            $props = is_array($settings['component']['props'] ?? null) ? array_values($settings['component']['props']) : [];
+            $clean['component'] = ['props' => array_slice($props, 0, BloxComponents::MAX_PROPS)];
+        }
         // 页面自定义 CSS：只做长度与换行归一；是否合法、谁能改由 BloxCustomCode 在保存时判定
         if (array_key_exists('custom_css', $settings)) {
             $css = is_string($settings['custom_css']) ? trim(str_replace("\r\n", "\n", $settings['custom_css'])) : '';
@@ -624,6 +629,9 @@ final class BloxDocumentPipeline
         // blocks_data 时完全可能出现，不能让未校验的值一路走到渲染。
         $data = BloxImageShape::normalizeData($data);
         $data = BloxOverlap::normalizeData($data);
+        if ($type === BloxComponents::TYPE) {
+            $data = BloxComponents::normalizeInstanceData($data);
+        }
         $registered = BuilderRegistry::get($type);
         $declaredKeys = [];
         foreach ($registered?->controls() ?? [] as $control) {

@@ -13,5 +13,6 @@ final class BloxDocumentIndexes
     {
         BloxGlobalClasses::replaceDocumentRefs($docKey, BloxGlobalClasses::collectReferences($sections));
         BloxGlobalQueries::replaceDocumentRefs($docKey, BloxGlobalQueries::collectReferences($sections));
+        BloxComponents::replaceDocumentRefs($docKey, BloxComponents::collectReferences($sections));
     }
 }

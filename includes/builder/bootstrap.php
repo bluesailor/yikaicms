@@ -38,6 +38,7 @@ require_once __DIR__ . '/BloxQueryFragment.php';   // 查询循环片段响应�
 require_once __DIR__ . '/BloxLoopQuery.php';   // 容器 Loop 查询（v1.25）：_query 归一/取数复用/分页参数
 require_once __DIR__ . '/BloxInteractions.php';  // 元素交互（v1.28）：归一/授权/序列化
 require_once __DIR__ . '/BloxGlobalQueries.php';   // 全局查询（v1.25）：可复用查询定义 + 用量索引
+require_once __DIR__ . '/BloxComponents.php';      // 组件（v2.1）：母版目录 / 属性 / 实例展开 / 用量索引
 require_once __DIR__ . '/BloxDocumentIndexes.php'; // 文档保存后的反向索引统一维护点
 require_once __DIR__ . '/BloxElementPolicy.php';
 require_once __DIR__ . '/BloxDisplayConditions.php';

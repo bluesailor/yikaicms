@@ -106,6 +106,10 @@ $processTemplateDocument = static function (string $type, int $id, string $json,
         }
     }
     // $trustedJson 只能是同一模板行的库内草稿；导入、复制、另存不传，按新建能力检查。
+    if ($type === BloxComponents::TYPE) {
+        // 组件母版（v2.1）：1 段 1 栏 1 根元素、不含实例；属性定义按归一后的节点校验
+        return BloxComponents::processMaster($json, 'tpl' . $id, $trustedJson);
+    }
     return BloxAreaDocument::isArea($type)
         ? BloxAreaDocument::process($type, $json, 'tpl' . $id, $trustedJson)
         : ($type === 'popup'

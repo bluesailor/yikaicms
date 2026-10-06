@@ -29,7 +29,9 @@ final class SiteTemplateService
      * 不清就会把旧草稿、旧历史版本挂到毫不相干的新页面上。全新站里这些表本来就是空的。
      */
     private const REPLACE_CLEARS = ['blox_page_drafts', 'content_revisions', 'blox_import_reviews',
-        'blox_remote_template_states', 'media_remote_imports'];
+        'blox_remote_template_states', 'media_remote_imports',
+        // 组件用量按 doc_key 指向被替换的页面、修订按组件 uuid 指向被替换的母版；导入后重建用量
+        'blox_component_refs', 'blox_component_revisions'];
 
     private ?PluginMarketInstall $pluginMarket;
 

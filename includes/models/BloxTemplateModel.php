@@ -12,7 +12,8 @@ final class BloxTemplateModel extends Model
     // 渲染在 list.php 复用 current_query 上下文）与 error404（整页 404，any+语言即够；
     // channel/page 条件在 404 上下文永不命中，属矩阵 UI 的通用性，无害）。
     // 两者文档均走通用管线（无类型专属 settings）。
-    public const TYPES = ['section', 'page', 'header', 'footer', 'popup', 'archive', 'search', 'error404', 'product-detail', 'article-detail'];
+    // v2.1 component：组件母版（RFC-2），uuid / 版本 / 分类存 metadata.component。
+    public const TYPES = ['section', 'page', 'header', 'footer', 'popup', 'archive', 'search', 'error404', 'product-detail', 'article-detail', 'component'];
     private const SOURCES = ['user', 'import', 'builtin', 'plugin', 'remote'];
 
     public static function validType(string $type): bool
@@ -50,6 +51,16 @@ final class BloxTemplateModel extends Model
         }
         if (!in_array($source, self::SOURCES, true)) {
             $source = 'user';
+        }
+        if ($type === 'component') {
+            // 组件母版一出生就有稳定 uuid（导入时沿用包里的，跨站识别同一组件）
+            self::loadComponents();
+            $meta = is_array($metadata['component'] ?? null) ? $metadata['component'] : [];
+            if (!BloxComponents::validUuid($meta['uuid'] ?? null)) {
+                $meta['uuid'] = BloxComponents::newUuid();
+            }
+            $meta['version'] = 0;
+            $metadata['component'] = $meta;
         }
 
         $now = time();
@@ -250,6 +261,16 @@ final class BloxTemplateModel extends Model
     /** 保存目录推荐元数据；正文和发布状态不受影响。 */
     public function saveMetadata(int $id, array $metadata): void
     {
+        // 目录元数据表单不带组件块：沿用库里的 uuid / 版本，否则保存一次就和全站实例断开
+        if (!is_array($metadata['component'] ?? null)) {
+            $existing = json_decode((string) (db()->fetchColumn(
+                'SELECT metadata FROM ' . DB_PREFIX . 'blox_templates WHERE id = ?',
+                [$id]
+            ) ?: ''), true);
+            if (is_array($existing) && is_array($existing['component'] ?? null)) {
+                $metadata['component'] = $existing['component'];
+            }
+        }
         $affected = db()->execute(
             'UPDATE ' . DB_PREFIX . 'blox_templates SET metadata = ?, updated_at = ? WHERE id = ?',
             [
@@ -280,6 +301,13 @@ final class BloxTemplateModel extends Model
             'updated_at' => $now,
             'published_at' => $now,
         ]);
+        if (($row['type'] ?? '') === 'component') {
+            self::loadComponents();
+            BloxComponents::afterPublish(
+                ['published_data' => (string) $row['draft_data']] + $row,
+                (int) ($_SESSION['admin_id'] ?? 0)
+            );
+        }
     }
 
     public function unpublish(int $id): void
@@ -369,6 +397,21 @@ final class BloxTemplateModel extends Model
         if (!class_exists('BloxSectionMetadata', false)) {
             require_once ROOT_PATH . '/includes/builder/BloxSectionMetadata.php';
         }
-        return BloxSectionMetadata::normalize($metadata);
+        $normalized = BloxSectionMetadata::normalize($metadata);
+        if (is_array($metadata['component'] ?? null)) {
+            self::loadComponents();
+            $component = BloxComponents::normalizeMeta($metadata['component']);
+            if ($component !== null) {
+                $normalized['component'] = $component;
+            }
+        }
+        return $normalized;
+    }
+
+    private static function loadComponents(): void
+    {
+        if (!class_exists('BloxComponents', false)) {
+            require_once ROOT_PATH . '/includes/builder/BloxComponents.php';
+        }
     }
 }

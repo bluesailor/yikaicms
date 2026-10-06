@@ -317,6 +317,30 @@ CREATE TABLE `yikai_blox_class_refs` (
   KEY `idx_blox_class_ref_doc` (`doc_key`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+DROP TABLE IF EXISTS `yikai_blox_component_refs`;
+CREATE TABLE `yikai_blox_component_refs` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `component_uuid` varchar(32) NOT NULL,
+  `doc_key` varchar(64) NOT NULL,
+  `ref_count` int(11) unsigned NOT NULL DEFAULT 0,
+  `updated_at` int(11) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_blox_component_ref` (`component_uuid`, `doc_key`),
+  KEY `idx_blox_component_ref_doc` (`doc_key`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+DROP TABLE IF EXISTS `yikai_blox_component_revisions`;
+CREATE TABLE `yikai_blox_component_revisions` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `component_uuid` varchar(32) NOT NULL,
+  `version` int(11) unsigned NOT NULL DEFAULT 0,
+  `snapshot` longtext NOT NULL,
+  `admin_id` int(11) unsigned NOT NULL DEFAULT 0,
+  `created_at` int(11) unsigned NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_blox_component_rev` (`component_uuid`, `version`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
 DROP TABLE IF EXISTS `yikai_blox_global_queries`;
 CREATE TABLE `yikai_blox_global_queries` (
   `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
