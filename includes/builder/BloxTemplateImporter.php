@@ -22,7 +22,7 @@ final class BloxTemplateImporter
     // 2.0.3 起包内可嵌入图片（base64，图片原始总量 ≤ 5MB），整包上限相应放到 8MB
     public const MAX_BYTES = 8_000_000;
 
-    /** @param array<string,mixed> $designOptions @return array{id:int,type:string,name:string,sections:int} */
+    /** @param array<string,mixed> $designOptions @return array{id:int,type:string,name:string,sections:int,merged?:bool} */
     public static function importJson(
         string $json,
         int $adminId = 0,
@@ -32,6 +32,10 @@ final class BloxTemplateImporter
     ): array
     {
         $prepared = self::prepare($json, $designOptions);
+        // 导入组件母版等于新建 / 改写母版：与编辑母版同一授权（所有导入入口都经过这里）
+        if ($prepared['type'] === BloxComponents::TYPE && !BloxFeaturePolicy::inTrustedWrite() && !BloxFeaturePolicy::allows('components')) {
+            throw new RuntimeException(__('blox_component_license_required'));
+        }
         // 包里带的图片先落盘（内容寻址，同内容复用）；数据库任一步失败就删掉本次新写的文件
         $writtenMedia = BloxTemplateMedia::writeFiles($prepared['media']);
         db()->beginTransaction();
@@ -40,6 +44,19 @@ final class BloxTemplateImporter
             // 包里带来的全局类与模板草稿同一事务：任一步失败都不留半套类
             BloxGlobalClasses::applyImportPlan($prepared['class_plan'], $adminId);
             BloxDesignSystem::applyScaleImport($prepared['scale_plan']);
+            // 组件：本站已有同一 uuid 的母版 → 包内容写进它的草稿（作者确认后发布成新版本），不另建一份
+            $existing = $prepared['type'] === BloxComponents::TYPE
+                ? self::componentRowByUuid((string) ($prepared['metadata']['component']['uuid'] ?? '')) : null;
+            if ($existing !== null) {
+                $id = (int) $existing['id'];
+                bloxTemplateModel()->updateDraft($id, $prepared['draft_json'], $prepared['requirements']);
+                BloxDocumentIndexes::update('template:' . $id, $prepared['sections']);
+                db()->commit();
+                if ($prepared['class_plan'] !== []) {
+                    BloxGlobalClasses::invalidateStylesheet();
+                }
+                return ['id' => $id, 'type' => $prepared['type'], 'name' => $prepared['name'], 'sections' => count($prepared['sections']), 'merged' => true];
+            }
             $id = bloxTemplateModel()->createDraft(
                 $prepared['type'],
                 $prepared['name'],
@@ -69,6 +86,21 @@ final class BloxTemplateImporter
             'name' => $prepared['name'],
             'sections' => count($prepared['sections']),
         ];
+    }
+
+    /** @return array<string,mixed>|null 本站 uuid 相同的组件母版行 */
+    private static function componentRowByUuid(string $uuid): ?array
+    {
+        if (!BloxComponents::validUuid($uuid)) {
+            return null;
+        }
+        foreach (bloxTemplateModel()->catalog(BloxComponents::TYPE) as $row) {
+            $metadata = json_decode((string) ($row['metadata'] ?? ''), true);
+            if (is_array($metadata) && ($metadata['component']['uuid'] ?? null) === $uuid) {
+                return $row;
+            }
+        }
+        return null;
     }
 
     /** @param array<string,mixed> $template */
@@ -159,6 +191,10 @@ final class BloxTemplateImporter
                 + (($scales = BloxDesignDependencies::exportScales(BloxDesignDependencies::scaleReferences($sections))) !== [] ? ['scales' => $scales] : []),
         ] + ($classes !== [] ? ['classes' => $classes] : []) + [
             'metadata' => BloxSectionMetadata::normalize(self::decodeStoredMetadata($template['metadata'] ?? null)),
+        ] + (($component = $type === BloxComponents::TYPE
+            ? BloxComponents::normalizeMeta(self::decodeStoredMetadata($template['metadata'] ?? null)['component'] ?? null) : null) !== null
+            // 可选字段（v2.1）：组件的稳定 uuid / 分类 / 说明；旧版导入端不认 component 类型，本来就导不进去
+            ? ['component' => array_intersect_key($component, array_flip(['uuid', 'category', 'description', 'version']))] : []) + [
             'meta' => [
                 'source' => (string) ($template['source'] ?? ''),
                 'source_ref' => (string) ($template['source_ref'] ?? ''),
@@ -311,7 +347,8 @@ final class BloxTemplateImporter
             is_array($designOptions['tokens'] ?? null) ? $designOptions['tokens'] : []
         ));
         $rawSections = BloxGlobalClasses::remapSections($rawSections, $classPlan['map']);
-        $withoutIds = BloxDocumentPipeline::withoutNodeIds($rawSections);
+        // 组件母版的属性按节点 id 指向字段：保留 id，否则导入后属性全部失效（模板母版 id 只在本文档内唯一）
+        $withoutIds = $type === BloxComponents::TYPE ? $rawSections : BloxDocumentPipeline::withoutNodeIds($rawSections);
         // 文档级 settings（如 header 的 sticky）随模板包走 v1 信封进出，不在提取 sections 时丢失
         $rawSettings = is_array($package['document']) ? ($package['document']['settings'] ?? null) : null;
         $docSettings = BloxAreaDocument::isArea($type)
@@ -324,11 +361,13 @@ final class BloxTemplateImporter
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
         );
         $prefix = 'tpl_' . bin2hex(random_bytes(6));
-        $processed = BloxAreaDocument::isArea($type)
-            ? BloxAreaDocument::process($type, $documentJson, $prefix)
-            : ($type === 'popup'
-                ? BloxPopupDocument::process($documentJson, $prefix)
-                : BloxDocumentPipeline::process($documentJson, $prefix));
+        $processed = $type === BloxComponents::TYPE
+            ? BloxComponents::processMaster($documentJson, $prefix)
+            : (BloxAreaDocument::isArea($type)
+                ? BloxAreaDocument::process($type, $documentJson, $prefix)
+                : ($type === 'popup'
+                    ? BloxPopupDocument::process($documentJson, $prefix)
+                    : BloxDocumentPipeline::process($documentJson, $prefix)));
         $requiredPlugins = array_values(array_unique(array_merge($declared['plugins'], $pluginOwners)));
         sort($requiredPlugins);
         $requiredTokens = array_values(array_unique(array_merge($declared['design_tokens'], $inferred['design_tokens'])));
@@ -350,7 +389,10 @@ final class BloxTemplateImporter
                 'design_tokens' => $requiredTokens,
                 'design_styles' => $requiredStyles,
             ],
-            'metadata' => BloxSectionMetadata::normalize($package['metadata'] ?? []),
+            // 组件：沿用包里的 uuid（跨站识别同一组件）；版本号在本站重新计
+            'metadata' => BloxSectionMetadata::normalize($package['metadata'] ?? [])
+                + (($component = $type === BloxComponents::TYPE ? BloxComponents::normalizeMeta($package['component'] ?? null) : null) !== null
+                    ? ['component' => ['version' => 0] + $component] : []),
             'design_diagnostics' => $designDiagnostic,
             'class_plan' => $classPlan['create'],
             'class_diagnostics' => $classPlan['diagnostics'],
