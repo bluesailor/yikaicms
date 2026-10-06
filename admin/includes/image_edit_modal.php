@@ -6,7 +6,7 @@
  */
 declare(strict_types=1);
 ?>
-<div id="imageEditModal" class="fixed inset-0 z-50 hidden bg-black/70 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="imageEditTitle">
+<div id="imageEditModal" class="fixed inset-0 z-[150] hidden bg-black/70 flex items-center justify-center p-4" role="dialog" aria-modal="true" aria-labelledby="imageEditTitle">
     <div class="bg-white rounded-lg shadow-xl w-full max-w-5xl max-h-[95vh] flex flex-col overflow-hidden">
         <div class="px-5 py-3 border-b flex items-center justify-between gap-3">
             <h3 id="imageEditTitle" class="font-bold text-gray-800"><?php echo e(__('image_edit')); ?></h3>
