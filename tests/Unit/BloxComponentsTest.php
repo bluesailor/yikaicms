@@ -445,4 +445,36 @@ final class BloxComponentsTest extends TestCase
         $data = BloxDocumentPipeline::process((string) $json, 'pg1')['sections'][0]['columns'][0]['elements'][0]['data'];
         self::assertSame(['en' => ['title' => 'Hello']], $data['props_i18n']);
     }
+
+    public function testComponentPackagesKeepTheUuidAndUpdateTheSameMasterOnReimport(): void
+    {
+        $component = $this->publishComponent($this->masterJson('导出版'));
+        $row = bloxTemplateModel()->find($component['id']);
+        $json = \BloxTemplateImporter::exportJson($row);
+        $package = json_decode($json, true);
+        self::assertSame($component['uuid'], $package['component']['uuid']);
+
+        // 目标站没有这个母版：按包里的 uuid 新建（草稿，属性目标仍指得到节点）
+        db()->execute('DELETE FROM blox_templates');
+        BloxComponents::resetForTests();
+        try {
+            \BloxTemplateImporter::importJson($json);
+            self::fail('没有组件授权不能导入母版');
+        } catch (RuntimeException $e) {
+            self::assertSame(__('blox_component_license_required'), $e->getMessage());
+        }
+        $import = static fn (): array => \BloxFeaturePolicy::asTrustedWrite(static fn (): array => \BloxTemplateImporter::importJson($json));
+        $imported = $import();
+        $created = bloxTemplateModel()->find($imported['id']);
+        self::assertSame($component['uuid'], json_decode((string) $created['metadata'], true)['component']['uuid']);
+        bloxTemplateModel()->publishDraft($imported['id']);
+        BloxComponents::resetForTests();
+        self::assertSame(['title', 'link', 'cta'], array_column(BloxComponents::find($component['uuid'])['props'], 'key'));
+
+        // 再导一次：写进同一母版的草稿，不另建
+        $again = $import();
+        self::assertTrue($again['merged'] ?? false);
+        self::assertSame($imported['id'], $again['id']);
+        self::assertSame(1, (int) db()->fetchColumn("SELECT COUNT(*) FROM blox_templates WHERE type = 'component'"));
+    }
 }
