@@ -261,6 +261,28 @@ CREATE UNIQUE INDEX "uk_blox_class_ref_yikai_blox_class_refs" ON "yikai_blox_cla
 CREATE INDEX "idx_blox_class_ref_doc_yikai_blox_class_refs" ON "yikai_blox_class_refs" ("doc_key");
 
 
+DROP TABLE IF EXISTS "yikai_blox_component_refs";
+CREATE TABLE "yikai_blox_component_refs" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "component_uuid" TEXT NOT NULL,
+  "doc_key" TEXT NOT NULL,
+  "ref_count" INTEGER NOT NULL DEFAULT 0,
+  "updated_at" INTEGER NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX "uk_blox_component_ref_yikai_blox_component_refs" ON "yikai_blox_component_refs" ("component_uuid", "doc_key");
+CREATE INDEX "idx_blox_component_ref_doc_yikai_blox_component_refs" ON "yikai_blox_component_refs" ("doc_key");
+
+DROP TABLE IF EXISTS "yikai_blox_component_revisions";
+CREATE TABLE "yikai_blox_component_revisions" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "component_uuid" TEXT NOT NULL,
+  "version" INTEGER NOT NULL DEFAULT 0,
+  "snapshot" TEXT NOT NULL,
+  "admin_id" INTEGER NOT NULL DEFAULT 0,
+  "created_at" INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX "idx_blox_component_rev_yikai_blox_component_revisions" ON "yikai_blox_component_revisions" ("component_uuid", "version");
+
 DROP TABLE IF EXISTS "yikai_blox_global_queries";
 CREATE TABLE "yikai_blox_global_queries" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,

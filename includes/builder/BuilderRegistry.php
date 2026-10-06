@@ -181,6 +181,8 @@ final class BuilderRegistry
             new ContactCardsElement(),
             new ContactFormElement(),
             new ContactMapElement(),
+            // 组件实例（v2.1）：从组件库插入，不进元素库
+            new ComponentElement(),
         ] as $el) {
             self::register($el);
         }

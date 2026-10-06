@@ -23,6 +23,9 @@ final class BloxTemplateEditPolicy
         'archive' => 'advanced', // 依赖查询循环（current 源），随专业能力档
         'search' => 'free',
         'error404' => 'free',
+        // 组件母版（v2.1）：新建 / 编辑 / 发布归专业版（blox-feature-policy 的 components）；
+        // 渲染、插入实例、改实例属性、脱离不经过这里，永远免费
+        'component' => 'components',
     ];
 
     public static function allows(string $type, bool $advanced): bool
@@ -30,6 +33,7 @@ final class BloxTemplateEditPolicy
         return match (self::EDITING_TIERS[$type] ?? '') {
             'free' => true,
             'advanced' => $advanced,
+            'components' => BloxFeaturePolicy::allows('components'),
             default => false,
         };
     }
