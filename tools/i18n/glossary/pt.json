@@ -57,5 +57,9 @@
   "订单": "Pedido",
   "退款": "Reembolso",
   "运费": "Frete",
-  "备案号": "número de registro ICP"
+  "备案号": "número de registro ICP",
+  "组件": "Componente",
+  "母版": "Mestre",
+  "实例": "Instância",
+  "脱离": "Separar"
 }

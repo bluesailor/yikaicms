@@ -57,5 +57,9 @@
     "订单": "Ordine",
     "退款": "Rimborso",
     "运费": "Spese di spedizione",
-    "备案号": "numero di registrazione ICP"
+    "备案号": "numero di registrazione ICP",
+    "组件": "Componente",
+    "母版": "Master",
+    "实例": "Istanza",
+    "脱离": "Scollega"
 }

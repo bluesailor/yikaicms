@@ -57,5 +57,9 @@
     "订单": "Pesanan",
     "退款": "Pengembalian dana",
     "运费": "Ongkos kirim",
-    "备案号": "nomor pendaftaran ICP"
+    "备案号": "nomor pendaftaran ICP",
+    "组件": "Komponen",
+    "母版": "Induk",
+    "实例": "Instans",
+    "脱离": "Lepaskan"
 }

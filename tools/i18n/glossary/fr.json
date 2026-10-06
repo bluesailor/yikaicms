@@ -57,5 +57,9 @@
   "订单": "Commande",
   "退款": "Remboursement",
   "运费": "Frais de livraison",
-  "备案号": "numéro d’enregistrement ICP"
+  "备案号": "numéro d’enregistrement ICP",
+  "组件": "Composant",
+  "母版": "Maître",
+  "实例": "Instance",
+  "脱离": "Détacher"
 }
