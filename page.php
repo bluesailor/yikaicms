@@ -270,6 +270,7 @@ if (($content['content_type'] ?? '') === 'blocks' && !empty($content['blocks_dat
     $pageDocument = BloxDocumentPipeline::decode((string) $content['blocks_data']);
     $GLOBALS['ykBloxPageFrame'] = $pageDocument['settings'];
     if ($isBloxPage) $GLOBALS['ykBloxPageFrame'] = BloxPageLayout::activate($pageDocument['settings'], $channel);
+    BloxMotion::setPageOverride($pageDocument['settings']['page_transition'] ?? null);   // 本页的页面切换动画
 }
 
 // 引入头部

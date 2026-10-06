@@ -49,6 +49,30 @@ final class BloxAuroraTest extends TestCase
         self::assertStringNotContainsString('yk-aurora', $this->render('container', ['bg_color' => '#111827']), '默认输出不变');
     }
 
+    public function testSectionColumnsCanCarryAnAurora(): void
+    {
+        // 2.0.5：区块列（不是元素）也能开极光；存盘时收窄到白名单
+        $column = BloxAurora::normalizeStored(['bg_aurora' => '1', 'bg_aurora_color_1' => '#ff0000', 'bg_aurora_color_2' => 'red;}x{',
+            'bg_aurora_speed' => 'slow', 'bg_aurora_size' => 'huge', 'bg_aurora_opacity' => 5, 'evil' => 'x']);
+        self::assertSame(['bg_aurora' => true, 'bg_aurora_color_1' => '#ff0000', 'bg_aurora_speed' => 'slow', 'bg_aurora_opacity' => 10], $column);
+        self::assertSame([], BloxAurora::normalizeStored(['bg_aurora' => false, 'bg_aurora_speed' => 'fast']), '没开启整组不存');
+
+        $doc = BloxDocumentPipeline::decode((string) json_encode(['sections' => [[
+            'columns' => [['elements' => [], 'bg_aurora' => true, 'bg_aurora_blur' => 'lg', 'card_bg' => '#111827'], ['elements' => []]],
+        ]]]));
+        $stored = $doc['sections'][0]['columns'][0];
+        self::assertTrue($stored['bg_aurora']);
+        self::assertSame('lg', $stored['bg_aurora_blur']);
+
+        $html = BlockRenderer::render((string) json_encode([[
+            'type' => 'custom', 'id' => 's1',
+            'columns' => [['elements' => [['type' => 'text', 'id' => 'e1', 'data' => ['html' => '<p>A</p>']]], 'bg_aurora' => true, 'card_bg' => '#111827'],
+                ['elements' => [['type' => 'text', 'id' => 'e2', 'data' => ['html' => '<p>B</p>']]]]],
+        ]]));
+        self::assertMatchesRegularExpression('/<div class="[^"]*\byk-aurora\b[^"]*" style="--yk-aurora-1:[^"]*background-color:#111827;/', $html);
+        self::assertSame(1, substr_count($html, 'yk-aurora"') + substr_count($html, 'yk-aurora '), '只有开了的那一列');
+    }
+
     public function testStylesheetIsCompiledIntoAppCssAndStopsForReducedMotion(): void
     {
         $sheet = BloxAurora::stylesheet();

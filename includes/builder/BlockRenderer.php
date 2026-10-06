@@ -562,7 +562,8 @@ final class BlockRenderer
                 $hasColumnOverlay = $columnBgImage !== null
                     && $columnOverlayColor !== null
                     && $columnOverlayOpacity > 0;
-                $hasColumnVisual = $columnBg !== null || $columnBgImage !== null || $hasColumnOverlay;
+                $columnAurora = BloxAurora::declarations($column);   // 区块列的极光背景（2.0.5）
+                $hasColumnVisual = $columnBg !== null || $columnBgImage !== null || $hasColumnOverlay || $columnAurora !== '';
                 $wrapColumn = $colCount > 1 || $editMode || $hasColumnVisual
                     || $colHideCls !== '' || $colHideAttr !== '';
 
@@ -577,8 +578,11 @@ final class BlockRenderer
                     if ($hasColumnOverlay) {
                         $columnClass = trim($columnClass . ' relative overflow-hidden');
                     }
+                    if ($columnAurora !== '') {
+                        $columnClass = trim($columnClass . ' yk-aurora');
+                    }
 
-                    $columnStyle = '';
+                    $columnStyle = $columnAurora;
                     if ($columnBg !== null) {
                         $columnStyle .= 'background-color:' . $columnBg . ';';
                     }
