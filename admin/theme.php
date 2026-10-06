@@ -530,7 +530,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <p class="text-xs mt-2"><?php echo __('theme_none_hint'); ?></p>
     </div>
     <?php else: ?>
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="theme-local-list">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" data-testid="theme-local-list">
         <?php foreach ($themes as $theme):
             $isActive = ($theme['slug'] === $currentTheme);
             $screenshot = '';
@@ -702,7 +702,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <div class="bg-white rounded-lg shadow p-12 text-center text-gray-500"><?php echo __('theme_market_empty'); ?></div>
         </template>
 
-        <div x-show="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6" data-testid="theme-market-list">
+        <div x-show="!loading" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" data-testid="theme-market-list">
             <template x-for="t in items" :key="t.slug">
                 <div class="bg-white rounded-lg shadow overflow-hidden flex flex-col"
                     :class="highlight === t.slug ? 'ring-2 ring-amber-400' : ''" :data-theme-slug="t.slug">

@@ -34,6 +34,8 @@ final class LocalizedUrl
         if ($preview || headers_sent()) return;
         $rowLang = (string) ($row['lang'] ?? '');
         if ($rowLang === '' || $rowLang === siteLang()) return;
+        // 条目的语言没在本站启用（如默认语言是繁体或阿拉伯语的新站，演示数据是简体行）：没有可去的地址，照常显示
+        if (function_exists('enabledLanguages') && !array_key_exists($rowLang, enabledLanguages())) return;
         // 请求的语言没有这一条：去它自己的语言版本
         $target = self::urlFor($kind, $row, $rowLang);
         if ($target === '') return;

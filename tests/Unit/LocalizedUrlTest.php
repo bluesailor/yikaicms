@@ -49,6 +49,8 @@ final class LocalizedUrlTest extends TestCase
         $source = (string) file_get_contents(ROOT_PATH . '/includes/i18n/LocalizedUrl.php');
         self::assertStringContainsString("if (\$rowLang === '' || \$rowLang === siteLang()) return;", $source, '繁体视图读简体数据不算缺译文');
         self::assertStringContainsString("header('Location: ' . \$target, true, 302);", $source, '302：以后补了译文同一网址可用');
+        // 2.0.5 全新安装回归：默认语言是繁体 / 阿拉伯语的新站，演示数据是简体行而简体没启用，跳过去就是 404
+        self::assertStringContainsString("if (function_exists('enabledLanguages') && !array_key_exists(\$rowLang, enabledLanguages())) return;", $source);
     }
 
     public function testHreflangAndSwitcherUseTheResolverAndDynamicModeKeepsTheRoute(): void

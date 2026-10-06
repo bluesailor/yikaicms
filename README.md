@@ -1,4 +1,4 @@
-# YikaiCMS v2.0.4
+# YikaiCMS v2.0.5
 
 > **面向企业官网与外贸网站的轻量 PHP CMS** · 源码公开，免费商用
 
@@ -34,7 +34,7 @@
 
 ## 3 分钟安装
 
-1. 下载完整包 [yikaicms-v2.0.4.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.0.4/yikaicms-v2.0.4.zip)（校验文件 [yikaicms-v2.0.4.sha256](https://github.com/bluesailor/yikaicms/releases/download/v2.0.4/yikaicms-v2.0.4.sha256)），解压上传到网站根目录（也可以放在子目录）；
+1. 下载完整包 [yikaicms-v2.0.5.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.0.5/yikaicms-v2.0.5.zip)（校验文件 [yikaicms-v2.0.5.sha256](https://github.com/bluesailor/yikaicms/releases/download/v2.0.5/yikaicms-v2.0.5.sha256)），解压上传到网站根目录（也可以放在子目录）；
 2. 确保站点根目录（安装器写入 `installed.lock`）和 `/config/`、`/uploads/`、`/storage/` 可写，浏览器访问 `http://你的域名/install/`，按向导选择 MySQL 或 SQLite 完成安装；
 3. 配置伪静态（宝塔面板：站点 → 设置 → 伪静态，写入一行 `include /www/wwwroot/<你的站点目录>/deploy/nginx-baota.conf;`）；
 4. 登录后台，在「建站向导」里从 40 多套行业整站模板（中文、日文、英文）中挑一套导入，或直接在演示内容上修改。
@@ -143,7 +143,7 @@
 
 ### 1. 下载部署
 
-- 完整安装包：[yikaicms-v2.0.4.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.0.4/yikaicms-v2.0.4.zip)，发布说明见 [v2.0.4 Release](https://github.com/bluesailor/yikaicms/releases/tag/v2.0.4)；每个版本附 `.sha256` 校验文件，历史版本见 [Releases](https://github.com/bluesailor/yikaicms/releases)。
+- 完整安装包：[yikaicms-v2.0.5.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.0.5/yikaicms-v2.0.5.zip)，发布说明见 [v2.0.5 Release](https://github.com/bluesailor/yikaicms/releases/tag/v2.0.5)；每个版本附 `.sha256` 校验文件，历史版本见 [Releases](https://github.com/bluesailor/yikaicms/releases)。
 - 已安装的站点可在后台「系统维护 → 系统升级」在线升级，无需手动下载。
 - 开发者也可以直接克隆仓库：`git clone https://github.com/bluesailor/yikaicms.git`
 
