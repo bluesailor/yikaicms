@@ -26,7 +26,7 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 if (!hasPermission('blox_edit') && !hasPermission('blox_home') && !hasPermission('blox_global')) {
-    error(__('no_permission'), 403);
+    error(__('perm_denied'), 403);
 }
 if (!bloxPageEditorEnabled()) {
     error(__('blox_feature_disabled'));

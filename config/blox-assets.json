@@ -53,6 +53,7 @@
     "assets/js/yikay-canvas-bridge.js",
     "assets/js/yikay-color-picker.js",
     "assets/js/yikay-command-runner.js",
+    "assets/js/yikay-components.js",
     "assets/js/yikay-command-palette.js",
     "assets/js/yikay-style-clipboard.js",
     "assets/js/yikay-control-rules.js",

@@ -123,3 +123,23 @@ test('master editor exposes and removes a prop from a control @ci', async ({ pag
   await expose.click();
   expect(await app(page, a => a.masterProps().map(p => p.key))).toEqual(['title', 'cta']);
 });
+
+test('component manager lists usage places and archives without breaking instances @ci', async ({ page }) => {
+  await page.goto('/admin/blox_templates.php?type=component');
+  const row = page.getByTestId(`blox-component-row-${state.uuid}`);
+  await expect(row).toBeVisible();
+  await row.getByRole('button', { name: /\d/ }).first().click();
+  await expect(row.getByRole('link', { name: /Components fixture/ })).toBeVisible();
+
+  await page.getByTestId(`blox-component-archive-${state.uuid}`).click();
+  await expect(row).toHaveCount(0);
+  // 归档只是从组件库隐藏：已有实例前台照常显示
+  await page.goto(state.url);
+  await expect(page.locator(`[data-yk-component="${state.uuid}"]`)).toBeVisible();
+
+  await page.goto('/admin/blox_templates.php?type=component');
+  await page.getByText(/显示已归档|Show archived/).click();
+  await page.getByTestId(`blox-component-archive-${state.uuid}`).click();
+  await page.getByText(/显示已归档|Show archived/).click();
+  await expect(page.getByTestId(`blox-component-row-${state.uuid}`)).toBeVisible();
+});
