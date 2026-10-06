@@ -354,6 +354,30 @@
       "en": "ICP filing number",
       "ja": "届出番号",
       "note": "Chinese website registration number; keep as a proper term"
+    },
+    {
+      "zh": "组件",
+      "en": "Component",
+      "ja": "コンポーネント",
+      "note": "reusable Blox builder structure (v2.1); one master, many linked instances. Not a software library component"
+    },
+    {
+      "zh": "母版",
+      "en": "Master",
+      "ja": "マスター",
+      "note": "the single definition of a component that every instance follows"
+    },
+    {
+      "zh": "实例",
+      "en": "Instance",
+      "ja": "インスタンス",
+      "note": "a placed copy of a component on a page that still follows its master"
+    },
+    {
+      "zh": "脱离",
+      "en": "Detach",
+      "ja": "切り離す",
+      "note": "turn an instance into plain elements that no longer follow the master"
     }
   ]
 }
