@@ -11,6 +11,15 @@ final class BloxSiteElementsTest extends TestCase
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';
     }
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // 语言切换按「本页登记的条目」给目标；前面的控制器测试可能留下登记，这里每次清掉
+        if (class_exists('LocalizedUrl', false)) {
+            \LocalizedUrl::reset();
+        }
+    }
+
     public function testDynamicSiteElementsAreRegisteredWithEditableControls(): void
     {
         $meta = BuilderRegistry::meta();
