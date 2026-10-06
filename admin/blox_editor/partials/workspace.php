@@ -28,7 +28,22 @@ declare(strict_types=1);
                     </button>
                     <?php require __DIR__ . '/left-panel-toggle.php'; ?>
                 </div>
-                <div class="p-2 border-b border-gray-100 shrink-0">
+                <?php // v2.1 组件：元素 / 组件两个标签；组件母版里不能再放组件，不显示组件标签 ?>
+                <div x-show="!componentMasterMode" class="flex border-b border-gray-100 shrink-0 text-[11px]" role="tablist">
+                    <button type="button" role="tab" @click="libTab = 'elements'" :aria-selected="libTab === 'elements'"
+                            data-testid="blox-lib-tab-elements"
+                            class="flex-1 py-1.5 border-b-2 transition"
+                            :class="libTab === 'elements' ? 'border-blue-500 text-blue-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'"
+                            x-text="componentText.tabElements"></button>
+                    <button type="button" role="tab" @click="openComponentLibrary()" :aria-selected="libTab === 'components'"
+                            data-testid="blox-lib-tab-components"
+                            class="flex-1 py-1.5 border-b-2 transition inline-flex items-center justify-center gap-1"
+                            :class="libTab === 'components' ? 'border-violet-500 text-violet-600 font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'">
+                        <i class="ti ti-components text-xs" aria-hidden="true"></i><span x-text="componentText.tabComponents"></span>
+                    </button>
+                </div>
+                <?php require __DIR__ . '/component-library.php'; ?>
+                <div x-show="libTab === 'elements' || componentMasterMode" class="p-2 border-b border-gray-100 shrink-0">
                     <div class="flex items-center gap-1.5">
                         <div class="relative flex-1 min-w-0">
                             <i class="ti ti-search text-sm text-gray-300 absolute left-2 top-1/2 -translate-y-1/2"></i>
@@ -76,7 +91,7 @@ declare(strict_types=1);
                     </template>
                 </div>
                 <?php // pb-24：滚动到底时给最后一排瓦片留出充足空位（用户 2026-08-20 反馈 pb-16 仍紧） ?>
-                <div class="flex-1 overflow-y-auto blox-scroll p-2 pb-24" data-testid="blox-element-scroll">
+                <div x-show="libTab === 'elements' || componentMasterMode" class="flex-1 overflow-y-auto blox-scroll p-2 pb-24" data-testid="blox-element-scroll">
                     <template x-for="grp in filteredLib()" :key="grp.cat">
                         <div class="mb-3" :data-testid="'blox-element-group-' + grp.cat">
                             <?php // 分类标题可折叠；搜索或单类筛选时忽略折叠态全部展开 ?>
@@ -1561,6 +1576,7 @@ declare(strict_types=1);
                                 </div>
                             </template>
 
+                            <?php require __DIR__ . '/component-panels.php'; ?>
                             <?php require __DIR__ . '/banner-control-groups.php'; ?>
                             <?php require __DIR__ . '/home-content-groups.php'; ?>
                             <?php require __DIR__ . '/heading-content.php'; ?>
@@ -1585,6 +1601,18 @@ declare(strict_types=1);
                                             </template>
                                             <template x-if="ctrl.dynamic_tags && ctrl.type !== 'richtext'">
                                                 <?php $dynamicTagKey = 'ctrl.key'; $dynamicTagLinks = "ctrl.type === 'url'"; require __DIR__ . '/dynamic-tag-picker.php'; ?>
+                                            </template>
+                                            <?php // 组件母版：把这个字段导出为组件属性（实例可覆盖） ?>
+                                            <template x-if="componentExposable(ctrl)">
+                                                <button type="button" @click="exposedProp(ctrl) ? unexposeControl(ctrl) : exposeControl(ctrl)"
+                                                        :data-testid="'blox-component-expose-inline-' + ctrl.key"
+                                                        :aria-pressed="!!exposedProp(ctrl)"
+                                                        :title="exposedProp(ctrl) ? componentText.unexpose : componentText.expose"
+                                                        :aria-label="exposedProp(ctrl) ? componentText.unexpose : componentText.expose"
+                                                        class="w-6 h-6 inline-flex items-center justify-center rounded hover:bg-violet-50"
+                                                        :class="exposedProp(ctrl) ? 'text-violet-600' : 'text-gray-300 hover:text-violet-500'">
+                                                    <i class="ti ti-components text-sm" aria-hidden="true"></i>
+                                                </button>
                                             </template>
                                             </div>
                                             <div x-show="ctrl.responsive" class="flex items-center gap-1">

@@ -122,6 +122,7 @@
                 <file name="admin/blox_design.php" />
                 <file name="admin/blox_design_api.php" />
                 <file name="admin/blox_page_api.php" />
+                <file name="admin/blox_component_api.php" />
                 <file name="admin/blox_preview.php" />
                 <file name="admin/site_design.php" />
                 <file name="admin/site_health.php" />

@@ -276,6 +276,55 @@ final class BloxComponents
         return self::sanitizeResolved($prop, $value);
     }
 
+    /** 自动绑定：属性键 / 类型 → 循环标签（键名优先，其次按类型兜底）。 */
+    private const AUTO_BIND_KEYS = [
+        'title' => '{{loop.title}}', 'name' => '{{loop.title}}', 'heading' => '{{loop.title}}',
+        'subtitle' => '{{loop.subtitle}}', 'summary' => '{{loop.summary}}', 'description' => '{{loop.summary}}',
+        'excerpt' => '{{loop.summary}}',
+        'image' => '{{loop.cover}}', 'cover' => '{{loop.cover}}', 'photo' => '{{loop.cover}}', 'thumbnail' => '{{loop.cover}}',
+        'url' => '{{loop.url}}', 'link' => '{{loop.url}}', 'href' => '{{loop.url}}',
+        'price' => '{{loop.price}}', 'model' => '{{loop.model}}', 'date' => '{{loop.date}}',
+        'category' => '{{loop.category}}', 'author' => '{{loop.author}}',
+    ];
+    private const AUTO_BIND_TYPES = ['image' => '{{loop.cover}}', 'url' => '{{loop.url}}'];
+
+    /**
+     * 组件放进查询循环时，给每个属性建议一个循环标签；作者确认后写进实例 props。没有合适的就不建议。
+     *
+     * @param list<array<string,mixed>> $props
+     * @return array<string,string> prop key => tag
+     */
+    public static function suggestLoopBindings(array $props): array
+    {
+        $suggestions = [];
+        foreach ($props as $prop) {
+            $key = (string) ($prop['key'] ?? '');
+            $type = (string) ($prop['type'] ?? '');
+            if (!in_array($type, ['text', 'richtext', 'image', 'url'], true)) {
+                continue;
+            }
+            $tag = self::AUTO_BIND_KEYS[$key] ?? null;
+            if ($tag === null) {
+                foreach (self::AUTO_BIND_KEYS as $hint => $candidate) {
+                    if (str_contains($key, $hint)) {
+                        $tag = $candidate;
+                        break;
+                    }
+                }
+            }
+            $tag ??= self::AUTO_BIND_TYPES[$type] ?? null;
+            // 类型要对得上：图片属性只吃 cover，链接属性只吃 url
+            if ($tag === null
+                || ($type === 'image' && $tag !== '{{loop.cover}}')
+                || ($type === 'url' && $tag !== '{{loop.url}}')
+                || (in_array($type, ['text', 'richtext'], true) && in_array($tag, ['{{loop.cover}}', '{{loop.url}}'], true))) {
+                continue;
+            }
+            $suggestions[$key] = $tag;
+        }
+        return $suggestions;
+    }
+
     // ── 实例 ──────────────────────────────────────────────────────────
 
     /**
@@ -435,6 +484,7 @@ final class BloxComponents
      *
      * @param array<int,mixed> $sections
      * @return array{sections:array<int,mixed>,expanded:int}
+     * @psalm-suppress PossiblyUnusedMethod 整站模板 / 模板包导出前展开（导出侧接入随 2.1.x），当前由单测覆盖
      */
     public static function detachAll(array $sections): array
     {
@@ -471,6 +521,95 @@ final class BloxComponents
             }
         }
         return ['sections' => $sections, 'expanded' => $expanded];
+    }
+
+    /**
+     * 任意 JSON 树里的实例全部脱离（首页、页头页尾、历史快照的格式各不相同，按节点形状识别，不按文档格式）。
+     */
+    public static function detachInTree(mixed $tree, int &$count): mixed
+    {
+        if (!is_array($tree)) {
+            return $tree;
+        }
+        if (($tree['type'] ?? null) === self::TYPE && is_array($tree['data'] ?? null)) {
+            $replacement = self::detach($tree);
+            if ($replacement !== null) {
+                $count++;
+                return $replacement;
+            }
+            return $tree;
+        }
+        foreach ($tree as $key => $value) {
+            if (is_array($value)) {
+                $tree[$key] = self::detachInTree($value, $count);
+            }
+        }
+        return $tree;
+    }
+
+    /**
+     * 「全部脱离」（降级到 2.0.5 前运行；先备份）：页面草稿与发布版、单页正文、模板、首页设置里的实例全部展开成普通元素。
+     * 母版已不可用的实例原样保留（旧版前台本来也显示不出来）。页面历史版本里的旧快照不改。
+     *
+     * @return array{documents:int,instances:int}
+     */
+    public static function detachSite(): array
+    {
+        $needle = '%"type":"' . self::TYPE . '"%';
+        $documents = 0;
+        $instances = 0;
+        $rewrite = static function (string $json) use (&$documents, &$instances): ?string {
+            $decoded = json_decode($json, true);
+            if (!is_array($decoded)) {
+                return null;
+            }
+            $count = 0;
+            $detached = self::detachInTree($decoded, $count);
+            if ($count === 0) {
+                return null;
+            }
+            $documents++;
+            $instances += $count;
+            return json_encode($detached, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        };
+        $stores = [
+            ['blox_page_drafts', 'id', ['draft_data', 'published_data'], ''],
+            ['contents', 'id', ['blocks_data'], ''],
+            ['blox_templates', 'id', ['draft_data', 'published_data'], " AND type <> '" . self::TYPE . "'"],
+            ['settings', 'id', ['value'], ''],
+        ];
+        db()->beginTransaction();
+        try {
+            foreach ($stores as [$table, $pk, $columns, $extra]) {
+                if (!db()->tableExists($table)) {
+                    continue;
+                }
+                foreach ($columns as $column) {
+                    $rows = db()->fetchAll(
+                        'SELECT ' . $pk . ', ' . $column . ' AS doc FROM ' . DB_PREFIX . $table
+                        . ' WHERE ' . $column . ' LIKE ?' . $extra,
+                        [$needle]
+                    );
+                    foreach ($rows as $row) {
+                        $json = $rewrite((string) ($row['doc'] ?? ''));
+                        if ($json !== null) {
+                            db()->update($table, [$column => $json], $pk . ' = ?', [$row[$pk]]);
+                        }
+                    }
+                }
+            }
+            if (self::available()) {
+                db()->execute('DELETE FROM ' . DB_PREFIX . 'blox_component_refs');
+            }
+            db()->commit();
+        } catch (Throwable $e) {
+            db()->rollback();
+            throw $e;
+        }
+        if (function_exists('do_action')) {
+            do_action('data_changed', 'blox_templates', null);
+        }
+        return ['documents' => $documents, 'instances' => $instances];
     }
 
     // ── 目录（请求级缓存） ─────────────────────────────────────────────
@@ -584,7 +723,9 @@ final class BloxComponents
         }
     }
 
-    /** @return array<string,array{docs:int,refs:int}> */
+    /**
+     * @return array<string,array{docs:int,refs:int}>
+     */
     public static function usage(): array
     {
         if (!self::available()) {
@@ -600,7 +741,9 @@ final class BloxComponents
         return $usage;
     }
 
-    /** @return list<string> 使用该组件的文档键（page:N / template:N / home …） */
+    /**
+     * @return list<string> 使用该组件的文档键（page:N / template:N / home …）
+     */
     public static function usedIn(string $uuid): array
     {
         if (!self::available() || !self::validUuid($uuid)) {
@@ -612,7 +755,64 @@ final class BloxComponents
         );
     }
 
+    /**
+     * 使用位置的显示名与编辑入口（组件库「查看使用位置」）。
+     *
+     * @return array{doc_key:string,label:string,edit_url:string}
+     */
+    public static function describeDocKey(string $docKey): array
+    {
+        $label = $docKey;
+        $url = '';
+        if (preg_match('/^(page|channel|template):(\d+)$/', $docKey, $m) === 1) {
+            $id = (int) $m[2];
+            if ($m[1] === 'template') {
+                $name = db()->fetchColumn('SELECT name FROM ' . DB_PREFIX . 'blox_templates WHERE id = ?', [$id]);
+                $label = __('blox_component_used_template', ['name' => is_string($name) ? $name : '#' . $id]);
+                $url = 'blox_editor.php?template=' . $id;
+            } else {
+                $name = db()->fetchColumn('SELECT name FROM ' . DB_PREFIX . 'channels WHERE id = ?', [$id]);
+                $label = __('blox_component_used_page', ['name' => is_string($name) ? $name : '#' . $id]);
+                $url = $m[1] === 'page' ? 'blox_editor.php?id=' . $id : '';
+            }
+        } elseif ($docKey === 'home' || $docKey === 'home-layout') {
+            $label = __('blox_component_used_home');
+            $url = 'blox_editor.php?home=1';
+        }
+        return ['doc_key' => $docKey, 'label' => $label, 'edit_url' => $url];
+    }
+
     // ── 发布与修订 ────────────────────────────────────────────────────
+
+    /** @return list<array{version:int,admin_id:int,created_at:int}> 新的在前 */
+    public static function revisions(string $uuid): array
+    {
+        if (!self::validUuid($uuid) || !db()->tableExists('blox_component_revisions')) {
+            return [];
+        }
+        return array_map(static fn (array $row): array => [
+            'version' => (int) $row['version'],
+            'admin_id' => (int) $row['admin_id'],
+            'created_at' => (int) $row['created_at'],
+        ], db()->fetchAll(
+            'SELECT version, admin_id, created_at FROM ' . DB_PREFIX . 'blox_component_revisions WHERE component_uuid = ? ORDER BY version DESC, id DESC',
+            [$uuid]
+        ));
+    }
+
+    public static function revisionSnapshot(string $uuid, int $version): ?string
+    {
+        if (!self::validUuid($uuid) || $version < 1 || !db()->tableExists('blox_component_revisions')) {
+            return null;
+        }
+        $snapshot = db()->fetchColumn(
+            'SELECT snapshot FROM ' . DB_PREFIX . 'blox_component_revisions WHERE component_uuid = ? AND version = ? ORDER BY id DESC LIMIT 1',
+            [$uuid, $version]
+        );
+        return is_string($snapshot) && $snapshot !== '' ? $snapshot : null;
+    }
+
+    // ── 发布与修订（写） ──────────────────────────────────────────────
 
     /**
      * 母版发布后：版本号 +1、写修订（保留最近 KEEP_REVISIONS 份）。整页缓存由模板行更新触发的 data_changed 失效。

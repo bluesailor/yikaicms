@@ -12,7 +12,8 @@ final class BloxSiteDesignContractTest extends TestCase
 {
     public function testTemplateTaxonomySeparatesReusableAndSiteAreaTypes(): void
     {
-        self::assertSame(['section', 'page', 'header', 'footer', 'popup', 'archive', 'search', 'error404', 'product-detail', 'article-detail'], BloxTemplateModel::TYPES); // v1.26 增 archive/search/error404
+        self::assertSame(['section', 'page', 'header', 'footer', 'popup', 'archive', 'search', 'error404', 'product-detail', 'article-detail', 'component'], BloxTemplateModel::TYPES); // v1.26 增 archive/search/error404；v2.1 增 component（组件母版）
+        self::assertFalse(BloxTemplateModel::conditionalType('component'), '组件母版不按条件生效，只被实例引用');
         foreach (['product-detail', 'article-detail'] as $type) {
             self::assertTrue(BloxTemplateModel::validType($type));
             self::assertFalse(BloxTemplateModel::conditionalType($type));

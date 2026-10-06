@@ -53,6 +53,10 @@ final class BloxComponentsTest extends TestCase
                 ref_count INTEGER NOT NULL DEFAULT 0,
                 updated_at INTEGER NOT NULL DEFAULT 0
             )",
+            "CREATE TABLE blox_page_drafts (id INTEGER PRIMARY KEY AUTOINCREMENT, page_id INTEGER NOT NULL, draft_data TEXT NOT NULL, published_data TEXT, admin_id INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0, published_at INTEGER NOT NULL DEFAULT 0)",
+            "CREATE TABLE contents (id INTEGER PRIMARY KEY AUTOINCREMENT, blocks_data TEXT)",
+            "CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, \"key\" TEXT NOT NULL, value TEXT)",
+            "CREATE TABLE channels (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '')",
             "CREATE TABLE blox_component_revisions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 component_uuid TEXT NOT NULL,
@@ -307,5 +311,71 @@ final class BloxComponentsTest extends TestCase
 
         // 母版之后再改，脱离出来的结构不受影响
         self::assertStringContainsString('询价', $this->renderPage($result['sections']));
+    }
+
+    // ── 全部脱离 / 修订 / 使用位置 ──────────────────────────────────
+
+    public function testDetachSiteExpandsInstancesInEveryStoreButLeavesMastersAlone(): void
+    {
+        $component = $this->publishComponent($this->masterJson());
+        $page = json_encode(['schema' => 1, 'settings' => [], 'sections' => $this->pageWith($component['uuid'], ['cta' => '询价'])], JSON_UNESCAPED_UNICODE);
+        db()->insert('blox_page_drafts', ['page_id' => 3, 'draft_data' => $page, 'published_data' => $page]);
+        db()->insert('contents', ['blocks_data' => $page]);
+        // 首页用自己的格式、历史快照是数组的数组：按节点形状识别，照样展开
+        db()->insert('settings', ['key' => 'home_blox_history', 'value' => json_encode([['sections' => $this->pageWith($component['uuid'])]], JSON_UNESCAPED_UNICODE)]);
+        db()->insert('settings', ['key' => 'site_name', 'value' => '"type":"component" 只是文字']);
+        BloxDocumentIndexes::update('page:3', $this->pageWith($component['uuid']));
+
+        $result = BloxComponents::detachSite();
+
+        self::assertSame(['documents' => 4, 'instances' => 4], $result);
+        foreach (['SELECT draft_data FROM blox_page_drafts', 'SELECT published_data FROM blox_page_drafts', 'SELECT blocks_data FROM contents', "SELECT value FROM settings WHERE \"key\" = 'home_blox_history'"] as $sql) {
+            $json = (string) db()->fetchColumn($sql);
+            self::assertStringNotContainsString('"type":"component"', $json, $sql);
+        }
+        self::assertStringContainsString('询价', (string) db()->fetchColumn('SELECT blocks_data FROM contents'));
+        self::assertSame('"type":"component" 只是文字', db()->fetchColumn("SELECT value FROM settings WHERE \"key\" = 'site_name'"));
+        self::assertSame([], BloxComponents::usedIn($component['uuid']));
+        BloxComponents::resetForTests();
+        self::assertNotNull(BloxComponents::find($component['uuid']), '母版本身不动');
+    }
+
+    public function testRevisionsListNewestFirstAndSnapshotsRestoreEarlierVersions(): void
+    {
+        $component = $this->publishComponent($this->masterJson('初版'));
+        $model = bloxTemplateModel();
+        $model->updateDraft($component['id'], BloxComponents::processMaster($this->masterJson('二版'), 'tpl0')['json'], []);
+        $model->publishDraft($component['id']);
+
+        self::assertSame([2, 1], array_column(BloxComponents::revisions($component['uuid']), 'version'));
+        $snapshot = (string) BloxComponents::revisionSnapshot($component['uuid'], 1);
+        self::assertStringContainsString('初版', $snapshot);
+        self::assertNull(BloxComponents::revisionSnapshot($component['uuid'], 9));
+    }
+
+    public function testUsagePlacesAreDescribedWithEditorLinks(): void
+    {
+        db()->insert('channels', ['name' => '关于我们']);
+        $page = BloxComponents::describeDocKey('page:1');
+        self::assertSame('blox_editor.php?id=1', $page['edit_url']);
+        self::assertStringContainsString('关于我们', $page['label']);
+        self::assertSame('blox_editor.php?home=1', BloxComponents::describeDocKey('home')['edit_url']);
+    }
+
+    public function testLoopBindingSuggestionsMatchKeysAndTypes(): void
+    {
+        $suggestions = BloxComponents::suggestLoopBindings([
+            ['key' => 'title', 'type' => 'text'],
+            ['key' => 'product_image', 'type' => 'image'],
+            ['key' => 'link', 'type' => 'url'],
+            ['key' => 'button_text', 'type' => 'text'],   // 没有合适字段：不建议
+            ['key' => 'cover', 'type' => 'text'],         // 文本属性不吃图片路径
+            ['key' => 'featured', 'type' => 'boolean'],
+        ]);
+        self::assertSame([
+            'title' => '{{loop.title}}',
+            'product_image' => '{{loop.cover}}',
+            'link' => '{{loop.url}}',
+        ], $suggestions);
     }
 }

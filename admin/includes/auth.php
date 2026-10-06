@@ -530,7 +530,8 @@ function requirePermission(string $permission): void
 /** Header/Footer/Popup 会改变全站输出，归入 Blox 全站设计权限。 */
 function bloxTemplateTypeRequiresAdmin(string $type): bool
 {
-    return in_array(strtolower(trim($type)), ['header', 'footer', 'popup', 'archive', 'search', 'error404', 'product-detail', 'article-detail'], true);
+    // component：母版一改全站实例跟着变，与全站区域同档（全站设计权限）
+    return in_array(strtolower(trim($type)), ['header', 'footer', 'popup', 'archive', 'search', 'error404', 'product-detail', 'article-detail', 'component'], true);
 }
 
 /** 区块/页面模板要求 Blox 编辑 + 单页编辑；全站区域模板要求全站设计。 */
