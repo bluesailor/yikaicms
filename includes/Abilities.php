@@ -22,6 +22,14 @@ declare(strict_types=1);
 
 class Abilities
 {
+    /** 任一内容类型的编辑 / 删除权限（与 hasAnyContentPerm() 同义） */
+    public const ANY_CONTENT = '@content';
+    /**
+     * 分级确认（路线图 §5.4）：read 直接执行；draft 写草稿、直接执行可撤销；confirm 先出提案、人确认后生效。
+     * 未声明时按 mutating 推导（mutating → confirm，否则 read）。
+     */
+    public const TIERS = ['read', 'draft', 'confirm'];
+
     /** @var array<string, array<string, mixed>> */
     private static array $registry = [];
 
@@ -49,6 +57,21 @@ class Abilities
         if (isset($config['permission']) && !is_callable($config['permission'])) {
             throw new \InvalidArgumentException("Ability {$name} 'permission' must be callable");
         }
+        // v2.1 按能力授权：每个能力声明要求的权限键（全部满足才可用；'@content' = 任一内容权限），
+        // 不再只看「已登录后台」。空数组要显式写出，表示不读写站点数据（如导航、纯文本翻译）。
+        if (isset($config['permissions'])) {
+            if (!is_array($config['permissions'])) {
+                throw new \InvalidArgumentException("Ability {$name} 'permissions' must be a list of permission keys");
+            }
+            foreach ($config['permissions'] as $key) {
+                if (!is_string($key) || ($key !== self::ANY_CONTENT && !preg_match('/^(?:\*|[a-z_]+)$/', $key))) {
+                    throw new \InvalidArgumentException("Ability {$name} has an invalid permission key");
+                }
+            }
+        }
+        if (isset($config['tier']) && !in_array($config['tier'], self::TIERS, true)) {
+            throw new \InvalidArgumentException("Ability {$name} has an invalid tier");
+        }
         if (isset($config['preview']) && !is_callable($config['preview'])) {
             throw new \InvalidArgumentException("Ability {$name} 'preview' must be callable");
         }
@@ -57,6 +80,8 @@ class Abilities
         }
         self::$registry[$name] = $config + [
             'output_schema' => null,
+            'permissions'   => null,    // list<string>|null：权限键；null = 未声明（契约测试会拦下）
+            'tier'          => !empty($config['mutating']) ? 'confirm' : 'read',
             'permission'    => null,
             'mutating'      => false,   // 写操作：true 时 agent 走「提案→确认→应用」而非直接执行
             'preview'       => null,    // fn($input) => ['summary','before','after']（只算不改）
@@ -76,8 +101,48 @@ class Abilities
     {
         $a = self::get($name);
         if (!$a) return false;
+        if (!self::hasPermissions((array) ($a['permissions'] ?? []))) return false;
         if ($a['permission'] !== null) return (bool) call_user_func($a['permission']);
+        // 既没声明权限键、也没有回调：只认已登录后台（旧插件注册的能力的兼容兜底）
+        return $a['permissions'] !== null || !empty($_SESSION['admin_id']);
+    }
+
+    /** @param list<string> $keys 全部满足才算有权限 */
+    public static function hasPermissions(array $keys): bool
+    {
+        if (empty($_SESSION['admin_id'])) {
+            return false;
+        }
+        foreach ($keys as $key) {
+            $ok = $key === self::ANY_CONTENT
+                ? function_exists('hasAnyContentPerm') && hasAnyContentPerm()
+                : function_exists('hasPermission') && hasPermission($key);
+            if (!$ok) {
+                return false;
+            }
+        }
         return true;
+    }
+
+    /**
+     * 能力目录（v2.2 按用户 API 令牌勾选能力、MCP 工具清单用）：只给元数据，不含回调。
+     *
+     * @return list<array{name:string,label:string,tier:string,permissions:list<string>,mutating:bool}>
+     * @psalm-suppress PossiblyUnusedMethod 消费方为契约测试；令牌与 MCP 界面随 v2.2
+     */
+    public static function catalog(): array
+    {
+        $out = [];
+        foreach (self::$registry as $name => $a) {
+            $out[] = [
+                'name' => $name,
+                'label' => (string) $a['label'],
+                'tier' => (string) $a['tier'],
+                'permissions' => array_values((array) ($a['permissions'] ?? [])),
+                'mutating' => (bool) $a['mutating'],
+            ];
+        }
+        return $out;
     }
 
     /**
@@ -144,12 +209,9 @@ class Abilities
         if (!$a) {
             return ['success' => false, 'error' => "Unknown ability: {$name}"];
         }
-        // 权限
-        if ($a['permission'] !== null) {
-            $ok = (bool) call_user_func($a['permission']);
-            if (!$ok) {
-                return ['success' => false, 'error' => 'Permission denied'];
-            }
+        // 权限：声明的权限键 + 可选回调（与 previewChange / revertChange 同一入口）
+        if (!self::permitted($name)) {
+            return ['success' => false, 'error' => 'Permission denied'];
         }
         // 输入校验
         $errors = self::validateAgainstSchema($input, $a['input_schema']);
@@ -192,7 +254,8 @@ class Abilities
         $tools = [];
         $set   = $names === null ? array_keys(self::$registry) : $names;
         foreach ($set as $n) {
-            if (!isset(self::$registry[$n])) continue;
+            // 只把当前用户能用的能力交给模型：没权限的工具既是噪声，也会诱导模型反复撞「Permission denied」
+            if (!isset(self::$registry[$n]) || !self::permitted($n)) continue;
             $a = self::$registry[$n];
             $tools[] = [
                 'type'     => 'function',
@@ -214,7 +277,7 @@ class Abilities
         $tools = [];
         $set   = $names === null ? array_keys(self::$registry) : $names;
         foreach ($set as $n) {
-            if (!isset(self::$registry[$n])) continue;
+            if (!isset(self::$registry[$n]) || !self::permitted($n)) continue;
             $a = self::$registry[$n];
             $tools[] = [
                 'name'         => $n,

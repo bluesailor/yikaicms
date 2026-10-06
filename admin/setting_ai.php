@@ -88,7 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
 $currentProvider = config('ai_provider', 'deepseek');
 $rawApiKey = AiService::decryptKey(config('ai_api_key', ''));
-$maskedApiKey = $rawApiKey ? (substr($rawApiKey, 0, 4) . str_repeat('*', max(0, strlen($rawApiKey) - 8)) . substr($rawApiKey, -4)) : '';
+// 只露末四位（统一密钥存储约定）；含 *** 的值提交时视为「不修改」
+$maskedApiKey = SecretStore::masked($rawApiKey);
 $currentModel = config('ai_model', '');
 $currentBaseUrl = config('ai_base_url', '');
 

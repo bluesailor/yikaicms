@@ -17,6 +17,38 @@ if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
 
+/**
+ * 百度推送令牌：核心 2.1 起有统一密钥存储时加密保存、解密读取；旧核心照旧明文（插件兼容 2.0.x）。
+ */
+function seo_baidu_token(): string
+{
+    return class_exists('SecretStore') ? SecretStore::get('seo_baidu_token') : (string) config('seo_baidu_token', '');
+}
+
+/** 保存百度推送令牌：留空或仍是掩码（含 ****）表示不修改。 */
+function seo_save_baidu_token(string $submitted): void
+{
+    $submitted = trim($submitted);
+    if ($submitted === '' || str_contains($submitted, '****')) {
+        return;
+    }
+    if (class_exists('SecretStore')) {
+        SecretStore::put('seo_baidu_token', $submitted);
+    } else {
+        settingModel()->set('seo_baidu_token', $submitted);
+    }
+}
+
+/** 界面只露末四位。 */
+function seo_baidu_token_masked(): string
+{
+    $token = seo_baidu_token();
+    if ($token === '') {
+        return '';
+    }
+    return class_exists('SecretStore') ? SecretStore::masked($token) : '****' . (strlen($token) > 8 ? substr($token, -4) : '');
+}
+
 /** llms.txt 在主机上的落地路径（站点根）。 */
 function seo_llms_path(): string
 {

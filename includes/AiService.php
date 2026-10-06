@@ -494,11 +494,8 @@ class AiService
      */
     public static function encryptKey(string $plaintext): string
     {
-        if (!$plaintext) return '';
-        $key = defined('ENCRYPT_KEY') ? ENCRYPT_KEY : 'yikaicms_default_key';
-        $iv = substr(md5($key), 0, 16);
-        $encrypted = openssl_encrypt($plaintext, 'AES-128-CBC', $key, 0, $iv);
-        return $encrypted ?: $plaintext;
+        // v2.1 起走统一密钥存储（AES-256-GCM 信封）；旧的固定 IV 格式只读兼容
+        return SecretStore::seal($plaintext);
     }
 
     /**
@@ -506,12 +503,8 @@ class AiService
      */
     public static function decryptKey(string $ciphertext): string
     {
-        if (!$ciphertext) return '';
-        $key = defined('ENCRYPT_KEY') ? ENCRYPT_KEY : 'yikaicms_default_key';
-        $iv = substr(md5($key), 0, 16);
-        $decrypted = openssl_decrypt($ciphertext, 'AES-128-CBC', $key, 0, $iv);
-        // 如果解密失败，可能是旧的明文 key，直接返回
-        return $decrypted ?: $ciphertext;
+        // 信封 / 旧 CBC / 旧明文都能读出
+        return SecretStore::open($ciphertext, true);
     }
 
     /**

@@ -81,7 +81,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'gen_l
 // 保存推送配置（百度站点/token）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_push') {
     settingModel()->set('seo_baidu_site', trim((string) ($_POST['baidu_site'] ?? '')));
-    settingModel()->set('seo_baidu_token', trim((string) ($_POST['baidu_token'] ?? '')));
+    // 令牌不回显：页面里是掩码，留空或未改动的掩码表示不修改
+    seo_save_baidu_token((string) ($_POST['baidu_token'] ?? ''));
     success([], '已保存');
 }
 
@@ -144,7 +145,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'audit
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && in_array(($_POST['action'] ?? ''), ['push_baidu', 'push_indexnow'], true)) {
     $urls = seo_all_urls(500);
     if (($_POST['action']) === 'push_baidu') {
-        [$ok, $msg] = seo_submit_baidu((string) config('seo_baidu_site', ''), (string) config('seo_baidu_token', ''), $urls);
+        [$ok, $msg] = seo_submit_baidu((string) config('seo_baidu_site', ''), seo_baidu_token(), $urls);
     } else {
         $host = parse_url(siteBaseUrl(), PHP_URL_HOST) ?: '';
         [$ok, $msg] = seo_submit_indexnow((string) $host, (string) config('seo_indexnow_key', ''), $urls);
@@ -192,7 +193,7 @@ $siteUrlSet  = trim((string) config('site_url', '')) !== '';
 
 // 搜索引擎推送
 $baiduSite         = (string) config('seo_baidu_site', '');
-$baiduToken        = (string) config('seo_baidu_token', '');
+$baiduToken        = seo_baidu_token_masked();
 $indexnowKey       = (string) config('seo_indexnow_key', '');
 $indexnowHost      = (string) (parse_url(siteBaseUrl(), PHP_URL_HOST) ?: '');
 $indexnowKeyExists = $indexnowKey !== '' && file_exists(seo_indexnow_key_path($indexnowKey));

@@ -176,7 +176,7 @@ function seo_autopush_run(bool $manual = false): string
     // 两个服务各自记游标：原先共用一个，只要有一个成功就推进，失败那个的这批 URL
     // 再也不会重试（外部审计 P1-3）。分开之后各推各的，互不影响。
     $site = (string) config('seo_baidu_site', '');
-    $token = (string) config('seo_baidu_token', '');
+    $token = seo_baidu_token();
     $key = (string) config('seo_indexnow_key', '');
     $host = rtrim(preg_replace('#^https?://#', '', rtrim(siteBaseUrl(), '/')) ?? '', '/');
 

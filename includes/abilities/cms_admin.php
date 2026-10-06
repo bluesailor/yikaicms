@@ -23,7 +23,7 @@ register_ability('cms_navigate_admin', [
         ],
         'required' => ['query'],
     ],
-    'permission'   => fn() => !empty($_SESSION['admin_id']),
+    'permissions'  => [],
     'execute'      => function (array $input): array {
         require_once dirname(__DIR__) . '/admin_pages_catalog.php';
         $hits = adminPagesSearch((string)$input['query'], 5);
@@ -38,7 +38,7 @@ register_ability('cms_list_common_settings', [
     'label'        => '列出常用设置项',
     'description'  => '返回常见站点设置 key 的列表与说明，便于 AI 知道有哪些可读写的设置。',
     'input_schema' => ['type' => 'object', 'properties' => []],
-    'permission'   => fn() => !empty($_SESSION['admin_id']),
+    'permissions'  => ['*'],
     'execute'      => function (): array {
         return [
             ['key' => 'site_name',         'desc' => '网站名称'],
@@ -78,7 +78,7 @@ register_ability('cms_get_setting', [
         ],
         'required' => ['key'],
     ],
-    'permission'   => fn() => !empty($_SESSION['admin_id']),
+    'permissions'  => ['*'],
     'execute'      => function (array $input): array {
         $key = trim((string)$input['key']);
         // 敏感项禁止读取。改用模式匹配：原来的三项黑名单漏掉了 cron_token /
@@ -139,7 +139,7 @@ register_ability('cms_update_setting', [
         ],
         'required' => ['key', 'value'],
     ],
-    'permission'   => fn() => function_exists('isSuperAdmin') && isSuperAdmin(),
+    'permissions'  => ['*'],
     'mutating'     => true,
     'preview'      => function (array $input): array {
         $key = trim((string)$input['key']);
@@ -177,7 +177,7 @@ register_ability('cms_list_channels', [
     'label'        => '列出栏目',
     'description'  => '列出所有栏目（带层级），用于 AI 创建文章/产品时选择 channel_id。',
     'input_schema' => ['type' => 'object', 'properties' => []],
-    'permission'   => fn() => !empty($_SESSION['admin_id']),
+    'permissions'  => ['@content'],
     'execute'      => function (): array {
         $rows = db()->fetchAll(
             'SELECT id, parent_id, name, slug, type FROM ' . DB_PREFIX . 'channels ORDER BY parent_id, sort_order, id'
@@ -209,7 +209,7 @@ register_ability('cms_set_content_flags', [
         'required' => ['id'],
     ],
     // 写 contents 的标志位；类型判定按行做
-    'permission'   => fn() => hasAnyContentPerm(),
+    'permissions'  => ['@content'],
     // 2.0.3：置顶/推荐直接改变前台展示，走暂存确认，可撤销
     'mutating'     => true,
     'preview'      => function (array $input): array {
