@@ -484,7 +484,6 @@ final class BloxComponents
      *
      * @param array<int,mixed> $sections
      * @return array{sections:array<int,mixed>,expanded:int}
-     * @psalm-suppress PossiblyUnusedMethod 整站模板 / 模板包导出前展开（导出侧接入随 2.1.x），当前由单测覆盖
      */
     public static function detachAll(array $sections): array
     {
@@ -610,6 +609,74 @@ final class BloxComponents
             do_action('data_changed', 'blox_templates', null);
         }
         return ['documents' => $documents, 'instances' => $instances];
+    }
+
+    /** 任意 JSON 树里的实例个数（按 uuid）。 */
+    private static function countInTree(mixed $tree, array &$counts): void
+    {
+        if (!is_array($tree)) {
+            return;
+        }
+        if (($tree['type'] ?? null) === self::TYPE && self::validUuid($tree['data']['component'] ?? null)) {
+            $uuid = (string) $tree['data']['component'];
+            $counts[$uuid] = ($counts[$uuid] ?? 0) + 1;
+            return;
+        }
+        foreach ($tree as $value) {
+            if (is_array($value)) {
+                self::countInTree($value, $counts);
+            }
+        }
+    }
+
+    /**
+     * 重建全站用量索引（整站模板导入后：用量表随替换被清空，母版行随模板表原样导入）。
+     * 文档键与各保存链路一致：单页 page:N、栏目落地页 channel:N、模板 template:N、首页 home / home-layout；均按草稿统计。
+     *
+     * @return int 写入的文档数
+     */
+    public static function reindexSite(): int
+    {
+        if (!self::available()) {
+            return 0;
+        }
+        db()->execute('DELETE FROM ' . DB_PREFIX . 'blox_component_refs');
+        $needle = '%"type":"' . self::TYPE . '"%';
+        $docs = [];
+        if (db()->tableExists('blox_page_drafts')) {
+            foreach (db()->fetchAll(
+                'SELECT d.page_id, d.draft_data, c.type FROM ' . DB_PREFIX . 'blox_page_drafts d LEFT JOIN ' . DB_PREFIX
+                . 'channels c ON c.id = d.page_id WHERE d.draft_data LIKE ?',
+                [$needle]
+            ) as $row) {
+                $prefix = in_array((string) ($row['type'] ?? ''), ['page', 'product', ''], true) ? 'page:' : 'channel:';
+                $docs[$prefix . (int) $row['page_id']] = (string) $row['draft_data'];
+            }
+        }
+        foreach (db()->fetchAll(
+            'SELECT id, draft_data, published_data FROM ' . DB_PREFIX . "blox_templates WHERE type <> '" . self::TYPE . "'"
+            . ' AND (draft_data LIKE ? OR published_data LIKE ?)',
+            [$needle, $needle]
+        ) as $row) {
+            $docs['template:' . (int) $row['id']] = trim((string) ($row['draft_data'] ?? '')) !== ''
+                ? (string) $row['draft_data'] : (string) ($row['published_data'] ?? '');
+        }
+        foreach (['home' => 'home_blox_data', 'home-layout' => 'home_layout_data'] as $docKey => $settingKey) {
+            $value = db()->fetchColumn('SELECT value FROM ' . DB_PREFIX . 'settings WHERE `key` = ?', [$settingKey]);
+            if (is_string($value) && str_contains($value, '"type":"' . self::TYPE . '"')) {
+                $docs[$docKey] = $value;
+            }
+        }
+        $written = 0;
+        foreach ($docs as $docKey => $json) {
+            $counts = [];
+            self::countInTree(json_decode($json, true), $counts);
+            if ($counts !== []) {
+                self::replaceDocumentRefs($docKey, $counts);
+                $written++;
+            }
+        }
+        return $written;
     }
 
     // ── 目录（请求级缓存） ─────────────────────────────────────────────
