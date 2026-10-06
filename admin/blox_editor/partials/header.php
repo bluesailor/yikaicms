@@ -109,6 +109,7 @@ declare(strict_types=1);
                     'article-detail' => __('blox_editor_type_article_detail'),
                     'popup' => __('blox_tpl_type_popup'),
                     'page' => __('blox_editor_type_page'),
+                    'component' => __('blox_component_editing'),
                     default => '',
                 };
             } elseif (!$isHomeBlox && $id > 0) {
@@ -450,6 +451,39 @@ declare(strict_types=1);
                     </div>
                     <p class="mt-2 text-[10px] leading-relaxed text-gray-500"><?php echo e(__('blox_header_state_opacity_hint')); ?></p>
                     <p class="mt-1 text-[10px] leading-relaxed text-gray-500"><?php echo e(__('blox_header_states_hint')); ?></p>
+                </div>
+            </details>
+<?php endif; ?>
+<?php if ($templateId && $templateType === 'component'): ?>
+            <?php // v2.1 组件母版：属性定义（实例能改的就是这些）。字段在左侧控件标签旁的组件图标导出 ?>
+            <details class="relative" data-testid="blox-component-props">
+                <summary class="list-none text-violet-300 hover:text-white text-xs inline-flex items-center gap-1 px-2 py-1.5 cursor-pointer">
+                    <i class="ti ti-components"></i><?php echo e(__('blox_component_props')); ?>
+                    <span class="rounded bg-violet-500/30 px-1 text-[10px]" x-text="masterProps().length"></span>
+                </summary>
+                <div class="absolute right-0 top-full z-50 mt-2 w-96 border border-gray-700 bg-gray-900 p-3 shadow-2xl text-xs">
+                    <p class="mb-2 text-[10px] leading-relaxed text-gray-400"><?php echo e(__('blox_component_props_hint')); ?></p>
+                    <template x-if="masterProps().length === 0">
+                        <p class="py-3 text-center text-gray-500"><?php echo e(__('blox_component_props_empty')); ?></p>
+                    </template>
+                    <div class="space-y-2">
+                        <template x-for="(prop, index) in masterProps()" :key="index + ':' + prop.key">
+                            <div class="grid grid-cols-[1fr_1fr_auto] items-center gap-1.5" :data-testid="'blox-master-prop-' + prop.key">
+                                <input type="text" :value="prop.label" @change="renameMasterProp(prop, 'label', $event.target.value)"
+                                       aria-label="<?php echo e(__('blox_component_prop_label')); ?>"
+                                       class="border border-gray-600 bg-gray-800 px-2 py-1 text-white">
+                                <input type="text" :value="prop.key" @change="renameMasterProp(prop, 'key', $event.target.value)"
+                                       aria-label="<?php echo e(__('blox_component_prop_key')); ?>"
+                                       class="border border-gray-600 bg-gray-800 px-2 py-1 font-mono text-gray-300">
+                                <div class="flex items-center gap-0.5 text-gray-400">
+                                    <span class="w-14 truncate text-[10px]" x-text="prop.type"></span>
+                                    <button type="button" @click="moveMasterProp(index, -1)" class="hover:text-white" aria-label="<?php echo e(__('blox_ctx_move_up')); ?>"><i class="ti ti-arrow-up"></i></button>
+                                    <button type="button" @click="moveMasterProp(index, 1)" class="hover:text-white" aria-label="<?php echo e(__('blox_ctx_move_down')); ?>"><i class="ti ti-arrow-down"></i></button>
+                                    <button type="button" @click="removeMasterProp(index)" class="hover:text-red-400" aria-label="<?php echo e(__('admin_delete')); ?>"><i class="ti ti-trash"></i></button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
                 </div>
             </details>
 <?php endif; ?>

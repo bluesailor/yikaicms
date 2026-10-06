@@ -59,6 +59,9 @@ if ($isHomeLayout) {
 } elseif (!bloxPageEditorEnabled()) {
     error(__('blox_feature_disabled'));
 } elseif (!$isProductTemplatePreview && !$isArticleTemplatePreview
+    // 区块 / 页面模板与组件母版只预览模板自身：站点没有 blox-sandbox 沙盒页（全新安装就没有）时 id=0，
+    // 可信基线与类型权限由 bloxPreviewTrustedJson 按 template_id 校验
+    && !(!$pageId && getInt('template_id') > 0)
     && (!$pageId || !channelModel()->findWhere(['id' => $pageId, 'type' => 'page']))) {
     error(__('blox_page_not_found'));
 }

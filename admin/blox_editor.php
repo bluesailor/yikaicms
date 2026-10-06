@@ -969,6 +969,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
     <script src="/assets/js/yikay-multi-actions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-multi-actions.js') ?>"></script>
     <script src="/assets/js/yikay-page-settings.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-page-settings.js') ?>"></script>
     <script src="/assets/js/yikay-section-insert.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-section-insert.js') ?>"></script>
+    <script src="/assets/js/yikay-components.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-components.js') ?>"></script>
     <script src="/assets/js/yikay-multi-properties.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-multi-properties.js') ?>"></script>
     <script src="/assets/js/yikay-icon-utils.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-icon-utils.js') ?>"></script>
     <script>
@@ -8885,6 +8886,28 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                     'invalid' => __('blox_page_url_invalid'), 'failed' => __('blox_page_url_failed'),
                     'saved' => __('blox_page_url_saved'),
                     'layoutInvalid' => __('layout_invalid'),
+                ],
+            ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>),
+            // v2.1 组件：组件库 / 实例属性 / 母版属性定义（RFC-2）
+            window.YikaiBloxComponents.mixin(<?= json_encode([
+                'master' => $templateId > 0 && $templateType === BloxComponents::TYPE,
+                'canManage' => hasPermission('blox_global') && BloxFeaturePolicy::allows('components'),
+                'text' => [
+                    'tabElements' => __('blox_component_tab_elements'), 'tabComponents' => __('blox_component_tab_components'),
+                    'search' => __('blox_component_search'), 'category' => __('blox_component_category'),
+                    'allCategories' => __('blox_component_all_categories'), 'loading' => __('blox_component_loading'),
+                    'empty' => __('blox_component_empty'), 'noMatch' => __('blox_component_no_match'),
+                    'usedTimes' => __('blox_component_used_times'), 'version' => __('blox_component_version'),
+                    'followsMaster' => __('blox_component_follows_master'), 'reset' => __('blox_component_reset'),
+                    'noProps' => __('blox_component_no_props'), 'editMaster' => __('blox_component_edit_master'),
+                    'detach' => __('blox_component_detach'), 'detachConfirm' => __('blox_component_detach_confirm'),
+                    'detached' => __('blox_component_detached'), 'autobind' => __('blox_component_autobind'),
+                    'bound' => __('blox_component_bound'), 'saveAs' => __('blox_component_save_as'),
+                    'saveAsHint' => __('blox_component_save_as_hint'), 'namePrompt' => __('blox_component_name_prompt'),
+                    'created' => __('blox_component_created'), 'expose' => __('blox_component_expose'),
+                    'unexpose' => __('blox_component_unexpose'), 'exposed' => __('blox_component_exposed'),
+                    'urlPlaceholder' => __('blox_component_url_placeholder'), 'failed' => __('admin_failed'),
+                    'exposeTitle' => __('blox_component_expose_title'),
                 ],
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>));
     }

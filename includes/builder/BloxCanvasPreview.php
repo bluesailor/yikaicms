@@ -198,7 +198,7 @@ function bloxPreviewTrustedJson(bool $isHomeLayout, int $id): ?string
             (string) ($_GET['product_template'] ?? '') === '1' => ['product-detail'],
             (string) ($_GET['article_template'] ?? '') === '1' => ['article-detail'],
             (string) ($_GET['template_area'] ?? '') !== '' => [(string) $_GET['template_area']],
-            default => ['section', 'page', 'popup', 'archive', 'search', 'error404'],
+            default => ['section', 'page', 'popup', 'archive', 'search', 'error404', 'component'],
         };
         if (!$row || !in_array($type, $expected, true)) {
             return null;
@@ -250,7 +250,8 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = 
     if ($bloxCanvas) {
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';
         // 首页没有真实 channel id，但编辑态仍需要一个非零标记开关输出 data-yk-* 定位属性。
-        BlockRenderer::$editChannelId = $isHomeLayout ? 1 : $id;
+        // 模板自身预览（无沙盒页）时 id=0，同样需要定位标记
+        BlockRenderer::$editChannelId = $isHomeLayout ? 1 : max(1, $id);
     }
     // 页头模板只显示可编辑页头；页尾保留当前页头与正文只读上下文，帮助判断整页落底效果。
     $templateArea = (string) ($_GET['template_area'] ?? '');

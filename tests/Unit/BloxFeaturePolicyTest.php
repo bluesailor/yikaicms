@@ -44,7 +44,9 @@ final class BloxFeaturePolicyTest extends TestCase
         $policy = require ROOT_PATH . '/config/blox-feature-policy.php';
         self::assertSame(['query_loop' => 'licensed', 'display_conditions' => 'licensed', 'style_presets' => 'licensed', 'table' => 'licensed', 'pricing' => 'licensed', 'global_classes' => 'licensed', 'interactions' => 'licensed',
             // 2026-09-25 边界裁决：内容维护模式、单页外框覆盖归专业版；代码在核心，只看注册码不依赖 Pro 插件
-            'maintenance_mode' => 'licensed_core', 'page_layout' => 'licensed_core', 'advanced_fields' => 'licensed_core'], $policy); // v1.28 增 interactions
+            'maintenance_mode' => 'licensed_core', 'page_layout' => 'licensed_core', 'advanced_fields' => 'licensed_core',
+            // 2026-10-07 v2.1 组件：渲染与实例免费，母版作者端归专业版
+            'components' => 'licensed_core'], $policy); // v1.28 增 interactions
         self::assertFalse(BloxFeaturePolicy::allows('unknown'));
     }
 
