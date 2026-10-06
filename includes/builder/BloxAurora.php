@@ -47,6 +47,30 @@ final class BloxAurora
         ];
     }
 
+    /**
+     * 区块列的极光设置（2.0.5）：列不是元素，没有控件声明来过滤，存盘前在这里收窄成白名单键与合法值。
+     * 未开启时整组不存。
+     * @return array<string,mixed>
+     */
+    public static function normalizeStored(array $data): array
+    {
+        if (!self::enabled($data)) {
+            return [];
+        }
+        $clean = ['bg_aurora' => true];
+        for ($i = 1; $i <= 4; $i++) {
+            $color = AbstractElement::cssColor($data['bg_aurora_color_' . $i] ?? null);
+            if ($color !== null) $clean['bg_aurora_color_' . $i] = $color;
+        }
+        foreach (['bg_aurora_speed' => self::SPEEDS, 'bg_aurora_size' => self::SIZES, 'bg_aurora_blur' => self::BLURS] as $key => $choices) {
+            if (isset($choices[(string) ($data[$key] ?? '')])) $clean[$key] = (string) $data[$key];
+        }
+        if (is_numeric($data['bg_aurora_opacity'] ?? null)) {
+            $clean['bg_aurora_opacity'] = max(10, min(100, (int) $data['bg_aurora_opacity']));
+        }
+        return $clean;
+    }
+
     public static function enabled(array $data): bool
     {
         return !in_array($data['bg_aurora'] ?? false, [false, 0, '0', '', null], true);

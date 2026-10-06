@@ -36,10 +36,23 @@ final class BloxMotion
         echo self::headHtml();
     }
 
+    /** 当前页面的覆盖（Blox 单页的文档设置）；null = 跟随全站 */
+    private static ?string $pageOverride = null;
+
     public static function transition(): string
     {
+        if (self::$pageOverride !== null) return self::$pageOverride;
         $value = config('page_transition', 'none');
         return in_array($value, self::TRANSITIONS, true) ? $value : 'none';
+    }
+
+    /**
+     * 单页覆盖（2.0.5）：页面渲染前按文档 settings.page_transition 设置。跨页切换的动画样式取自
+     * 目标页，所以这是「进入本页时」的效果；none 时本页不声明 @view-transition，进来不播动画。
+     */
+    public static function setPageOverride(mixed $value): void
+    {
+        self::$pageOverride = is_string($value) && in_array($value, self::TRANSITIONS, true) ? $value : null;
     }
 
     /**

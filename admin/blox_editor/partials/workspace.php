@@ -2685,6 +2685,52 @@ declare(strict_types=1);
                                                 </div>
                                             </div>
                                         </div>
+                                        <?php // 区块列的极光背景（2.0.5）：与容器 / 布局块同一组选项，渲染见 BlockRenderer、存储见 BloxAurora::normalizeStored ?>
+                                        <div class="mt-3 space-y-3" data-testid="blox-column-aurora">
+                                            <label class="flex items-center justify-between gap-3 text-xs text-gray-600">
+                                                <span><?= e(__('blox_aurora')) ?></span>
+                                                <input type="checkbox" class="h-4 w-4" data-testid="blox-column-aurora-enabled"
+                                                       :checked="!!selectedColData().bg_aurora"
+                                                       @change="if ($event.target.checked) { selectedColData().bg_aurora = true; } else { Object.keys(selectedColData()).filter(k => k.indexOf('bg_aurora') === 0).forEach(k => delete selectedColData()[k]); }">
+                                            </label>
+                                            <div x-show="selectedColData().bg_aurora" x-cloak class="space-y-3">
+                                                <div class="grid grid-cols-2 gap-2">
+                                                    <?php for ($auroraIndex = 1; $auroraIndex <= 4; $auroraIndex++): $auroraKey = 'bg_aurora_color_' . $auroraIndex; ?>
+                                                    <button type="button"
+                                                            @click="openEditorColorPicker($event, 'column-aurora-<?= $auroraIndex ?>', <?= e((string) json_encode(__('blox_aurora_color', ['n' => $auroraIndex]), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT)) ?>, selectedColData().<?= $auroraKey ?>, '', true, value => { if (value) selectedColData().<?= $auroraKey ?> = value; else delete selectedColData().<?= $auroraKey ?>; })"
+                                                            data-testid="blox-column-aurora-color-<?= $auroraIndex ?>"
+                                                            class="flex h-8 items-center gap-2 rounded border border-gray-200 bg-white px-2 text-left text-xs text-gray-600 hover:border-blue-300">
+                                                        <span class="h-5 w-6 shrink-0 rounded border border-black/10" :style="'background:' + colorFieldPreview(selectedColData().<?= $auroraKey ?>, '#e5e7eb')"></span>
+                                                        <span class="min-w-0 flex-1 truncate" x-text="colorFieldLabel(selectedColData().<?= $auroraKey ?>, <?= e($jt('blox_empty_default')) ?>)"></span>
+                                                    </button>
+                                                    <?php endfor; ?>
+                                                </div>
+                                                <?php foreach (['bg_aurora_speed' => ['blox_aurora_speed', ['slow' => 'blox_aurora_slow', 'medium' => 'blox_aurora_medium', 'fast' => 'blox_aurora_fast'], 'medium'],
+                                                    'bg_aurora_size' => ['blox_aurora_size', ['sm' => 'blox_spacing_sm', 'md' => 'blox_spacing_md', 'lg' => 'blox_spacing_lg'], 'md'],
+                                                    'bg_aurora_blur' => ['blox_aurora_blur', ['none' => 'blox_spacing_none', 'sm' => 'blox_spacing_sm', 'md' => 'blox_spacing_md', 'lg' => 'blox_spacing_lg'], 'md']] as $auroraKey => [$auroraLabel, $auroraOptions, $auroraDefault]): ?>
+                                                <label class="flex items-center justify-between gap-3 text-xs text-gray-600">
+                                                    <span><?= e(__($auroraLabel)) ?></span>
+                                                    <select class="w-28 border border-gray-200 rounded px-2 py-1 text-xs" data-testid="blox-column-<?= e(str_replace('_', '-', $auroraKey)) ?>"
+                                                            :value="selectedColData().<?= $auroraKey ?> || '<?= $auroraDefault ?>'"
+                                                            @change="selectedColData().<?= $auroraKey ?> = $event.target.value">
+                                                        <?php foreach ($auroraOptions as $auroraValue => $auroraOptionLabel): ?>
+                                                        <option value="<?= e($auroraValue) ?>"><?= e(__($auroraOptionLabel)) ?></option>
+                                                        <?php endforeach; ?>
+                                                    </select>
+                                                </label>
+                                                <?php endforeach; ?>
+                                                <div>
+                                                    <div class="flex items-center justify-between text-[10px] text-gray-400 mb-1">
+                                                        <span><?= e(__('blox_aurora_opacity')) ?></span>
+                                                        <span x-text="(selectedColData().bg_aurora_opacity ?? 60) + '%'"></span>
+                                                    </div>
+                                                    <input type="range" min="10" max="100" step="5" class="w-full" data-testid="blox-column-aurora-opacity"
+                                                           :value="selectedColData().bg_aurora_opacity ?? 60"
+                                                           @input="selectedColData().bg_aurora_opacity = parseInt($event.target.value, 10)">
+                                                </div>
+                                                <p class="text-[10px] text-gray-400"><?= e(__('blox_aurora_help')) ?></p>
+                                            </div>
+                                        </div>
                                     </div>
                                     <div x-show="sel.columns.length > 1 && !sel.settings.tablet_stack">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_span_tablet') ?></label>
