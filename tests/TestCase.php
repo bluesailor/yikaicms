@@ -64,6 +64,10 @@ abstract class TestCase extends BaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
+        // 详情 / 列表控制器测试会登记本页条目（LocalizedUrl::enter），请求级静态状态不能漏到下一个测试
+        if (class_exists('LocalizedUrl', false)) {
+            \LocalizedUrl::reset();
+        }
         $this->resetDatabase();
         foreach ($this->schemaSql() as $sql) {
             db()->getPdo()->exec($sql);
