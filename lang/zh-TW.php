@@ -2883,6 +2883,8 @@ return [
     'blox_component_prop_label' => '屬性名稱',
     'blox_component_prop_key' => '屬性鍵',
     'blox_component_expose_title' => '可匯出為屬性的欄位',
+    'blox_component_by_language' => '按語言填預設值',
+    'blox_component_lang_value' => '留空則用上面的預設值',
     'blox_component_used_in' => '用在 :docs 處（:n 個例項）',
     'blox_component_not_used' => '還沒有頁面使用',
     'blox_component_restore_confirm' => '把 v:v 恢復到母版草稿？發佈前不影響網站。',

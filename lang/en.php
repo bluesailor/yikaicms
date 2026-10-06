@@ -2909,6 +2909,8 @@ return [
     'blox_component_prop_label' => 'Prop label',
     'blox_component_prop_key' => 'Prop key',
     'blox_component_expose_title' => 'Fields you can expose as props',
+    'blox_component_by_language' => 'Defaults per language',
+    'blox_component_lang_value' => 'Leave blank to use the default above',
     'blox_component_used_in' => 'Used on :docs pages (:n instances)',
     'blox_component_not_used' => 'Not used on any page yet',
     'blox_component_restore_confirm' => 'Restore v:v into the master draft? The site is unaffected until you publish.',

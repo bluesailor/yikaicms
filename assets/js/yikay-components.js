@@ -41,6 +41,8 @@
                 componentMasterMode: !!initial.master,
                 componentCanManage: !!initial.canManage,
                 componentText: initial.text || {},
+                componentInstanceLang: initial.instanceLang || "",
+                componentLanguages: initial.languages || {},
                 libTab: "elements",
                 componentList: [],
                 componentCategories: [],
@@ -111,23 +113,46 @@
                     var card = this.selEl && this.selEl.type === "component" ? this.componentCard(this.selEl.data.component) : null;
                     return card && !card.missing ? card.props : [];
                 },
+                // 当前编辑的值落在哪一层：共享首页的非默认语言 + 可多语言属性 → props_i18n[语言]，否则 props
+                instanceLangSlot: function (prop) {
+                    return prop && prop.localizable && this.componentInstanceLang ? this.componentInstanceLang : "";
+                },
+                instanceBucket: function (prop) {
+                    var lang = this.instanceLangSlot(prop), data = this.selEl && this.selEl.data;
+                    if (!data) return {};
+                    if (!lang) return (data.props && !Array.isArray(data.props)) ? data.props : {};
+                    var i18n = data.props_i18n && !Array.isArray(data.props_i18n) ? data.props_i18n : {};
+                    return i18n[lang] && !Array.isArray(i18n[lang]) ? i18n[lang] : {};
+                },
                 instanceOverridden: function (key) {
-                    var props = this.selEl && this.selEl.data && this.selEl.data.props;
-                    return !!props && !Array.isArray(props) && Object.prototype.hasOwnProperty.call(props, key);
+                    var prop = this.instanceProps().filter(function (p) { return p.key === key; })[0] || { key: key };
+                    return Object.prototype.hasOwnProperty.call(this.instanceBucket(prop), key);
                 },
                 instanceValue: function (prop) {
-                    return this.instanceOverridden(prop.key) ? this.selEl.data.props[prop.key] : prop.default;
+                    var bucket = this.instanceBucket(prop), lang = this.instanceLangSlot(prop);
+                    if (Object.prototype.hasOwnProperty.call(bucket, prop.key)) return bucket[prop.key];
+                    var props = this.selEl.data.props || {};
+                    if (lang && Object.prototype.hasOwnProperty.call(props, prop.key)) return props[prop.key];
+                    if (lang && prop.default_i18n && prop.default_i18n[lang] !== undefined) return prop.default_i18n[lang];
+                    return prop.default;
+                },
+                writeInstanceBucket: function (prop, bucket) {
+                    var lang = this.instanceLangSlot(prop);
+                    if (!lang) { this.selEl.data.props = bucket; return; }
+                    var i18n = Object.assign({}, this.selEl.data.props_i18n && !Array.isArray(this.selEl.data.props_i18n) ? this.selEl.data.props_i18n : {});
+                    if (Object.keys(bucket).length) i18n[lang] = bucket; else delete i18n[lang];
+                    this.selEl.data.props_i18n = i18n;
                 },
                 setInstanceValue: function (prop, value) {
-                    var props = Object.assign({}, Array.isArray(this.selEl.data.props) ? {} : (this.selEl.data.props || {}));
-                    props[prop.key] = value;
-                    this.selEl.data.props = props;
+                    var bucket = Object.assign({}, this.instanceBucket(prop));
+                    bucket[prop.key] = value;
+                    this.writeInstanceBucket(prop, bucket);
                 },
                 resetInstanceValue: function (prop) {
-                    // 重置 = 删掉覆盖值，重新跟随母版默认（不是把当前默认值抄进来）
-                    var props = Object.assign({}, this.selEl.data.props || {});
-                    delete props[prop.key];
-                    this.selEl.data.props = props;
+                    // 重置 = 删掉覆盖值，重新跟随（上一层的值 / 母版默认），不是把当前默认值抄进来
+                    var bucket = Object.assign({}, this.instanceBucket(prop));
+                    delete bucket[prop.key];
+                    this.writeInstanceBucket(prop, bucket);
                 },
                 selectedInsideLoop: function () {
                     if (!this.selTopEl || this.selectedSubPath === undefined) return false;
@@ -240,6 +265,20 @@
                         props[i].targets = (props[i].targets || []).filter(function (t) { return !(t.node === nodeId && t.field === ctrl.key); });
                         if (!props[i].targets.length) props.splice(i, 1);
                     }
+                    this.markDocumentSettingsChanged();
+                },
+                masterPropLocalizable: function (prop) {
+                    return ["text", "richtext", "image", "url"].indexOf(prop.type) !== -1;
+                },
+                toggleMasterPropLanguages: function (prop) {
+                    prop.localizable = !prop.localizable;
+                    if (prop.localizable && !prop.default_i18n) prop.default_i18n = {};
+                    this.markDocumentSettingsChanged();
+                },
+                setMasterPropLanguageDefault: function (prop, lang, value) {
+                    var i18n = Object.assign({}, prop.default_i18n || {});
+                    if (String(value).trim() === "") delete i18n[lang]; else i18n[lang] = value;
+                    prop.default_i18n = i18n;
                     this.markDocumentSettingsChanged();
                 },
                 moveMasterProp: function (index, delta) {

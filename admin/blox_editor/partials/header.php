@@ -481,6 +481,29 @@ declare(strict_types=1);
                                     <button type="button" @click="moveMasterProp(index, 1)" class="hover:text-white" aria-label="<?php echo e(__('blox_ctx_move_down')); ?>"><i class="ti ti-arrow-down"></i></button>
                                     <button type="button" @click="removeMasterProp(index)" class="hover:text-red-400" aria-label="<?php echo e(__('admin_delete')); ?>"><i class="ti ti-trash"></i></button>
                                 </div>
+                                <?php // 多语言：文案类属性可按语言给默认值（结构只有一份） ?>
+                                <template x-if="masterPropLocalizable(prop) && Object.keys(componentLanguages).length">
+                                    <div class="col-span-3 space-y-1 pl-2 border-l border-gray-700">
+                                        <label class="inline-flex items-center gap-1.5 text-[10px] text-gray-400">
+                                            <input type="checkbox" :checked="!!prop.localizable" @change="toggleMasterPropLanguages(prop)"
+                                                   :data-testid="'blox-master-prop-i18n-' + prop.key">
+                                            <span x-text="componentText.byLanguage"></span>
+                                        </label>
+                                        <template x-if="prop.localizable">
+                                            <div class="space-y-1">
+                                                <template x-for="(label, lang) in componentLanguages" :key="lang">
+                                                    <label class="flex items-center gap-1.5">
+                                                        <span class="w-14 shrink-0 truncate text-[10px] text-gray-400" x-text="label"></span>
+                                                        <input type="text" :value="(prop.default_i18n || {})[lang] || ''"
+                                                               :placeholder="componentText.langValue"
+                                                               @change="setMasterPropLanguageDefault(prop, lang, $event.target.value)"
+                                                               class="min-w-0 flex-1 border border-gray-600 bg-gray-800 px-2 py-0.5 text-white">
+                                                    </label>
+                                                </template>
+                                            </div>
+                                        </template>
+                                    </div>
+                                </template>
                             </div>
                         </template>
                     </div>
