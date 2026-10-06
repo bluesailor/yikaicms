@@ -391,7 +391,7 @@ if ($__mailPrompt) {
         var fd = new FormData();
         fd.append('_token', <?php echo json_encode(csrfToken()); ?>);
         Object.keys(fields).forEach(function (k) { fd.append(k, fields[k]); });
-        var r = await fetch('/admin/upgrade.php', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        var r = await fetch((window.YK_BASE || '') + '/admin/upgrade.php', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
         return r.json();
     }
     document.getElementById('updateMailPromptForm').addEventListener('submit', async function (ev) {
@@ -490,7 +490,8 @@ $__themeVersionFingerprint = substr(sha1((string) json_encode($__themeVersions))
     // 「已是最新」只缓存 1 小时：新版发布后，这条结果就成了错的，而它和
     // 「检测坏了」在界面上看不出区别——压着 6 小时不重查，管理员会以为升级检测挂了。
     // 「有新版」缓存 6 小时：横幅已经挂出来了，再频繁复查没有意义。
-    var key = 'yk_upd_' + cur + '_' + NOTIFY_LEVEL + '_' + UPDATE_CHANNEL;
+    // 同一域名下的子目录站共用 localStorage，键里带上子目录，否则一个站的结果会冒充另一个站的。
+    var key = 'yk_upd_' + (window.YK_BASE || '') + '_' + cur + '_' + NOTIFY_LEVEL + '_' + UPDATE_CHANNEL;
     var TTL_NONE = 3600 * 1000, TTL_HAS = 6 * 3600 * 1000;
 
     function cached() {
@@ -532,7 +533,7 @@ $__themeVersionFingerprint = substr(sha1((string) json_encode($__themeVersions))
     var themeStatus = document.getElementById('themeUpdateStatus');
     var themeGo = document.getElementById('themeUpdateGo');
     if (!themeRow || !themeStatus || !themeGo) return;
-    var themeKey = 'yk_theme_upd_' + THEME_FINGERPRINT;
+    var themeKey = 'yk_theme_upd_' + (window.YK_BASE || '') + '_' + THEME_FINGERPRINT;
     var themeLang = <?php echo json_encode(getLang()); ?>;
     var themeText = {
         one: <?php echo json_encode(__('dashboard_theme_update_one')); ?>,
