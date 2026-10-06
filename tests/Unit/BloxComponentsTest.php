@@ -56,7 +56,7 @@ final class BloxComponentsTest extends TestCase
             "CREATE TABLE blox_page_drafts (id INTEGER PRIMARY KEY AUTOINCREMENT, page_id INTEGER NOT NULL, draft_data TEXT NOT NULL, published_data TEXT, admin_id INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0, published_at INTEGER NOT NULL DEFAULT 0)",
             "CREATE TABLE contents (id INTEGER PRIMARY KEY AUTOINCREMENT, blocks_data TEXT)",
             "CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, \"key\" TEXT NOT NULL, value TEXT)",
-            "CREATE TABLE channels (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '')",
+            "CREATE TABLE channels (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '', type TEXT NOT NULL DEFAULT 'page')",
             "CREATE TABLE blox_component_revisions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 component_uuid TEXT NOT NULL,
@@ -377,5 +377,34 @@ final class BloxComponentsTest extends TestCase
             'product_image' => '{{loop.cover}}',
             'link' => '{{loop.url}}',
         ], $suggestions);
+    }
+
+    // ── 导出 / 整站模板导入 ─────────────────────────────────────────
+
+    public function testTemplatePackagesExpandInstancesSoOtherSitesDoNotNeedTheMaster(): void
+    {
+        $component = $this->publishComponent($this->masterJson());
+        $package = \BloxTemplateImporter::exportPackage([
+            'type' => 'section', 'name' => 'With component',
+            'draft_data' => (string) json_encode(['sections' => $this->pageWith($component['uuid'], ['cta' => '询价'])], JSON_UNESCAPED_UNICODE),
+        ]);
+        $json = (string) json_encode($package, JSON_UNESCAPED_UNICODE);
+        self::assertStringNotContainsString('"type":"component"', $json);
+        self::assertStringContainsString('询价', $json);
+        self::assertNotContains('component', $package['requires']['elements'] ?? []);
+    }
+
+    public function testReindexSiteRebuildsUsageFromImportedDocuments(): void
+    {
+        $component = $this->publishComponent($this->masterJson());
+        db()->insert('channels', ['name' => '关于']);
+        $page = (string) json_encode(['schema' => 1, 'sections' => $this->pageWith($component['uuid'])]);
+        db()->insert('blox_page_drafts', ['page_id' => 1, 'draft_data' => $page]);
+        db()->insert('settings', ['key' => 'home_blox_data', 'value' => (string) json_encode(['sections' => $this->pageWith($component['uuid'])])]);
+        db()->insert('blox_component_refs', ['component_uuid' => 'cmp_ffffffffffffffff', 'doc_key' => 'page:99', 'ref_count' => 1]);
+
+        self::assertSame(2, BloxComponents::reindexSite());
+        self::assertSame(['home', 'page:1'], BloxComponents::usedIn($component['uuid']));
+        self::assertSame([], BloxComponents::usedIn('cmp_ffffffffffffffff'), '旧站残留的用量清掉');
     }
 }

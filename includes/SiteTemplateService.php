@@ -669,6 +669,11 @@ final class SiteTemplateService
             return true;
         });
         if ($moved !== []) $journal['lang_moved'] = ['from' => $langFrom, 'to' => $langTo, 'keys' => $moved];
+        // v2.1 组件：母版随模板表导入，用量表在替换时清空——按导入后的文档重建
+        if (!class_exists('BloxComponents')) {
+            require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+        }
+        $journal['component_docs'] = BloxComponents::reindexSite();
         $settled = array_values(array_diff($migrationsBefore, Migrator::appliedIds()));
         if ($settled !== []) {
             Migrator::settle($settled);

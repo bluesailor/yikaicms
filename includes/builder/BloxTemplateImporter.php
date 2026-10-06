@@ -111,6 +111,11 @@ final class BloxTemplateImporter
         }
 
         $sections = BloxDocumentPipeline::extractSections($decoded);
+        // v2.1 组件：模板包里的实例展开成普通结构——目标站多半没有这个母版（单独导出组件推到 2.1.x）。
+        // 导出母版本身时不动（母版里本来就不许放实例）。
+        if ($type !== BloxComponents::TYPE) {
+            $sections = BloxComponents::detachAll($sections)['sections'];
+        }
         $requirements = self::mergeRequirements(
             self::decodeStoredRequirements($template['requirements'] ?? null),
             self::inferRequirements($sections)
