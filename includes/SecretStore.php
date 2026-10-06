@@ -129,7 +129,8 @@ final class SecretStore
 
     private static function key(): string
     {
-        return hash('sha256', 'yikai-secret-store|' . (string) ENCRYPT_KEY, true);
+        // available() 已确认常量存在；用 constant() 读，CI 没有 config.php 时 Psalm 也不报未定义
+        return hash('sha256', 'yikai-secret-store|' . (string) constant('ENCRYPT_KEY'), true);
     }
 
     /** 2.0.x 及以前的 AI 密钥格式：AES-128-CBC，IV 取 md5(ENCRYPT_KEY) 前 16 位（固定 IV，只读兼容）。 */
