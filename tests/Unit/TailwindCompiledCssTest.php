@@ -63,6 +63,22 @@ final class TailwindCompiledCssTest extends TestCase
         }
     }
 
+    /** 2.0.6 后台提醒铃铛（admin/includes/admin_bell.php）：首版漏编译，面板边框退成黑色、宽度失效。 */
+    public function testAdminBellUtilitiesAreCompiled(): void
+    {
+        $css = file_get_contents(ROOT_PATH . '/assets/css/tailwind.css');
+        self::assertNotFalse($css);
+
+        foreach (['.w-\[26rem\]{', '.max-w-\[calc\(100vw-2rem\)\]{', '.max-h-\[70vh\]{', '.min-w-\[18px\]{',
+            '.leading-\[18px\]{', '.-right-0\.5{', '.-top-0\.5{', '.ring-gray-300{', '.shadow-xl{'] as $selector) {
+            self::assertStringContainsString(
+                $selector,
+                $css,
+                "编译产物缺少 {$selector}——改动后台铃铛的类后需重跑 bash tools/build_css.sh。"
+            );
+        }
+    }
+
     /** CTA 遮罩档位类（CtaElement::OVERLAY_MAP，2026-09-02 第 4 轮）必须在产物里。 */
     public function testCtaOverlayTierUtilitiesAreCompiled(): void
     {

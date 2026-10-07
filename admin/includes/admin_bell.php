@@ -31,7 +31,7 @@ $__bellInit = [
               class="absolute -right-0.5 -top-0.5 inline-flex min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-[18px] text-white"></span>
     </button>
     <div x-show="open" x-cloak @click.away="open = false" data-testid="admin-bell-panel"
-         class="absolute right-0 z-50 mt-2 w-[22rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg bg-white shadow-lg ring-1 ring-gray-200">
+         class="absolute right-0 z-50 mt-2 w-[26rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-lg bg-white shadow-xl ring-1 ring-gray-300">
         <div class="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
             <span class="text-sm font-semibold text-gray-800"><?php echo e(__('notice_bell')); ?></span>
             <a href="/admin/upgrade_online.php" class="text-xs text-gray-500 hover:text-primary">
