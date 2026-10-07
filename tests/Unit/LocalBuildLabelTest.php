@@ -73,7 +73,8 @@ final class LocalBuildLabelTest extends TestCase
 
     public function testAdminVersionDisplaysCarryTheBadge(): void
     {
-        foreach (['admin/index.php', 'admin/system.php', 'admin/upgrade.php', 'admin/upgrade_online.php'] as $page) {
+        // 2.0.6：控制台的版本栏收进右上角铃铛，版本号与本地构建徽标在铃铛面板顶部
+        foreach (['admin/includes/admin_bell.php', 'admin/system.php', 'admin/upgrade.php', 'admin/upgrade_online.php'] as $page) {
             self::assertStringContainsString('adminLocalBuildBadge()', (string) file_get_contents(ROOT_PATH . '/' . $page), $page);
         }
         foreach (['zh-CN', 'en', 'ja'] as $lang) {
