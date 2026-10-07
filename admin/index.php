@@ -510,7 +510,12 @@ $__themeVersionFingerprint = substr(sha1((string) json_encode($__themeVersions))
         }
         statusEl.className = 'text-gray-400';
         statusEl.textContent = T.checking;
-        fetch((window.YK_BASE || '') + '/admin/upgrade_online.php?action=check', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+        // upgrade_online.php 的动作自 2.0.4 起只认 POST + CSRF（7cafd8f4）；这里曾一直用 GET，拿回的是整页 HTML，状态静默空白
+        fetch((window.YK_BASE || '') + '/admin/upgrade_online.php', {
+            method: 'POST',
+            body: new URLSearchParams({ action: 'check', _token: <?php echo json_encode(csrfToken()); ?> }),
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        })
             .then(function (r) { return r.json(); })
             .then(function (res) {
                 if (!res || res.code !== 0) { statusEl.textContent = ''; return; }
