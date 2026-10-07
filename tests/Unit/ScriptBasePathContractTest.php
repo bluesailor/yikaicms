@@ -38,6 +38,17 @@ final class ScriptBasePathContractTest extends TestCase
         self::assertSame([], $offenders, "脚本里的站内地址要加 (window.YK_BASE || '') 前缀");
     }
 
+    public function testDashboardUpdateCheckPostsWithCsrfBecauseTheEndpointIgnoresGet(): void
+    {
+        $index = (string) file_get_contents(dirname(__DIR__, 2) . '/admin/index.php');
+        $endpoint = (string) file_get_contents(dirname(__DIR__, 2) . '/admin/upgrade_online.php');
+
+        // 端点：GET 不认动作（防 CSRF）；控制台：必须 POST 带令牌，否则拿回整页 HTML、状态静默空白（2.0.4–2.0.5 的回归）
+        self::assertStringContainsString("\$action = (\$_SERVER['REQUEST_METHOD'] ?? '') === 'POST' ? (string) (\$_POST['action'] ?? '') : '';", $endpoint);
+        self::assertStringNotContainsString('upgrade_online.php?action=', $index);
+        self::assertStringContainsString("body: new URLSearchParams({ action: 'check', _token:", $index);
+    }
+
     public function testDashboardUpdateCachesAreScopedToTheSubdirectory(): void
     {
         $index = (string) file_get_contents(dirname(__DIR__, 2) . '/admin/index.php');
