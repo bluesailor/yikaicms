@@ -39,6 +39,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'GET' && get('action') === 'theme_upd
         return ((($b['target'] ?: $b['slug']) === $activeTheme) <=> (($a['target'] ?: $a['slug']) === $activeTheme))
             ?: strcmp($a['slug'], $b['slug']);
     });
+    require_once ROOT_PATH . '/includes/UpdateNotice.php';
+    UpdateNotice::recordThemes(count($updates));
     success([
         'updates' => $updates,
         'count' => count($updates),
@@ -113,22 +115,9 @@ $stats = [
     'media' => mediaModel()->count(),
 ];
 
-// 新站栏目引导卡：站点默认语言下没有任何非首页栏目、且未关闭提示时显示
-$onbChannelCount = (int) (db()->fetchOne(
-    "SELECT COUNT(*) AS c FROM " . DB_PREFIX . "channels WHERE lang = ? AND is_home = 0",
-    [siteLang()]
-)['c'] ?? 0);
-$showOnboard = $onbChannelCount === 0 && (string) config('onboarding_channel_dismissed', '') !== '1';
-$showRewriteOnboarding = hasPermission('*')
-    && !isDynamicUrlMode()
-    && (string) config('onboarding_rewrite_dismissed', '1') === '0';
+// 栏目引导、伪静态、定时任务等提醒 2.0.6 起由 AdminNotices 收进右上角铃铛
 $showStartOnboarding = hasPermission('*')
     && (string) config('onboarding_start_dismissed', '1') === '0';
-// 定时任务从未运行 / 两天没运行：定时发布、自动备份、自动升级都不会发生。新站正在走开始建站引导时先不打扰。
-require_once ROOT_PATH . '/includes/Cron.php';
-$cronHealth = Cron::health();
-$showCronNotice = hasPermission('*') && !$showStartOnboarding && $cronHealth['state'] !== 'ok'
-    && (int) config('cron_notice_dismissed_at', '0') < time() - 30 * 86400;
 $onbStartDoneList = $showStartOnboarding ? $onbStartDone() : [];
 $onbTemplateOffer = false;
 if ($showStartOnboarding) {
@@ -240,386 +229,80 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 </script>
 <?php endif; ?>
 
-<?php if ($showCronNotice): ?>
-<div id="cronHealthNotice" data-testid="cron-health-notice" class="mb-6 flex flex-col gap-4 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-    <div class="flex min-w-0 items-start gap-3">
-        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-            <i class="ti ti-clock-pause text-xl" aria-hidden="true"></i>
-        </span>
-        <div class="min-w-0">
-            <p class="text-sm font-semibold text-amber-950"><?php echo e($cronHealth['state'] === 'never' ? __('cron_health_never') : __('cron_health_stale', ['days' => (string) $cronHealth['days']])); ?></p>
-            <p class="mt-1 max-w-3xl text-sm leading-6 text-amber-900"><?php echo e(__('cron_health_body')); ?></p>
-        </div>
-    </div>
-    <div class="flex shrink-0 flex-wrap items-center gap-3 self-end sm:flex-nowrap sm:self-auto">
-        <a href="/admin/cron.php" data-testid="cron-health-setup"
-           class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded bg-amber-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2">
-            <i class="ti ti-settings text-base" aria-hidden="true"></i>
-            <?php echo e(__('cron_health_setup')); ?>
-        </a>
-        <button type="button" id="cronHealthDismiss" data-testid="cron-health-dismiss"
-                class="min-h-10 px-2 py-2 text-sm font-medium text-amber-900 hover:text-amber-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60">
-            <?php echo e(__('cron_health_dismiss')); ?>
-        </button>
-    </div>
-</div>
-<script>
-(function () {
-    var card = document.getElementById('cronHealthNotice');
-    var dismissButton = document.getElementById('cronHealthDismiss');
-    if (!card || !dismissButton) return;
-    dismissButton.addEventListener('click', async function () {
-        dismissButton.disabled = true;
-        dismissButton.setAttribute('aria-busy', 'true');
-        var body = new FormData();
-        body.set('_token', '<?php echo csrfToken(); ?>');
-        body.set('action', 'dismiss_cron_notice');
-        try {
-            var response = await fetch((window.YK_BASE || '') + '/admin/index.php', {
-                method: 'POST', body: body, credentials: 'same-origin', headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            var result = await response.json();
-            if (!response.ok || Number(result.code) !== 0) throw new Error(result.msg || 'request failed');
-            card.remove();
-        } catch (error) {
-            dismissButton.disabled = false;
-            dismissButton.removeAttribute('aria-busy');
-            if (typeof showMessage === 'function') showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
-        }
-    });
-})();
-</script>
-<?php endif; ?>
-
-<?php if ($showRewriteOnboarding): ?>
-<div id="rewriteOnboardingNotice" data-testid="rewrite-onboarding-notice" class="mb-6 flex flex-col gap-4 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
-    <div class="flex min-w-0 items-start gap-3">
-        <span class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-amber-100 text-amber-700">
-            <i class="ti ti-route text-xl" aria-hidden="true"></i>
-        </span>
-        <div class="min-w-0">
-            <p class="text-sm font-semibold text-amber-950"><?php echo e(__('onb_rewrite_title')); ?></p>
-            <p class="mt-1 max-w-3xl text-sm leading-6 text-amber-900"><?php echo e(__('onb_rewrite_body')); ?></p>
-        </div>
-    </div>
-    <div class="flex shrink-0 flex-wrap items-center gap-3 self-end sm:flex-nowrap sm:self-auto">
-        <a href="<?php echo e(adminHelpUrl()); ?>" target="_blank" rel="noopener noreferrer" data-testid="rewrite-onboarding-help"
-           class="inline-flex min-h-10 items-center justify-center gap-1.5 rounded bg-amber-700 px-4 py-2 text-sm font-medium text-white transition hover:bg-amber-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2">
-            <i class="ti ti-book-2 text-base" aria-hidden="true"></i>
-            <?php echo e(__('onb_rewrite_help')); ?>
-        </a>
-        <button type="button" id="rewriteOnboardingDismiss" data-testid="rewrite-onboarding-dismiss"
-                class="min-h-10 px-2 py-2 text-sm font-medium text-amber-900 hover:text-amber-950 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-700 focus-visible:ring-offset-2 disabled:cursor-wait disabled:opacity-60">
-            <?php echo e(__('onb_dismiss')); ?>
-        </button>
-    </div>
-</div>
-<script>
-(function () {
-    var card = document.getElementById('rewriteOnboardingNotice');
-    var dismissButton = document.getElementById('rewriteOnboardingDismiss');
-    if (!card || !dismissButton) return;
-
-    dismissButton.addEventListener('click', async function () {
-        dismissButton.disabled = true;
-        dismissButton.setAttribute('aria-busy', 'true');
-        var body = new FormData();
-        body.set('_token', '<?php echo csrfToken(); ?>');
-        body.set('action', 'dismiss_rewrite_onboarding');
-        try {
-            var response = await fetch((window.YK_BASE || '') + '/admin/index.php', {
-                method: 'POST',
-                body: body,
-                credentials: 'same-origin',
-                headers: { 'X-Requested-With': 'XMLHttpRequest' }
-            });
-            var result = await response.json();
-            if (!response.ok || Number(result.code) !== 0) throw new Error(result.msg || 'request failed');
-            card.remove();
-        } catch (error) {
-            dismissButton.disabled = false;
-            dismissButton.removeAttribute('aria-busy');
-            if (typeof showMessage === 'function') {
-                showMessage(<?php echo json_encode(__('onb_rewrite_dismiss_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
-            }
-        }
-    });
-})();
-</script>
-<?php endif; ?>
-
 <?php
-// 升级与安全邮件通知：出严重安全问题时要能找到站长。只给超级管理员看，一次订阅或「不再提示」后不再出现。
-require_once ROOT_PATH . '/includes/UpdateMailSubscription.php';
-$__mailPrompt = hasPermission('*') && UpdateMailSubscription::promptDue();
-$__mailPromptEmail = '';
-if ($__mailPrompt) {
-    try {
-        $__mailPromptEmail = (string) db()->fetchColumn('SELECT email FROM ' . DB_PREFIX . 'users WHERE id = ?', [(int) ($_SESSION['admin_id'] ?? 0)]);
-    } catch (\Throwable $e) {
-        $__mailPromptEmail = '';
-    }
+// 2.0.6：控制台不再堆提醒卡片——定时任务、伪静态、升级邮件、栏目引导、版本状态都收进右上角铃铛（AdminNotices）。
+// 这里只留会让网站出错的（伪静态没配好，前台链接 404）一行醒目提示；数据库待升级另有全局横幅。
+$__critical = [];
+if (hasPermission('*')) {
+    require_once ROOT_PATH . '/includes/AdminNotices.php';
+    $__critical = array_values(array_filter(AdminNotices::collect(), static fn (array $n): bool => $n['critical']));
 }
-?>
-<?php if ($__mailPrompt): ?>
-<div id="updateMailPrompt" data-testid="update-mail-prompt" class="mb-6 rounded-lg border border-sky-200 bg-sky-50 px-5 py-4">
-    <div class="flex items-start gap-3">
-        <i class="ti ti-shield-check mt-0.5 text-lg text-sky-600" aria-hidden="true"></i>
-        <div class="min-w-0 flex-1">
-            <div class="text-sm font-medium text-gray-800"><?php echo e(__('upgrade_mail_prompt_title')); ?></div>
-            <p class="mt-0.5 text-xs text-gray-600"><?php echo e(__('upgrade_mail_prompt_text')); ?></p>
-            <form id="updateMailPromptForm" class="mt-3 flex flex-col gap-2 sm:flex-row sm:items-center">
-                <input id="updateMailPromptEmail" type="email" required maxlength="254" autocomplete="email"
-                       value="<?php echo e($__mailPromptEmail); ?>" aria-label="<?php echo e(__('upgrade_mail_email')); ?>"
-                       class="w-full rounded border border-gray-300 bg-white px-3 py-1.5 text-sm sm:w-72">
-                <button type="submit" class="rounded bg-primary px-4 py-1.5 text-sm font-medium text-white hover:opacity-90">
-                    <?php echo e(__('upgrade_mail_subscribe')); ?>
-                </button>
-                <button type="button" id="updateMailPromptDismiss" class="text-sm text-gray-500 hover:text-gray-700 hover:underline">
-                    <?php echo e(__('upgrade_mail_prompt_dismiss')); ?>
-                </button>
-            </form>
-            <p class="mt-2 text-xs text-gray-400"><?php echo e(__('upgrade_mail_privacy')); ?></p>
-        </div>
-    </div>
-</div>
-<script>
-(function () {
-    var box = document.getElementById('updateMailPrompt');
-    if (!box) return;
-    async function send(fields) {
-        var fd = new FormData();
-        fd.append('_token', <?php echo json_encode(csrfToken()); ?>);
-        Object.keys(fields).forEach(function (k) { fd.append(k, fields[k]); });
-        var r = await fetch((window.YK_BASE || '') + '/admin/upgrade.php', { method: 'POST', body: fd, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
-        return r.json();
-    }
-    document.getElementById('updateMailPromptForm').addEventListener('submit', async function (ev) {
-        ev.preventDefault();
-        try {
-            var d = await send({ action: 'save_update_mail', subscribe: '1', email: document.getElementById('updateMailPromptEmail').value });
-            if (!d || Number(d.code) !== 0) throw new Error(d && d.msg ? d.msg : '');
-            if (typeof showMessage === 'function') showMessage(d.msg || <?php echo json_encode(__('upgrade_mail_prompt_done'), JSON_UNESCAPED_UNICODE); ?>);
-            box.remove();
-        } catch (e) {
-            if (typeof showMessage === 'function') showMessage(e.message || <?php echo json_encode(__('upgrade_mail_invalid'), JSON_UNESCAPED_UNICODE); ?>, 'error');
-        }
-    });
-    document.getElementById('updateMailPromptDismiss').addEventListener('click', async function () {
-        try { await send({ action: 'dismiss_update_mail_prompt' }); } catch (e) {}
-        box.remove();
-    });
-})();
-</script>
-<?php endif; ?>
-
-<?php
 // 更新提醒级别：all=全部 / security=仅安全更新 / off=关闭（未设置时兼容旧的布尔开关）
-$__notifyLv = (string) config('update_notify_level', '');
-if ($__notifyLv === '') {
-    $__notifyLv = config('dashboard_update_check', '1') === '0' ? 'off' : 'all';
-}
+require_once ROOT_PATH . '/includes/UpdateNotice.php';
+$__notifyLv = UpdateNotice::notifyLevel();
 require_once ROOT_PATH . '/includes/UpdateChannel.php';
 $__updateChannel = UpdateChannel::current();
-$__themeVersions = [];
-if (hasPermission('*') && $__notifyLv === 'all') {
-    require_once ROOT_PATH . '/includes/ThemeMarket.php';
-    $__themeVersions = ThemeMarket::localVersions(ROOT_PATH . '/themes');
-}
-$__themeVersionFingerprint = substr(sha1((string) json_encode($__themeVersions)), 0, 12);
 ?>
-<?php if (hasPermission('*') && $__notifyLv !== 'off'): ?>
-<?php /* 版本检测：显示当前版本，异步检查更新（结果本地缓存 6h，避免频繁请求更新服务器）；可关闭 */ ?>
-
-<div id="uoBar" class="mb-6 overflow-hidden rounded-lg bg-white shadow">
-    <div class="flex flex-wrap items-center justify-between gap-3 px-5 py-3">
-        <div class="flex items-center gap-2 text-sm text-gray-600">
-            <i class="ti ti-versions text-gray-400"></i>
-            <span><?php echo __('dashboard_version'); ?>：<b class="text-gray-800">v<?php echo e(defined('CMS_VERSION') ? CMS_VERSION : '?'); ?></b><?php echo adminLocalBuildBadge(); ?></span>
-            <span id="uoStatus" class="text-gray-400 flex items-center gap-1" aria-live="polite">
-                <i class="ti ti-loader-2 animate-spin text-xs"></i><?php echo __('dashboard_update_check'); ?>
-            </span>
-        </div>
-        <a id="uoGo" href="/admin/upgrade_online.php" class="hidden items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-1.5 rounded text-sm font-medium transition">
-            <i class="ti ti-cloud-download text-base"></i><span><?php echo __('dashboard_update_go'); ?></span>
-        </a>
+<?php if ($__critical !== []): ?>
+<div data-testid="dashboard-critical" class="mb-6 space-y-2">
+    <?php foreach ($__critical as $__c): ?>
+    <div data-testid="dashboard-critical-<?php echo e($__c['id']); ?>" class="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-lg border border-red-200 bg-red-50 px-4 py-2.5 text-sm">
+        <i class="ti ti-<?php echo e($__c['icon']); ?> text-lg text-red-600" aria-hidden="true"></i>
+        <span class="min-w-0 flex-1 font-medium text-red-900"><?php echo e($__c['title']); ?></span>
+        <?php if ($__c['url'] !== ''): ?>
+        <a href="<?php echo e($__c['url']); ?>" class="font-medium text-red-700 hover:underline"<?php echo $__c['external'] ? ' target="_blank" rel="noopener noreferrer"' : ''; ?>><?php echo e($__c['action']); ?></a>
+        <?php endif; ?>
     </div>
-    <?php if ($__notifyLv === 'all'): ?>
-    <div id="themeUpdateRow" data-testid="dashboard-theme-update" class="hidden flex-wrap items-center justify-between gap-3 border-t border-gray-100 px-5 py-3">
-        <div class="flex min-w-0 flex-1 items-center gap-2 text-sm">
-            <i class="ti ti-template text-sky-600" aria-hidden="true"></i>
-            <span id="themeUpdateStatus" class="min-w-0 font-medium text-gray-700" aria-live="polite"></span>
-        </div>
-        <a id="themeUpdateGo" data-testid="dashboard-theme-update-go" href="/admin/theme.php?tab=market"
-            class="inline-flex shrink-0 items-center gap-1 py-1.5 text-sm font-medium text-primary hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
-            <?php echo e(__('dashboard_theme_update_go')); ?><i class="ti ti-chevron-right" aria-hidden="true"></i>
-        </a>
-    </div>
-    <?php endif; ?>
+    <?php endforeach; ?>
 </div>
+<?php endif; ?>
+
+<?php if (hasPermission('*') && $__notifyLv !== 'off'): ?>
 <script>
+// 后台检查更新：结果由服务端记下（UpdateNotice），发现新版本时让右上角铃铛当场加一条，不再单独占一栏。
 (function () {
     var cur = <?php echo json_encode(defined('CMS_VERSION') ? CMS_VERSION : ''); ?>;
-    var statusEl = document.getElementById('uoStatus');
-    var goEl = document.getElementById('uoGo');
-    var T = {
-        uptodate: <?php echo json_encode(__('dashboard_update_uptodate')); ?>,
-        available: <?php echo json_encode(__('dashboard_update_available')); ?>,
-        checking: <?php echo json_encode(__('dashboard_update_checking')); ?>,
-        recheck: <?php echo json_encode(__('dashboard_update_recheck')); ?>
-    };
     var NOTIFY_LEVEL = <?php echo json_encode($__notifyLv); ?>;
     var UPDATE_CHANNEL = <?php echo json_encode($__updateChannel); ?>;
-    var THEME_FINGERPRINT = <?php echo json_encode($__themeVersionFingerprint); ?>;
-    function render(d) {
-        // 仅安全更新：非 security 级别的版本不提示（后端 releases.json 的 level 字段）
-        if (NOTIFY_LEVEL === 'security' && d && d.has_update && d.level !== 'security') {
-            d = { has_update: false };
-        }
-        if (d && d.has_update) {
-            statusEl.className = 'text-amber-600 font-medium';
-            statusEl.textContent = T.available + ' v' + d.latest_version;
-            goEl.classList.remove('hidden');
-            goEl.classList.add('inline-flex');
-        } else {
-            statusEl.className = 'text-green-600 flex items-center gap-1';
-            statusEl.innerHTML = '<i class="ti ti-circle-check"></i>' + T.uptodate;
-        }
-    }
-    // 本地缓存（按当前版本 + 提醒级别键控）。
-    // 「已是最新」只缓存 1 小时：新版发布后，这条结果就成了错的，而它和
-    // 「检测坏了」在界面上看不出区别——压着 6 小时不重查，管理员会以为升级检测挂了。
-    // 「有新版」缓存 6 小时：横幅已经挂出来了，再频繁复查没有意义。
-    // 同一域名下的子目录站共用 localStorage，键里带上子目录，否则一个站的结果会冒充另一个站的。
+    // 同一域名下的子目录站共用 localStorage，键里带上子目录；「已是最新」只缓存 1 小时，「有新版」6 小时
     var key = 'yk_upd_' + (window.YK_BASE || '') + '_' + cur + '_' + NOTIFY_LEVEL + '_' + UPDATE_CHANNEL;
     var TTL_NONE = 3600 * 1000, TTL_HAS = 6 * 3600 * 1000;
-
-    function cached() {
-        try {
-            var c = JSON.parse(localStorage.getItem(key) || 'null');
-            if (!c) return null;
-            var ttl = (c.d && c.d.has_update) ? TTL_HAS : TTL_NONE;
-            return (Date.now() - c.t) < ttl ? c.d : null;
-        } catch (e) { return null; }
+    function announce(d) {
+        if (NOTIFY_LEVEL === 'security' && d && d.has_update && d.level !== 'security') return;
+        if (d && d.has_update) window.dispatchEvent(new CustomEvent('yk-update-found', { detail: { version: d.latest_version } }));
     }
-
-    function check(force) {
-        if (!force) {
-            var c = cached();
-            if (c) { render(c); return; }
-        }
-        statusEl.className = 'text-gray-400';
-        statusEl.textContent = T.checking;
-        // upgrade_online.php 的动作自 2.0.4 起只认 POST + CSRF（7cafd8f4）；这里曾一直用 GET，拿回的是整页 HTML，状态静默空白
-        fetch((window.YK_BASE || '') + '/admin/upgrade_online.php', {
-            method: 'POST',
-            body: new URLSearchParams({ action: 'check', _token: <?php echo json_encode(csrfToken()); ?> }),
-            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    try {
+        var c = JSON.parse(localStorage.getItem(key) || 'null');
+        if (c && (Date.now() - c.t) < ((c.d && c.d.has_update) ? TTL_HAS : TTL_NONE)) { announce(c.d); return; }
+    } catch (e) {}
+    // upgrade_online.php 的动作自 2.0.4 起只认 POST + CSRF（7cafd8f4）；这里曾一直用 GET，拿回的是整页 HTML，状态静默空白
+    fetch((window.YK_BASE || '') + '/admin/upgrade_online.php', {
+        method: 'POST',
+        body: new URLSearchParams({ action: 'check', _token: <?php echo json_encode(csrfToken()); ?> }),
+        headers: { 'X-Requested-With': 'XMLHttpRequest' }
+    })
+        .then(function (r) { return r.json(); })
+        .then(function (res) {
+            if (!res || res.code !== 0) return;
+            var d = res.data || {};
+            announce(d);
+            try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), d: { has_update: d.has_update, latest_version: d.latest_version, level: d.level } })); } catch (e) {}
         })
-            .then(function (r) { return r.json(); })
-            .then(function (res) {
-                if (!res || res.code !== 0) { statusEl.textContent = ''; return; }
-                var d = res.data || {};
-                render(d);
-                try { localStorage.setItem(key, JSON.stringify({ t: Date.now(), d: { has_update: d.has_update, latest_version: d.latest_version, level: d.level } })); } catch (e) {}
-            })
-            .catch(function () { statusEl.textContent = ''; });
-    }
-
-    // 点状态文字可强制重查——缓存没到期时也能立刻拿到真实结果，
-    // 省得怀疑是检测坏了。
-    statusEl.style.cursor = 'pointer';
-    statusEl.title = T.recheck;
-    statusEl.addEventListener('click', function () { check(true); });
-
-    check(false);
-
-    var themeRow = document.getElementById('themeUpdateRow');
-    var themeStatus = document.getElementById('themeUpdateStatus');
-    var themeGo = document.getElementById('themeUpdateGo');
-    if (!themeRow || !themeStatus || !themeGo) return;
-    var themeKey = 'yk_theme_upd_' + (window.YK_BASE || '') + '_' + THEME_FINGERPRINT;
-    var themeLang = <?php echo json_encode(getLang()); ?>;
-    var themeText = {
-        one: <?php echo json_encode(__('dashboard_theme_update_one')); ?>,
-        many: <?php echo json_encode(__('dashboard_theme_update_many')); ?>
-    };
-    function themeName(item) {
-        // 与 LanguageRegistry::localizedField 同一顺序：本语言 → 英文（读汉字的语言除外）→ 中文基准
-        if (themeLang !== 'zh-CN' && item['name_' + themeLang]) return item['name_' + themeLang];
-        if (themeLang !== 'en' && !/^(zh|ja)/.test(themeLang) && item.name_en) return item.name_en;
-        return item.name || item.slug;
-    }
-    function formatThemeText(template, values) {
-        Object.keys(values).forEach(function (key) {
-            template = template.split(':' + key).join(String(values[key]));
-        });
-        return template;
-    }
-    function renderThemeUpdates(data) {
-        var updates = data && Array.isArray(data.updates) ? data.updates : [];
-        if (!updates.length) { themeRow.classList.add('hidden'); return; }
-        var first = updates[0];
-        themeStatus.textContent = updates.length === 1
-            ? formatThemeText(themeText.one, {
-                name: themeName(first), current: first.current_version, latest: first.latest_version
-            })
-            : formatThemeText(themeText.many, { count: updates.length });
-        themeGo.href = (window.YK_BASE || '') + '/admin/theme.php?tab=market&update=' + encodeURIComponent(first.slug);
-        themeRow.classList.remove('hidden');
-        themeRow.classList.add('flex');
-    }
-    function checkThemeUpdates() {
-        try {
-            var saved = JSON.parse(localStorage.getItem(themeKey) || 'null');
-            if (saved && Date.now() - saved.t < (saved.d && saved.d.count ? 6 * 3600 * 1000 : 3600 * 1000)) {
-                renderThemeUpdates(saved.d); return;
-            }
-        } catch (e) {}
+        .catch(function () {});
+    <?php if ($__notifyLv === 'all'): ?>
+    // 主题更新数同样由服务端记下（铃铛下次读到）；这里只是触发检测
+    var themeKey = 'yk_theme_chk_' + (window.YK_BASE || '');
+    var themeLast = 0;
+    try { themeLast = Number(localStorage.getItem(themeKey) || 0); } catch (e) {}
+    if (Date.now() - themeLast > 6 * 3600 * 1000) {
         fetch((window.YK_BASE || '') + '/admin/index.php?action=theme_updates', { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(function (response) { return response.json(); })
-            .then(function (result) {
-                if (!result || Number(result.code) !== 0) return;
-                var data = result.data || { updates: [], count: 0 };
-                renderThemeUpdates(data);
-                try { localStorage.setItem(themeKey, JSON.stringify({ t: Date.now(), d: data })); } catch (e) {}
-            })
+            .then(function () { try { localStorage.setItem(themeKey, String(Date.now())); } catch (e) {} })
             .catch(function () {});
     }
-    checkThemeUpdates();
+    <?php endif; ?>
 })();
 </script>
 <?php endif; ?>
-
-
-<?php if ($showOnboard): ?>
-<?php /* 新站栏目引导卡 */ ?>
-
-<div id="onbCard" class="relative bg-blue-50 border border-blue-200 rounded-lg p-5 mb-6 flex items-start gap-4">
-    <div class="w-10 h-10 rounded-lg bg-blue-100 text-blue-600 flex items-center justify-center flex-shrink-0">
-        <i class="ti ti-align-left text-xl"></i>
-    </div>
-    <div class="flex-1 min-w-0">
-        <h3 class="font-bold text-gray-800 mb-1"><?php echo e(__('onb_title')); ?></h3>
-        <p class="text-sm text-gray-600 mb-3"><?php echo e(__('onb_body')); ?></p>
-        <a href="/admin/channel_batch.php" class="inline-flex items-center gap-1 bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm font-medium">
-            <i class="ti ti-plus text-base"></i>
-            <?php echo e(__('chbatch_title')); ?>
-        </a>
-    </div>
-    <button type="button" id="onbDismiss" class="text-gray-400 hover:text-gray-600 text-sm flex-shrink-0"><?php echo e(__('onb_dismiss')); ?></button>
-</div>
-<script>
-document.getElementById('onbDismiss')?.addEventListener('click', async function () {
-    var fd = new FormData();
-    fd.set('_token', '<?php echo csrfToken(); ?>');
-    fd.set('action', 'dismiss_onboard');
-    try { await fetch('', { method: 'POST', body: fd }); } catch (e) {}
-    var c = document.getElementById('onbCard'); if (c) c.remove();
-});
-</script>
-<?php endif; ?>
-
 
 <?php
 require_once ROOT_PATH . '/admin/includes/menu_usage.php';
