@@ -674,6 +674,8 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                     </div>
                     <?php endif; ?>
 
+                    <?php require __DIR__ . '/admin_bell.php'; ?>
+
                     <?php /* 官方使用教程：入口保持全后台可见。伪静态专项说明另见控制台提醒与站点体检页。 */ ?>
                     <a href="<?php echo e($adminTutorialUrl); ?>" target="_blank" rel="noopener noreferrer"
                        data-testid="admin-help-link"
