@@ -36,7 +36,7 @@ $__bellInit = [
             <span class="text-sm font-semibold text-gray-800"><?php echo e(__('notice_bell')); ?></span>
             <a href="/admin/upgrade_online.php" class="text-xs text-gray-500 hover:text-primary">
                 <?php echo e(__('notice_current_version', ['version' => defined('CMS_VERSION') ? CMS_VERSION : '?'])); ?>
-            </a>
+            </a><?php echo adminLocalBuildBadge(); ?>
         </div>
         <ul x-ref="list" class="max-h-[70vh] divide-y divide-gray-100 overflow-y-auto">
             <?php foreach ($__notices as $__n): ?>
