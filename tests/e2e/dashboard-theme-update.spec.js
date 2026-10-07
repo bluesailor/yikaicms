@@ -1,40 +1,32 @@
+// 2.0.6：主题更新提醒不再占控制台一栏，收进右上角铃铛（检测结果由服务端记下，铃铛只读本地状态）。
 const { test, expect } = require('@playwright/test');
+const { execFileSync } = require('child_process');
+const path = require('path');
 const { observeConsole } = require('./helpers');
 
-test('dashboard presents theme updates separately from CMS updates @ci', async ({ page }) => {
-  const consoleEntries = observeConsole(page);
-  await page.addInitScript(() => localStorage.clear());
+const root = path.resolve(__dirname, '../..');
+const fixture = (...args) => execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'admin-notice-fixture.php'), ...args], { cwd: root }).toString();
 
-  await page.route(/\/admin\/upgrade_online\.php\?action=check$/, (route) => route.fulfill({
-    json: { code: 0, data: { has_update: false } },
-  }));
-  await page.route(/\/admin\/index\.php\?action=theme_updates$/, (route) => route.fulfill({
-    json: {
-      code: 0,
-      data: {
-        count: 1,
-        updates: [{
-          slug: 'business', name: 'Business', name_en: 'Business', name_ja: 'Business ビジネス',
-          current_version: '1.0.0', latest_version: '1.0.1',
-        }],
-      },
-    },
-  }));
+test.afterAll(() => fixture('clear'));
+
+test('theme updates appear in the notification bell, separate from CMS updates @ci', async ({ page }) => {
+  const consoleEntries = observeConsole(page);
+  fixture('themes', '1');
+  // 控制台的后台检测不出网：CMS 检查回「没有更新」，主题检测原样短路
+  await page.route(/\/admin\/upgrade_online\.php$/, (route) => route.fulfill({ json: { code: 0, data: { has_update: false } } }));
+  await page.route(/\/admin\/index\.php\?action=theme_updates$/, (route) => route.fulfill({ json: { code: 0, data: { count: 1, updates: [] } } }));
 
   await page.goto('/admin/index.php', { waitUntil: 'domcontentloaded' });
-  const row = page.getByTestId('dashboard-theme-update');
-  await expect(row).toBeVisible();
-  await expect(row).toContainText('Business');
-  await expect(row).toContainText('v1.0.0');
-  await expect(row).toContainText('v1.0.1');
-  await expect(page.getByTestId('dashboard-theme-update-go')).toHaveAttribute(
-    'href', '/admin/theme.php?tab=market&update=business'
-  );
-  const rowBox = await row.boundingBox();
+  await expect(page.getByTestId('dashboard-theme-update')).toHaveCount(0);
+  await page.getByTestId('admin-bell-button').click();
+  const item = page.getByTestId('admin-notice-themes');
+  await expect(item).toBeVisible();
+  await expect(item.getByRole('link')).toHaveAttribute('href', '/admin/theme.php?tab=market');
+  await expect(page.getByTestId('admin-notice-update')).toHaveCount(0);
+
+  const panel = await page.getByTestId('admin-bell-panel').boundingBox();
   const viewport = page.viewportSize();
-  expect(rowBox, 'theme update row should have a measurable layout').not.toBeNull();
-  expect(viewport, 'test project should define a viewport').not.toBeNull();
-  expect(rowBox.x).toBeGreaterThanOrEqual(0);
-  expect(rowBox.x + rowBox.width).toBeLessThanOrEqual(viewport.width + 1);
-  expect(consoleEntries, 'theme update reminder should keep the console clean').toEqual([]);
+  expect(panel.x).toBeGreaterThanOrEqual(0);
+  expect(panel.x + panel.width).toBeLessThanOrEqual(viewport.width + 1);
+  expect(consoleEntries, 'bell should keep the console clean').toEqual([]);
 });

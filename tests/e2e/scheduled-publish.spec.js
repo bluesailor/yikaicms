@@ -34,7 +34,9 @@ test('articles and products can be scheduled and go live on time @ci', async ({ 
   await expect(page.getByTestId('article-publish-time-row')).toBeVisible();
   await expect(page.getByTestId('article-schedule-hint')).toBeVisible();
   await expect(page.getByTestId('article-publish-date')).toHaveAttribute('required', '');
-  await expect(page.getByTestId('article-publish-date')).toHaveValue(local(0).slice(0, 10));
+  // 默认日期是站点时区的「今天」：CI 跑在 UTC，晚上 16 点后站点（+8）已是第二天，所以按前后一天比对
+  const defaultDate = await page.getByTestId('article-publish-date').inputValue();
+  expect([local(-86400000), local(0), local(86400000)].map((v) => v.slice(0, 10))).toContain(defaultDate);
   const tomorrow = local(86400000).slice(0, 10);
   await page.getByTestId('article-publish-date').fill(tomorrow);
   await page.getByTestId('article-publish-clock').fill('09:30');
