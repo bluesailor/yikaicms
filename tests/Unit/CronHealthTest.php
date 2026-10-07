@@ -36,11 +36,14 @@ final class CronHealthTest extends TestCase
     public function testDashboardAndSiteHealthSurfaceIt(): void
     {
         $index = (string) file_get_contents(ROOT_PATH . '/admin/index.php');
-        self::assertStringContainsString("\$cronHealth['state'] !== 'ok'", $index);
-        self::assertStringContainsString("hasPermission('*') && !\$showStartOnboarding", $index, '只给超管看，新站走开始建站引导时不打扰');
-        self::assertStringContainsString('data-testid="cron-health-notice"', $index);
+        // 2.0.6：提醒收进右上角铃铛（AdminNotices），关闭动作仍在控制台入口
+        $notices = (string) file_get_contents(ROOT_PATH . '/includes/AdminNotices.php');
+        self::assertStringContainsString("\$cron['state'] !== 'ok'", $notices);
+        self::assertStringContainsString("if (!function_exists('hasPermission') || !hasPermission('*'))", $notices, '只给超管看');
+        self::assertStringContainsString('if (!$startOnboarding)', $notices, '新站走开始建站引导时不打扰');
+        self::assertStringContainsString("'action' => 'dismiss_cron_notice'", $notices);
         self::assertStringContainsString("post('action') === 'dismiss_cron_notice'", $index);
-        self::assertStringContainsString('time() - 30 * 86400', $index, '关掉 30 天后仍没修好会再提示');
+        self::assertStringContainsString('time() - 30 * 86400', $notices, '关掉 30 天后仍没修好会再提示');
         $health = (string) file_get_contents(ROOT_PATH . '/includes/SiteHealth.php');
         self::assertStringContainsString('self::checkCron(),', $health);
         self::assertStringContainsString("'health_cron_title', \$ok ? 'health_cron_good' : 'health_cron_bad', '/admin/cron.php'", $health);

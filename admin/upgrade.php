@@ -208,6 +208,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
         echo json_encode(['code' => 1, 'msg' => __('upg_server_bad_json')], JSON_UNESCAPED_UNICODE);
         exit;
     }
+    if (is_array($data) && (int) ($data['code'] ?? 1) === 0 && is_array($data['data'] ?? null)) {
+        require_once ROOT_PATH . '/includes/UpdateNotice.php';
+        UpdateNotice::record($data['data']);
+    }
 
     echo $response;
     exit;
