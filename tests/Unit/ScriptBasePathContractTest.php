@@ -54,6 +54,6 @@ final class ScriptBasePathContractTest extends TestCase
         $index = (string) file_get_contents(dirname(__DIR__, 2) . '/admin/index.php');
 
         self::assertStringContainsString("var key = 'yk_upd_' + (window.YK_BASE || '') + '_'", $index);
-        self::assertStringContainsString("var themeKey = 'yk_theme_upd_' + (window.YK_BASE || '') + '_'", $index);
+        self::assertStringContainsString("var themeKey = 'yk_theme_chk_' + (window.YK_BASE || '');", $index);
     }
 }

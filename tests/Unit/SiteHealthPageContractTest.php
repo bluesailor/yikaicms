@@ -55,7 +55,8 @@ final class SiteHealthPageContractTest extends TestCase
         $functions = (string) file_get_contents(ROOT_PATH . '/includes/functions.php');
         self::assertStringContainsString('https://www.yikaicms.com/en/#help', $functions);
         self::assertStringContainsString('https://www.yikaicms.com/ja/#help', $functions);
-        self::assertStringContainsString('<?php echo e(adminHelpUrl()); ?>', $dashboard);
+        // 2.0.6：控制台的伪静态提醒并入右上角铃铛与控制台醒目行，链接来自 AdminNotices
+        self::assertStringContainsString("'url' => adminHelpUrl()", (string) file_get_contents(ROOT_PATH . '/includes/AdminNotices.php'));
         self::assertStringContainsString('<?php echo e(adminHelpUrl()); ?>', $healthPage);
         self::assertStringContainsString('rel="noopener noreferrer"', $header);
         self::assertStringContainsString('data-testid="site-health-rewrite-help"', $healthPage);
@@ -74,10 +75,12 @@ final class SiteHealthPageContractTest extends TestCase
 
         self::assertStringContainsString("post('action') === 'dismiss_rewrite_onboarding'", $dashboard);
         self::assertStringContainsString("settingModel()->saveBatch(['onboarding_rewrite_dismissed' => '1'])", $dashboard);
-        self::assertStringContainsString("config('onboarding_rewrite_dismissed', '1') === '0'", $dashboard);
-        self::assertStringContainsString('data-testid="rewrite-onboarding-notice"', $dashboard);
-        self::assertStringContainsString('data-testid="rewrite-onboarding-help"', $dashboard);
-        self::assertStringContainsString('data-testid="rewrite-onboarding-dismiss"', $dashboard);
+        // 2.0.6：提醒收进右上角铃铛（AdminNotices）；伪静态没配好属于会让网站出错的，控制台另有一行醒目提示
+        $notices = (string) file_get_contents(ROOT_PATH . '/includes/AdminNotices.php');
+        self::assertStringContainsString("config('onboarding_rewrite_dismissed', '1') === '0'", $notices);
+        self::assertStringContainsString("'id' => 'rewrite', 'critical' => true", $notices);
+        self::assertStringContainsString("'action' => 'dismiss_rewrite_onboarding'", $notices);
+        self::assertStringContainsString('data-testid="dashboard-critical-<?php echo e($__c[\'id\']); ?>"', $dashboard);
         self::assertStringContainsString("'onboarding_rewrite_dismissed' => ['value' => '1'", $defaults);
         self::assertStringContainsString("'onboarding_rewrite_dismissed', '0'", $installer);
 

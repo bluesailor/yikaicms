@@ -143,6 +143,11 @@ if ($action !== '') {
             ]);
         }
         $data['current_version'] = $cur;
+        // 右上角铃铛读这个结果，别的页面不再请求更新服务器
+        if ((int) ($data['code'] ?? 1) === 0 && is_array($data['data'] ?? null)) {
+            require_once ROOT_PATH . '/includes/UpdateNotice.php';
+            UpdateNotice::record($data['data']);
+        }
         // 本地构建的文件与同号正式版不同，增量包前提不成立：去掉 delta，前端自然改下完整包。
         if (YikaiProductIdentity::localBuildLabel() !== '' && is_array($data['data'] ?? null)) {
             unset($data['data']['delta']);
