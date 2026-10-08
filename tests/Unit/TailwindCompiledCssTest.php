@@ -69,7 +69,7 @@ final class TailwindCompiledCssTest extends TestCase
         $css = file_get_contents(ROOT_PATH . '/assets/css/tailwind.css');
         self::assertNotFalse($css);
 
-        foreach (['.w-\[26rem\]{', '.max-w-\[calc\(100vw-2rem\)\]{', '.max-h-\[70vh\]{', '.min-w-\[18px\]{',
+        foreach (['.sm\:w-\[26rem\]{', '.sm\:max-w-\[calc\(100vw-2rem\)\]{', '.inset-x-4{', '.top-16{', '.sm\:absolute{', '.sm\:inset-x-auto{', '.sm\:right-0{', '.sm\:top-auto{', '.max-h-\[70vh\]{', '.min-w-\[18px\]{',
             '.leading-\[18px\]{', '.-right-0\.5{', '.-top-0\.5{', '.ring-gray-300{', '.shadow-xl{'] as $selector) {
             self::assertStringContainsString(
                 $selector,
