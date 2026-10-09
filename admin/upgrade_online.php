@@ -173,7 +173,11 @@ if ($action !== '') {
     if ($action === 'apply_prepare') {
         $backupOverride = post('backup_override') === '1';
         $acceptLocal = post('accept_local_changes') === '1';
-        $prepare = upgrade_prepare('', '', true, $backupOverride, $acceptLocal);
+        $confirmGit = post('confirm_git_checkout') === '1';
+        $prepare = upgrade_prepare('', '', true, $backupOverride, $acceptLocal, $confirmGit);
+        if ($confirmGit && ($prepare['code'] ?? 1) === 0) {
+            adminLog('upgrade', 'git_checkout_upgrade', 'Manual upgrade confirmed overwriting a Git checkout');
+        }
         if (!empty($prepare['db_backup_override'])) {
             adminLog('upgrade', 'backup_override', 'Manual upgrade confirmed an external database backup');
         }
@@ -219,6 +223,12 @@ require ROOT_PATH . '/admin/includes/upgrade_tabs.php';
         <h1 class="text-xl font-bold text-gray-800"><i class="ti ti-cloud-download text-blue-500 mr-2"></i>在线升级</h1>
         <span class="text-sm text-gray-500">当前版本 v<?= e(defined('CMS_VERSION') ? CMS_VERSION : '?') ?><?= adminLocalBuildBadge() ?></span>
     </div>
+
+    <?php if (uo_is_git_checkout(ROOT_PATH)): ?>
+    <div class="bg-red-50 border border-red-200 text-red-800 text-sm rounded-lg p-4 mb-5" data-testid="upgrade-git-checkout">
+        <p class="font-medium"><i class="ti ti-git-branch mr-1"></i><?= e(__('upgrade_git_checkout_banner')) ?></p>
+    </div>
+    <?php endif; ?>
 
     <div class="bg-amber-50 border border-amber-200 text-amber-800 text-sm rounded-lg p-4 mb-5">
         <p class="font-medium mb-1"><i class="ti ti-alert-triangle mr-1"></i>升级前请知悉</p>
@@ -408,6 +418,16 @@ document.getElementById('uo-upgrade').onclick = async () => {
     let pre = await UO.post('apply_prepare');
     // 本站改过、新包要覆盖的核心文件：逐个列出来，站长确认「已迁走或愿意被覆盖」才继续
     const prepExtra = {};
+    // 站点目录是 Git 开发检出：升级会直接覆盖源码，站长明确确认才继续
+    if (pre.code !== 0 && pre.error_code === 'git_checkout') {
+        UO.set(r, 'fail', pre.msg);
+        if (!window.confirm(<?php echo json_encode(__('upgrade_git_checkout_confirm'), JSON_UNESCAPED_UNICODE); ?>)) {
+            btn.disabled = false; btn.classList.remove('opacity-50'); return;
+        }
+        prepExtra.confirm_git_checkout = '1';
+        r = UO.row('备份并解压安装包…', 'run');
+        pre = await UO.post('apply_prepare', prepExtra);
+    }
     if (pre.code !== 0 && pre.error_code === 'local_modifications') {
         const esc = s => String(s).replace(/[&<>]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
         UO.set(r, 'fail', pre.msg);

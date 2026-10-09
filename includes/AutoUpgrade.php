@@ -335,6 +335,11 @@ final class AutoUpgrade
             if (self::manualTransactionInProgress()) {
                 return 'skipped: 后台手工升级事务正在进行';
             }
+            // Git 开发检出不自动升级（含远程升级指令）：会把源码整份覆盖成发行版。
+            // 放在续跑之后——已开始的事务要走完，站点不能停在新旧混合状态。
+            if (uo_is_git_checkout(ROOT_PATH)) {
+                return 'skipped: 站点目录是 Git 开发检出，不自动升级（请用 git 更新）';
+            }
 
             $from = defined('CMS_VERSION') ? CMS_VERSION : '';
             $data = self::check();

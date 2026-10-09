@@ -20,6 +20,8 @@ declare(strict_types=1);
 
 $ROOT = dirname(__DIR__, 2);
 define('ROOT_PATH', $ROOT);
+// 本脚本就是在仓库检出里驱动真实升级代码：关掉「Git 检出不自动升级」保护（UpgradeRunner::uo_is_git_checkout）
+define('YK_UPGRADE_ALLOW_GIT_CHECKOUT', true);
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/models/autoload.php';
