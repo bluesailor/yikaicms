@@ -8557,6 +8557,7 @@ return [
     'sc_clear' => 'Bu taramanın kapsamında eşleşen sorun bulunamadı. Yine de işlenen sayfaları, harici görselleri, temada sabit kodlanmış metni ve form gönderimlerini inceleyin.',
     'sc_missing' => 'Yerel bir varlık eksik veya yolu geçersiz. Varlığı değiştirin ya da başvuruyu düzeltin.',
     'sc_empty' => 'Bu sayfanın doğrudan gövdesi veya yayınlanmış doğrudan girişi yok. İçeriğinin alt sayfalardan, temadan veya oluşturucudan gelip gelmediğini kontrol edin.',
+    'sc_lang_untranslated' => 'Bu dil etkin ama henüz bu dilde hiç kanal yok: sitede boş bir menü görünürken dil seçici ve hreflang onu ayrı bir sürüm olarak sunuyor; arama motorları bunu yinelenen içerik sayar. Kanalları çevirin ya da şimdilik dil ayarlarından dili devre dışı bırakın.',
     'sc_demo' => 'Olası örnek metin bulundu. Bu sitenin gerçek bilgileriyle değiştirildiğini kontrol edin.',
     'sc_failed' => 'Kontrol tamamlanmadı. Veritabanı güncellemelerini tamamlayıp hata günlüğünü inceledikten sonra yeniden deneyin.',
     'sc_links' => 'Bozuk bağlantılar ve çalışma zamanı sağlığı',

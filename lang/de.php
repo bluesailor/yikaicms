@@ -8557,6 +8557,7 @@ return [
     'sc_clear' => 'Im Umfang dieser Prüfung wurden keine entsprechenden Probleme gefunden. Prüfen Sie weiterhin manuell die tatsächlichen Seiten, externe Bilder, fest codierte Theme-Texte und Formularübermittlungen.',
     'sc_missing' => 'Eine lokale Ressource fehlt oder ihr Pfad ist ungültig. Ersetzen Sie die Ressource oder korrigieren Sie den Verweis.',
     'sc_empty' => 'Diese Rubrik hat keinen eigenen Text und keine direkt zugehörigen veröffentlichten Inhalte. Prüfen Sie, ob Unterseiten, Theme oder Website Builder den Inhalt liefern.',
+    'sc_lang_untranslated' => 'Diese Sprache ist aktiviert, hat aber noch keine Kanäle: Die Website zeigt ein leeres Menü, während Sprachumschalter und hreflang sie als eigene Version ausgeben – Suchmaschinen werten das als doppelten Inhalt. Übersetzen Sie die Kanäle oder deaktivieren Sie die Sprache vorerst in den Spracheinstellungen.',
     'sc_demo' => 'Mögliche Beispieltexte gefunden. Prüfen Sie, ob sie durch echte Website-Informationen ersetzt wurden.',
     'sc_failed' => 'Prüfung unvollständig. Schließen Sie die Datenbankaktualisierung ab, prüfen Sie das Fehlerprotokoll und versuchen Sie es erneut.',
     'sc_links' => 'Defekte Links und Laufzeitumgebung',
