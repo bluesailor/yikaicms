@@ -62,6 +62,11 @@ final class ReleaseChannelAudit
             'demo' => self::demo($config, $version, $workspace, $fetcher),
             'github' => self::github($config, $version, $fetcher),
         ];
+        // 语言包（2.1 起不随安装包的 15 种界面语言）：老版本没有这个渠道，按 since 起算
+        $langPacks = $config['lang_packs'] ?? null;
+        if (is_array($langPacks) && version_compare($version, (string) ($langPacks['since'] ?? '0'), '>=')) {
+            $channels['lang_packs'] = self::langPacks($config, $version, $workspace, $fetcher);
+        }
         foreach (['website', 'update_server', 'market', 'github'] as $name) {
             $onlineChecks = $fetcher === null
                 ? [self::check('Online verification', null, 'Not requested; local preparation is not online evidence')]
@@ -539,6 +544,52 @@ final class ReleaseChannelAudit
         }
 
         return self::channel('演示站', self::statusOf($checks), $checks, ['expected_version' => $version]);
+    }
+
+    // ── 语言包：本地已签名 + OSS 上逐个回读一致 ───────────────────────
+
+    /**
+     * @param array<string,mixed> $config
+     * @return array<string,mixed>
+     */
+    private static function langPacks(array $config, string $version, string $workspace, ?callable $fetcher): array
+    {
+        require_once dirname(__DIR__) . '/includes/i18n/LanguagePacks.php';
+        $dir = self::resolveDir(self::section($config, 'archive'), $workspace);
+        $summaryPath = $dir === null ? '' : $dir . '/lang/' . $version . '/lang-packs-v' . $version . '.json';
+        $summary = $summaryPath === '' ? null : self::readJson($summaryPath);
+        if ($summary === null || !is_array($summary['packs'] ?? null)) {
+            return self::channel('语言包', self::FAILED, [self::check('语言包清单', false, "缺失或非法: {$summaryPath}（build.sh 生成）")]);
+        }
+        $checks = [self::check('语言包清单', true, $summaryPath, self::evidence($summaryPath))];
+        foreach (LanguagePacks::downloadable() as $code) {
+            $row = $summary['packs'][$code] ?? null;
+            $path = is_array($row) ? $dir . '/lang/' . $version . '/' . (string) ($row['file'] ?? '') : '';
+            $hash = is_array($row) && is_file($path) ? hash_file('sha256', $path) : false;
+            if (!is_array($row) || !is_string($hash)) {
+                $checks[] = self::check("语言包 {$code}", false, '本地缺包');
+                continue;
+            }
+            if (($row['signed'] ?? false) !== true || !hash_equals((string) ($row['zip_sha256'] ?? ''), $hash)) {
+                $checks[] = self::check("语言包 {$code}", false, '未签名或与清单不符——发版前跑 tools/sign-lang-packs.php');
+                continue;
+            }
+            if ($fetcher === null) {
+                $checks[] = self::check("语言包 {$code}", null, '本地已签名；未请求线上核对');
+                continue;
+            }
+            $url = LanguagePacks::url($code, $version);
+            $result = $fetcher($url, true);
+            $remote = (string) ($result['sha256'] ?? hash('sha256', (string) ($result['body'] ?? '')));
+            if (trim((string) ($result['error'] ?? '')) !== '' || (int) ($result['status'] ?? 0) !== 200) {
+                $checks[] = self::check("语言包 {$code}", false, 'HTTP ' . (int) ($result['status'] ?? 0) . "：{$url}");
+            } elseif (!hash_equals($hash, $remote)) {
+                $checks[] = self::check("语言包 {$code}", false, "线上与本地已签名包不一致：{$url}", $url);
+            } else {
+                $checks[] = self::check("语言包 {$code}", true, "sha256={$hash}", $url);
+            }
+        }
+        return self::channel('语言包', self::statusOf($checks), $checks, ['expected_version' => $version]);
     }
 
     // ── GitHub Release ────────────────────────────────────────────────

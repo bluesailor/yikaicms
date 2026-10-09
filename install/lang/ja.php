@@ -142,6 +142,8 @@ return [
     'error_admin_create' => '管理者の作成に失敗しました：',
     'error_config_write' => '設定ファイルの書き出しに失敗しました',
     'error_root_not_writable' => 'サイトのルートディレクトリに書き込めないため、インストールロック（installed.lock）を作成できません。サイトディレクトリの所有者を PHP の実行ユーザー（aaPanel では通常 www）にするか、権限を 755 にしてから再試行してください。データベースはまだ変更されていません。',
+    'lang_download_suffix' => '（インストール時にダウンロード）',
+    'error_lang_pack_failed' => ':lang の言語パックをダウンロードできませんでした：サーバーが Yikai 公式のダウンロード先に接続できません。English を選んでインストールを完了し、管理画面「言語設定 → その他の言語」から言語パックをアップロードしてください。データベースは変更されていません。',
     'db_exposed_warn' => '⚠ セキュリティ警告：データベースファイル /storage/database.sqlite を現在だれでもダウンロードできます（管理者アカウントを含む全データ）。すぐに対処してください——Nginx / BTパネル：リライト設定に include /www/wwwroot/サイトディレクトリ/deploy/nginx-baota.conf; を記述（「wordpress」プリセットだけにしない）；Apache：AllowOverride All が有効か確認。対処後、このアドレスが 403 または 404 になることを確認してください。',
     'error_lock_write' => 'インストールロック（installed.lock）の書き出しに失敗しました。サイトのルートディレクトリが書き込み可能か確認してから、再度インストールしてください。',
     'url_auto_notice' => 'インストール時にサーバーを確認します。対応していれば整形 URL、それ以外は Rewrite 不要の動的 URL を使用します。後から管理画面の「URL とリンク」で確認・切り替えができます。再インストールは不要です。',

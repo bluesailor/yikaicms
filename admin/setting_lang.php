@@ -31,6 +31,40 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     verifyCsrf();
     $action = post('action');
 
+    // 语言包：不随安装包附带的语言按需下载 / 离线上传 / 卸载 / 升级后更新（includes/i18n/LanguagePackSite.php）
+    if (in_array($action, ['install_pack', 'upload_pack', 'uninstall_pack', 'update_packs'], true)) {
+        if (defined('DEMO_SANDBOX') && DEMO_SANDBOX) {
+            error(__('auth_demo_sandbox_protected'));
+        }
+        require_once ROOT_PATH . '/includes/i18n/LanguagePackSite.php';
+        try {
+            if ($action === 'install_pack') {
+                $r = LanguagePackSite::install((string) post('code'));
+                success(['code' => $r['code']], __('lpack_installed', ['lang' => LanguageRegistry::name($r['code'])]));
+            }
+            if ($action === 'upload_pack') {
+                $file = $_FILES['pack'] ?? null;
+                if (!is_array($file) || ($file['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || !is_uploaded_file((string) $file['tmp_name'])) {
+                    error(__('lpack_err_bad_zip'));
+                }
+                $r = LanguagePackSite::upload((string) file_get_contents((string) $file['tmp_name']));
+                success(['code' => $r['code']], __('lpack_installed', ['lang' => LanguageRegistry::name($r['code'])]));
+            }
+            if ($action === 'uninstall_pack') {
+                $code = (string) post('code');
+                LanguagePackSite::uninstall($code);
+                success([], __('lpack_uninstalled', ['lang' => LanguageRegistry::name($code)]));
+            }
+            $r = LanguagePackSite::updateOutdated();
+            if ($r['failed'] !== []) {
+                error(__('lpack_update_failed', ['langs' => implode('、', array_map([LanguageRegistry::class, 'name'], array_keys($r['failed'])))]));
+            }
+            success(['updated' => $r['updated']], __('lpack_updated', ['count' => count($r['updated'])]));
+        } catch (LanguagePackException $e) {
+            error(LanguagePackSite::message($e));
+        }
+    }
+
     if ($action === 'save_lang') {
         $selected = $_POST['enabled'] ?? [];
         // 确保默认语言始终启用
@@ -349,6 +383,83 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             </button>
         </div>
     </form>
+
+    <?php /* 更多语言：不随安装包附带的语言包（下载 / 上传 / 更新 / 卸载）。在表单外：各按钮单独提交 */ ?>
+    <?php
+    require_once ROOT_PATH . '/includes/i18n/LanguagePackSite.php';
+    $packOutdated = LanguagePackSite::outdated();
+    $packInUse = LanguagePackSite::inUse();
+    $packVersions = LanguagePacks::manifest(ROOT_PATH);
+    ?>
+    <div class="bg-white rounded-lg shadow mt-6" id="langPacks">
+        <div class="px-6 py-4 border-b flex flex-wrap items-center justify-between gap-3">
+            <div>
+                <h2 class="font-bold text-gray-800"><?php echo e(__('lpack_title')); ?></h2>
+                <p class="text-sm text-gray-500 mt-1"><?php echo e(__('lpack_tip')); ?></p>
+            </div>
+            <?php if ($packOutdated !== []): ?>
+            <button type="button" data-pack-action="update_packs" class="bg-primary hover:bg-secondary text-white px-4 py-2 rounded text-sm inline-flex items-center gap-2">
+                <i class="ti ti-refresh text-base"></i><?php echo e(__('lpack_update_all')); ?>
+            </button>
+            <?php endif; ?>
+        </div>
+        <div class="p-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
+            <?php foreach (LanguagePacks::downloadable() as $code):
+                $installed = isset($allLangs[$code]);
+                $outdated = in_array($code, $packOutdated, true);
+                $used = in_array($code, $packInUse, true);
+            ?>
+            <div class="flex items-center justify-between gap-3 p-3 rounded-lg border">
+                <div class="min-w-0">
+                    <span class="font-medium"><?php echo e($langTitle($code, LanguageRegistry::name($code))); ?></span>
+                    <span class="text-xs text-gray-400 font-mono ms-2"><?php echo e($code); ?></span>
+                    <?php if ($installed): ?>
+                    <p class="text-xs <?php echo $outdated ? 'text-amber-600' : 'text-gray-400'; ?>">
+                        <?php echo e($outdated ? __('lpack_outdated') : 'v' . ($packVersions[$code]['version'] ?? '')); ?>
+                    </p>
+                    <?php endif; ?>
+                </div>
+                <?php if (!$installed): ?>
+                <button type="button" data-pack-action="install_pack" data-code="<?php echo e($code); ?>" class="shrink-0 text-sm text-primary hover:underline"><?php echo e(__('lpack_install')); ?></button>
+                <?php elseif ($used): ?>
+                <span class="shrink-0 text-xs text-gray-400" title="<?php echo e(__('lpack_err_in_use')); ?>"><?php echo e(__('lpack_in_use')); ?></span>
+                <?php else: ?>
+                <button type="button" data-pack-action="uninstall_pack" data-code="<?php echo e($code); ?>" class="shrink-0 text-sm text-gray-400 hover:text-red-600"><?php echo e(__('lpack_uninstall')); ?></button>
+                <?php endif; ?>
+            </div>
+            <?php endforeach; ?>
+        </div>
+        <div class="px-6 pb-6">
+            <p class="text-sm text-gray-500 mb-2"><?php echo e(__('lpack_upload_tip', ['version' => CMS_VERSION])); ?></p>
+            <div class="flex flex-wrap items-center gap-3">
+                <input type="file" id="langPackFile" accept=".zip" class="text-sm">
+                <button type="button" data-pack-action="upload_pack" class="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded text-sm"><?php echo e(__('lpack_upload')); ?></button>
+            </div>
+        </div>
+    </div>
+    <script>
+    (function () {
+        var box = document.getElementById('langPacks');
+        box.addEventListener('click', async function (event) {
+            var button = event.target.closest('[data-pack-action]');
+            if (!button) return;
+            var fd = new FormData();
+            fd.append('<?php echo CSRF_TOKEN_NAME; ?>', <?php echo json_encode(csrfToken()); ?>);
+            fd.append('action', button.dataset.packAction);
+            if (button.dataset.code) fd.append('code', button.dataset.code);
+            if (button.dataset.packAction === 'upload_pack') {
+                var file = document.getElementById('langPackFile').files[0];
+                if (!file) return;
+                fd.append('pack', file);
+            }
+            button.disabled = true;
+            var data = await safeJson(await fetch('', { method: 'POST', body: fd }));
+            showMessage(data.msg || '', data.code === 0 ? 'success' : 'error');
+            if (data.code === 0) setTimeout(function () { location.reload(); }, 800);
+            else button.disabled = false;
+        });
+    })();
+    </script>
 
     <?php /* 语言网址前缀检查：浏览器逐个请求 /<代码>/contact.html?探针，看是否被认成该语言 */ ?>
     <?php

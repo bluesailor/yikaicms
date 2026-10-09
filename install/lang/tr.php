@@ -125,6 +125,8 @@ return [
     'error_admin_create' => 'Yönetici oluşturulamadı: ',
     'error_config_write' => 'Yapılandırma dosyası yazılamadı',
     'error_root_not_writable' => 'Site kök dizini yazılabilir olmadığından kurulum kilidi (installed.lock) oluşturulamıyor. Site dizinini PHP\'nin çalıştığı kullanıcıya ait yapın (aaPanel\'de genellikle www) veya 755 iznine ayarlayıp tekrar deneyin. Veritabanı henüz değiştirilmedi.',
+    'lang_download_suffix' => ' (kurulumda indirilir)',
+    'error_lang_pack_failed' => ':lang dil paketi indirilemedi: sunucu resmi Yikai indirme adresine ulaşamıyor. Kurulumu bitirmek için English\'i seçin, ardından paketi yönetimde Dil ayarları → Diğer diller bölümünden yükleyin. Veritabanı değiştirilmedi.',
     'db_exposed_warn' => '⚠ Güvenlik uyarısı: /storage/database.sqlite veritabanı dosyası şu anda herkes tarafından indirilebilir; yönetici hesabı ve tüm site verileri dahil. Hemen düzeltin — Nginx / aaPanel: URL yeniden yazma kutusuna include /www/wwwroot/your-site-dir/deploy/nginx-baota.conf; yazın (yalnızca "wordpress" ön ayarını kullanmayın); Apache: AllowOverride All\'nin etkin olduğundan emin olun. Sonrasında bu adres 403 veya 404 döndürmelidir.',
     'error_lock_write' => 'Kurulum kilidi (installed.lock) yazılamadı. Site kök dizininin yazılabilir olduğundan emin olun ve kurulumu yeniden çalıştırın.',
     'url_auto_notice' => 'Kurulum sunucu yönlendirmesini otomatik denetler. URL yeniden yazma destekleniyorsa temiz URL\'ler kullanılır; aksi halde sorgu URL\'leri yeniden yazma kuralı olmadan çalışır. Daha sonra yönetim panelindeki URL ve bağlantılar bölümünden denetleyip değiştirebilirsiniz. Yeniden kurulum gerekmez.',

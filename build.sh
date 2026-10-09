@@ -340,6 +340,24 @@ while IFS= read -r item; do
     [ -n "$item" ] && EXCLUDES+=("$item")
 done < <(php "bin/blox-assets.php" list pro)
 
+# 界面语言包：安装包只带 zh-CN / en / ja（includes/i18n/LanguagePacks.php），其余语言另出
+# releases/lang/<版本>/ 下的语言包（此处未签名，发版时跑 tools/sign-lang-packs.php）。
+# 进 EXCLUDES 同时让 path_never_shipped 生效：增量包不会删掉存量站上已装的 lang/<code>.php。
+LANG_PACK_DIR="$RELEASE_DIR/lang/$VERSION"
+rm -rf "$LANG_PACK_DIR"
+mkdir -p "$LANG_PACK_DIR"
+LANG_PACK_SRC="$PKG_DIR"
+LANG_PACK_OUT="$LANG_PACK_DIR"
+if [ "$(php -r 'echo DIRECTORY_SEPARATOR;')" = '\' ] && command -v wslpath >/dev/null 2>&1; then
+    LANG_PACK_SRC="$(wslpath -w "$PKG_DIR")"
+    LANG_PACK_OUT="$(wslpath -w "$LANG_PACK_DIR")"
+fi
+php tools/build-lang-packs.php build "$LANG_PACK_SRC" "$VERSION" "$LANG_PACK_OUT"
+while IFS= read -r item; do
+    item="${item%$'\r'}"
+    [ -n "$item" ] && EXCLUDES+=("$item")
+done < <(php tools/build-lang-packs.php list)
+
 for item in "${EXCLUDES[@]}"; do
     rm -rf "$PKG_DIR/$item"
 done
