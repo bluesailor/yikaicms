@@ -64,6 +64,10 @@ function rbPost(string $url, array $post): array
 function rbAction(string $action, array $extra = []): array
 {
     global $CSRF;
+    // 仓库检出（含 worktree 的 .git 文件）里跑：apply_prepare 带上站长的「确认覆盖 Git 检出」，与后台确认后的请求一致
+    if ($action === 'apply_prepare' && file_exists(dirname(__DIR__, 2) . '/.git')) {
+        $extra += ['confirm_git_checkout' => '1'];
+    }
     [$code, $body] = rbPost('/admin/upgrade_online.php', ['action' => $action, '_token' => $CSRF] + $extra);
     $data = json_decode($body, true);
     if ($code !== 200 || !is_array($data)) {
@@ -158,6 +162,15 @@ file_put_contents($ROOT . '/storage/upgrade/package-meta.json', json_encode([
     'verified_at' => time(),
 ]));
 echo "✓ 布景就绪（沙箱 + 增量包：覆盖1 新建1 删除1）\n";
+
+// ---- 0) Git 检出：站长没确认就不准备升级，也不留任何状态 ----
+if (file_exists($ROOT . '/.git')) {
+    echo "— apply_prepare（Git 检出，未确认）\n";
+    [, $gitBody] = rbPost('/admin/upgrade_online.php', ['action' => 'apply_prepare', '_token' => $CSRF]);
+    $gitData = json_decode($gitBody, true);
+    rbAssert(is_array($gitData) && ($gitData['error_code'] ?? '') === 'git_checkout', 'Git 检出未确认时被拦下');
+    rbAssert(!is_file($ROOT . '/storage/upgrade/apply_state.json'), '被拦下时没有写升级状态');
+}
 
 // ---- 1) apply_prepare：建状态 + 备份目录 ----
 echo "— apply_prepare\n";

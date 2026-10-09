@@ -465,14 +465,37 @@ function uo_health_check(): array
 // 升级管道（无头）—— Web 层与 cron 自动升级共用；只返回数组，不产出输出。
 // ============================================================
 
+/**
+ * 站点根目录是不是 Git 检出（`.git` 目录，或 git worktree 的 `.git` 文件）。
+ *
+ * 开发机的站点常常直接指向仓库：升级包会把源码整份覆盖成发行版，未提交的改动与新文件混在一起
+ *（2026-10-10 本机开发站在线升级到 2.0.6，97 个文件改写了工作树）。自动 / 远程升级一律跳过；
+ * 后台手工升级要站长明确确认（confirm_git_checkout）才继续。
+ *
+ * 确实要在检出目录里跑升级（升级链路测试、刻意演练）时，在 config.php 里
+ * define('YK_UPGRADE_ALLOW_GIT_CHECKOUT', true) 关掉这道保护。
+ */
+function uo_is_git_checkout(string $root): bool
+{
+    if (defined('YK_UPGRADE_ALLOW_GIT_CHECKOUT') && constant('YK_UPGRADE_ALLOW_GIT_CHECKOUT') === true) {
+        return false;
+    }
+    return file_exists(rtrim($root, '/\\') . '/.git');
+}
+
 function upgrade_prepare(
     string $expectedFrom = '',
     string $expectedTo = '',
     bool $requireDbBackup = false,
     bool $allowMissingDbBackup = false,
-    bool $acceptLocalChanges = false
+    bool $acceptLocalChanges = false,
+    bool $confirmGitCheckout = false
 ): array
 {
+    // 放在一切读写之前：被拦下时什么都没动过
+    if (uo_is_git_checkout(ROOT_PATH) && !$confirmGitCheckout) {
+        return ['code' => 1, 'error_code' => 'git_checkout', 'msg' => __('upgrade_git_checkout_blocked')];
+    }
     $pkg = uo_dir() . '/package.zip';
     if (!is_file($pkg)) return ['code' => 1, 'msg' => '未找到已下载的安装包，请先执行下载'];
     if (!class_exists('ZipArchive')) return ['code' => 1, 'msg' => '缺少 ZipArchive 扩展'];
