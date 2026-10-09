@@ -47,6 +47,16 @@ final class AdminNotices
                 'url' => '/admin/theme.php?tab=market', 'action' => __('dashboard_theme_update_go')]);
         }
 
+        // 升级后已装语言包还是旧版本：新增文案暂时显示英文/中文兜底，提醒一键更新（只看本地文件，不联网）
+        require_once ROOT_PATH . '/includes/i18n/LanguagePackSite.php';
+        $outdatedPacks = LanguagePackSite::outdated();
+        if ($outdatedPacks !== []) {
+            $add(['id' => 'lang_packs', 'icon' => 'language',
+                'title' => __('notice_lang_packs_title', ['count' => (string) count($outdatedPacks)]),
+                'body' => __('notice_lang_packs_body'),
+                'url' => '/admin/setting_lang.php#langPacks', 'action' => __('lpack_update_all')]);
+        }
+
         // 新站正在走「开始建站」引导时，定时任务提示先不打扰（与原控制台卡片同一规则）
         $startOnboarding = (string) config('onboarding_start_dismissed', '1') === '0';
         if (!$startOnboarding) {

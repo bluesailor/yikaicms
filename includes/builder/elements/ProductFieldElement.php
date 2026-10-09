@@ -207,6 +207,9 @@ final class ProductFieldElement extends AbstractElement
         $color = self::cssColor($data['color'] ?? null);
         $style = $color !== null ? ' style="color:' . htmlspecialchars($color, ENT_QUOTES) . ';"' : '';
 
+        if (function_exists('codeBlockSeen')) {
+            codeBlockSeen($html);   // 页尾代码复制脚本只在出过代码块的页面输出
+        }
         return '<div class="prose prose-lg max-w-none' . $radius . '"' . $style
             . $this->animationAttrs($data) . '>' . $html . '</div>';
     }

@@ -125,6 +125,8 @@ return [
     'error_admin_create' => '관리자 생성에 실패했습니다:',
     'error_config_write' => '설정 파일 작성에 실패했습니다',
     'error_root_not_writable' => '사이트 루트 디렉터리에 쓸 수 없어 설치 잠금 파일(installed.lock)을 생성할 수 없습니다. 호스트 패널에서 사이트 디렉터리 소유자를 PHP를 실행하는 사용자(일반적으로 www)로 설정하거나 권한을 755로 설정한 후 다시 시도하세요. 데이터베이스는 아직 변경되지 않았습니다.',
+    'lang_download_suffix' => ' (설치 시 다운로드)',
+    'error_lang_pack_failed' => ':lang 언어 팩을 다운로드하지 못했습니다: 서버가 Yikai 공식 다운로드 주소에 연결할 수 없습니다. English를 선택해 설치를 마친 뒤 관리자 "언어 설정 → 더 많은 언어"에서 언어 팩을 업로드하세요. 데이터베이스는 변경되지 않았습니다.',
     'db_exposed_warn' => '⚠ 보안 경고: 데이터베이스 파일 /storage/database.sqlite를 현재 누구나 직접 다운로드할 수 있으며, 관리자 계정 등 모든 데이터가 들어 있습니다. 즉시 조치하세요. Nginx / aaPanel: URL 재작성 상자에 include /www/wwwroot/사이트-디렉터리/deploy/nginx-baota.conf; 를 입력하세요(“wordpress” 프리셋만 선택하지 마세요). Apache: AllowOverride All이 활성화되어 있는지 확인하세요. 조치 후 해당 주소를 다시 열면 403 또는 404가 반환되어야 합니다.',
     'error_lock_write' => '설치 잠금 파일 installed.lock 작성에 실패했습니다. 사이트 루트 디렉터리에 쓸 수 있는지 확인한 후 다시 설치하세요.',
     'url_auto_notice' => '설치 시 서버를 자동으로 검사합니다. URL 재작성을 지원하면 깔끔한 URL을 사용하고, 그렇지 않으면 설정이 필요 없는 동적 URL을 사용합니다. 설치 후 관리자 페이지 “URL 및 링크”에서 다시 감지하여 전환할 수 있으며 다시 설치할 필요가 없습니다.',

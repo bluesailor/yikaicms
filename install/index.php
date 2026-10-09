@@ -14,6 +14,7 @@ require_once dirname(__DIR__) . '/includes/php_guard.php';
 define('INSTALL_PATH', __DIR__);
 define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/includes/i18n/LanguageRegistry.php';   // 语言名称与可选范围：单一来源
+require_once ROOT_PATH . '/includes/i18n/LanguagePacks.php';      // 不随包的语言：第 3 步选中后安装时下载
 // 子目录部署：安装器不经 init.php，挂载点要在这里自己挂——页面里的 /assets/…、/admin/
 // 与跳转地址才会带上目录前缀（根目录安装时为空操作）
 require_once ROOT_PATH . '/includes/BasePath.php';
@@ -122,7 +123,8 @@ $lang = detectInstallLang($supportedLangs);
 $L = require INSTALL_PATH . "/lang/{$lang}.php";
 
 /**
- * 第 3 步可选的站点 / 后台语言（代码 => 本族语名）：注册过且装了 lang/<code>.php 的语言。
+ * 第 3 步可选的站点 / 后台语言（代码 => 本族语名）：已装 lang/<code>.php 的，加上可在安装时下载的语言包
+ *（LanguagePacks；注册表里的每种语言要么随包、要么可下载）。
  * 后台另外排除繁体（前台简→繁渲染视图，后台不转换）与从右到左的语言（后台无 RTL 布局），
  * 与 includes/functions.php 的 adminLanguages() 口径一致。
  *
@@ -131,13 +133,18 @@ $L = require INSTALL_PATH . "/lang/{$lang}.php";
 function installerLangOptions(bool $forAdmin): array
 {
     $options = [];
-    foreach (glob(ROOT_PATH . '/lang/*.php') ?: [] as $file) {
-        $code = basename($file, '.php');
-        if (!LanguageRegistry::has($code)) continue;
+    foreach (LanguageRegistry::codes() as $code) {
+        if (!is_file(ROOT_PATH . '/lang/' . $code . '.php') && !in_array($code, LanguagePacks::downloadable(), true)) continue;
         if ($forAdmin && ($code === 'zh-TW' || LanguageRegistry::isRtl($code))) continue;
         $options[$code] = LanguageRegistry::name($code);
     }
     return $options !== [] ? $options : ['zh-CN' => LanguageRegistry::name('zh-CN')];
+}
+
+/** 所选语言还没装：安装时先下载它的语言包（建库之前，失败时数据库还没动）。 */
+function installerLangNeedsDownload(string $code): bool
+{
+    return !is_file(ROOT_PATH . '/lang/' . $code . '.php');
 }
 
 // 把简短的安装向导语言映射到 CMS 内部的标签（zh→zh-CN，其它原样）
@@ -420,6 +427,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
             $siteLang  = is_string($_POST['site_lang'] ?? null) && isset($_siteChoices[$_POST['site_lang']]) ? $_POST['site_lang'] : 'zh-CN';
             $adminLang = is_string($_POST['admin_lang'] ?? null) && isset($_adminChoices[$_POST['admin_lang']]) ? $_POST['admin_lang'] : 'zh-CN';
             $installDemo = !empty($_POST['install_demo']);
+
+            // 选了不随安装包的语言：先下载语言包（建库之前——失败时数据库还没动，可换语言重试）。
+            // 首页默认文案、法律页等种子按站点语言取 lang/<code>.php，必须在写种子之前装好。
+            foreach (array_unique([$siteLang, $adminLang]) as $_packLang) {
+                if (!installerLangNeedsDownload($_packLang)) continue;
+                try {
+                    require_once ROOT_PATH . '/includes/License.php';
+                    LanguagePacks::download(ROOT_PATH, $_packLang, $cmsVersion, license_pubkey(), [LanguagePacks::class, 'httpFetch']);
+                } catch (LanguagePackException $e) {
+                    ob_end_clean();
+                    echo json_encode([
+                        'success' => false,
+                        'code' => 'lang_pack_failed',
+                        'message' => str_replace(':lang', LanguageRegistry::name($_packLang), $L['error_lang_pack_failed']),
+                    ], JSON_UNESCAPED_UNICODE);
+                    exit;
+                }
+            }
             // 初始场景预设功能 v1.7.4 移除（装完后台 → 外观 → 场景预设 操作）
 
             // 验证表前缀（仅允许字母数字下划线）
@@ -1130,7 +1155,7 @@ window.ykWarnIfDbExposed = function (container, message) {
                             <select name="site_lang" class="w-full border rounded px-3 py-2 bg-white">
                                 <?php foreach ($siteLangOptions as $code => $name): ?>
                                 <option value="<?php echo $code; ?>" <?php echo $code === $defaultSite ? 'selected' : ''; ?>>
-                                    <?php echo $name; ?>
+                                    <?php echo $name; ?><?php echo installerLangNeedsDownload($code) ? $L['lang_download_suffix'] : ''; ?>
                                 </option>
                                 <?php endforeach; ?>
                             </select>
@@ -1141,7 +1166,7 @@ window.ykWarnIfDbExposed = function (container, message) {
                             <select name="admin_lang" class="w-full border rounded px-3 py-2 bg-white">
                                 <?php foreach ($adminLangOptions as $code => $name): ?>
                                 <option value="<?php echo $code; ?>" <?php echo $code === $defaultAdmin ? 'selected' : ''; ?>>
-                                    <?php echo $name; ?>
+                                    <?php echo $name; ?><?php echo installerLangNeedsDownload($code) ? $L['lang_download_suffix'] : ''; ?>
                                 </option>
                                 <?php endforeach; ?>
                             </select>

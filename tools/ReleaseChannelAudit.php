@@ -62,6 +62,11 @@ final class ReleaseChannelAudit
             'demo' => self::demo($config, $version, $workspace, $fetcher),
             'github' => self::github($config, $version, $fetcher),
         ];
+        // 语言包（2.1 起不随安装包的 15 种界面语言）：老版本没有这个渠道，按 since 起算
+        $langPacks = $config['lang_packs'] ?? null;
+        if (is_array($langPacks) && version_compare($version, (string) ($langPacks['since'] ?? '0'), '>=')) {
+            $channels['lang_packs'] = self::langPacks($config, $version, $workspace, $fetcher);
+        }
         foreach (['website', 'update_server', 'market', 'github'] as $name) {
             $onlineChecks = $fetcher === null
                 ? [self::check('Online verification', null, 'Not requested; local preparation is not online evidence')]
@@ -486,40 +491,105 @@ final class ReleaseChannelAudit
             return self::channel('演示站', self::FAILED, $checks, ['expected_version' => $version]);
         }
 
-        $result = $fetcher($url, true);
-        $error = trim((string) ($result['error'] ?? ''));
-        $status = (int) ($result['status'] ?? 0);
-        if ($error !== '') {
-            $checks[] = self::check('线上版本', false, "请求未完成（{$error}）：{$url}");
-        } elseif ($status !== 200) {
-            $checks[] = self::check('线上版本', false, "HTTP {$status}：{$url}");
-        } else {
-            $body = (string) ($result['body'] ?? '');
-            $pattern = (string) ($cfg['asset_version_pattern'] ?? '');
-            $found = [];
-            if ($pattern !== '' && preg_match_all($pattern, $body, $m) > 0) {
-                $found = array_values(array_unique(array_map('strval', $m[1])));
+        // 版本判据：前台不再公开版本号（2026-10-09），改为比对公开静态文件与本版安装包里同名文件的 SHA256。
+        // 只有至少一个探针文件在本版确有变化（与上一版安装包不同）时，「一致」才能证明已升级；
+        // 否则如实报「无法区分」，不当作通过。
+        $archiveCfg = self::section($config, 'archive');
+        $archiveDir = self::resolveDir($archiveCfg, $workspace);
+        $packageName = (string) ($archiveCfg['package'] ?? 'yikaicms-v{version}.zip');
+        $assets = array_values(array_filter((array) ($cfg['probe_assets'] ?? []), 'is_string'));
+        if ($archiveDir === null || $assets === []) {
+            $checks[] = self::check('线上版本', null, '缺少归档目录或 probe_assets，无法比对：' . $url);
+            return self::channel('演示站', self::statusOf($checks), $checks, ['expected_version' => $version]);
+        }
+        $current = self::zipEntryHashes($archiveDir . '/' . str_replace('{version}', $version, $packageName), $version, $assets);
+        if ($current === null) {
+            $checks[] = self::check('线上版本', false, '本版安装包缺失或缺少探针文件：' . implode(', ', $assets));
+            return self::channel('演示站', self::statusOf($checks), $checks, ['expected_version' => $version]);
+        }
+        $previousVersion = self::previousArchivedVersion($archiveDir, $packageName, $version);
+        $previous = $previousVersion !== null
+            ? self::zipEntryHashes($archiveDir . '/' . str_replace('{version}', $previousVersion, $packageName), $previousVersion, $assets)
+            : null;
+
+        $mismatch = [];
+        $distinguishing = 0;
+        foreach ($assets as $asset) {
+            $assetUrl = rtrim($url, '/') . '/' . ltrim($asset, '/');
+            $result = $fetcher($assetUrl, true);
+            $error = trim((string) ($result['error'] ?? ''));
+            $status = (int) ($result['status'] ?? 0);
+            if ($error !== '' || $status !== 200) {
+                $checks[] = self::check('线上版本', false, ($error !== '' ? "请求未完成（{$error}）" : "HTTP {$status}") . '：' . $assetUrl);
+                return self::channel('演示站', self::statusOf($checks), $checks, ['expected_version' => $version]);
             }
-            if ($found === []) {
-                // 探针失效本身要报出来，不能当成「版本对不上」，更不能当成通过。
-                $checks[] = self::check(
-                    '线上版本',
-                    false,
-                    "页面里没有可识别的资源版本查询串（探针可能已失效，需要复核 asset_version_pattern）：{$url}"
-                );
-            } elseif ($found === [$version]) {
-                $checks[] = self::check('线上版本', true, "资源版本 {$version}（{$url}）", $url);
-            } else {
-                $checks[] = self::check(
-                    '线上版本',
-                    false,
-                    '资源版本为 ' . implode(', ', $found) . "，期望 {$version}——演示站尚未升级：{$url}",
-                    $url
-                );
+            if (!hash_equals($current[$asset], hash('sha256', (string) ($result['body'] ?? '')))) {
+                $mismatch[] = $asset;
+            }
+            if ($previous !== null && $previous[$asset] !== $current[$asset]) {
+                $distinguishing++;
             }
         }
 
+        if ($mismatch !== []) {
+            $checks[] = self::check('线上版本', false, '与 v' . $version . ' 安装包不一致：' . implode(', ', $mismatch) . "——演示站尚未升级：{$url}", $url);
+        } elseif ($distinguishing === 0) {
+            $checks[] = self::check(
+                '线上版本',
+                null,
+                '探针文件与 v' . $version . ' 一致，但与上一版' . ($previousVersion !== null ? " v{$previousVersion}" : '') . '也一样（或找不到上一版安装包），无法区分是否已升级：' . $url
+            );
+        } else {
+            $checks[] = self::check('线上版本', true, "{$distinguishing} 个本版变化的探针文件与 v{$version} 安装包一致（{$url}）", $url);
+        }
+
         return self::channel('演示站', self::statusOf($checks), $checks, ['expected_version' => $version]);
+    }
+
+    // ── 语言包：本地已签名 + OSS 上逐个回读一致 ───────────────────────
+
+    /**
+     * @param array<string,mixed> $config
+     * @return array<string,mixed>
+     */
+    private static function langPacks(array $config, string $version, string $workspace, ?callable $fetcher): array
+    {
+        require_once dirname(__DIR__) . '/includes/i18n/LanguagePacks.php';
+        $dir = self::resolveDir(self::section($config, 'archive'), $workspace);
+        $summaryPath = $dir === null ? '' : $dir . '/lang/' . $version . '/lang-packs-v' . $version . '.json';
+        $summary = $summaryPath === '' ? null : self::readJson($summaryPath);
+        if ($summary === null || !is_array($summary['packs'] ?? null)) {
+            return self::channel('语言包', self::FAILED, [self::check('语言包清单', false, "缺失或非法: {$summaryPath}（build.sh 生成）")]);
+        }
+        $checks = [self::check('语言包清单', true, $summaryPath, self::evidence($summaryPath))];
+        foreach (LanguagePacks::downloadable() as $code) {
+            $row = $summary['packs'][$code] ?? null;
+            $path = is_array($row) ? $dir . '/lang/' . $version . '/' . (string) ($row['file'] ?? '') : '';
+            $hash = is_array($row) && is_file($path) ? hash_file('sha256', $path) : false;
+            if (!is_array($row) || !is_string($hash)) {
+                $checks[] = self::check("语言包 {$code}", false, '本地缺包');
+                continue;
+            }
+            if (($row['signed'] ?? false) !== true || !hash_equals((string) ($row['zip_sha256'] ?? ''), $hash)) {
+                $checks[] = self::check("语言包 {$code}", false, '未签名或与清单不符——发版前跑 tools/sign-lang-packs.php');
+                continue;
+            }
+            if ($fetcher === null) {
+                $checks[] = self::check("语言包 {$code}", null, '本地已签名；未请求线上核对');
+                continue;
+            }
+            $url = LanguagePacks::url($code, $version);
+            $result = $fetcher($url, true);
+            $remote = (string) ($result['sha256'] ?? hash('sha256', (string) ($result['body'] ?? '')));
+            if (trim((string) ($result['error'] ?? '')) !== '' || (int) ($result['status'] ?? 0) !== 200) {
+                $checks[] = self::check("语言包 {$code}", false, 'HTTP ' . (int) ($result['status'] ?? 0) . "：{$url}");
+            } elseif (!hash_equals($hash, $remote)) {
+                $checks[] = self::check("语言包 {$code}", false, "线上与本地已签名包不一致：{$url}", $url);
+            } else {
+                $checks[] = self::check("语言包 {$code}", true, "sha256={$hash}", $url);
+            }
+        }
+        return self::channel('语言包', self::statusOf($checks), $checks, ['expected_version' => $version]);
     }
 
     // ── GitHub Release ────────────────────────────────────────────────
@@ -634,6 +704,52 @@ final class ReleaseChannelAudit
             $result[(string) $lang] = (string) $relative;
         }
         return $result;
+    }
+
+    /**
+     * 安装包里指定文件的 SHA256（条目带「yikaicms-v<版本>/」前缀）。缺包或缺任一文件返回 null。
+     *
+     * @param list<string> $assets
+     * @return array<string,string>|null
+     */
+    private static function zipEntryHashes(string $zipPath, string $version, array $assets): ?array
+    {
+        if (!is_file($zipPath) || !class_exists('ZipArchive')) {
+            return null;
+        }
+        $zip = new ZipArchive();
+        if ($zip->open($zipPath) !== true) {
+            return null;
+        }
+        $prefix = 'yikaicms-v' . $version . '/';
+        $out = [];
+        try {
+            foreach ($assets as $asset) {
+                $data = $zip->getFromName($prefix . ltrim($asset, '/'));
+                if ($data === false) {
+                    return null;
+                }
+                $out[$asset] = hash('sha256', $data);
+            }
+        } finally {
+            $zip->close();
+        }
+        return $out;
+    }
+
+    /** 归档目录里比 $version 低的最高正式版本（忽略 -local 等测试包）。 */
+    private static function previousArchivedVersion(string $dir, string $packagePattern, string $version): ?string
+    {
+        $regex = '/^' . str_replace('\{version\}', '(\d+\.\d+\.\d+)', preg_quote($packagePattern, '/')) . '$/D';
+        $best = null;
+        foreach ((array) scandir($dir) as $file) {
+            if (is_string($file) && preg_match($regex, $file, $m) === 1
+                && version_compare($m[1], $version, '<')
+                && ($best === null || version_compare($m[1], $best, '>'))) {
+                $best = $m[1];
+            }
+        }
+        return $best;
     }
 
     /** @param array<string,mixed> $config */

@@ -142,6 +142,8 @@ return [
     'error_admin_create' => 'Failed to create administrator: ',
     'error_config_write' => 'Failed to write configuration file',
     'error_root_not_writable' => 'The site root directory is not writable, so the install lock (installed.lock) cannot be created. Make the site directory owned by the user PHP runs as (usually www on aaPanel), or set it to 755, then try again. The database has not been changed.',
+    'lang_download_suffix' => ' (downloaded during install)',
+    'error_lang_pack_failed' => 'Could not download the :lang language pack: the server cannot reach the official Yikai download site. Choose English to finish installing, then upload the language pack in Admin → Language settings → More languages. The database has not been changed.',
     'db_exposed_warn' => '⚠ Security warning: the database file /storage/database.sqlite can currently be downloaded by anyone, including the admin account and all site data. Fix it now — Nginx / aaPanel: put include /www/wwwroot/your-site-dir/deploy/nginx-baota.conf; in the rewrite box (do not use the "wordpress" preset alone); Apache: make sure AllowOverride All is enabled. Afterwards that address must return 403 or 404.',
     'error_lock_write' => 'Failed to write the install lock (installed.lock). Make sure the site root directory is writable, then run the installer again.',
     'url_auto_notice' => 'Installation checks server routing automatically. Pretty URLs are used when supported; otherwise query URLs work without rewrite rules. Check and switch later under URL & links in the dashboard. No reinstall is needed.',
