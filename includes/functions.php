@@ -3518,7 +3518,7 @@ function renderBannerShortcode(string $slug): string
     $html = '';
 
     // 短代码可出现在非首页，资源需要自包含；加载器会复用页面已有脚本。
-    $html .= '<link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">';
+    $html .= '<link rel="stylesheet" href="' . e(assetVer('/assets/swiper/swiper-bundle.min.css')) . '">';
     $html .= '<link rel="stylesheet" href="' . e(assetVer('/assets/css/yikay-banner.css')) . '">';
 
     // Swiper 容器

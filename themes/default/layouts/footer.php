@@ -253,6 +253,7 @@ if ($footerBgLiteral !== '') {
     <?php endif; ?>
     <?php endif; ?>
 
+    <?php if (empty($GLOBALS['ykBloxHeaderActive'])): // Blox 头模板自带抽屉菜单（yikay-nav-drawer.js），没有 #mobileMenuBtn ?>
     <script>
         // 移动端菜单切换
         (function() {
@@ -283,6 +284,7 @@ if ($footerBgLiteral !== '') {
             });
         })();
     </script>
+    <?php endif; ?>
 
     <?php /* General Lightbox */ ?>
     <?php

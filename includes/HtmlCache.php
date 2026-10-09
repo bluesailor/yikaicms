@@ -110,6 +110,10 @@ final class HtmlCache
     {
         if (!self::$buffering) return;
 
+        // 前台 <head> 末尾的样式缓冲（BloxAssetCollector::openHeadBuffer）若还开着，先交还，否则这里只取到半截页面
+        if (class_exists('BloxAssetCollector', false)) {
+            BloxAssetCollector::closeHeadBuffer();
+        }
         $html = ob_get_clean();
         self::$buffering = false;
         echo $html;
