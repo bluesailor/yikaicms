@@ -116,7 +116,7 @@ final class ReleaseFilesTest extends TestCase
         self::assertStringContainsString("'error_code' => 'local_modifications'", $src);
 
         $online = (string) file_get_contents(ROOT_PATH . '/admin/upgrade_online.php');
-        self::assertStringContainsString("upgrade_prepare('', '', true, \$backupOverride, \$acceptLocal)", $online);
+        self::assertStringContainsString("upgrade_prepare('', '', true, \$backupOverride, \$acceptLocal, \$confirmGit)", $online);
         self::assertStringContainsString("pre.error_code === 'local_modifications'", $online);
 
         $auto = (string) file_get_contents(ROOT_PATH . '/includes/AutoUpgrade.php');
