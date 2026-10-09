@@ -288,18 +288,23 @@ $extraJs = '
         btn.addEventListener("click", function() {
             const cat = this.dataset.category;
 
+            // 父分类包含子分类的产品：按钮带上自己与全部子分类 ID（data-category-ids），没有时退回只比本分类
+            const ids = (this.dataset.categoryIds || cat).split(" ");
+
             // 更新按钮状态
             buttons.forEach(b => {
                 b.classList.remove("bg-primary", "text-white");
                 b.classList.add("bg-gray-100", "text-gray-600");
+                b.setAttribute("aria-pressed", "false");
             });
             this.classList.remove("bg-gray-100", "text-gray-600");
             this.classList.add("bg-primary", "text-white");
+            this.setAttribute("aria-pressed", "true");
 
             // 筛选产品
             items.forEach(item => {
                 const itemCat = item.dataset.category;
-                if (cat === "all" || itemCat === cat) {
+                if (cat === "all" || ids.includes(itemCat)) {
                     item.style.display = "";
                     item.style.opacity = "0";
                     setTimeout(() => { item.style.opacity = "1"; }, 50);
@@ -311,6 +316,17 @@ $extraJs = '
     });
 })();
 </script>';
+
+// 社交分享卡片的默认图：第一张横幅（社交平台不收 SVG，只认 jpg/png/webp）。只在没设分享图时由头部采用；
+// 单独起名而不直接写 $ogImage——市场主题把 $ogImage 也当 Organization 的 logo 用。
+$ykHomeShareImage = '';
+foreach ($banners as $ykBanner) {
+    $ykBannerImage = (string) ($ykBanner['image'] ?? '');
+    if (preg_match('/\.(?:jpe?g|png|webp)(?:\?.*)?$/i', $ykBannerImage) === 1) {
+        $ykHomeShareImage = $ykBannerImage;
+        break;
+    }
+}
 
 // 引入头部
 require_once theme_path('layouts/header.php');

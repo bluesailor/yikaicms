@@ -8557,6 +8557,7 @@ return [
     'sc_clear' => 'Tiada isu sepadan ditemui dalam skop semakan ini. Sila semak halaman yang dipaparkan, imej luaran, teks tema yang dikodkan keras dan hantaran borang.',
     'sc_missing' => 'Aset setempat hilang atau laluannya tidak sah. Gantikan aset atau betulkan rujukan.',
     'sc_empty' => 'Bahagian ini tiada isi langsung atau entri langsung yang diterbitkan. Semak sama ada kandungannya datang daripada halaman anak, tema atau pembina.',
+    'sc_lang_untranslated' => 'Bahasa ini diaktifkan tetapi belum ada saluran dalam bahasa ini: laman memaparkan menu kosong, sedangkan pemilih bahasa dan hreflang masih menganggapnya versi tersendiri, dan enjin carian menganggapnya kandungan pendua. Terjemahkan saluran atau nyahaktifkan bahasa ini dahulu dalam tetapan bahasa.',
     'sc_demo' => 'Teks contoh mungkin ditemui. Semak bahawa ia telah diganti dengan maklumat sebenar laman ini.',
     'sc_failed' => 'Semakan tidak selesai. Lengkapkan naik taraf pangkalan data dan semak log ralat sebelum mencuba semula.',
     'sc_links' => 'Pautan rosak dan kesihatan masa jalan',

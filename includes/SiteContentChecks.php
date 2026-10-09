@@ -53,6 +53,7 @@ final class SiteContentChecks
             if (str_starts_with($key, 'site_')) $url = '/admin/setting.php?tab=basic';
             self::inspectValue((string) $value, $root, $key, $url, $issues);
         }
+        self::inspectLanguages($issues);
         foreach (['home_blox', 'home_layout'] as $prefix) {
             $published = (string) ($settings[$prefix . '_published'] ?? '');
             $draft = (string) ($settings[$prefix . '_data'] ?? '');
@@ -122,6 +123,28 @@ final class SiteContentChecks
         $limited = $limited || $report['limited'];
         foreach ($report['issues'] as $issue) self::add($issues, $issue['kind'], $label, $issue['detail'], $url);
         if (strlen($json) <= 2000000) self::inspectValue($json, $root, $label, $url, $issues);
+    }
+
+    /**
+     * 启用了、却没有任何该语言栏目的语言：前台只剩空导航，语言切换器和 hreflang 仍把它当独立版本列出，
+     * 搜索引擎会把它当成重复内容。繁体由简体内容转换生成，不算。
+     */
+    private static function inspectLanguages(array &$issues): void
+    {
+        $enabled = json_decode((string) config('enabled_languages', ''), true);
+        if (!is_array($enabled)) {
+            return;
+        }
+        $default = (string) config('site_lang', 'zh-CN');
+        foreach ($enabled as $code) {
+            if (!is_string($code) || $code === $default || $code === 'zh-TW' || !LanguageRegistry::has($code)) {
+                continue;
+            }
+            $live = (int) db()->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . 'channels WHERE lang = ? AND status = 1', [$code]);
+            if ($live === 0) {
+                self::add($issues, 'sc_lang_untranslated', LanguageRegistry::name($code), '', '/admin/setting_lang.php');
+            }
+        }
     }
 
     private static function looksEmpty(array $channel): bool

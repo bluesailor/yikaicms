@@ -8557,6 +8557,7 @@ return [
     'sc_clear' => 'Nenhum desses problemas foi encontrado dentro do escopo desta verificação. Ainda é preciso conferir manualmente as páginas reais, as imagens externas, os textos fixos dos temas e o envio de formulários.',
     'sc_missing' => 'Um arquivo de mídia local está ausente ou seu caminho é inválido. Substitua o arquivo ou corrija a referência.',
     'sc_empty' => 'A seção não tem texto próprio nem conteúdo diretamente associado que esteja publicado. Confira se o conteúdo vem das subpáginas, do tema ou do construtor.',
+    'sc_lang_untranslated' => 'Este idioma está ativado, mas ainda não tem canais: o site mostra um menu vazio, enquanto o seletor de idioma e o hreflang o apresentam como versão própria, e os buscadores o tratam como conteúdo duplicado. Traduza os canais ou desative o idioma nas configurações de idioma por enquanto.',
     'sc_demo' => 'Foi encontrado um texto que parece ser de exemplo. Confira se ele foi substituído pelos dados reais deste site.',
     'sc_failed' => 'A verificação não foi concluída. Confirme que a atualização do banco de dados terminou, consulte o registro de erros e tente novamente.',
     'sc_links' => 'Links inválidos e ambiente de execução',

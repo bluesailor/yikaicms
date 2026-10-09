@@ -8557,6 +8557,7 @@ return [
     'sc_clear' => 'Nell\'ambito di questo controllo non sono stati trovati i problemi sopra. Occorre comunque controllare a mano le pagine reali, le immagini esterne, i testi fissi nel tema e gli invii dei moduli.',
     'sc_missing' => 'Una risorsa locale manca o il percorso non è valido. Sostituisci la risorsa o correggi il riferimento.',
     'sc_empty' => 'La sezione non ha un corpo diretto né contenuti pubblicati direttamente collegati. Verifica se i contenuti provengono da sottopagine, dal tema o dal builder.',
+    'sc_lang_untranslated' => 'Questa lingua è attiva ma non ha ancora canali: il sito mostra un menu vuoto, mentre il selettore di lingua e hreflang la presentano come versione a sé, e i motori di ricerca la considerano contenuto duplicato. Traduci i canali o disattiva per ora la lingua nelle impostazioni della lingua.',
     'sc_demo' => 'Possibile testo di esempio rilevato. Verifica che sia stato sostituito con i dati reali di questo sito.',
     'sc_failed' => 'Controllo non completato. Verifica che l\'aggiornamento del database sia concluso e controlla il log degli errori, poi riprova.',
     'sc_links' => 'Link non validi e ambiente di esecuzione',

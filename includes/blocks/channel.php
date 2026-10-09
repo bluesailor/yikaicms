@@ -29,11 +29,11 @@ $contents = $hChannel['contents'];
         <?php $categories = $hChannel['categories'] ?? []; ?>
         <?php if (!empty($categories)): ?>
         <div class="flex flex-wrap justify-center gap-3 mb-8" id="productCategoryNav">
-            <button type="button" class="category-btn px-5 py-2 rounded-full text-sm transition bg-primary text-white" data-category="all">
+            <button type="button" class="category-btn px-5 py-2 rounded-full text-sm transition bg-primary text-white" data-category="all" aria-pressed="true">
                 <?php echo __('all'); ?>
             </button>
             <?php foreach ($categories as $cat): ?>
-            <button type="button" class="category-btn px-5 py-2 rounded-full text-sm transition bg-gray-100 text-gray-600 hover:bg-gray-200" data-category="<?php echo $cat['id']; ?>">
+            <button type="button" class="category-btn px-5 py-2 rounded-full text-sm transition bg-gray-100 text-gray-600 hover:bg-gray-200" data-category="<?php echo $cat['id']; ?>" data-category-ids="<?php echo e(implode(' ', productCategoryModel()->getChildIds((int) $cat['id']))); ?>" aria-pressed="false">
                 <?php echo e($cat['name']); ?>
             </button>
             <?php endforeach; ?>

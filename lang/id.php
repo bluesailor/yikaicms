@@ -8557,6 +8557,7 @@ return [
     'sc_clear' => 'Dalam cakupan pemeriksaan ini tidak ditemukan masalah di atas. Tetap periksa secara manual halaman sebenarnya, gambar eksternal, teks tetap di dalam tema, dan pengiriman formulir.',
     'sc_missing' => 'Aset lokal hilang atau jalurnya tidak dapat dipakai. Ganti aset atau perbaiki referensinya.',
     'sc_empty' => 'Bagian tidak mengisi teks langsung dan tidak punya konten langsung yang diterbitkan. Periksa apakah konten disediakan oleh subbagian, tema, atau pembangun.',
+    'sc_lang_untranslated' => 'Bahasa ini aktif tetapi belum memiliki kanal: situs menampilkan menu kosong, sementara pemilih bahasa dan hreflang tetap menampilkannya sebagai versi tersendiri, dan mesin pencari menganggapnya konten duplikat. Terjemahkan kanal atau nonaktifkan bahasa ini dulu di pengaturan bahasa.',
     'sc_demo' => 'Ditemukan teks yang diduga contoh. Pastikan sudah diganti dengan data asli situs ini.',
     'sc_failed' => 'Pemeriksaan belum selesai. Pastikan peningkatan basis data sudah tuntas, dan periksa log kesalahan lalu coba lagi.',
     'sc_links' => 'Tautan rusak dan kesehatan runtime',

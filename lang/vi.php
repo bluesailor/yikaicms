@@ -8557,6 +8557,7 @@ return [
     'sc_clear' => 'Trong phạm vi kiểm tra lần này không phát hiện vấn đề trên. Vẫn cần kiểm tra thủ công trang thực tế, hình ảnh bên ngoài, nội dung cố định trong chủ đề và việc gửi biểu mẫu.',
     'sc_missing' => 'Tư liệu cục bộ bị thiếu hoặc đường dẫn không dùng được, hãy thay tư liệu hoặc sửa tham chiếu.',
     'sc_empty' => 'Chuyên mục không điền trực tiếp nội dung chính và không có nội dung trực thuộc đã xuất bản. Hãy kiểm tra xem nội dung có do trang con, chủ đề hoặc trình tạo cung cấp không.',
+    'sc_lang_untranslated' => 'Ngôn ngữ này đã bật nhưng chưa có chuyên mục nào: trang chỉ hiện menu trống, trong khi bộ chọn ngôn ngữ và hreflang vẫn coi đó là một phiên bản riêng, công cụ tìm kiếm sẽ xem là nội dung trùng lặp. Hãy dịch các chuyên mục hoặc tạm tắt ngôn ngữ trong cài đặt ngôn ngữ.',
     'sc_demo' => 'Phát hiện nội dung mẫu nghi ngờ, hãy xác nhận đã thay bằng thông tin thật của trang này chưa.',
     'sc_failed' => 'Kiểm tra chưa hoàn tất. Hãy xác nhận đã hoàn tất nâng cấp cơ sở dữ liệu, xem nhật ký lỗi rồi thử lại.',
     'sc_links' => 'Liên kết hỏng và môi trường vận hành',
