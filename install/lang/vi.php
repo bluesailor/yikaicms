@@ -125,6 +125,8 @@ return [
     'error_admin_create' => 'Tạo quản trị viên thất bại: ',
     'error_config_write' => 'Ghi tệp cấu hình thất bại',
     'error_root_not_writable' => 'Thư mục gốc của trang web không thể ghi, không thể tạo khóa cài đặt installed.lock. Vui lòng đặt chủ sở hữu thư mục trang web thành người dùng chạy PHP trong bảng điều khiển máy chủ (trên aaPanel thường là www), hoặc đặt quyền thành 755 rồi thử lại. Cơ sở dữ liệu chưa bị thay đổi.',
+    'lang_download_suffix' => ' (tải về khi cài đặt)',
+    'error_lang_pack_failed' => 'Không tải được gói ngôn ngữ :lang: máy chủ không kết nối được địa chỉ tải chính thức của Yikai. Hãy chọn English để hoàn tất cài đặt, sau đó tải lên gói trong Quản trị → Cài đặt ngôn ngữ → Ngôn ngữ khác. Cơ sở dữ liệu chưa bị thay đổi.',
     'db_exposed_warn' => '⚠ Cảnh báo bảo mật: tệp cơ sở dữ liệu /storage/database.sqlite hiện có thể bị bất kỳ ai tải xuống trực tiếp, bên trong có toàn bộ dữ liệu như tài khoản quản trị viên. Hãy xử lý ngay — Nginx / aaPanel: viết include /www/wwwroot/your-site-dir/deploy/nginx-baota.conf; vào ô viết lại URL (đừng chỉ chọn cài sẵn wordpress); Apache: xác nhận đã bật AllowOverride All. Sau khi xử lý, mở lại địa chỉ đó phải trả về 403 hoặc 404.',
     'error_lock_write' => 'Ghi khóa cài đặt installed.lock thất bại. Vui lòng đảm bảo thư mục gốc của trang web có thể ghi, rồi cài đặt lại.',
     'url_auto_notice' => 'Khi cài đặt sẽ tự động kiểm tra máy chủ: dùng URL đẹp khi hỗ trợ viết lại URL, ngược lại dùng URL động không cần cấu hình. Sau khi cài đặt, bạn có thể kiểm tra lại và chuyển đổi trong “URL & liên kết” ở trang quản trị, không cần cài lại.',

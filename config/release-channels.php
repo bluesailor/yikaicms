@@ -90,6 +90,12 @@ return [
         'probe_assets' => ['assets/css/tailwind.css', 'assets/icons/site-icons.min.css', 'assets/js/code-copy.js'],
     ],
 
+    // 界面语言包（2.1 起 15 种不随安装包，见 includes/i18n/LanguagePacks.php）。
+    // 本地 releases/lang/<版本>/ 必须全部已签名，线上 down.yikai.cn/soft/yikaicms/lang/<版本>/ 逐个回读一致。
+    'lang_packs' => [
+        'since' => '2.1.0',
+    ],
+
     // GitHub Release。发布后核对用。
     'github' => [
         'repo' => 'bluesailor/yikaicms',
@@ -97,5 +103,5 @@ return [
     ],
 
     // 候选阶段允许尚未同步的渠道。post-release 阶段这些一律必须「已验证」。
-    'candidate_optional' => ['website', 'update_server', 'market', 'github', 'demo'],
+    'candidate_optional' => ['website', 'update_server', 'market', 'github', 'demo', 'lang_packs'],
 ];

@@ -125,6 +125,8 @@ return [
     'error_admin_create' => 'Gagal membuat administrator: ',
     'error_config_write' => 'Gagal menulis file konfigurasi',
     'error_root_not_writable' => 'Direktori root situs tidak dapat ditulis, sehingga kunci pemasangan (installed.lock) tidak dapat dibuat. Jadikan direktori situs dimiliki oleh pengguna yang menjalankan PHP (biasanya www di aaPanel), atau setel izinnya ke 755, lalu coba lagi. Basis data belum diubah.',
+    'lang_download_suffix' => ' (diunduh saat instalasi)',
+    'error_lang_pack_failed' => 'Paket bahasa :lang tidak dapat diunduh: server tidak dapat terhubung ke alamat unduhan resmi Yikai. Pilih English untuk menyelesaikan instalasi, lalu unggah paket di Admin → Pengaturan bahasa → Bahasa lainnya. Basis data belum diubah.',
     'db_exposed_warn' => '⚠ Peringatan keamanan: file basis data /storage/database.sqlite saat ini dapat diunduh siapa saja, termasuk akun administrator dan seluruh data situs. Segera atasi — Nginx / aaPanel: tulis include /www/wwwroot/direktori-situs-anda/deploy/nginx-baota.conf; di kotak penulisan ulang URL (jangan hanya memilih preset "wordpress"); Apache: pastikan AllowOverride All diaktifkan. Setelah itu, alamat tersebut harus mengembalikan 403 atau 404.',
     'error_lock_write' => 'Gagal menulis kunci pemasangan (installed.lock). Pastikan direktori root situs dapat ditulis, lalu jalankan pemasang lagi.',
     'url_auto_notice' => 'Pemasangan memeriksa perutean server secara otomatis. URL ramah digunakan jika didukung; jika tidak, URL dinamis berfungsi tanpa aturan penulisan ulang URL. Periksa dan ganti nanti di URL & tautan di panel admin. Tidak perlu memasang ulang.',

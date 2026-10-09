@@ -418,6 +418,59 @@ final class ReleaseChannelAuditTest extends TestCase
         }
     }
 
+    // ── 语言包：本地必须已签名，线上逐个回读一致 ────────────────────────
+
+    public function testLanguagePacksVerifiedWhenSignedAndPublished(): void
+    {
+        $this->workspace = $this->buildFixture();
+        $this->writeLangPacks(signed: true);
+        $report = ReleaseChannelAudit::run($this->config() + ['lang_packs' => ['since' => '9.9.9']], self::VERSION, ReleaseChannelAudit::MODE_POST_RELEASE, $this->workspace, $this->okFetcher());
+        self::assertSame(ReleaseChannelAudit::VERIFIED, $report['channels']['lang_packs']['status']);
+    }
+
+    public function testUnsignedLanguagePacksFail(): void
+    {
+        $this->workspace = $this->buildFixture();
+        $this->writeLangPacks(signed: false);
+        $report = ReleaseChannelAudit::run($this->config() + ['lang_packs' => ['since' => '9.9.9']], self::VERSION, ReleaseChannelAudit::MODE_POST_RELEASE, $this->workspace, $this->okFetcher());
+        self::assertSame(ReleaseChannelAudit::FAILED, $report['channels']['lang_packs']['status']);
+        self::assertStringContainsString('sign-lang-packs', $this->detailOf($report['channels']['lang_packs'], '语言包 ru'));
+    }
+
+    public function testLanguagePackDifferentOnlineFails(): void
+    {
+        $this->workspace = $this->buildFixture();
+        $this->writeLangPacks(signed: true);
+        $ok = $this->okFetcher();
+        $fetch = static fn (string $url, bool $wantBody = false): array => str_contains($url, '/lang/9.9.9/yikaicms-lang-de-')
+            ? ['status' => 200, 'type' => 'application/zip', 'bytes' => 3, 'error' => '', 'body' => 'old', 'sha256' => hash('sha256', 'old')]
+            : $ok($url, $wantBody);
+        $report = ReleaseChannelAudit::run($this->config() + ['lang_packs' => ['since' => '9.9.9']], self::VERSION, ReleaseChannelAudit::MODE_POST_RELEASE, $this->workspace, $fetch);
+        self::assertSame(ReleaseChannelAudit::FAILED, $report['channels']['lang_packs']['status']);
+        self::assertStringContainsString('线上与本地已签名包不一致', $this->detailOf($report['channels']['lang_packs'], '语言包 de'));
+    }
+
+    public function testLanguagePackChannelOnlyAppliesFromItsFirstVersion(): void
+    {
+        $this->workspace = $this->buildFixture();
+        $report = ReleaseChannelAudit::run($this->config() + ['lang_packs' => ['since' => '10.0.0']], self::VERSION, ReleaseChannelAudit::MODE_POST_RELEASE, $this->workspace, $this->okFetcher());
+        self::assertArrayNotHasKey('lang_packs', $report['channels']);
+    }
+
+    private function writeLangPacks(bool $signed): void
+    {
+        require_once ROOT_PATH . '/includes/i18n/LanguagePacks.php';
+        $dir = $this->workspace . '/yikaicms.yikai/releases/lang/' . self::VERSION;
+        mkdir($dir, 0777, true);
+        $packs = [];
+        foreach (\LanguagePacks::downloadable() as $code) {
+            $file = \LanguagePacks::packageName($code, self::VERSION);
+            file_put_contents($dir . '/' . $file, 'pack ' . $code);
+            $packs[$code] = ['file' => $file, 'zip_sha256' => hash_file('sha256', $dir . '/' . $file), 'signed' => $signed];
+        }
+        file_put_contents($dir . '/lang-packs-v' . self::VERSION . '.json', json_encode(['schema' => 1, 'cms_version' => self::VERSION, 'packs' => $packs]));
+    }
+
     /** @return array<string,mixed> */
     private function audit(string $mode, ?callable $fetcher = null): array
     {
@@ -436,6 +489,9 @@ final class ReleaseChannelAuditTest extends TestCase
                     return ['status' => 404, 'type' => 'text/html', 'bytes' => 0, 'error' => ''];
                 }
                 $body = (string) file_get_contents($path);
+            } elseif (str_starts_with($url, 'https://down.yikai.cn/soft/yikaicms/lang/')) {
+                $rel = substr($url, strlen('https://down.yikai.cn/soft/yikaicms/lang/'));
+                $body = (string) @file_get_contents($root . '/yikaicms.yikai/releases/lang/' . $rel);
             } elseif (str_contains($url, 'demo.yikaicms.com')) {
                 $body = self::probeAsset(substr($url, strlen('https://demo.yikaicms.com/')), $demoAssetVersion);
             } elseif (str_ends_with($url, '/catalog.json')) {
