@@ -23,6 +23,10 @@ YikaiCMS 随包分发以下第三方组件，各组件按其自身协议授权�
 | D3.js | 7.9.0 | ISC | https://d3js.org |
 | d3-flextree | — | WTFPL | https://github.com/Klortho/d3-flextree |
 | d3-org-chart | — | MIT | https://github.com/bumbeishvili/org-chart |
+| Inter（可变字体，按文字分片的 woff2 子集） | 4.1 | OFL-1.1 | https://rsms.me/inter/ |
+
+Inter 的许可原文随包见 `assets/fonts/inter/OFL.txt`；分片由 `tools/fonts/build-bundled-fonts.py` 从上游
+`InterVariable.woff2` 生成，来源与哈希记录在同目录 `manifest.json`。
 
 ## 插件内置资源（经插件市场分发，不随核心安装包）
 

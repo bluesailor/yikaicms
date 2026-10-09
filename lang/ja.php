@@ -3429,6 +3429,8 @@ return [
     'appr_font_upload_tip' => 'ブランドフォント（woff2 / woff / ttf / otf、最大5MB）をアップロード。自サイトから配信し、第三者を経由しません。',
     'appr_font_none' => 'アップロードされたフォントはありません',
     'appr_font_none_use' => 'セルフホストフォントを使用しない',
+    'appr_font_bundled' => '%s フォントを同梱（訪問者側のインストール不要）',
+    'appr_font_variable' => '可変フォント（1 ファイルで全ウェイトに対応）',
     'appr_font_pick' => 'フォントファイルを選択してください',
     'appr_font_ext_only' => 'woff2 / woff / ttf / otf のみ対応',
     'appr_font_not_font' => 'フォントファイルではありません（ヘッダー検証に失敗）',

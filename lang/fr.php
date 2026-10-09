@@ -3232,6 +3232,8 @@ return [
     'appr_font_upload_tip' => 'Importez un fichier de police de marque (woff2 / woff / ttf / otf, 5MB maximum). Le site l’héberge lui-même, sans service tiers.',
     'appr_font_none' => 'Aucune police importée pour le moment',
     'appr_font_none_use' => 'Ne pas utiliser de police auto-hébergée',
+    'appr_font_bundled' => 'Police %s incluse ; aucune installation côté visiteur',
+    'appr_font_variable' => 'Police variable (un seul fichier pour toutes les graisses)',
     'appr_font_pick' => 'Choisissez un fichier de police',
     'appr_font_ext_only' => 'Seuls les formats woff2 / woff / ttf / otf sont pris en charge',
     'appr_font_not_font' => 'Le fichier importé n’est pas une police (vérification de l’en-tête échouée).',

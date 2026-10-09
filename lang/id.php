@@ -3232,6 +3232,8 @@ return [
     'appr_font_upload_tip' => 'Unggah berkas font merek (woff2 / woff / ttf / otf, maks. 5 MB). Dilayani dari situs Anda sendiri, tanpa pihak ketiga.',
     'appr_font_none' => 'Belum ada font yang diunggah',
     'appr_font_none_use' => 'Jangan gunakan font swahosting',
+    'appr_font_bundled' => 'Font %s sudah disertakan; pengunjung tidak perlu memasangnya',
+    'appr_font_variable' => 'Ini font variabel (satu file mencakup semua ketebalan)',
     'appr_font_pick' => 'Pilih berkas font',
     'appr_font_ext_only' => 'Hanya mendukung woff2 / woff / ttf / otf',
     'appr_font_not_font' => 'Itu bukan berkas font (pemeriksaan header gagal).',

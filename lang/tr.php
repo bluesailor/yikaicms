@@ -3232,6 +3232,8 @@ return [
     'appr_font_upload_tip' => 'Marka yazı tipi dosyası yükleyin (woff2 / woff / ttf / otf, en fazla 5 MB). Kendi sitenizden sunulur; üçüncü taraf kullanılmaz.',
     'appr_font_none' => 'Henüz yazı tipi yüklenmedi',
     'appr_font_none_use' => 'Kendi sunucunda barındırılan yazı tipi kullanma',
+    'appr_font_bundled' => '%s yazı tipi pakete dahil; ziyaretçilerin kurması gerekmez',
+    'appr_font_variable' => 'Bu değişken bir yazı tipi (tek dosya tüm kalınlıkları içerir)',
     'appr_font_pick' => 'Bir yazı tipi dosyası seçin',
     'appr_font_ext_only' => 'Yalnızca woff2 / woff / ttf / otf desteklenir',
     'appr_font_not_font' => 'Bu bir yazı tipi dosyası değil (dosya başlığı doğrulaması başarısız)',

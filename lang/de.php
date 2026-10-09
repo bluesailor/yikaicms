@@ -3232,6 +3232,8 @@ return [
     'appr_font_upload_tip' => 'Laden Sie eine Markenschriftart hoch (woff2 / woff / ttf / otf, höchstens 5 MB). Die Datei wird von Ihrer Website bereitgestellt, ohne Drittanbieter.',
     'appr_font_none' => 'Noch keine Schriftarten hochgeladen',
     'appr_font_none_use' => 'Keine selbst gehostete Schriftart verwenden',
+    'appr_font_bundled' => 'Mitgelieferte Schrift %s – Besucher müssen nichts installieren',
+    'appr_font_variable' => 'Variable Schrift (eine Datei für alle Stärken)',
     'appr_font_pick' => 'Bitte wählen Sie eine Schriftartdatei aus',
     'appr_font_ext_only' => 'Nur woff2 / woff / ttf / otf werden unterstützt',
     'appr_font_not_font' => 'Die hochgeladene Datei ist keine Schriftart (Dateikopfprüfung fehlgeschlagen).',

@@ -5,7 +5,8 @@
  * 铁律：**只用系统字体栈，绝不引任何字体 CDN**。
  *   - Google Fonts 在中国大陆不可用（fhzn 老站为此装了三个插件专治这个问题）；
  *   - 中日文 webfont 动辄几 MB，首屏代价远大于观感收益。
- * 需要品牌字体时用自托管 woff2（P1.5，另做），不在本表内。
+ * 例外只有随包内置字体（bundledFonts()，自托管 woff2、按文字分片）：栈里出现其族名时
+ * 才输出 @font-face，不选不加载。站长自己的品牌字体走上传（uploadedFonts()）。
  *
  * 每组给 body 与 heading 两个栈：正文求易读、标题可略有性格。
  * fallback 链一律以通用族（sans-serif / serif）收尾，任何系统都不至于无字可用。
@@ -53,7 +54,8 @@ function fontPresets(): array
             'grotesk' => [
                 'label'   => __('font_preset_en_grotesk'),
                 'body'    => 'Inter,"Helvetica Neue",Helvetica,Arial,"Liberation Sans",sans-serif,' . $emoji,
-                'heading' => '"Inter Tight",Inter,"Helvetica Neue",Helvetica,Arial,sans-serif',
+                // Inter 随包内置（bundledFonts），标题靠 opsz 轴自动收紧，不再需要 Inter Tight
+                'heading' => 'Inter,"Helvetica Neue",Helvetica,Arial,sans-serif',
             ],
             'serif' => [
                 'label'   => __('font_preset_en_serif'),
@@ -185,13 +187,129 @@ function fontFaceFormat(string $file): string
 }
 
 /**
+ * 随包内置字体登记表（唯一登记处）。键是 CSS 族名：预设或自定义栈里出现该族名，
+ * renderFontStyles() 才输出它的 @font-face 与首片 preload；不选不加载。
+ *
+ * 文件由 tools/fonts/build-bundled-fonts.py 从上游可变字体按 unicode-range 分片生成，
+ * 分片范围必须与该脚本一致——单测逐条比对 assets/fonts/<dir>/manifest.json。
+ * 浏览器只下载页面实际用到的分片：英文页通常只取 latin 一片。
+ *
+ * @return array<string, array{dir:string, weight:string, preload:string, files:array<string, array{file:string, range:string}>}>
+ */
+function bundledFonts(): array
+{
+    return [
+        'Inter' => [
+            'dir'     => '/assets/fonts/inter',   // rsms/inter v4.1，OFL-1.1（同目录 OFL.txt）
+            'weight'  => '100 900',
+            'preload' => 'latin',
+            'files'   => [
+                'latin'      => ['file' => 'inter-latin.woff2', 'range' => 'U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD'],
+                'latin-ext'  => ['file' => 'inter-latin-ext.woff2', 'range' => 'U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF'],
+                'cyrillic'   => ['file' => 'inter-cyrillic.woff2', 'range' => 'U+0301,U+0400-052F,U+1C80-1C8A,U+20B4,U+2116,U+2DE0-2DFF,U+A640-A69F,U+FE2E-FE2F'],
+                'greek'      => ['file' => 'inter-greek.woff2', 'range' => 'U+0370-0377,U+037A-037F,U+0384-038A,U+038C,U+038E-03A1,U+03A3-03FF'],
+                'vietnamese' => ['file' => 'inter-vietnamese.woff2', 'range' => 'U+0102-0103,U+0110-0111,U+0128-0129,U+0168-0169,U+01A0-01A1,U+01AF-01B0,U+0300-0301,U+0303-0304,U+0308-0309,U+0323,U+0329,U+1EA0-1EF9,U+20AB'],
+            ],
+        ],
+    ];
+}
+
+/**
+ * 字体栈里引用到的内置字体族名（按登记表原样大小写返回，去重）。
+ *
+ * @return list<string>
+ */
+function bundledFontsInStacks(string ...$stacks): array
+{
+    $known = [];
+    foreach (array_keys(bundledFonts()) as $family) {
+        $known[strtolower($family)] = $family;
+    }
+    $found = [];
+    foreach ($stacks as $stack) {
+        foreach (explode(',', $stack) as $name) {
+            $key = strtolower(trim($name, " \t\"'"));
+            if (isset($known[$key])) {
+                $found[$known[$key]] = true;
+            }
+        }
+    }
+    return array_keys($found);
+}
+
+/** 站内静态资源在 <style> 里的地址：出口改写只处理 HTML 属性，style 内容要在生成处补子目录前缀。 */
+function fontAssetUrl(string $path): string
+{
+    $versioned = function_exists('assetVer') ? assetVer($path) : $path;
+    return class_exists('BasePath') ? BasePath::url($versioned) : $versioned;
+}
+
+/**
+ * 内置字体的分片 @font-face。后台外观页的预设预览也用它，所见即所得。
+ *
+ * @param list<string> $families 登记表里的族名
+ */
+function bundledFontFaceCss(array $families): string
+{
+    $registry = bundledFonts();
+    $css = '';
+    foreach ($families as $family) {
+        if (!isset($registry[$family])) {
+            continue;
+        }
+        $font = $registry[$family];
+        foreach ($font['files'] as $item) {
+            $path = $font['dir'] . '/' . $item['file'];
+            if (!is_file(ROOT_PATH . $path)) {
+                continue;
+            }
+            $css .= '@font-face{font-family:"' . $family . '";'
+                . 'src:url("' . fontAssetUrl($path) . '") format("woff2");'
+                . 'font-weight:' . $font['weight'] . ';font-style:normal;font-display:swap;'
+                . 'unicode-range:' . $item['range'] . '}';
+        }
+    }
+    return $css;
+}
+
+/**
+ * 内置字体首片的 preload（每族一条，通常是 latin）。
+ *
+ * @param list<string> $families
+ */
+function bundledFontPreloads(array $families): string
+{
+    $registry = bundledFonts();
+    $out = '';
+    foreach ($families as $family) {
+        $font = $registry[$family] ?? null;
+        $item = $font['files'][$font['preload'] ?? ''] ?? null;
+        if ($font === null || $item === null) {
+            continue;
+        }
+        $path = $font['dir'] . '/' . $item['file'];
+        if (!is_file(ROOT_PATH . $path)) {
+            continue;
+        }
+        // 属性里的根相对地址由出口改写补子目录前缀，这里不能再补，否则会叠两次
+        $href = function_exists('assetVer') ? assetVer($path) : $path;
+        $out .= '<link rel="preload" href="' . htmlspecialchars($href, ENT_QUOTES) . '" as="font" type="font/woff2" crossorigin>' . "\n";
+    }
+    return $out;
+}
+
+/**
  * 前台 head 里的字体 CSS。未配置任何字体时返回 ''——
  * **调用方据此不输出 style 块，未启用的站点前台输出逐字节不变（对拍底线）。**
  */
 function renderFontStyles(): string
 {
     $f = siteFontStacks();
-    $faces = '';
+
+    // 内置字体：只为栈里真正引用到的族输出分片 @font-face（opsz 轴由浏览器默认的 font-optical-sizing:auto 驱动）
+    $bundled = bundledFontsInStacks($f['body'], $f['heading']);
+    $faces = bundledFontFaceCss($bundled);
+    $preload = bundledFontPreloads($bundled);
 
     // 自托管字体：被选中的那个才输出 @font-face，避免把整个字体目录都预加载
     $selfHosted = trim((string) configRawLang('font_self_hosted', ''));
@@ -200,9 +318,11 @@ function renderFontStyles(): string
         $path = ROOT_PATH . '/uploads/fonts/' . $file;
         if (is_file($path)) {
             $family = 'YKCustomFont';
-            $faces = '@font-face{font-family:"' . $family . '";'
-                . 'src:url("/uploads/fonts/' . rawurlencode($file) . '") format("' . fontFaceFormat($file) . '");'
-                . 'font-display:swap;font-weight:normal;font-style:normal}';
+            // 可变字体要声明字重范围，否则粗体只能靠浏览器合成
+            $weight = (string) configRawLang('font_self_hosted_variable', '') === '1' ? '100 900' : 'normal';
+            $faces .= '@font-face{font-family:"' . $family . '";'
+                . 'src:url("' . fontAssetUrl('/uploads/fonts/' . rawurlencode($file)) . '") format("' . fontFaceFormat($file) . '");'
+                . 'font-display:swap;font-weight:' . $weight . ';font-style:normal}';
             // 自托管字体排在栈首，后面仍接原有栈作兜底（字体没加载出来也不至于无字可用）
             $fallback = $f['body'] !== '' ? $f['body'] : 'system-ui,-apple-system,"Segoe UI",Roboto,sans-serif';
             $f['body'] = '"' . $family . '",' . $fallback;
@@ -232,5 +352,5 @@ function renderFontStyles(): string
         $css .= 'html{font-size:' . $f['base_size'] . '}';
     }
 
-    return '<style id="yk-fonts">' . $css . '</style>' . "\n";
+    return $preload . '<style id="yk-fonts">' . $css . '</style>' . "\n";
 }

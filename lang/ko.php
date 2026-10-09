@@ -3232,6 +3232,8 @@ return [
     'appr_font_upload_tip' => '브랜드 글꼴 파일(woff2 / woff / ttf / otf, 최대 5MB)을 업로드합니다. 자체 사이트에서 제공하며 제3자를 거치지 않습니다.',
     'appr_font_none' => '아직 업로드된 글꼴이 없습니다',
     'appr_font_none_use' => '자체 호스팅 글꼴 사용 안 함',
+    'appr_font_bundled' => '%s 글꼴 기본 포함(방문자 설치 불필요)',
+    'appr_font_variable' => '가변 글꼴입니다(파일 하나로 모든 굵기 지원)',
     'appr_font_pick' => '글꼴 파일을 선택하세요',
     'appr_font_ext_only' => 'woff2 / woff / ttf / otf만 지원',
     'appr_font_not_font' => '업로드한 파일은 글꼴 파일이 아닙니다(헤더 검증 실패)',
