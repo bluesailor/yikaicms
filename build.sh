@@ -340,6 +340,24 @@ while IFS= read -r item; do
     [ -n "$item" ] && EXCLUDES+=("$item")
 done < <(php "bin/blox-assets.php" list pro)
 
+# 界面语言包：安装包只带 zh-CN / en / ja（includes/i18n/LanguagePacks.php），其余语言另出
+# releases/lang/<版本>/ 下的语言包（此处未签名，发版时跑 tools/sign-lang-packs.php）。
+# 进 EXCLUDES 同时让 path_never_shipped 生效：增量包不会删掉存量站上已装的 lang/<code>.php。
+LANG_PACK_DIR="$RELEASE_DIR/lang/$VERSION"
+rm -rf "$LANG_PACK_DIR"
+mkdir -p "$LANG_PACK_DIR"
+LANG_PACK_SRC="$PKG_DIR"
+LANG_PACK_OUT="$LANG_PACK_DIR"
+if [ "$(php -r 'echo DIRECTORY_SEPARATOR;')" = '\' ] && command -v wslpath >/dev/null 2>&1; then
+    LANG_PACK_SRC="$(wslpath -w "$PKG_DIR")"
+    LANG_PACK_OUT="$(wslpath -w "$LANG_PACK_DIR")"
+fi
+php tools/build-lang-packs.php build "$LANG_PACK_SRC" "$VERSION" "$LANG_PACK_OUT"
+while IFS= read -r item; do
+    item="${item%$'\r'}"
+    [ -n "$item" ] && EXCLUDES+=("$item")
+done < <(php tools/build-lang-packs.php list)
+
 for item in "${EXCLUDES[@]}"; do
     rm -rf "$PKG_DIR/$item"
 done
@@ -534,6 +552,25 @@ rm -f "$ZIP_FILE"
 
 # ZIP 条目顺序是分批升级协议的一部分：依赖必须先于调用者，升级入口和版本号最后切换。
 create_upgrade_zip "$PKG_DIR" "$ZIP_FILE" "$PACKAGE_NAME/"
+
+# ---- 体积上限 ----
+# 所有者规定（2026-10-09）：完整安装包不超过 10 MiB。超了先停下分析原因、经确认后
+# 才能用 YK_ALLOW_OVERSIZE="<确认人与原因>" 放行，放行理由会写进构建输出供发版证据留存。
+PACKAGE_SIZE_LIMIT=10485760
+ZIP_BYTES=$(stat -c%s "$ZIP_FILE" 2>/dev/null || wc -c < "$ZIP_FILE")
+if [ "$ZIP_BYTES" -gt "$PACKAGE_SIZE_LIMIT" ]; then
+    if [ -z "${YK_ALLOW_OVERSIZE:-}" ]; then
+        echo "Error: 安装包 ${ZIP_BYTES} 字节，超过 10 MiB 上限（${PACKAGE_SIZE_LIMIT}）。"
+        echo "       先分析体积增长来源并经确认；确认后用 YK_ALLOW_OVERSIZE=\"确认人与原因\" 重跑。"
+        rm -f "$ZIP_FILE"
+        exit 1
+    fi
+    echo "  ⚠ 安装包 ${ZIP_BYTES} 字节超过 10 MiB 上限，已按确认放行：${YK_ALLOW_OVERSIZE}"
+elif [ "$ZIP_BYTES" -gt $((PACKAGE_SIZE_LIMIT * 95 / 100)) ]; then
+    echo "  ⚠ 安装包 ${ZIP_BYTES} 字节，已用 10 MiB 上限的 $((ZIP_BYTES * 100 / PACKAGE_SIZE_LIMIT))%"
+else
+    echo "  ✓ 安装包 ${ZIP_BYTES} 字节（上限 10 MiB 的 $((ZIP_BYTES * 100 / PACKAGE_SIZE_LIMIT))%）"
+fi
 
 # ---- 生成校验和 ----
 echo "[5/5] 生成 SHA256 校验和..."

@@ -82,6 +82,9 @@ final class TextElement extends AbstractElement
         $style = $color !== null ? ' style="color:' . htmlspecialchars($color, ENT_QUOTES) . ';"' : '';
         $role = ($data['typography_role'] ?? 'body') === 'caption' ? 'caption' : 'body';
         $themeClass = class_exists(BloxDesignTheme::class) && BloxDesignTheme::hasTypography($role) ? ' yk-type-' . $role : '';
+        if (function_exists('codeBlockSeen')) {
+            codeBlockSeen($html);   // 页尾代码复制脚本只在出过代码块的页面输出
+        }
         return '<div class="prose prose-lg max-w-none' . $radius . $themeClass . '"' . $style . $this->animationAttrs($data) . '>' . $html . '</div>';
     }
 

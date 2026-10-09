@@ -125,6 +125,8 @@ return [
     'error_admin_create' => 'Gagal mencipta pentadbir: ',
     'error_config_write' => 'Gagal menulis fail konfigurasi',
     'error_root_not_writable' => 'Direktori akar laman tidak boleh ditulis, jadi kunci pemasangan (installed.lock) tidak dapat dicipta. Jadikan direktori laman dimiliki oleh pengguna yang menjalankan PHP (biasanya www pada aaPanel), atau tetapkan kepada 755, kemudian cuba lagi. Pangkalan data belum diubah.',
+    'lang_download_suffix' => ' (dimuat turun semasa pemasangan)',
+    'error_lang_pack_failed' => 'Pek bahasa :lang tidak dapat dimuat turun: pelayan tidak dapat menyambung ke alamat muat turun rasmi Yikai. Pilih English untuk menyelesaikan pemasangan, kemudian muat naik pek di Pentadbir → Tetapan bahasa → Bahasa lain. Pangkalan data belum diubah.',
     'db_exposed_warn' => '⚠ Amaran keselamatan: fail pangkalan data /storage/database.sqlite kini boleh dimuat turun oleh sesiapa sahaja, termasuk akaun pentadbir dan semua data laman. Betulkan sekarang — Nginx / aaPanel: letakkan include /www/wwwroot/direktori-laman-anda/deploy/nginx-baota.conf; dalam kotak penulisan semula URL (jangan gunakan praset "wordpress" sahaja); Apache: pastikan AllowOverride All didayakan. Selepas itu alamat itu mesti memulangkan 403 atau 404.',
     'error_lock_write' => 'Gagal menulis kunci pemasangan (installed.lock). Pastikan direktori akar laman boleh ditulis, kemudian jalankan pemasang sekali lagi.',
     'url_auto_notice' => 'Pemasangan menyemak penghalaan pelayan secara automatik. URL cantik digunakan apabila disokong; jika tidak, URL pertanyaan berfungsi tanpa peraturan penulisan semula URL. Semak dan tukar kemudian di bawah URL & pautan dalam panel pentadbir. Tiada pemasangan semula diperlukan.',

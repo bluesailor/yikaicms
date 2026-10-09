@@ -105,6 +105,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save'
     }
     settingModel()->set('font_base_size' . $_sfx, $size, 'appearance');
     settingModel()->set('font_self_hosted' . $_sfx, basename((string) post('font_self_hosted')), 'appearance');
+    settingModel()->set('font_self_hosted_variable' . $_sfx, post('font_self_hosted_variable') === '1' ? '1' : '', 'appearance');
 
     adminLog('setting', 'appearance', '更新外观设置（字体）');
     do_action('data_changed');   // 清前台 HTML 缓存，否则改完看不到
@@ -116,8 +117,11 @@ $curBody     = (string) config('font_body_custom' . $_sfx, '');
 $curHeading  = (string) config('font_heading_custom' . $_sfx, '');
 $curSize     = (string) config('font_base_size' . $_sfx, '');
 $curSelf     = (string) config('font_self_hosted' . $_sfx, '');
+$curSelfVar  = (string) config('font_self_hosted_variable' . $_sfx, '') === '1';
 $presets     = fontPresetsFor($_viewLang);
 $fonts       = uploadedFonts();
+// 预设预览卡片要显示真正的内置字体，而不是访客机上的回退字体
+$previewFaces = bundledFontFaceCss(bundledFontsInStacks(...array_column($presets, 'body')));
 
 $pageTitle   = __('appr_title');
 $currentMenu = 'appearance';
@@ -131,6 +135,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 
 <?php echo renderAdminLangSwitcher($_viewLang, __('appr_lang_hint')); ?>
 
+<?php if ($previewFaces !== ''): ?><style><?php echo $previewFaces; ?></style><?php endif; ?>
 <form id="apprForm" class="bg-white rounded-lg shadow p-6 space-y-6">
     <?php echo adminLangField(); ?>
     <input type="hidden" name="action" value="save">
@@ -151,6 +156,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <input type="radio" name="font_preset" value="<?php echo e($key); ?>" class="mr-2" <?php echo $curPreset === $key ? 'checked' : ''; ?>>
                 <span class="font-medium text-sm"><?php echo e($p['label']); ?></span>
                 <p class="mt-2 text-base text-gray-700" style="font-family:<?php echo e($p['body']); ?>">Aa 字体 あア</p>
+                <?php foreach (bundledFontsInStacks($p['body']) as $bundledFamily): ?>
+                <p class="text-xs text-gray-400 mt-1"><?php echo e(sprintf(__('appr_font_bundled'), $bundledFamily)); ?></p>
+                <?php endforeach; ?>
             </label>
             <?php endforeach; ?>
             <label class="border rounded-lg p-3 cursor-pointer hover:border-primary <?php echo $curPreset === 'custom' ? 'border-primary bg-blue-50' : ''; ?>">
@@ -219,6 +227,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </button>
             </div>
             <?php endforeach; ?>
+            <label class="flex items-center gap-2 text-sm pt-1">
+                <input type="checkbox" name="font_self_hosted_variable" value="1" <?php echo $curSelfVar ? 'checked' : ''; ?>>
+                <span class="text-gray-600"><?php echo e(__('appr_font_variable')); ?></span>
+            </label>
         </div>
         <?php endif; ?>
     </div>

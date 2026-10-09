@@ -140,6 +140,8 @@ return [
     'error_admin_create' => '创建管理员失败：',
     'error_config_write' => '写入配置文件失败',
     'error_root_not_writable' => '网站根目录不可写，无法创建安装锁 installed.lock。请在主机面板把网站目录的所有者设为运行 PHP 的用户（宝塔一般是 www），或把权限设为 755 后重试。数据库尚未改动。',
+    'lang_download_suffix' => '（安装时下载）',
+    'error_lang_pack_failed' => '无法下载 :lang 语言包：服务器连不上易开官方下载地址。可先选「English」完成安装，装好后在后台「语言设置 → 更多语言」上传语言包。数据库尚未改动。',
     'db_exposed_warn' => '⚠ 安全警告：数据库文件 /storage/database.sqlite 现在可以被任何人直接下载，里面有管理员账号等全部数据。请立即处理——Nginx / 宝塔：伪静态框写 include /www/wwwroot/你的站点目录/deploy/nginx-baota.conf;（不要只选 wordpress 预设）；Apache：确认已开启 AllowOverride All。处理后再打开该地址，应返回 403 或 404。',
     'error_lock_write' => '写入安装锁 installed.lock 失败。请确认网站根目录可写，然后重新安装。',
     'url_auto_notice' => '安装时会自动检查服务器：支持伪静态时使用漂亮 URL，否则使用无需配置的动态 URL。安装后可在后台「URL 与链接」重新检测并切换，无需重新安装。',

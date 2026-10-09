@@ -205,25 +205,33 @@ final class ReleaseChannelAuditTest extends TestCase
     {
         $this->workspace = $this->buildFixture();
 
-        // 演示站没升级：前台资源查询串仍报上一版。这是「发布记为完成、演示站还没动」
-        // 的唯一可公开观测信号。
+        // 演示站没升级：下发的静态文件仍是上一版安装包里的那份。
         $report = $this->audit(ReleaseChannelAudit::MODE_POST_RELEASE, $this->okFetcher('9.9.8'));
         self::assertFalse($report['ok']);
         self::assertSame(ReleaseChannelAudit::FAILED, $report['channels']['demo']['status']);
         self::assertStringContainsString('演示站尚未升级', $this->detailOf($report['channels']['demo'], '线上版本'));
     }
 
-    public function testDemoVersionProbeGoingBlindIsAFailureNotAPass(): void
+    public function testDemoProbeAssetMissingIsAFailureNotAPass(): void
     {
         $this->workspace = $this->buildFixture();
 
-        // 页面拿得到，但里面没有资源版本查询串——探针失效。这种情况必须报出来，
-        // 否则「读不到版本」会被当成「版本没问题」。
+        // 探针文件拿不到（路径改了、站点挂了）必须报出来，不能当成「版本没问题」。
         $report = $this->audit(ReleaseChannelAudit::MODE_POST_RELEASE, static fn (string $url, bool $wantBody = false): array
-            => ['status' => 200, 'type' => 'text/html', 'bytes' => 512, 'error' => '',
-                'body' => $wantBody ? '<html><body>no assets here</body></html>' : '']);
+            => ['status' => 404, 'type' => 'text/html', 'bytes' => 0, 'error' => '', 'body' => '']);
         self::assertSame(ReleaseChannelAudit::FAILED, $report['channels']['demo']['status']);
-        self::assertStringContainsString('探针可能已失效', $this->detailOf($report['channels']['demo'], '线上版本'));
+        self::assertStringContainsString('HTTP 404', $this->detailOf($report['channels']['demo'], '线上版本'));
+    }
+
+    public function testDemoProbeThatCannotTellVersionsApartIsNotAPass(): void
+    {
+        $this->workspace = $this->buildFixture();
+        // 本版探针文件与上一版一模一样：「一致」证明不了已升级，只能如实报无法区分。
+        $this->writePackageZip($this->workspace . '/yikaicms.yikai/releases/yikaicms-v9.9.8.zip', '9.9.8', self::VERSION);
+
+        $report = $this->audit(ReleaseChannelAudit::MODE_POST_RELEASE, $this->okFetcher());
+        self::assertNotSame(ReleaseChannelAudit::VERIFIED, $report['channels']['demo']['status']);
+        self::assertStringContainsString('无法区分', $this->detailOf($report['channels']['demo'], '线上版本'));
     }
 
     public function testDemoLocalCopyIsContextNotAGate(): void
@@ -410,13 +418,66 @@ final class ReleaseChannelAuditTest extends TestCase
         }
     }
 
+    // ── 语言包：本地必须已签名，线上逐个回读一致 ────────────────────────
+
+    public function testLanguagePacksVerifiedWhenSignedAndPublished(): void
+    {
+        $this->workspace = $this->buildFixture();
+        $this->writeLangPacks(signed: true);
+        $report = ReleaseChannelAudit::run($this->config() + ['lang_packs' => ['since' => '9.9.9']], self::VERSION, ReleaseChannelAudit::MODE_POST_RELEASE, $this->workspace, $this->okFetcher());
+        self::assertSame(ReleaseChannelAudit::VERIFIED, $report['channels']['lang_packs']['status']);
+    }
+
+    public function testUnsignedLanguagePacksFail(): void
+    {
+        $this->workspace = $this->buildFixture();
+        $this->writeLangPacks(signed: false);
+        $report = ReleaseChannelAudit::run($this->config() + ['lang_packs' => ['since' => '9.9.9']], self::VERSION, ReleaseChannelAudit::MODE_POST_RELEASE, $this->workspace, $this->okFetcher());
+        self::assertSame(ReleaseChannelAudit::FAILED, $report['channels']['lang_packs']['status']);
+        self::assertStringContainsString('sign-lang-packs', $this->detailOf($report['channels']['lang_packs'], '语言包 ru'));
+    }
+
+    public function testLanguagePackDifferentOnlineFails(): void
+    {
+        $this->workspace = $this->buildFixture();
+        $this->writeLangPacks(signed: true);
+        $ok = $this->okFetcher();
+        $fetch = static fn (string $url, bool $wantBody = false): array => str_contains($url, '/lang/9.9.9/yikaicms-lang-de-')
+            ? ['status' => 200, 'type' => 'application/zip', 'bytes' => 3, 'error' => '', 'body' => 'old', 'sha256' => hash('sha256', 'old')]
+            : $ok($url, $wantBody);
+        $report = ReleaseChannelAudit::run($this->config() + ['lang_packs' => ['since' => '9.9.9']], self::VERSION, ReleaseChannelAudit::MODE_POST_RELEASE, $this->workspace, $fetch);
+        self::assertSame(ReleaseChannelAudit::FAILED, $report['channels']['lang_packs']['status']);
+        self::assertStringContainsString('线上与本地已签名包不一致', $this->detailOf($report['channels']['lang_packs'], '语言包 de'));
+    }
+
+    public function testLanguagePackChannelOnlyAppliesFromItsFirstVersion(): void
+    {
+        $this->workspace = $this->buildFixture();
+        $report = ReleaseChannelAudit::run($this->config() + ['lang_packs' => ['since' => '10.0.0']], self::VERSION, ReleaseChannelAudit::MODE_POST_RELEASE, $this->workspace, $this->okFetcher());
+        self::assertArrayNotHasKey('lang_packs', $report['channels']);
+    }
+
+    private function writeLangPacks(bool $signed): void
+    {
+        require_once ROOT_PATH . '/includes/i18n/LanguagePacks.php';
+        $dir = $this->workspace . '/yikaicms.yikai/releases/lang/' . self::VERSION;
+        mkdir($dir, 0777, true);
+        $packs = [];
+        foreach (\LanguagePacks::downloadable() as $code) {
+            $file = \LanguagePacks::packageName($code, self::VERSION);
+            file_put_contents($dir . '/' . $file, 'pack ' . $code);
+            $packs[$code] = ['file' => $file, 'zip_sha256' => hash_file('sha256', $dir . '/' . $file), 'signed' => $signed];
+        }
+        file_put_contents($dir . '/lang-packs-v' . self::VERSION . '.json', json_encode(['schema' => 1, 'cms_version' => self::VERSION, 'packs' => $packs]));
+    }
+
     /** @return array<string,mixed> */
     private function audit(string $mode, ?callable $fetcher = null): array
     {
         return ReleaseChannelAudit::run($this->config(), self::VERSION, $mode, $this->workspace, $fetcher);
     }
 
-    /** @param string $demoAssetVersion 演示站前台资源查询串报出的版本 */
+    /** @param string $demoAssetVersion 演示站下发的静态文件属于哪一版 */
     private function okFetcher(string $demoAssetVersion = self::VERSION): callable
     {
         return function (string $url, bool $wantBody = false) use ($demoAssetVersion): array {
@@ -428,8 +489,11 @@ final class ReleaseChannelAuditTest extends TestCase
                     return ['status' => 404, 'type' => 'text/html', 'bytes' => 0, 'error' => ''];
                 }
                 $body = (string) file_get_contents($path);
+            } elseif (str_starts_with($url, 'https://down.yikai.cn/soft/yikaicms/lang/')) {
+                $rel = substr($url, strlen('https://down.yikai.cn/soft/yikaicms/lang/'));
+                $body = (string) @file_get_contents($root . '/yikaicms.yikai/releases/lang/' . $rel);
             } elseif (str_contains($url, 'demo.yikaicms.com')) {
-                $body = '<script src="/assets/js/code-copy.js?v=' . $demoAssetVersion . '"></script>';
+                $body = self::probeAsset(substr($url, strlen('https://demo.yikaicms.com/')), $demoAssetVersion);
             } elseif (str_ends_with($url, '/catalog.json')) {
                 $body = (string) file_get_contents($root . '/update.yikaicms/data/releases.json');
             } elseif (str_contains($url, '/api/themes/list.php')) {
@@ -499,7 +563,7 @@ final class ReleaseChannelAuditTest extends TestCase
                 'dir_env' => 'YK_TEST_DEMO_DIR',
                 'dir_default' => 'demo.yikaicms.yikai',
                 'url' => 'https://demo.yikaicms.com/',
-                'asset_version_pattern' => '/\/assets\/[^"\'>\s]+\?v=(\d+\.\d+\.\d+(?:\.\d+)?)/',
+                'probe_assets' => self::PROBE_ASSETS,
             ],
             'github' => [
                 'repo' => 'bluesailor/yikaicms',
@@ -507,6 +571,25 @@ final class ReleaseChannelAuditTest extends TestCase
             ],
             'candidate_optional' => ['website', 'update_server', 'market', 'github', 'demo'],
         ];
+    }
+
+    private const PROBE_ASSETS = ['assets/css/tailwind.css', 'assets/js/code-copy.js'];
+
+    /** 探针文件内容：tailwind 每版不同，code-copy 各版相同（模拟「有的文件本版没变」）。 */
+    private static function probeAsset(string $path, string $version): string
+    {
+        return $path === 'assets/css/tailwind.css' ? "/* tailwind {$version} */" : "/* {$path} */";
+    }
+
+    /** 真实 zip：条目带「yikaicms-v<包版本>/」前缀，探针文件内容取 $assetVersion 那一版。 */
+    private function writePackageZip(string $path, string $packageVersion, string $assetVersion): void
+    {
+        $zip = new \ZipArchive();
+        self::assertTrue($zip->open($path, \ZipArchive::CREATE | \ZipArchive::OVERWRITE));
+        foreach (self::PROBE_ASSETS as $asset) {
+            $zip->addFromString("yikaicms-v{$packageVersion}/{$asset}", self::probeAsset($asset, $assetVersion));
+        }
+        $zip->close();
     }
 
     private function buildFixture(): string
@@ -534,7 +617,9 @@ final class ReleaseChannelAuditTest extends TestCase
         // 归档：完整包 + 校验 + 证据 + 一个 delta
         $releases = $root . '/yikaicms.yikai/releases';
         $fullName = "yikaicms-v{$version}.zip";
-        file_put_contents($releases . '/' . $fullName, 'full package payload');
+        $this->writePackageZip($releases . '/' . $fullName, $version, $version);
+        // 上一版安装包：演示站探针据此判断本版哪些文件确有变化
+        $this->writePackageZip($releases . '/yikaicms-v9.9.8.zip', '9.9.8', '9.9.8');
         $fullHash = hash_file('sha256', $releases . '/' . $fullName);
         file_put_contents($releases . "/yikaicms-v{$version}.sha256", "{$fullHash} *{$fullName}\n");
         $commit = str_repeat('a', 40);

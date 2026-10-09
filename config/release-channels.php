@@ -77,17 +77,23 @@ return [
     // 演示站 demo.yikaicms.com。
     //
     // 本地副本自 2026-07-30 起不再是部署源（线上走在线更新），所以**本地目录只作为
-    // 上下文记录，不作为判据**；真正的判据是线上站点自己报出来的版本。
+    // 上下文记录，不作为判据**；真正的判据是线上站点实际下发的文件。
     //
-    // 版本探针：前台资源查询串就是 CMS_VERSION（includes/functions.php:2878
-    // 的 code-copy.js?v=<CMS_VERSION>）。它是公开可读且直连版本号的信号，
-    // 比翻页面文案可靠——演示内容里本来就有一堆无关数字。
+    // 版本探针：前台自 2026-10-09 起不再公开版本号，改为比对公开静态文件与本版安装包里
+    // 同名文件的 SHA256（ReleaseChannelAudit::demo）。选「几乎每版都会变」的文件：
+    // tailwind.css 随模板 class 变，图标 CSS 随图标集变；都没变的版本会如实报「无法区分」。
     'demo' => [
         'dir_env' => 'YK_DEMO_DIR',
         'dir_default' => 'demo.yikaicms.yikai',
         // 根目录现在是模板总览页（不是 CMS 站），探针打一个子站；各子站同批升级。
         'url' => 'https://demo.yikaicms.com/yikai-business/',
-        'asset_version_pattern' => '/\/assets\/[^"\'>\s]+\?v=(\d+\.\d+\.\d+(?:\.\d+)?)/',
+        'probe_assets' => ['assets/css/tailwind.css', 'assets/icons/site-icons.min.css', 'assets/js/code-copy.js'],
+    ],
+
+    // 界面语言包（2.1 起 15 种不随安装包，见 includes/i18n/LanguagePacks.php）。
+    // 本地 releases/lang/<版本>/ 必须全部已签名，线上 down.yikai.cn/soft/yikaicms/lang/<版本>/ 逐个回读一致。
+    'lang_packs' => [
+        'since' => '2.1.0',
     ],
 
     // GitHub Release。发布后核对用。
@@ -97,5 +103,5 @@ return [
     ],
 
     // 候选阶段允许尚未同步的渠道。post-release 阶段这些一律必须「已验证」。
-    'candidate_optional' => ['website', 'update_server', 'market', 'github', 'demo'],
+    'candidate_optional' => ['website', 'update_server', 'market', 'github', 'demo', 'lang_packs'],
 ];

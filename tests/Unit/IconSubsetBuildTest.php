@@ -54,7 +54,11 @@ final class IconSubsetBuildTest extends TestCase
             array_keys($audit['outputs'])
         );
         self::assertMatchesRegularExpression('/^[a-f0-9]{64}$/D', $audit['sources']['tabler']['font_sha256']);
-        self::assertStringContainsString('?v=' . CMS_VERSION, (string) file_get_contents(ROOT_PATH . '/assets/icons/site-icons.min.css'));
+        // 缓存参数是图标集指纹，公开 CSS 里不能出现 CMS 版本号（防按版本批量指纹）
+        require_once ROOT_PATH . '/config/version.php';
+        $iconCss = (string) file_get_contents(ROOT_PATH . '/assets/icons/site-icons.min.css');
+        self::assertMatchesRegularExpression('/tabler-icons-site\.woff2\?v=[a-f0-9]{12}"/', $iconCss);
+        self::assertStringNotContainsString('?v=' . CMS_VERSION, $iconCss);
         self::assertLessThan(
             (int) $audit['sources']['tabler']['css_bytes'] + (int) $audit['sources']['bootstrap']['css_bytes'],
             (int) $audit['outputs']['assets/icons/site-icons.min.css']['bytes']
