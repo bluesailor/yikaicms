@@ -8557,6 +8557,7 @@ return [
     'sc_clear' => 'No se han encontrado esos problemas dentro del alcance de esta comprobación. Revise también las páginas reales, las imágenes externas, los textos fijados en los archivos del tema y el envío de formularios.',
     'sc_missing' => 'Falta un archivo local o su ruta no es válida. Sustituya el archivo o corrija la referencia.',
     'sc_empty' => 'La sección no tiene texto propio ni contenido publicado directamente asociado. Compruebe si el contenido procede de subpáginas, del tema o del editor.',
+    'sc_lang_untranslated' => 'Este idioma está activado pero aún no tiene canales: el sitio muestra un menú vacío, mientras el selector de idioma y hreflang lo presentan como versión propia, y los buscadores lo tratan como contenido duplicado. Traduzca los canales o desactive el idioma en la configuración de idiomas por ahora.',
     'sc_demo' => 'Se ha detectado un posible texto de ejemplo. Compruebe que se haya sustituido por la información real de este sitio.',
     'sc_failed' => 'La comprobación no ha terminado. Confirme que se haya completado la Actualización de la base de datos y revise el registro de errores antes de volver a intentarlo.',
     'sc_links' => 'Enlaces rotos y entorno de ejecución',

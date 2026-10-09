@@ -8557,6 +8557,7 @@ return [
     'sc_clear' => 'Aucun problème de ce type n’a été détecté dans le périmètre de cette vérification. Vérifiez tout de même manuellement les pages affichées, les images externes, les textes intégrés en dur dans le thème et les envois de formulaires.',
     'sc_missing' => 'Une ressource locale est manquante ou son chemin est invalide. Remplacez-la ou corrigez sa référence.',
     'sc_empty' => 'Cette rubrique n’a pas de corps renseigné directement et ne contient aucune entrée publiée en propre. Vérifiez si son contenu provient de sous-pages, du thème ou du constructeur.',
+    'sc_lang_untranslated' => 'Cette langue est activée mais n\'a encore aucune rubrique : le site affiche un menu vide, alors que le sélecteur de langue et hreflang la présentent comme une version à part entière, ce que les moteurs de recherche considèrent comme du contenu dupliqué. Traduisez les rubriques ou désactivez la langue dans les paramètres de langue pour l\'instant.',
     'sc_demo' => 'Un texte d’exemple potentiel a été détecté. Vérifiez qu’il a été remplacé par les informations réelles du site.',
     'sc_failed' => 'La vérification n’a pas abouti. Terminez la mise à niveau de la base de données et consultez le journal des erreurs avant de réessayer.',
     'sc_links' => 'Liens brisés et état du site',
