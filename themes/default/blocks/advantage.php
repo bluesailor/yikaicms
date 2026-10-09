@@ -35,7 +35,7 @@ $_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
                     <?php if ($iconData['library'] === 'bootstrap'): ?>
                     <i class="<?php echo e(BloxIcon::classes($iconData['value'])); ?> text-3xl text-white"></i>
                     <?php else: ?>
-                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20"><?php echo $iconSvg; ?></svg>
+                    <svg class="w-8 h-8" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true" focusable="false"><?php echo $iconSvg; ?></svg>
                     <?php endif; ?>
                 </div>
                 <h3<?php echo $_homeFieldAttr('advantage_items.' . $i . '.title'); ?> class="text-xl font-bold mb-2"><?php echo e(configLang("home_adv_{$n}_title", $advLangKeys[$i]['title'])); ?></h3>

@@ -315,6 +315,16 @@
             }
         };
         if (options.effect === 'fade') options.fadeEffect = { crossFade: true };
+        // 读屏文字随页面语言（bannerRuntimeAttributes 输出）；缺省时沿用 Swiper 自带英文
+        var labelPrev = slider.getAttribute('data-blox-label-prev');
+        var labelNext = slider.getAttribute('data-blox-label-next');
+        var labelDot = slider.getAttribute('data-blox-label-dot');
+        if (labelPrev || labelNext || labelDot) {
+            options.a11y = {};
+            if (labelPrev) options.a11y.prevSlideMessage = labelPrev;
+            if (labelNext) options.a11y.nextSlideMessage = labelNext;
+            if (labelDot) options.a11y.paginationBulletMessage = labelDot.replace('%d', '{{index}}');
+        }
 
         slider.bloxBanner = new window.Swiper(slider, options);
         states.set(slider, {

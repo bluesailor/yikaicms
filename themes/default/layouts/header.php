@@ -48,7 +48,7 @@ $canonicalUrl = $canonicalUrl ?? ($siteUrl . ($__ykCanonicalPath !== ''
     ? $__ykCanonicalPath
     : ($_SERVER['REQUEST_URI'] ?? '/')));
 $ogType = $ogType ?? 'website';
-$ogImage = $ogImage ?? config('seo_og_image', '') ?: $siteLogo;
+$ogImage = $ogImage ?? config('seo_og_image', '') ?: (($ykHomeShareImage ?? '') ?: $siteLogo);   // 首页没设分享图时用第一张横幅（index.php）
 if ($ogImage && !str_starts_with($ogImage, 'http')) {
     $ogImage = $siteUrl . $ogImage;
 }
@@ -139,7 +139,8 @@ function getChannelUrl(array $channel): string {
         '@type' => 'Organization',
         'name' => $siteName,
         'url' => $siteUrl,
-        'logo' => $ogImage ?: null,
+        // logo 只用站点 Logo：分享图可能是横幅照片
+        'logo' => $siteLogo ? (str_starts_with($siteLogo, 'http') ? $siteLogo : $siteUrl . $siteLogo) : null,
     ]), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG); ?>
     </script>
     <?php if (!empty($jsonLd)): ?>

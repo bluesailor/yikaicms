@@ -97,6 +97,12 @@ trait HomeBloxRuntimeTrait
             'data-blox-content-motion' => (string) $config['banner_content_motion'],
             'data-blox-background-motion' => (string) $config['banner_background_motion'],
         ];
+        // 读屏文字：Swiper 无障碍模块默认是英文「Previous slide」，按页面语言给出（yikay-banner.js 读取）
+        if (function_exists('__')) {
+            $attributes['data-blox-label-prev'] = __('detail_prev_photo');
+            $attributes['data-blox-label-next'] = __('detail_next_photo');
+            $attributes['data-blox-label-dot'] = __('blox_carousel_dot_label');
+        }
         $html = '';
         foreach ($attributes as $name => $value) {
             $html .= ' ' . $name;
