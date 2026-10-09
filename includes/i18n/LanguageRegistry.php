@@ -96,6 +96,16 @@ final class LanguageRegistry
         return (string) ($table[$uiLang][$code] ?? $table['en'][$code] ?? self::englishName($code));
     }
 
+    /**
+     * 后台列表里的语言标题：界面语言名 · 本族语名（「马来语 · Bahasa Melayu」），只认本族语名的人也能对上。
+     * 两者相同或互相包含时只显示本族语名（中文界面的「中文」、英文界面的「English」）。
+     */
+    public static function title(string $code, string $native, string $uiLang): string
+    {
+        $local = self::localName($code, $uiLang);
+        return $local === '' || mb_stripos($local, $native) !== false || mb_stripos($native, $local) !== false ? $native : $local . ' · ' . $native;
+    }
+
     public static function englishName(string $code): string
     {
         return self::LANGUAGES[$code]['english'] ?? $code;
