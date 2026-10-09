@@ -21,7 +21,7 @@ class HomeCtaDoubleBackgroundMigrationTest extends TestCase
         return [
             'CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, "group" TEXT DEFAULT \'basic\', '
             . '"key" TEXT, value TEXT, type TEXT DEFAULT \'text\', name TEXT DEFAULT \'\', tip TEXT DEFAULT \'\', '
-            . 'options TEXT, sort_order INTEGER DEFAULT 0)',
+            . 'options TEXT, sort_order INTEGER DEFAULT 0, UNIQUE("key"))',   // 与线上表一致：迁移后清缓存会 upsert 设置
         ];
     }
 
