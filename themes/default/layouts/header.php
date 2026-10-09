@@ -192,6 +192,7 @@ function getChannelUrl(array $channel): string {
 
     <?php /* Top navigation */ ?>
     <?php $ykBloxHeader = function_exists('bloxAreaHtml') ? bloxAreaHtml('header') : ''; ?>
+    <?php $GLOBALS['ykBloxHeaderActive'] = $ykBloxHeader !== ''; // 页脚据此不再输出旧头部的移动菜单脚本 ?>
     <?php if ($ykBloxHeader !== ''): ?>
     <?php echo $ykBloxHeader; // Blox 头模板接管；区域壳自身携带实际模板编辑地址 ?>
     <?php else: ?>

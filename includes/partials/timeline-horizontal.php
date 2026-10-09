@@ -23,7 +23,7 @@ if (($timelineSort ?? 'desc') === 'asc') {
     usort($ordered, fn($a, $b) => [$b['year'], $b['month'], $b['day']] <=> [$a['year'], $a['month'], $a['day']]);
 }
 ?>
-<link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">
+<link rel="stylesheet" href="<?php echo e(assetVer('/assets/swiper/swiper-bundle.min.css')); ?>">
 
 <div class="timeline-horizontal max-w-7xl mx-auto px-4">
     <div class="relative">
@@ -94,7 +94,7 @@ if (($timelineSort ?? 'desc') === 'asc') {
     </div>
 </div>
 
-<script src="/assets/swiper/swiper-bundle.min.js"></script>
+<script src="<?php echo e(assetVer('/assets/swiper/swiper-bundle.min.js')); ?>"></script>
 <script>
 (function () {
     if (typeof Swiper === 'undefined') return;
