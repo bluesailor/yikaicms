@@ -16,10 +16,7 @@ requirePermission('*');
 // 扫描所有语言包
 $allLangs = availableLanguages();
 // 语言名按后台当前界面语言给出（「Bahasa Melayu」→「马来语 · Bahasa Melayu」），只认本族语名的人也能对上
-$langTitle = static function (string $code, string $native): string {
-    $local = LanguageRegistry::localName($code, getLang());
-    return $local === '' || mb_stripos($local, $native) !== false || mb_stripos($native, $local) !== false ? $native : $local . ' · ' . $native;
-};
+$langTitle = static fn(string $code, string $native): string => LanguageRegistry::title($code, $native, getLang());
 $enabledLangsJson = config('enabled_languages', '');
 $enabledLangs = $enabledLangsJson ? json_decode($enabledLangsJson, true) : array_keys($allLangs);
 $defaultLang = config('site_lang', 'zh-CN');

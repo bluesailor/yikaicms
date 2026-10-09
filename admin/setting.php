@@ -405,8 +405,11 @@ if (!is_array($siteEnabled) || $siteEnabled === []) {
 }
 $showSwitcher = config('show_lang_switcher', '0');
 
-// 所有 lang/*.php 实际存在的语言（code => label）
-$_allLangsForUI = availableLanguages();
+// 所有 lang/*.php 实际存在的语言（code => label）；标题带界面语言名（「德语 · Deutsch」）
+$_allLangsForUI = [];
+foreach (availableLanguages() as $_lc => $_native) {
+    $_allLangsForUI[$_lc] = LanguageRegistry::title($_lc, $_native, getLang());
+}
 
 // per-lang "首页" 菜单显示开关：默认语言用 nav_home_show，其他语言用 nav_home_show_{lang}
 // 只为已启用的语言计算 — 未启用的语言不在前台渲染，自然不需要 per-lang 开关。
