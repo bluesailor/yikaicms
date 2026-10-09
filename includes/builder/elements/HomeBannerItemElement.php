@@ -205,7 +205,10 @@ final class HomeBannerItemElement extends AbstractElement
     }
 
     /** @param array<string, mixed> $data */
-    public static function responsiveImageHtml(array $data, string $class = 'w-full h-full object-cover'): string
+    /**
+     * @param string $loading '' = 不写（默认）；'priority' = 首屏首张（fetchpriority=high，是 LCP 候选）；'lazy' = 后续轮播图
+     */
+    public static function responsiveImageHtml(array $data, string $class = 'w-full h-full object-cover', string $loading = ''): string
     {
         $item = self::normalize($data);
         if ($item['image'] === '') {
@@ -236,7 +239,9 @@ final class HomeBannerItemElement extends AbstractElement
                 . '" sizes="100vw">';
         }
         $html .= '<img ' . responsiveImageAttributes($item['image'], 'medium', '100vw')
-            . ' alt="' . $alt . '" decoding="async" class="' . $class . '"></picture>';
+            . ' alt="' . $alt . '"'
+            . ($loading === 'priority' ? ' fetchpriority="high"' : ($loading === 'lazy' ? ' loading="lazy"' : ''))
+            . ' decoding="async" class="' . $class . '"></picture>';
 
         return $html;
     }
@@ -248,9 +253,12 @@ final class HomeBannerItemElement extends AbstractElement
     public static function responsiveMediaHtml(array $data): string
     {
         $item = self::normalize($data);
+        // 一个请求里第一张轮播背景图通常就是首屏最大元素（LCP）：提高优先级；之后的轮播图延迟加载
+        static $served = 0;
         $poster = self::responsiveImageHtml(
             $item,
-            'absolute inset-0 w-full h-full object-cover'
+            'absolute inset-0 w-full h-full object-cover',
+            $served++ === 0 ? 'priority' : 'lazy'
         );
         if ($poster === '') {
             $poster = '<div class="absolute inset-0 bg-gradient-to-r from-gray-800 via-gray-700 to-gray-900" data-blox-banner-poster></div>';

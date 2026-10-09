@@ -243,18 +243,13 @@ $ykHomeHeaderOverlayMobile = $ykHomeHeaderOverlay
         || HomeBloxRenderer::startsWithMobileVisibleBanner($homeBloxDocument['sections']));
 
 // Swiper轮播图资源
-// banner 高度：全屏模式用 100svh-头部(JS 量)，否则用配置的像素高度
-$bannerHeightCss = $bannerFullscreen
-    ? '.banner-swiper { height: ' . $bannerHeightMobile . 'px; }
-@media (min-width: 768px) { .banner-swiper { height: calc(100vh - var(--hg-banner-offset, 70px)); height: calc(100svh - var(--hg-banner-offset, 70px)); } }'
-    : '.banner-swiper { height: ' . $bannerHeightMobile . 'px; }
-@media (min-width: 768px) { .banner-swiper { height: ' . $bannerHeightPC . 'px; } }';
+// banner 高度由 yikay-banner.css 按 data-blox-height-mode 与 --blox-banner-height-* 决定（各主题 banner 模板都输出
+// bannerRuntimeAttributes）；这里不再重复写一份 .banner-swiper 高度——属性选择器优先级更高，重复的那份从不生效。
 BloxAssetCollector::addStyle('/assets/css/yikay-banner.css');
 $extraCss = '
-<link rel="stylesheet" href="/assets/swiper/swiper-bundle.min.css">
+<link rel="stylesheet" href="' . assetVer('/assets/swiper/swiper-bundle.min.css') . '">
 ' . BloxAssetCollector::renderStyles() . '
 <style>
-' . $bannerHeightCss . '
 .banner-swiper .swiper-pagination-bullet-active { opacity: 1; background: ' . $primaryColor . '; width: 24px; border-radius: 6px; }
 /* fade 效果下所有 slide 叠放：非激活 slide 的按钮(.pointer-events-auto)会盖在上面截获点击 → 强制只让激活 slide 可点 */
 .banner-swiper .swiper-slide:not(.swiper-slide-active),
@@ -278,7 +273,7 @@ BloxAssetCollector::addScript('/assets/js/yikay-video-policy.js');
 BloxAssetCollector::addScript('/assets/js/yikay-banner.js');
 
 $extraJs = '
-<script src="/assets/swiper/swiper-bundle.min.js"></script>
+<script src="' . assetVer('/assets/swiper/swiper-bundle.min.js') . '"></script>
 <script>
 // 首页产品分类筛选
 (function() {

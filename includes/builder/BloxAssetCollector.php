@@ -14,6 +14,8 @@ final class BloxAssetCollector
     /** @var array<string,bool> 作者自定义 CSS（已净化）=> 是否已输出 */
     private static array $inlineCss = [];
     private static bool $booted = false;
+    /** 前台 <head> 末尾开的缓冲所在层级；0 = 没开（见 openHeadBuffer） */
+    private static int $headBufferLevel = 0;
 
     /** @psalm-suppress PossiblyUnusedMethod 测试专用（单测进程共享请求级收集状态时复位） */
     public static function resetForTests(): void
@@ -32,6 +34,7 @@ final class BloxAssetCollector
         self::$booted = true;
         if (function_exists('add_action')) {
             add_action('ik_footer_scripts', [self::class, 'renderFooterAssets'], 5);
+            add_action('ik_head', [self::class, 'openHeadBuffer'], 1000);
         }
     }
 
@@ -111,9 +114,51 @@ final class BloxAssetCollector
         return $html;
     }
 
+    /**
+     * 前台页面在 <head> 最后开一个输出缓冲。
+     *
+     * 元素用到的样式要渲染正文时才知道，那时 <head> 早已输出；原来这些样式只能放在页尾，
+     * 轮播、遮罩等先按无样式画一遍再跳变（布局偏移）。页脚收齐后把缓冲取出、先写样式再写正文，
+     * 样式就正好落在 </head> 前。不用占位符改写：整页缓存（HtmlCache）拿到的已经是排好的成品。
+     * 后台（含 Blox 画布预览，它自己分段捕获页头页脚）与命令行（无 REQUEST_URI）不开。
+     */
+    public static function openHeadBuffer(): void
+    {
+        // 只对网页请求：命令行脚本没有 REQUEST_URI
+        $uri = $_SERVER['REQUEST_URI'] ?? null;
+        if (!is_string($uri) || self::$headBufferLevel > 0 || str_contains($uri, '/admin/')) {
+            return;
+        }
+        ob_start();
+        self::$headBufferLevel = ob_get_level();
+    }
+
+    /**
+     * 把 <head> 缓冲原样交还（不重排）。HtmlCache::end() 在取整页之前调用：页面没走到页脚时，
+     * 缓存不能只拿到半截。层级更深的缓冲到这时都已无人收尾，一并按顺序交出去。
+     */
+    public static function closeHeadBuffer(): void
+    {
+        if (self::$headBufferLevel === 0) {
+            return;
+        }
+        while (ob_get_level() >= self::$headBufferLevel) {
+            ob_end_flush();
+        }
+        self::$headBufferLevel = 0;
+    }
+
     public static function renderFooterAssets(): void
     {
-        echo self::renderStyles();
+        if (self::$headBufferLevel > 0 && ob_get_level() === self::$headBufferLevel) {
+            $body = (string) ob_get_clean();
+            self::$headBufferLevel = 0;
+            echo self::renderStyles();   // 落在 <head> 末尾
+            echo $body;
+        } else {
+            // 中间有人没关缓冲：不动它，样式照旧放页尾（缓冲在 HtmlCache::end 或脚本结束时交还）
+            echo self::renderStyles();
+        }
         echo self::renderScripts();
     }
 
