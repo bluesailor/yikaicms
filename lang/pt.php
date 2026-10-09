@@ -3232,6 +3232,8 @@ return [
     'appr_font_upload_tip' => 'Envie um arquivo de fonte da marca (woff2 / woff / ttf / otf, até 5MB). A fonte será fornecida pelo próprio site, sem serviços de terceiros.',
     'appr_font_none' => 'Nenhuma fonte enviada ainda',
     'appr_font_none_use' => 'Não usar fonte hospedada no próprio site',
+    'appr_font_bundled' => 'Fonte %s incluída; os visitantes não precisam instalá-la',
+    'appr_font_variable' => 'É uma fonte variável (um arquivo cobre todos os pesos)',
     'appr_font_pick' => 'Selecione um arquivo de fonte',
     'appr_font_ext_only' => 'Apenas woff2 / woff / ttf / otf são aceitos',
     'appr_font_not_font' => 'O arquivo enviado não é uma fonte (a verificação do cabeçalho falhou)',

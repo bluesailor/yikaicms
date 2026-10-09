@@ -2515,7 +2515,9 @@ function renderContent(?string $html): string
     if (class_exists('TagEngine')) {
         $sanitized = TagEngine::render($sanitized);
     }
-    return (string) apply_filters('content_render', $sanitized);
+    $html = (string) apply_filters('content_render', $sanitized);
+    codeBlockSeen($html);
+    return $html;
 }
 
 // sanitizeHtml() 已移至 includes/security.php（顶部 require），签名与行为约定不变。
@@ -3287,20 +3289,37 @@ function safeUrl(string $url): string
 }
 
 /**
+ * 本次请求是否渲染过代码块（<pre>）。正文的几个出口（renderContent、parseShortcodes、
+ * Blox 文本/产品字段元素）把产出喂进来；renderCodeCopy() 据此决定是否输出脚本。
+ * 不传参只读不记。
+ */
+function codeBlockSeen(?string $html = null): bool
+{
+    static $seen = false;
+    if (!$seen && $html !== null && stripos($html, '<pre') !== false) {
+        $seen = true;
+    }
+    return $seen;
+}
+
+/**
  * 代码块「复制」按钮 + 语言标签（前台 footer 输出，各主题通用）。
  *
- * 脚本自行扫描 .prose pre > code，存量文章无需改动即可生效；
- * 页面没有代码块时脚本自身立即返回，开销可忽略。多语言文案随页面语言注入。
+ * 只在本页正文真的出了代码块时输出（codeBlockSeen），日料培训这类站点页尾不再挂无关脚本；
+ * 存量文章无需改动即可生效。版本参数用文件修改时间（assetVer），不向外暴露 CMS 版本号。
  */
 function renderCodeCopy(): void
 {
+    if (!codeBlockSeen()) {
+        return;
+    }
     $i18n = json_encode([
         'copy'   => __('code_copy'),
         'copied' => __('code_copied'),
     ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
 
     echo '<script>window.__ykCodeCopyI18n=' . $i18n . ';</script>';
-    echo '<script src="/assets/js/code-copy.js?v=' . e((string) (defined('CMS_VERSION') ? CMS_VERSION : '1')) . '" defer></script>';
+    echo '<script src="' . e(assetVer('/assets/js/code-copy.js')) . '" defer></script>';
 }
 
 function renderHeaderScrollFade(): void
@@ -3376,6 +3395,7 @@ function parseShortcodes(string $content): string
         return renderAlbumShortcode((int)$matches[1]);
     }, $content);
 
+    codeBlockSeen($content);
     return $content;
 }
 

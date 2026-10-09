@@ -3327,6 +3327,8 @@ return [
     'appr_font_upload_tip' => '上传品牌字体文件（woff2 / woff / ttf / otf，最大 5MB），由本站自行提供，不经第三方',
     'appr_font_none' => '还没有上传字体',
     'appr_font_none_use' => '不使用自托管字体',
+    'appr_font_bundled' => '随包内置 %s 字体，访客无需安装',
+    'appr_font_variable' => '这是可变字体（一个文件含全部粗细）',
     'appr_font_pick' => '请选择字体文件',
     'appr_font_ext_only' => '仅支持 woff2 / woff / ttf / otf',
     'appr_font_not_font' => '上传的不是字体文件（文件头校验未通过）',

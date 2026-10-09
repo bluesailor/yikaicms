@@ -3232,6 +3232,8 @@ return [
     'appr_font_upload_tip' => 'Muat naik fail fon jenama (woff2 / woff / ttf / otf, sehingga 5MB). Dihoskan daripada laman anda sendiri - tiada pihak ketiga.',
     'appr_font_none' => 'Belum ada fon dimuat naik',
     'appr_font_none_use' => 'Jangan guna fon hos sendiri',
+    'appr_font_bundled' => 'Fon %s disertakan; pelawat tidak perlu memasangnya',
+    'appr_font_variable' => 'Ini fon boleh ubah (satu fail merangkumi semua ketebalan)',
     'appr_font_pick' => 'Sila pilih fail fon',
     'appr_font_ext_only' => 'Hanya woff2 / woff / ttf / otf disokong',
     'appr_font_not_font' => 'Itu bukan fail fon (semakan pengepala gagal).',

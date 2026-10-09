@@ -3232,6 +3232,8 @@ return [
     'appr_font_upload_tip' => 'Tải lên tệp phông chữ thương hiệu (woff2 / woff / ttf / otf, tối đa 5MB), do trang web của bạn tự cung cấp, không qua bên thứ ba',
     'appr_font_none' => 'Chưa tải lên phông chữ nào',
     'appr_font_none_use' => 'Không dùng phông chữ tự lưu trữ',
+    'appr_font_bundled' => 'Phông %s có sẵn trong gói, khách truy cập không cần cài',
+    'appr_font_variable' => 'Đây là phông biến thiên (một tệp gồm mọi độ đậm)',
     'appr_font_pick' => 'Vui lòng chọn tệp phông chữ',
     'appr_font_ext_only' => 'Chỉ hỗ trợ woff2 / woff / ttf / otf',
     'appr_font_not_font' => 'Tệp tải lên không phải tệp phông chữ (kiểm tra phần đầu tệp không đạt)',

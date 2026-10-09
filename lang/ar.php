@@ -3232,6 +3232,8 @@ return [
     'appr_font_upload_tip' => 'ارفع ملف خط العلامة التجارية (woff2 / woff / ttf / otf، حتى 5MB). يُقدَّم من موقعك مباشرة دون أي طرف ثالث.',
     'appr_font_none' => 'لم تُرفع أي خطوط بعد',
     'appr_font_none_use' => 'عدم استخدام خط مستضاف ذاتيًا',
+    'appr_font_bundled' => 'خط %s مضمَّن، لا يحتاج الزوار إلى تثبيته',
+    'appr_font_variable' => 'هذا خط متغيّر (ملف واحد يغطي جميع الأوزان)',
     'appr_font_pick' => 'يرجى اختيار ملف خط',
     'appr_font_ext_only' => 'يدعم فقط woff2 / woff / ttf / otf',
     'appr_font_not_font' => 'هذا ليس ملف خط (فشل التحقق من ترويسة الملف).',

@@ -3233,6 +3233,8 @@ return [
     'appr_font_upload_tip' => '上傳品牌字型檔案（woff2 / woff / ttf / otf，最大 5MB），由本站自行提供，不經第三方',
     'appr_font_none' => '還沒有上傳字型',
     'appr_font_none_use' => '不使用自託管字型',
+    'appr_font_bundled' => '隨包內建 %s 字型，訪客無需安裝',
+    'appr_font_variable' => '這是可變字型（一個檔案含全部粗細）',
     'appr_font_pick' => '請選擇字型檔案',
     'appr_font_ext_only' => '僅支援 woff2 / woff / ttf / otf',
     'appr_font_not_font' => '上傳的不是字型檔案（檔案頭校驗未通過）',

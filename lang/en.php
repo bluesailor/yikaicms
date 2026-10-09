@@ -3258,6 +3258,8 @@ return [
     'appr_font_upload_tip' => 'Upload a brand font file (woff2 / woff / ttf / otf, up to 5 MB). Served from your own site - no third party involved.',
     'appr_font_none' => 'No fonts uploaded yet',
     'appr_font_none_use' => 'Do not use a self-hosted font',
+    'appr_font_bundled' => 'Bundled %s font; visitors need not install it',
+    'appr_font_variable' => 'This is a variable font (one file covers all weights)',
     'appr_font_pick' => 'Choose a font file',
     'appr_font_ext_only' => 'Only woff2 / woff / ttf / otf are supported',
     'appr_font_not_font' => 'That is not a font file (header check failed).',

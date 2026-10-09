@@ -3232,6 +3232,8 @@ return [
     'appr_font_upload_tip' => 'Carica un file di carattere del brand (woff2 / woff / ttf / otf, max 5MB); servito dal tuo sito, senza terze parti',
     'appr_font_none' => 'Nessun carattere ancora caricato',
     'appr_font_none_use' => 'Non usare un carattere self-hosted',
+    'appr_font_bundled' => 'Carattere %s incluso; i visitatori non devono installarlo',
+    'appr_font_variable' => 'È un carattere variabile (un file copre tutti i pesi)',
     'appr_font_pick' => 'Scegli un file di carattere',
     'appr_font_ext_only' => 'Sono supportati solo woff2 / woff / ttf / otf',
     'appr_font_not_font' => 'Non è un file di carattere (verifica dell\'intestazione non superata)',
