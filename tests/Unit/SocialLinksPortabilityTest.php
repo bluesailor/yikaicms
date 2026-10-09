@@ -55,20 +55,24 @@ final class SocialLinksPortabilityTest extends TestCase
         self::assertSame('untouched', SiteTemplateData::portableValue('site_name', 'untouched'), 'other settings pass through');
     }
 
-    public function testBrandIconsOutsideTheSubsetLoadTheFullIconFont(): void
+    public function testEverySupportedPlatformIconIsInTheSubset(): void
     {
-        $GLOBALS['_test_config']['social_links'] = json_encode([
-            ['platform' => 'facebook', 'url' => 'https://www.facebook.com/acme'],
-            ['platform' => 'pinterest', 'url' => 'https://www.pinterest.com/acme'],
-        ]);
+        // 2026-10-10 起社媒品牌图标都在站点子集里（config/icon-subset.php）：任何平台都不该再拉 462 KB 的完整字体。
+        // 以后加平台、图标不在子集里，这里会失败——先把图标补进 safelist。
+        $icons = (new ReflectionClassConstant(SocialLinksElement::class, 'ICONS'))->getValue();
+        $links = [];
+        foreach (array_keys($icons) as $platform) {
+            $links[] = ['platform' => $platform, 'url' => 'https://example.com/' . $platform];
+        }
+        $GLOBALS['_test_config']['social_links'] = json_encode($links);
         $element = new SocialLinksElement();
-        self::assertContains(BloxIcon::TABLER_STYLESHEET, $element->stylesFor([]), 'declared up front for head output');
+        self::assertNotContains(BloxIcon::TABLER_STYLESHEET, $element->stylesFor([]));
 
         BloxAssetCollector::resetForTests();
         $html = $element->render([]);
         self::assertStringContainsString('ti ti-brand-facebook', $html);
         self::assertStringContainsString('ti ti-brand-pinterest', $html);
-        self::assertContains(BloxIcon::TABLER_STYLESHEET, BloxAssetCollector::styles(), 'collected at render time too (footer areas render after head)');
+        self::assertNotContains(BloxIcon::TABLER_STYLESHEET, BloxAssetCollector::styles());
     }
 
     public function testIconsInsideTheSubsetDoNotPullTheFullFont(): void
