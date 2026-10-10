@@ -421,13 +421,13 @@ if (trim($productTemplateHtml) !== '') {
 <script src="/assets/js/product-gallery.js"></script>
 
 <script>
-// 产品图片数组
+<?php /* 产品图片数组 */ ?>
 var productImages = <?php echo json_encode(array_values($productImages), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 var productImageVariants = <?php echo json_encode($productImageVariants, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 var currentImageIdx = 0;
 
 function changeImage(idx) {
-    // 兼容旧签名（字符串 src）
+    <?php /* 兼容旧签名（字符串 src） */ ?>
     if (typeof idx === 'string') {
         idx = productImages.indexOf(idx);
         if (idx < 0) return;
@@ -448,15 +448,15 @@ function changeImage(idx) {
             btn.classList.add('border-gray-200');
         }
     });
-    // 同步主图右下角的"1 / N"
+    <?php /* 同步主图右下角的「1 / N」 */ ?>
     var counter = main && main.parentElement
         ? main.parentElement.querySelector('.absolute.bottom-3')
         : null;
     if (counter) counter.textContent = (idx + 1) + ' / ' + productImages.length;
 }
 
-// ============ PhotoSwipe 灯箱 ============
-var pswpDims = {};   // src -> {w,h}：提前探测真实尺寸，供 PhotoSwipe 正确缩放
+<?php /* ============ PhotoSwipe 灯箱 ============ pswpDims：src -> {w,h}，提前探测真实尺寸，供 PhotoSwipe 正确缩放 */ ?>
+var pswpDims = {};
 productImages.forEach(function (src) {
     var im = new Image();
     im.onload = function () { pswpDims[src] = { w: im.naturalWidth, h: im.naturalHeight }; };
@@ -476,7 +476,7 @@ function openLightbox(idx) {
     lb.loadAndOpen(idx || 0);
     lb.on('destroy', function () { lb = null; });
 }
-// Tab 切换
+<?php /* Tab 切换 */ ?>
 document.querySelectorAll('.product-tab').forEach(function(tab) {
     tab.addEventListener('click', function() {
         var target = this.dataset.tab;
@@ -493,7 +493,7 @@ document.querySelectorAll('.product-tab').forEach(function(tab) {
     });
 });
 
-// 产品询盘表单提交
+<?php /* 产品询盘表单提交 */ ?>
 var inquiryForm = document.getElementById('inquiryForm');
 if (inquiryForm) inquiryForm.addEventListener('submit', function(e) {
     e.preventDefault();

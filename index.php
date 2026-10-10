@@ -246,12 +246,12 @@ $ykHomeHeaderOverlayMobile = $ykHomeHeaderOverlay
 // banner 高度由 yikay-banner.css 按 data-blox-height-mode 与 --blox-banner-height-* 决定（各主题 banner 模板都输出
 // bannerRuntimeAttributes）；这里不再重复写一份 .banner-swiper 高度——属性选择器优先级更高，重复的那份从不生效。
 BloxAssetCollector::addStyle('/assets/css/yikay-banner.css');
+// 注释写在 PHP 里、不进页面：fade 效果下所有 slide 叠放，非激活 slide 的按钮(.pointer-events-auto)会盖在上面截获点击 → 强制只让激活 slide 可点
 $extraCss = '
 <link rel="stylesheet" href="' . assetVer('/assets/swiper/swiper-bundle.min.css') . '">
 ' . BloxAssetCollector::renderStyles() . '
 <style>
 .banner-swiper .swiper-pagination-bullet-active { opacity: 1; background: ' . $primaryColor . '; width: 24px; border-radius: 6px; }
-/* fade 效果下所有 slide 叠放：非激活 slide 的按钮(.pointer-events-auto)会盖在上面截获点击 → 强制只让激活 slide 可点 */
 .banner-swiper .swiper-slide:not(.swiper-slide-active),
 .banner-swiper .swiper-slide:not(.swiper-slide-active) * { pointer-events: none !important; }
 .banner-swiper .swiper-slide-active .pointer-events-auto { pointer-events: auto !important; }
@@ -272,10 +272,11 @@ if ($bannerFullscreen) {
 BloxAssetCollector::addScript('/assets/js/yikay-video-policy.js');
 BloxAssetCollector::addScript('/assets/js/yikay-banner.js');
 
+// 首页产品分类筛选（注释写在 PHP 里、不进页面）：父分类按钮带上自己与全部子分类 ID（data-category-ids），
+// 子分类的产品在父分类下也显示；没有该属性的主题退回只比本分类。点击时同步按钮样式与 aria-pressed。
 $extraJs = '
 <script src="' . assetVer('/assets/swiper/swiper-bundle.min.js') . '"></script>
 <script>
-// 首页产品分类筛选
 (function() {
     const nav = document.getElementById("productCategoryNav");
     const grid = document.getElementById("productGrid");
@@ -288,10 +289,8 @@ $extraJs = '
         btn.addEventListener("click", function() {
             const cat = this.dataset.category;
 
-            // 父分类包含子分类的产品：按钮带上自己与全部子分类 ID（data-category-ids），没有时退回只比本分类
             const ids = (this.dataset.categoryIds || cat).split(" ");
 
-            // 更新按钮状态
             buttons.forEach(b => {
                 b.classList.remove("bg-primary", "text-white");
                 b.classList.add("bg-gray-100", "text-gray-600");
@@ -301,7 +300,6 @@ $extraJs = '
             this.classList.add("bg-primary", "text-white");
             this.setAttribute("aria-pressed", "true");
 
-            // 筛选产品
             items.forEach(item => {
                 const itemCat = item.dataset.category;
                 if (cat === "all" || ids.includes(itemCat)) {

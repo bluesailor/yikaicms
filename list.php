@@ -735,7 +735,7 @@ $horizRootChannel = $channel;
 
 <?php if ($showSidebar && !$isProductType): ?>
 <script>
-// 分类菜单展开/收起
+<?php /* 分类菜单展开/收起 */ ?>
 document.querySelectorAll('.category-toggle').forEach(function(btn) {
     btn.addEventListener('click', function(e) {
         e.preventDefault();

@@ -315,13 +315,40 @@ function _localImageDimensions(string $url): array
 
     $dimensions = @getimagesize($path);
     if ($dimensions === false) {
-        return $memo[$url] = [0, 0];
+        return $memo[$url] = strtolower((string) pathinfo($path, PATHINFO_EXTENSION)) === 'svg'
+            ? _svgDimensions($path)
+            : [0, 0];
     }
 
     return $memo[$url] = [
         max(0, (int) ($dimensions[0] ?? 0)),
         max(0, (int) ($dimensions[1] ?? 0)),
     ];
+}
+
+/**
+ * SVG 的固有尺寸（getimagesize 读不了 SVG）：取 <svg> 标签上的 width/height（无单位或 px），
+ * 没有就用 viewBox 的宽高。只读文件头 4 KB、只看开标签，不解析 XML。用于输出 width/height、避免布局跳动。
+ *
+ * @return array{0:int,1:int}
+ */
+function _svgDimensions(string $path): array
+{
+    $head = @file_get_contents($path, false, null, 0, 4096);
+    if (!is_string($head) || preg_match('/<svg\b[^>]*>/i', $head, $tag) !== 1) {
+        return [0, 0];
+    }
+    $attr = static function (string $name) use ($tag): float {
+        return preg_match('/\s' . $name . '\s*=\s*["\']\s*([0-9.]+)\s*(?:px)?\s*["\']/i', $tag[0], $m) === 1 ? (float) $m[1] : 0.0;
+    };
+    $width = $attr('width');
+    $height = $attr('height');
+    if (($width <= 0 || $height <= 0)
+        && preg_match('/\sviewBox\s*=\s*["\']\s*[-0-9.]+[\s,]+[-0-9.]+[\s,]+([0-9.]+)[\s,]+([0-9.]+)\s*["\']/i', $tag[0], $box) === 1) {
+        $width = (float) $box[1];
+        $height = (float) $box[2];
+    }
+    return $width > 0 && $height > 0 ? [(int) round($width), (int) round($height)] : [0, 0];
 }
 
 /**
