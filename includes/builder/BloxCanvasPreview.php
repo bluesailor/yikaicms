@@ -52,6 +52,7 @@ function renderBloxCanvasThemeArea(
     $currentChannelId = $channelId;
     $currentSlug = $slug;
     $isHomePage = $scriptName === '/index.php' && $channelId === 0 && $pageId === 0;
+    BloxAssetCollector::disableHeadBuffer();   // 页头里的 ik_head 不能在这段捕获里再开缓冲
     ob_start();
     try {
         require $layout;
@@ -239,6 +240,7 @@ function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = 
     $homeHeaderOverlayMobile = false;
     // 编辑器预览/画布里隐藏的区块照常显示（灰显标注），否则一隐藏就从画布消失、没法再点回来
     require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+    BloxAssetCollector::disableHeadBuffer();   // 下面分段捕获主题页头页脚
     $previewJson = (string) ($_POST['blocks_data'] ?? '[]');
     // 与保存同一套作者能力检查（含全局样式）：旧高级配置按服务端同文档基线保留，新增或改动仍被拒绝。
     BloxDocumentPipeline::assertAuthoringAllowed(
