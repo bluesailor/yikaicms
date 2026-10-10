@@ -202,13 +202,37 @@ final class LocalizedUrl
         if ($path !== '/' && preg_match('#\.html$|/[^./]*$#D', $path) !== 1) return $url;
         $suffix = substr($url, strlen($path));
         if (preg_match('#^/([A-Za-z0-9_-]+)\.html$#D', $path, $m) === 1) {
-            $channel = db()->fetchOne('SELECT * FROM ' . channelModel()->tableName() . ' WHERE slug = ? AND status = 1 ORDER BY id LIMIT 1', [$m[1]]);
-            if (is_array($channel)) {
-                $target = self::alternates('channel', $channel)[$lang] ?? '';
-                if ($target !== '') return $target . $suffix;
-            }
+            $target = self::channelLinkFor($m[1], $lang);
+            if ($target !== '') return $target . $suffix;
         }
         return langUrl($url, $lang);
+    }
+
+    /** 别名为 $slug 的栏目在 $lang 的译本地址；一页里多个按钮共用一次栏目查询（首页查询预算）。 */
+    private static function channelLinkFor(string $slug, string $lang): string
+    {
+        static $channels = null;
+        if ($channels === null) {
+            $channels = channelModel()->query('SELECT * FROM ' . channelModel()->tableName() . ' WHERE status = 1 ORDER BY id');
+        }
+        $source = null;
+        foreach ($channels as $row) {
+            if (($row['slug'] ?? '') === $slug) {
+                $source = $row;
+                break;
+            }
+        }
+        if ($source === null) return '';
+        $group = (int) (($source['translation_group_id'] ?? 0) ?: ($source['id'] ?? 0));
+        // 繁体是简体数据的视图：找简体那一行，按繁体出地址
+        $rowLang = $lang === 'zh-TW' && (string) config('site_lang', 'zh-CN') !== 'zh-TW' ? 'zh-CN' : $lang;
+        foreach ($channels as $row) {
+            $rowGroup = (int) (($row['translation_group_id'] ?? 0) ?: ($row['id'] ?? 0));
+            if ($rowGroup === $group && ($row['lang'] ?? '') === $rowLang) {
+                return self::urlFor('channel', $row, $lang);
+            }
+        }
+        return '';
     }
 
     // ── 内部 ───────────────────────────────────────────────────────────────
