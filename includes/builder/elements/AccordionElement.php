@@ -113,7 +113,7 @@ final class AccordionElement extends AbstractElement
             $summaryClass .= ' [&::-webkit-details-marker]:hidden focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary motion-reduce:transition-none';
         }
         $icon = $style === 'default'
-            ? '<i class="ti ti-chevron-down text-gray-400 flex-shrink-0 transition-transform duration-200 group-open:rotate-180"></i>'
+            ? '<i aria-hidden="true" class="ti ti-chevron-down text-gray-400 flex-shrink-0 transition-transform duration-200 group-open:rotate-180"></i>'
             : '<i aria-hidden="true" class="ti ti-plus shrink-0 text-gray-500 group-open:hidden"></i>'
                 . '<i aria-hidden="true" class="ti ti-minus hidden shrink-0 text-gray-500 group-open:block"></i>';
         $html = '<div class="' . $wrapperClass . '"' . ($style !== 'default' ? ' data-blox-faq-style="' . $style . '"' : '') . '>';

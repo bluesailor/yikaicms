@@ -167,7 +167,7 @@ if ($footerBgLiteral !== '') {
     </footer>
 
     <script>
-        // 移动端菜单切换
+        <?php /* 移动端菜单切换 */ ?>
         const mobileMenuButton = document.getElementById('mobileMenuBtn');
         const mobileMenu = document.getElementById('mobileMenu');
         const mobileMenuIcon = document.getElementById('hamburgerIcon');
@@ -224,7 +224,7 @@ if ($footerBgLiteral !== '') {
                     entry.target.classList.add('animated');
                     observer.unobserve(entry.target);
 
-                    // 数字滚动动画
+                    <?php /* 数字滚动动画 */ ?>
                     entry.target.querySelectorAll('.stat-number[data-count]').forEach(function(el) {
                         animateNumber(el);
                     });
