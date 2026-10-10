@@ -11,7 +11,7 @@ $bg = getBlockBg($block ?? [], 'bg-primary text-white');
         <?php echo homeTitleDeco(true); ?>
         <p class="text-xl mb-8 mt-4"><?php echo e(configLang('home_cta_desc', 'home_cta_desc')); ?></p>
         <div class="flex flex-wrap justify-center gap-4">
-            <a href="/contact.html" class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-full font-bold transition">
+            <a href="<?php echo e(LocalizedUrl::siteLink('/contact.html')); ?>" class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-full font-bold transition">
                 <?php echo __('detail_consult'); ?>
             </a>
             <?php if ($phone = configRawLang('contact_phone')): ?>

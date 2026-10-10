@@ -186,6 +186,31 @@ final class LocalizedUrl
         return self::absolute($url !== '' ? $url : $prettyPath);
     }
 
+    /**
+     * 编辑填写的站内链接按当前语言输出（2026-10-10：日语首页的 Banner / CTA 按钮指向中文页 /about.html）。
+     * 根相对、未带语言前缀的页面地址才处理：/{栏目别名}.html 换成该栏目在当前语言的译本地址，
+     * 其余页面地址补当前语言前缀；默认语言、外链、锚点、已带前缀的地址和静态文件原样返回。
+     * 数据里存不带前缀的地址，默认语言换成日语的站点也照样对。
+     */
+    public static function siteLink(string $url): string
+    {
+        if ($url === '' || $url[0] !== '/' || str_starts_with($url, '//')) return $url;
+        $lang = displayLang();
+        if ($lang === (string) config('site_lang', 'zh-CN')) return $url;
+        $path = (string) (parse_url($url, PHP_URL_PATH) ?? '/');
+        if (self::stripPrefix($path) !== $path) return $url;
+        if ($path !== '/' && preg_match('#\.html$|/[^./]*$#D', $path) !== 1) return $url;
+        $suffix = substr($url, strlen($path));
+        if (preg_match('#^/([A-Za-z0-9_-]+)\.html$#D', $path, $m) === 1) {
+            $channel = db()->fetchOne('SELECT * FROM ' . channelModel()->tableName() . ' WHERE slug = ? AND status = 1 ORDER BY id LIMIT 1', [$m[1]]);
+            if (is_array($channel)) {
+                $target = self::alternates('channel', $channel)[$lang] ?? '';
+                if ($target !== '') return $target . $suffix;
+            }
+        }
+        return langUrl($url, $lang);
+    }
+
     // ── 内部 ───────────────────────────────────────────────────────────────
 
     /** @param array<string,mixed> $row @return list<array<string,mixed>> 同一翻译组里已发布的行（含自己） */
