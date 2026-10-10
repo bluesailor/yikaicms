@@ -14,7 +14,7 @@ $_homeFieldAttr = isset($ykHomeFieldAttr) && is_callable($ykHomeFieldAttr)
         <?php echo homeTitleDeco(true); ?>
         <p<?php echo $_homeFieldAttr('override_description'); ?> class="text-xl mb-8 mt-4"><?php echo e(configLang('home_cta_desc', 'home_cta_desc')); ?></p>
         <div class="flex flex-wrap justify-center gap-4">
-            <a<?php echo $_homeFieldAttr('override_button_text'); ?> href="<?php echo e(config('home_cta_link', '') ?: '/contact.html'); ?>" class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-full font-bold shadow-lg transition">
+            <a<?php echo $_homeFieldAttr('override_button_text'); ?> href="<?php echo e(LocalizedUrl::siteLink(safeUrl((string) config('home_cta_link', '')) ?: '/contact.html')); ?>" class="bg-white text-primary hover:bg-gray-100 px-8 py-3 rounded-full font-bold shadow-lg transition">
                 <?php echo e(config('home_cta_button', '') ?: __('detail_consult')); ?>
             </a>
             <?php if ($phone = configRawLang('contact_phone')): ?>

@@ -25,11 +25,11 @@ HomeBannerItemElement::registerRuntimeAssets();
                             <?php endif; ?>
                             <?php if (!empty($banner['btn1_text']) || !empty($banner['btn2_text'])): ?>
                             <div class="flex flex-wrap justify-center gap-4 mt-6 pointer-events-auto" data-blox-layer style="--blox-layer-order:2">
-                                <?php if (!empty($banner['btn1_text'])): ?>
-                                <a href="<?php echo e(safeUrl((string) $banner['btn1_url']) ?: '#'); ?>" class="bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 rounded-full text-lg font-semibold transition"><?php echo e($banner['btn1_text']); ?></a>
+                                <?php if (!empty($banner['btn1_text']) && safeUrl((string) ($banner['btn1_url'] ?? '')) !== ''): ?>
+                                <a href="<?php echo e(LocalizedUrl::siteLink(safeUrl((string) $banner['btn1_url']))); ?>" class="bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 rounded-full text-lg font-semibold transition"><?php echo e($banner['btn1_text']); ?></a>
                                 <?php endif; ?>
-                                <?php if (!empty($banner['btn2_text'])): ?>
-                                <a href="<?php echo e(safeUrl((string) $banner['btn2_url']) ?: '#'); ?>" class="border-2 border-white text-white hover:bg-white/20 px-8 py-3 rounded-full text-lg font-semibold transition"><?php echo e($banner['btn2_text']); ?></a>
+                                <?php if (!empty($banner['btn2_text']) && safeUrl((string) ($banner['btn2_url'] ?? '')) !== ''): ?>
+                                <a href="<?php echo e(LocalizedUrl::siteLink(safeUrl((string) $banner['btn2_url']))); ?>" class="border-2 border-white text-white hover:bg-white/20 px-8 py-3 rounded-full text-lg font-semibold transition"><?php echo e($banner['btn2_text']); ?></a>
                                 <?php endif; ?>
                             </div>
                             <?php endif; ?>
@@ -45,7 +45,7 @@ HomeBannerItemElement::registerRuntimeAssets();
                         <div class="text-center text-white px-4 w-full max-w-4xl">
                             <h2 class="text-3xl md:text-5xl font-bold mb-4" data-blox-layer style="--blox-layer-order:0"><?php echo e(configRawLang('site_name', 'Yikai CMS')); ?></h2>
                             <p class="text-lg md:text-2xl mb-6" data-blox-layer style="--blox-layer-order:1"><?php echo e(configLang('site_description', 'quality_service_desc')); ?></p>
-                            <a href="/contact.html" class="inline-block bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 rounded-full text-lg font-semibold transition pointer-events-auto" data-blox-layer style="--blox-layer-order:2"><?php echo __('nav_contact'); ?></a>
+                            <a href="<?php echo e(LocalizedUrl::siteLink('/contact.html')); ?>" class="inline-block bg-white text-gray-800 hover:bg-gray-100 px-8 py-3 rounded-full text-lg font-semibold transition pointer-events-auto" data-blox-layer style="--blox-layer-order:2"><?php echo __('nav_contact'); ?></a>
                         </div>
                     </div>
                 </div>
