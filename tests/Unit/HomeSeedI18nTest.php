@@ -147,6 +147,6 @@ class HomeSeedI18nTest extends TestCase
             self::assertStringContainsString('LocalizedUrl::siteLink(', $source, $file);
         }
         $source = (string) file_get_contents(ROOT_PATH . '/includes/i18n/LocalizedUrl.php');
-        self::assertStringContainsString("self::alternates('channel', \$channel)[\$lang]", $source, '/{别名}.html 换成该栏目在当前语言的译本');
+        self::assertStringContainsString("return self::urlFor('channel', \$row, \$lang);", $source, '/{别名}.html 换成该栏目在当前语言的译本');
     }
 }
