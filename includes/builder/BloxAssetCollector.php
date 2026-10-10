@@ -16,6 +16,8 @@ final class BloxAssetCollector
     private static bool $booted = false;
     /** 前台 <head> 末尾开的缓冲所在层级；0 = 没开（见 openHeadBuffer） */
     private static int $headBufferLevel = 0;
+    /** Blox 画布预览自己分段捕获页头页脚，不开 <head> 缓冲（见 disableHeadBuffer） */
+    private static bool $headBufferDisabled = false;
 
     /** @psalm-suppress PossiblyUnusedMethod 测试专用（单测进程共享请求级收集状态时复位） */
     public static function resetForTests(): void
@@ -24,6 +26,7 @@ final class BloxAssetCollector
         self::$styles = [];
         self::$renderedStyles = [];
         self::$inlineCss = [];
+        self::$headBufferDisabled = false;
     }
 
     public static function bootstrap(): void
@@ -126,11 +129,20 @@ final class BloxAssetCollector
     {
         // 只对网页请求：命令行脚本没有 REQUEST_URI
         $uri = $_SERVER['REQUEST_URI'] ?? null;
-        if (!is_string($uri) || self::$headBufferLevel > 0 || str_contains($uri, '/admin/')) {
+        if (!is_string($uri) || self::$headBufferDisabled || self::$headBufferLevel > 0 || str_contains($uri, '/admin/')) {
             return;
         }
         ob_start();
         self::$headBufferLevel = ob_get_level();
+    }
+
+    /**
+     * 画布预览用 ob_start() 分段捕获主题页头页脚：页头里再开缓冲，捕获只拿到 <head>，
+     * 页头正文留在没人收的缓冲里（2026-10-10 CI：business 预览页头失去背景）。不能只靠网址判断后台。
+     */
+    public static function disableHeadBuffer(): void
+    {
+        self::$headBufferDisabled = true;
     }
 
     /**

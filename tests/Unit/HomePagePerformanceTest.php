@@ -55,6 +55,31 @@ final class HomePagePerformanceTest extends TestCase
     }
 
     /**
+     * 画布预览分段捕获主题页头：捕获里不能再开 <head> 缓冲，否则页头正文留在没人收的缓冲里
+     * （2026-10-10 CI：tests/e2e 页面渲染的 business 预览页头失去背景——网址不在 /admin/ 下）。
+     *
+     * @runInSeparateProcess
+     * @preserveGlobalState disabled
+     */
+    public function testCanvasThemeCaptureNeverOpensTheHeadBuffer(): void
+    {
+        require_once ROOT_PATH . '/includes/builder/BloxAssetCollector.php';
+        $_SERVER['REQUEST_URI'] = '/tests/e2e/business-surfaces-page.php?view=preview';
+        BloxAssetCollector::disableHeadBuffer();
+        $level = ob_get_level();
+        ob_start();
+        echo '<head>';
+        BloxAssetCollector::openHeadBuffer();
+        echo '</head><header id="siteHeader"></header>';
+        self::assertSame('<head></head><header id="siteHeader"></header>', ob_get_clean());
+        self::assertSame($level, ob_get_level(), '没有遗留的缓冲');
+
+        $preview = (string) file_get_contents(ROOT_PATH . '/includes/builder/BloxCanvasPreview.php');
+        $area = substr($preview, (int) strpos($preview, 'function renderBloxCanvasThemeArea('));
+        self::assertLessThan(strpos($area, 'ob_start();'), strpos($area, 'BloxAssetCollector::disableHeadBuffer();'));
+    }
+
+    /**
      * @runInSeparateProcess
      * @preserveGlobalState disabled
      */
