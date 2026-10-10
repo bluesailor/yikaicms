@@ -186,6 +186,55 @@ final class LocalizedUrl
         return self::absolute($url !== '' ? $url : $prettyPath);
     }
 
+    /**
+     * 编辑填写的站内链接按当前语言输出（2026-10-10：日语首页的 Banner / CTA 按钮指向中文页 /about.html）。
+     * 根相对、未带语言前缀的页面地址才处理：/{栏目别名}.html 换成该栏目在当前语言的译本地址，
+     * 其余页面地址补当前语言前缀；默认语言、外链、锚点、已带前缀的地址和静态文件原样返回。
+     * 数据里存不带前缀的地址，默认语言换成日语的站点也照样对。
+     */
+    public static function siteLink(string $url): string
+    {
+        if ($url === '' || $url[0] !== '/' || str_starts_with($url, '//')) return $url;
+        $lang = displayLang();
+        if ($lang === (string) config('site_lang', 'zh-CN')) return $url;
+        $path = (string) (parse_url($url, PHP_URL_PATH) ?? '/');
+        if (self::stripPrefix($path) !== $path) return $url;
+        if ($path !== '/' && preg_match('#\.html$|/[^./]*$#D', $path) !== 1) return $url;
+        $suffix = substr($url, strlen($path));
+        if (preg_match('#^/([A-Za-z0-9_-]+)\.html$#D', $path, $m) === 1) {
+            $target = self::channelLinkFor($m[1], $lang);
+            if ($target !== '') return $target . $suffix;
+        }
+        return langUrl($url, $lang);
+    }
+
+    /** 别名为 $slug 的栏目在 $lang 的译本地址；一页里多个按钮共用一次栏目查询（首页查询预算）。 */
+    private static function channelLinkFor(string $slug, string $lang): string
+    {
+        static $channels = null;
+        if ($channels === null) {
+            $channels = channelModel()->query('SELECT * FROM ' . channelModel()->tableName() . ' WHERE status = 1 ORDER BY id');
+        }
+        $source = null;
+        foreach ($channels as $row) {
+            if (($row['slug'] ?? '') === $slug) {
+                $source = $row;
+                break;
+            }
+        }
+        if ($source === null) return '';
+        $group = (int) (($source['translation_group_id'] ?? 0) ?: ($source['id'] ?? 0));
+        // 繁体是简体数据的视图：找简体那一行，按繁体出地址
+        $rowLang = $lang === 'zh-TW' && (string) config('site_lang', 'zh-CN') !== 'zh-TW' ? 'zh-CN' : $lang;
+        foreach ($channels as $row) {
+            $rowGroup = (int) (($row['translation_group_id'] ?? 0) ?: ($row['id'] ?? 0));
+            if ($rowGroup === $group && ($row['lang'] ?? '') === $rowLang) {
+                return self::urlFor('channel', $row, $lang);
+            }
+        }
+        return '';
+    }
+
     // ── 内部 ───────────────────────────────────────────────────────────────
 
     /** @param array<string,mixed> $row @return list<array<string,mixed>> 同一翻译组里已发布的行（含自己） */
