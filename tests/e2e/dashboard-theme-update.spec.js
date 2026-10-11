@@ -16,6 +16,12 @@ test('theme updates appear in the notification bell, separate from CMS updates @
   await page.route(/\/admin\/upgrade_online\.php$/, (route) => route.fulfill({ json: { code: 0, data: { has_update: false } } }));
   await page.route(/\/admin\/index\.php\?action=theme_updates$/, (route) => route.fulfill({ json: { code: 0, data: { count: 1, updates: [] } } }));
 
+  // 诊断（2026-10-11）：CI 上命令行写入成功、后台页面却读不到。两侧各报一次实际数据库与读到的值，不一致时直接看差在哪
+  const cliProbe = JSON.parse(fixture('probe'));
+  const webProbe = await (await page.request.get('/tests/e2e/admin-notice-probe.php')).json();
+  expect({ ...webProbe, sapi: undefined }, `web vs cli probe: ${JSON.stringify({ cliProbe, webProbe })}`).toEqual({ ...cliProbe, sapi: undefined });
+  expect(cliProbe.themes, JSON.stringify(cliProbe)).toBe(1);
+
   await page.goto('/admin/index.php', { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('dashboard-theme-update')).toHaveCount(0);
   await page.getByTestId('admin-bell-button').click();
