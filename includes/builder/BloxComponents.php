@@ -996,6 +996,85 @@ final class BloxComponents
         return self::$pinned[$key] ?? $latest;
     }
 
+    /**
+     * 模板包要带的母版（2.1.0）：文档里用到的组件连同它们里面的组件，按「被依赖的在前」排序；
+     * 只收本站已发布的。层数受 MAX_NESTING 限制（成环的母版发布不了）。
+     *
+     * @param array<int,mixed> $sections
+     * @return list<array<string,mixed>> 已发布定义
+     */
+    public static function bundleDefinitions(array $sections): array
+    {
+        $ordered = [];
+        $visit = static function (string $uuid, int $depth) use (&$visit, &$ordered): void {
+            if (isset($ordered[$uuid]) || $depth > self::MAX_NESTING) {
+                return;
+            }
+            $definition = self::find($uuid);
+            if ($definition === null) {
+                return;
+            }
+            foreach (self::directDependencies([$definition['root']]) as $inner) {
+                $visit($inner, $depth + 1);
+            }
+            $ordered[$uuid] = $definition;
+        };
+        $roots = [];
+        self::walkElements($sections, static function (array $element) use (&$roots): void {
+            if (($element['type'] ?? '') === self::TYPE && self::validUuid($element['data']['component'] ?? null)) {
+                $roots[(string) $element['data']['component']] = true;
+            }
+        });
+        foreach (array_keys($roots) as $uuid) {
+            $visit($uuid, 1);
+        }
+        return array_values($ordered);
+    }
+
+    /**
+     * 临时把一组定义并进组件目录执行 $fn（导入模板包时，用包里带的母版展开实例）。同 uuid 以 $definitions 为准。
+     *
+     * @template T
+     * @param array<string,array<string,mixed>> $definitions uuid => 定义
+     * @param callable():T $fn
+     * @return T
+     */
+    public static function withDefinitions(array $definitions, callable $fn): mixed
+    {
+        $previous = self::$catalog;
+        self::$catalog = $definitions + self::catalog();
+        try {
+            return $fn();
+        } finally {
+            self::$catalog = $previous;
+        }
+    }
+
+    /**
+     * 实例上去掉锁定的版本号（导出到别的站：版本号只在本站有意义）。
+     *
+     * @param array<int,mixed> $sections
+     * @return array<int,mixed>
+     */
+    public static function stripPins(array $sections): array
+    {
+        $strip = static function (mixed $node) use (&$strip): mixed {
+            if (!is_array($node)) {
+                return $node;
+            }
+            if (($node['type'] ?? null) === self::TYPE && is_array($node['data'] ?? null)) {
+                unset($node['data']['pin']);
+            }
+            foreach ($node as $key => $value) {
+                if (is_array($value)) {
+                    $node[$key] = $strip($value);
+                }
+            }
+            return $node;
+        };
+        return (array) $strip($sections);
+    }
+
     /** 还留着修订快照的版本号（编辑器判断固定的版本还在不在）。 @return list<int> */
     public static function availableVersions(string $uuid): array
     {
