@@ -1,0 +1,192 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "component",
+  "name": "行动号召条",
+  "requires": {
+    "elements": [
+      "button",
+      "container",
+      "heading",
+      "text"
+    ],
+    "plugins": []
+  },
+  "component": {
+    "uuid": "cmp_6a35df09fc0f3e7f",
+    "category": "cta",
+    "description": "一行标题、说明和按钮，放在页面段落之间引导咨询。"
+  },
+  "names": {
+    "zh-CN": "行动号召条",
+    "en": "Call-to-action bar",
+    "ja": "CTAバー"
+  },
+  "document": {
+    "schema": 1,
+    "settings": {
+      "component": {
+        "props": [
+          {
+            "key": "title",
+            "type": "text",
+            "label": "标题",
+            "default": "准备好开始了吗？",
+            "targets": [
+              {
+                "node": "e_title",
+                "field": "text"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "Ready to get started?",
+              "ja": "さっそく始めませんか？"
+            }
+          },
+          {
+            "key": "text",
+            "type": "richtext",
+            "label": "说明",
+            "default": "<p>留下需求，一个工作日内给出方案与报价。</p>",
+            "targets": [
+              {
+                "node": "e_text",
+                "field": "html"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "<p>Tell us what you need and get a proposal with pricing within one business day.</p>",
+              "ja": "<p>ご要望をお知らせいただければ、1営業日以内にご提案とお見積りをお送りします。</p>"
+            }
+          },
+          {
+            "key": "button_text",
+            "type": "text",
+            "label": "按钮文字",
+            "default": "联系我们",
+            "targets": [
+              {
+                "node": "e_cta",
+                "field": "text"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "Contact us",
+              "ja": "お問い合わせ"
+            }
+          },
+          {
+            "key": "button_url",
+            "type": "url",
+            "label": "按钮链接",
+            "default": "/contact.html",
+            "targets": [
+              {
+                "node": "e_cta",
+                "field": "url"
+              }
+            ]
+          },
+          {
+            "key": "background",
+            "type": "color",
+            "label": "背景色",
+            "default": "#1e3a8a",
+            "targets": [
+              {
+                "node": "e_root",
+                "field": "bg_color"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "sections": [
+      {
+        "id": "s_cmp",
+        "type": "section",
+        "settings": {},
+        "columns": [
+          {
+            "id": "c_cmp",
+            "elements": [
+              {
+                "id": "e_root",
+                "type": "container",
+                "data": {
+                  "layout": "flex",
+                  "direction": {
+                    "d": "row",
+                    "m": "column"
+                  },
+                  "justify": {
+                    "d": "between"
+                  },
+                  "align": {
+                    "d": "center"
+                  },
+                  "gap": {
+                    "d": "md"
+                  },
+                  "padding": {
+                    "d": "lg"
+                  },
+                  "bg_color": "#1e3a8a",
+                  "radius_token": "lg",
+                  "children": [
+                    {
+                      "id": "e_copy",
+                      "type": "container",
+                      "data": {
+                        "layout": "flex",
+                        "direction": {
+                          "d": "column"
+                        },
+                        "gap": {
+                          "d": "sm"
+                        },
+                        "children": [
+                          {
+                            "id": "e_title",
+                            "type": "heading",
+                            "data": {
+                              "text": "准备好开始了吗？",
+                              "level": "h3",
+                              "color": "#ffffff"
+                            }
+                          },
+                          {
+                            "id": "e_text",
+                            "type": "text",
+                            "data": {
+                              "html": "<p>留下需求，一个工作日内给出方案与报价。</p>",
+                              "color": "#dbeafe"
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "id": "e_cta",
+                      "type": "button",
+                      "data": {
+                        "text": "联系我们",
+                        "url": "/contact.html",
+                        "variant": "soft",
+                        "shape": "pill"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

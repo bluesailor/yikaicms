@@ -1,0 +1,118 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "component",
+  "name": "常见问题条目",
+  "requires": {
+    "elements": [
+      "container",
+      "heading",
+      "text"
+    ],
+    "plugins": []
+  },
+  "component": {
+    "uuid": "cmp_787b8ca4f2abbb7b",
+    "category": "content",
+    "description": "一个问题和它的回答；多条叠在一起就是问答列表。"
+  },
+  "names": {
+    "zh-CN": "常见问题条目",
+    "en": "FAQ item",
+    "ja": "FAQ項目"
+  },
+  "document": {
+    "schema": 1,
+    "settings": {
+      "component": {
+        "props": [
+          {
+            "key": "question",
+            "type": "text",
+            "label": "问题",
+            "default": "交货周期是多久？",
+            "targets": [
+              {
+                "node": "e_q",
+                "field": "text"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "How long is the lead time?",
+              "ja": "納期はどのくらいですか？"
+            }
+          },
+          {
+            "key": "answer",
+            "type": "richtext",
+            "label": "回答",
+            "default": "<p>标准产品 3 个工作日内发货，定制订单按合同排期。</p>",
+            "targets": [
+              {
+                "node": "e_a",
+                "field": "html"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "<p>Standard products ship within 3 business days; custom orders follow the contract schedule.</p>",
+              "ja": "<p>標準品は3営業日以内に出荷し、特注品は契約のスケジュールに沿って対応します。</p>"
+            }
+          }
+        ]
+      }
+    },
+    "sections": [
+      {
+        "id": "s_cmp",
+        "type": "section",
+        "settings": {},
+        "columns": [
+          {
+            "id": "c_cmp",
+            "elements": [
+              {
+                "id": "e_root",
+                "type": "container",
+                "data": {
+                  "layout": "flex",
+                  "direction": {
+                    "d": "column"
+                  },
+                  "gap": {
+                    "d": "sm"
+                  },
+                  "padding": {
+                    "d": "md"
+                  },
+                  "bg_color": "#ffffff",
+                  "radius_token": "md",
+                  "shadow_token": "sm",
+                  "children": [
+                    {
+                      "id": "e_q",
+                      "type": "heading",
+                      "data": {
+                        "text": "交货周期是多久？",
+                        "level": "h3",
+                        "type_token": "text-lg"
+                      }
+                    },
+                    {
+                      "id": "e_a",
+                      "type": "text",
+                      "data": {
+                        "html": "<p>标准产品 3 个工作日内发货，定制订单按合同排期。</p>"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
