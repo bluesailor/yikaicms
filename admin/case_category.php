@@ -15,6 +15,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
+require_once ROOT_PATH . '/admin/includes/row_sort.php';
 
 checkLogin();
 requirePermission('edit_case');
@@ -67,6 +68,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         success(['id' => $id]);
+    }
+
+    // 拖动排序：只排同一上级下的行（换上级仍走编辑弹窗），见 admin/includes/row_sort.php
+    if ($action === 'sort') {
+        adminRowSortApply(channelModel(), adminRowSortIds(static function (int $id): ?array { $row = channelModel()->find($id); return is_array($row) && ($row['type'] ?? '') === 'case' ? $row : null; }), 'case_category');
     }
 
     if ($action === 'delete') {
@@ -202,13 +208,14 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
-            <tbody class="divide-y">
+            <tbody class="divide-y" id="ccatRows">
                 <?php foreach ($categories as $item):
                     $count = $caseCounts[(int) $item['id']] ?? 0;
                 ?>
-                <tr class="hover:bg-gray-50">
+                <tr class="hover:bg-gray-50"<?php echo adminRowSortAttrs((int) $item['id'], (int) ($item['parent_id'] ?? 0)); ?>>
                     <td class="px-4 py-3"><input type="checkbox" class="row-check rounded" value="<?php echo $item['id']; ?>" onchange="updateBatchBar()"></td>
                     <td class="px-4 py-3">
+                        <?php echo adminRowSortHandle(); ?>
                         <span class="text-gray-400"><?php echo $item['_prefix']; ?></span>
                         <span class="font-medium"><?php echo e($item['name']); ?></span>
                         <?php if (!empty($item['slug'])): ?>
@@ -222,7 +229,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
                         <span class="text-gray-400 text-sm">0</span>
                         <?php endif; ?>
                     </td>
-                    <td class="px-4 py-3 text-center text-gray-500"><?php echo $item['sort_order']; ?></td>
+                    <td data-sort-cell class="px-4 py-3 text-center text-gray-500"><?php echo $item['sort_order']; ?></td>
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
                                 class="text-xs px-2 py-1 rounded cursor-pointer <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
@@ -330,6 +337,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
     </div>
 </div>
 
+<?php echo adminRowSortScript('ccatRows'); ?>
 <script>
 function openEditModal(item = null) {
     document.getElementById('modalTitle').textContent = item ? '<?php echo __('admin_edit'); ?>' : '<?php echo __('admin_category_add'); ?>';
