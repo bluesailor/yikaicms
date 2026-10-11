@@ -104,7 +104,7 @@
                         var self = this;
                         this.componentCards["loading:" + uuid] = true;
                         api(this, "schema", { uuid: uuid }).then(function (data) {
-                            self.componentCards[uuid] = data.component;
+                            self.componentCards[uuid] = Object.assign({}, data.component, { versions: data.versions || [] });
                             self.componentBindings[uuid] = data.loop_bindings || {};
                         }).catch(function () {
                             self.componentCards[uuid] = { uuid: uuid, missing: true, props: [] };
@@ -126,6 +126,35 @@
                     if (!lang) return (data.props && !Array.isArray(data.props)) ? data.props : {};
                     var i18n = data.props_i18n && !Array.isArray(data.props_i18n) ? data.props_i18n : {};
                     return i18n[lang] && !Array.isArray(i18n[lang]) ? i18n[lang] : {};
+                },
+                // ── 锁定版本 / 已修改（2.1.0）──────────────────────────
+                componentPinState: function () {
+                    var card = this.selEl && this.selEl.data ? this.componentCard(this.selEl.data.component) : null;
+                    if (!card || card.missing) return null;
+                    var pin = parseInt(this.selEl.data.pin || 0, 10) || 0;
+                    var latest = parseInt(card.version || 0, 10) || 0;
+                    var behind = pin > 0 && pin < latest;
+                    return {
+                        pin: pin, latest: latest, pinned: pin > 0, behind: behind,
+                        missing: behind && (card.versions || []).indexOf(pin) === -1,
+                    };
+                },
+                pinComponent: function () {
+                    var state = this.componentPinState();
+                    if (state) this.selEl.data.pin = state.latest;
+                },
+                unpinComponent: function () {
+                    if (this.selEl && this.selEl.data) delete this.selEl.data.pin;
+                    this.selEl.data = Object.assign({}, this.selEl.data);
+                },
+                componentOverrideCount: function () {
+                    if (!this.selEl || !this.selEl.data) return 0;
+                    var keys = {}, data = this.selEl.data, lang = this.componentInstanceLang;
+                    Object.keys(data.props || {}).forEach(function (k) { keys[k] = true; });
+                    if (lang && data.props_i18n && data.props_i18n[lang]) {
+                        Object.keys(data.props_i18n[lang]).forEach(function (k) { keys[k] = true; });
+                    }
+                    return Object.keys(keys).length;
                 },
                 instanceOverridden: function (key) {
                     var prop = this.instanceProps().filter(function (p) { return p.key === key; })[0] || { key: key };

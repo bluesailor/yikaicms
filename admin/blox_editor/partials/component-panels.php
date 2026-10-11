@@ -16,6 +16,26 @@
                     <div class="truncate text-xs font-semibold text-gray-800" x-text="componentCard(selEl.data.component).name"></div>
                     <div class="text-[10px] text-gray-400" x-text="componentText.version.replace(':v', componentCard(selEl.data.component).version)"></div>
                 </div>
+                <span x-show="componentOverrideCount() > 0" class="shrink-0 rounded bg-violet-50 px-1.5 py-0.5 text-[10px] text-violet-700"
+                      data-testid="blox-component-override-count" x-text="componentText.overrides.replace(':n', componentOverrideCount())"></span>
+            </div>
+        </template>
+        <?php /* 锁定版本（2.1.0）：默认跟随最新发布版；固定后母版再发布也不变，直到点「更新」 */ ?>
+        <template x-if="componentPinState()">
+            <div class="rounded border border-gray-100 bg-gray-50 px-2 py-1.5 text-[11px]" data-testid="blox-component-pin">
+                <div class="flex items-center justify-between gap-2">
+                    <span class="text-gray-600" data-testid="blox-component-pin-state"
+                          x-text="componentPinState().pinned
+                              ? componentText.pinned.replace(':v', componentPinState().pin).replace(':latest', componentPinState().latest)
+                              : componentText.followLatest"></span>
+                    <button type="button" x-show="!componentPinState().pinned" @click="pinComponent()" data-testid="blox-component-pin-action"
+                            class="text-blue-500 hover:text-blue-700 inline-flex items-center gap-0.5"><i class="ti ti-pin text-xs" aria-hidden="true"></i><span x-text="componentText.pin"></span></button>
+                    <button type="button" x-show="componentPinState().pinned" @click="unpinComponent()" data-testid="blox-component-unpin"
+                            class="text-blue-500 hover:text-blue-700 inline-flex items-center gap-0.5"><i class="ti ti-pinned-off text-xs" aria-hidden="true"></i><span x-text="componentText.unpin"></span></button>
+                </div>
+                <button type="button" x-show="componentPinState().behind" @click="pinComponent()" data-testid="blox-component-update-pin"
+                        class="mt-1 text-blue-600 hover:text-blue-800" x-text="componentText.updatePin.replace(':v', componentPinState().latest)"></button>
+                <p x-show="componentPinState().missing" class="mt-1 text-amber-700" x-text="componentText.pinMissing.replace(':v', componentPinState().pin)"></p>
             </div>
         </template>
         <template x-if="componentCard(selEl.data.component) && componentCard(selEl.data.component).missing">
