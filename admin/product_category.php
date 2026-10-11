@@ -11,6 +11,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
+require_once ROOT_PATH . '/admin/includes/row_sort.php';
 
 checkLogin();
 requirePermission('edit_product');
@@ -78,6 +79,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ExtFields::save('product_category', (int) $id, (array) ($_POST['ext_fields'] ?? []));
 
         success(['id' => $id]);
+    }
+
+    // 拖动排序：只排同一上级下的行（换上级仍走编辑弹窗），见 admin/includes/row_sort.php
+    if ($action === 'sort') {
+        adminRowSortApply(productCategoryModel(), adminRowSortIds(static fn (int $id): ?array => productCategoryModel()->find($id)), 'product_category');
     }
 
     if ($action === 'delete') {
@@ -236,13 +242,14 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
-            <tbody class="divide-y">
+            <tbody class="divide-y" id="pcatRows">
                 <?php foreach ($categories as $item):
                     $count = $productCounts[(int)$item['id']] ?? 0;
                 ?>
-                <tr class="hover:bg-gray-50">
+                <tr class="hover:bg-gray-50"<?php echo adminRowSortAttrs((int) $item['id'], (int) ($item['parent_id'] ?? 0)); ?>>
                     <td class="px-4 py-3"><input type="checkbox" class="row-check rounded" value="<?php echo $item['id']; ?>" onchange="updateBatchBar()"></td>
                     <td class="px-4 py-3">
+                        <?php echo adminRowSortHandle(); ?>
                         <span class="text-gray-400"><?php echo $item['_prefix']; ?></span>
                         <span class="font-medium"><?php echo e($item['name']); ?></span>
                         <?php if (!empty($item['slug'])): ?>
@@ -256,7 +263,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
                         <span class="text-gray-400 text-sm">0</span>
                         <?php endif; ?>
                     </td>
-                    <td class="px-4 py-3 text-center text-gray-500"><?php echo $item['sort_order']; ?></td>
+                    <td data-sort-cell class="px-4 py-3 text-center text-gray-500"><?php echo $item['sort_order']; ?></td>
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleStatus(<?php echo $item['id']; ?>, this)"
                                 class="text-xs px-2 py-1 rounded cursor-pointer <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
@@ -386,6 +393,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
 <input type="file" id="imageFileInput" class="hidden" accept="image/*">
 <?php if (ExtFields::fields('product_category') !== []) { require_once ROOT_PATH . '/admin/includes/extfield_helpers.php'; echo efScriptsHtml(); } ?>
 
+<?php echo adminRowSortScript('pcatRows'); ?>
 <script>
 function openEditModal(item = null) {
     document.getElementById('modalTitle').textContent = item ? '<?php echo __('admin_edit'); ?>' : '<?php echo __('admin_category_add'); ?>';

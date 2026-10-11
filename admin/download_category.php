@@ -11,6 +11,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
+require_once ROOT_PATH . '/admin/includes/row_sort.php';
 
 checkLogin();
 requirePermission('edit_download');
@@ -59,6 +60,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             adminLog('download_category', 'create', '新建分类：' . $data['name']);
         }
         success();
+    }
+
+    // 拖动排序：只排同一上级下的行（换上级仍走编辑弹窗），见 admin/includes/row_sort.php
+    if ($action === 'sort') {
+        adminRowSortApply(downloadCategoryModel(), adminRowSortIds(static fn (int $id): ?array => downloadCategoryModel()->find($id)), 'download_category');
     }
 
     if ($action === 'delete') {
@@ -136,11 +142,12 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';   // 「下载列表 / �
                     <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase"><?php echo __('admin_action'); ?></th>
                 </tr>
             </thead>
-            <tbody class="divide-y">
+            <tbody class="divide-y" id="dcatRows">
                 <?php foreach ($categories as $item): ?>
-                <tr class="hover:bg-gray-50">
+                <tr class="hover:bg-gray-50"<?php echo adminRowSortAttrs((int) $item['id'], 0); ?>>
                     <td class="px-4 py-3 text-sm text-gray-500"><?php echo $item['id']; ?></td>
                     <td class="px-4 py-3">
+                        <?php echo adminRowSortHandle(); ?>
                         <span class="font-medium"><?php echo e($item['name']); ?></span>
                         <?php if (!empty($item['slug'])): ?>
                         <code class="text-xs bg-gray-100 px-2 py-1 rounded ml-2"><?php echo e($item['slug']); ?></code>
@@ -161,7 +168,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';   // 「下载列表 / �
                         <span class="text-gray-400">0</span>
                         <?php endif; ?>
                     </td>
-                    <td class="px-4 py-3 text-center text-sm text-gray-500"><?php echo $item['sort_order']; ?></td>
+                    <td data-sort-cell class="px-4 py-3 text-center text-sm text-gray-500"><?php echo $item['sort_order']; ?></td>
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleStatus(<?php echo $item['id']; ?>, <?php echo $item['status'] ? 0 : 1; ?>, this)"
                                 class="text-xs px-2 py-1 rounded <?php echo $item['status'] ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
@@ -248,6 +255,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';   // 「下载列表 / �
     </div>
 </div>
 
+<?php echo adminRowSortScript('dcatRows'); ?>
 <script>
 const modal = document.getElementById('editModal');
 

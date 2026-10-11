@@ -15,6 +15,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
+require_once ROOT_PATH . '/admin/includes/row_sort.php';
 
 checkLogin();
 requirePermission('edit_article');
@@ -106,20 +107,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         success([$field => $value]);
     }
 
-    // 拖动排序：只排同一上级下的分类（换上级仍走编辑弹窗）；按提交顺序写 0、1、2…
+    // 拖动排序：只排同一上级下的分类（换上级仍走编辑弹窗），见 admin/includes/row_sort.php
     if ($action === 'sort') {
-        $ids = array_values(array_unique(array_map('intval', is_array($_POST['ids'] ?? null) ? $_POST['ids'] : [])));
-        if (!$ids) error(__('ccat_invalid'));
-        $parentOf = static fn(int $id): int => isset($byId[(int) ($byId[$id]['parent_id'] ?? 0)]) ? (int) $byId[$id]['parent_id'] : 0;
-        $parent = null;
-        foreach ($ids as $rid) {
-            if (!isset($byId[$rid])) error(__('ccat_invalid'));
-            $parent ??= $parentOf($rid);
-            if ($parentOf($rid) !== $parent) error(__('ccat_invalid'));
-        }
-        channelModel()->updateSort($ids);
-        adminLog('article_category', 'sort', '文章分类排序: ' . implode(',', $ids));
-        success(['order' => $ids]);
+        adminRowSortApply(channelModel(), adminRowSortIds(static fn (int $id): ?array => $byId[$id] ?? null), 'article_category');
     }
 
     if ($action === 'batch_delete') {
@@ -220,13 +210,11 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
                 <?php foreach ($categories as $item):
                     $count = $counts[(int) $item['id']] ?? 0;
                     $editData = array_intersect_key($item, array_flip(['id', 'parent_id', 'name', 'slug', 'image', 'description', 'sort_order', 'status', 'is_nav']));
-                    $rowParent = isset($byId[(int) ($item['parent_id'] ?? 0)]) ? (int) $item['parent_id'] : 0;   // 与 sort 动作同一口径：上级不在分类里 = 顶层
                 ?>
-                <tr class="hover:bg-gray-50" data-acat-row data-id="<?php echo (int) $item['id']; ?>" data-parent="<?php echo $rowParent; ?>">
+                <tr class="hover:bg-gray-50"<?php echo adminRowSortAttrs((int) $item['id'], (int) ($item['parent_id'] ?? 0)); ?>>
                     <td class="px-4 py-3"><input type="checkbox" class="row-check rounded" value="<?php echo (int) $item['id']; ?>" onchange="updateBatchBar()" aria-label="<?php echo e((string) $item['name']); ?>"></td>
                     <td class="px-4 py-3">
-                        <span class="acat-drag-handle cursor-grab text-gray-300 hover:text-gray-500 mr-1 align-middle" role="button" tabindex="-1"
-                              title="<?php echo e(__('nav_menu_drag_handle')); ?>" aria-label="<?php echo e(__('nav_menu_drag_handle')); ?>" data-testid="article-category-drag"><i class="ti ti-grip-vertical" aria-hidden="true"></i></span>
+                        <?php echo adminRowSortHandle(); ?>
                         <span class="text-gray-400"><?php echo $item['_prefix']; ?></span>
                         <span class="font-medium"><?php echo e((string) $item['name']); ?></span>
                         <?php if (!empty($item['slug'])): ?>
@@ -243,7 +231,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
                         <span class="text-gray-400 text-sm">0</span>
                         <?php endif; ?>
                     </td>
-                    <td class="px-4 py-3 text-center text-gray-500" data-acat-sort><?php echo (int) ($item['sort_order'] ?? 0); ?></td>
+                    <td class="px-4 py-3 text-center text-gray-500" data-sort-cell><?php echo (int) ($item['sort_order'] ?? 0); ?></td>
                     <td class="px-4 py-3 text-center">
                         <button onclick="toggleField(<?php echo (int) $item['id']; ?>, 'status', this)"
                                 class="text-xs px-2 py-1 rounded cursor-pointer <?php echo !empty($item['status']) ? 'bg-green-100 text-green-600' : 'bg-gray-100 text-gray-500'; ?>">
@@ -353,7 +341,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
     </div>
 </div>
 
-<script src="/assets/sortable/Sortable.min.js"></script>
+<?php echo adminRowSortScript('acatRows'); ?>
 <script>
 const ACAT = {
     root: <?php echo $rootId; ?>,
@@ -361,7 +349,7 @@ const ACAT = {
         'add' => __('admin_category_add'), 'edit' => __('admin_edit'), 'saved' => __('admin_saved'), 'deleted' => __('admin_deleted'),
         'confirm' => __('admin_confirm_delete'), 'batchConfirm' => __('pcat_batch_confirm'), 'batchDone' => __('pcat_batch_done'),
         'batchFailed' => __('pcat_batch_failed'), 'enabled' => __('admin_enabled'), 'disabled' => __('admin_disabled'),
-        'show' => __('admin_show'), 'hide' => __('admin_hide'), 'sortSaved' => __('admin_sort_saved'), 'failed' => __('admin_action_failed'),
+        'show' => __('admin_show'), 'hide' => __('admin_hide')
     ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG); ?>,
 };
 function openEditModal(item = null) {
@@ -433,38 +421,6 @@ async function toggleField(id, field, btn) {
     }
 }
 
-// 拖动排序：只能在同一上级的分类之间移动。表格是拍平的树，放下后按「上级 → 新顺序」重排整表，
-// 下级分类跟着上级走；保存失败就刷新回服务器上的顺序。
-(function () {
-    const tbody = document.getElementById('acatRows');
-    if (!tbody || typeof Sortable === 'undefined') return;
-    const rows = () => [...tbody.querySelectorAll('tr[data-acat-row]')];
-    const relayout = () => {
-        const byParent = {};
-        rows().forEach((row) => { (byParent[row.dataset.parent] ||= []).push(row); });
-        const walk = (parent) => (byParent[parent] || []).forEach((row) => { tbody.appendChild(row); walk(row.dataset.id); });
-        walk('0');
-    };
-    new Sortable(tbody, {
-        handle: '.acat-drag-handle',
-        draggable: 'tr[data-acat-row]',
-        animation: 150,
-        ghostClass: 'opacity-30',
-        onMove: (evt) => evt.related.dataset.parent === evt.dragged.dataset.parent,
-        onEnd: async (evt) => {
-            if (evt.oldIndex === evt.newIndex) return;
-            const parent = evt.item.dataset.parent;
-            relayout();
-            const siblings = rows().filter((row) => row.dataset.parent === parent);
-            const fd = new FormData(); fd.append('action', 'sort');
-            siblings.forEach((row) => fd.append('ids[]', row.dataset.id));
-            const data = await safeJson(await fetch('', { method: 'POST', body: fd }));
-            if (data.code !== 0) { showMessage(data.msg || ACAT.t.failed, 'error'); setTimeout(() => location.reload(), 800); return; }
-            siblings.forEach((row, index) => { const cell = row.querySelector('[data-acat-sort]'); if (cell) cell.textContent = index; });
-            showMessage(ACAT.t.sortSaved);
-        },
-    });
-})();
 
 function pickImageFromMedia() {
     openMediaPicker(function (url) {
