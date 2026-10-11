@@ -28,8 +28,8 @@ declare(strict_types=1);
                     </button>
                     <?php require __DIR__ . '/left-panel-toggle.php'; ?>
                 </div>
-                <?php // v2.1 组件：元素 / 组件两个标签；组件母版里不能再放组件，不显示组件标签 ?>
-                <div x-show="!componentMasterMode" class="flex border-b border-gray-100 shrink-0 text-[11px]" role="tablist">
+                <?php // v2.1 组件：元素 / 组件两个标签（2.1.0 起编辑母版时也显示：组件里可以放别的组件） ?>
+                <div class="flex border-b border-gray-100 shrink-0 text-[11px]" role="tablist">
                     <button type="button" role="tab" @click="libTab = 'elements'" :aria-selected="libTab === 'elements'"
                             data-testid="blox-lib-tab-elements"
                             class="flex-1 py-1.5 border-b-2 transition"
@@ -43,7 +43,7 @@ declare(strict_types=1);
                     </button>
                 </div>
                 <?php require __DIR__ . '/component-library.php'; ?>
-                <div x-show="libTab === 'elements' || componentMasterMode" class="p-2 border-b border-gray-100 shrink-0">
+                <div x-show="libTab === 'elements'" class="p-2 border-b border-gray-100 shrink-0">
                     <div class="flex items-center gap-1.5">
                         <div class="relative flex-1 min-w-0">
                             <i class="ti ti-search text-sm text-gray-300 absolute left-2 top-1/2 -translate-y-1/2"></i>

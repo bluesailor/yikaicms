@@ -17,12 +17,19 @@ declare(strict_types=1);
 
 final class BloxComponents
 {
+    /** @var list<string> 本请求正在渲染的组件链（组件套组件的成环兜底） */
+    private static array $renderStack = [];
+    /** @var array<string,array<string,mixed>|null> 固定版本的定义（uuid@版本），本请求内缓存 */
+    private static array $pinned = [];
+
     public const TYPE = 'component';
     public const UUID_PATTERN = '/^cmp_[a-f0-9]{16}$/';
     public const PROP_TYPES = ['text', 'richtext', 'image', 'icon', 'url', 'number', 'boolean', 'select', 'color'];
     public const CATEGORIES = ['cards', 'headers', 'footers', 'cta', 'products', 'content', 'navigation', 'custom'];
     public const MAX_COMPONENTS = 200;
     public const MAX_PROPS = 24;
+    /** 组件套组件的最大层数（2.1.0）：发布时检查，渲染时再兜底（未发布草稿之间也可能临时成环） */
+    public const MAX_NESTING = 5;
     public const MAX_TARGETS = 8;
     public const KEEP_REVISIONS = 20;
     private const KEY_PATTERN = '/^[a-z][a-z0-9_]{0,31}$/';
@@ -38,6 +45,7 @@ final class BloxComponents
     /** @psalm-suppress PossiblyUnusedMethod 测试专用 */
     public static function resetForTests(): void
     {
+        self::$pinned = [];
         self::$catalog = null;
     }
 
@@ -98,7 +106,8 @@ final class BloxComponents
     }
 
     /**
-     * 母版保存 / 发布前的结构校验：形状、不含组件实例。抛出的消息直接给作者看。
+     * 母版保存 / 发布前的结构校验：形状对、根元素不是另一个组件。抛出的消息直接给作者看。
+     * 2.1.0 起组件里可以放组件（根元素之下）；会不会成环在发布时查（assertNoCycle）。
      *
      * @param array<int,mixed> $sections
      */
@@ -108,8 +117,71 @@ final class BloxComponents
         if ($root === null) {
             throw new RuntimeException(__('blox_component_shape'));
         }
-        if (self::containsInstance([$root])) {
-            throw new RuntimeException(__('blox_component_nested'));
+        if (($root['type'] ?? '') === self::TYPE) {
+            throw new RuntimeException(__('blox_component_root_instance'));
+        }
+    }
+
+    /**
+     * 元素树里直接用到的组件 uuid（不展开下一层）。
+     *
+     * @param array<int,mixed> $elements
+     * @return list<string>
+     */
+    public static function directDependencies(array $elements): array
+    {
+        $out = [];
+        $walk = static function (array $nodes) use (&$walk, &$out): void {
+            foreach ($nodes as $node) {
+                if (!is_array($node)) {
+                    continue;
+                }
+                if (($node['type'] ?? '') === self::TYPE) {
+                    $uuid = $node['data']['component'] ?? null;
+                    if (self::validUuid($uuid)) {
+                        $out[(string) $uuid] = true;
+                    }
+                    continue;   // 实例内部是它自己母版的事
+                }
+                if (is_array($node['data']['children'] ?? null)) {
+                    $walk($node['data']['children']);
+                }
+            }
+        };
+        $walk($elements);
+        return array_keys($out);
+    }
+
+    /**
+     * 发布前的依赖检查：$selfUuid 的母版里用到的组件（按各自已发布的版本往下找）不能绕回它自己，
+     * 层数不超过 MAX_NESTING。不通过抛给作者看的消息。
+     *
+     * @param array<int,mixed> $sections 待发布的母版文档
+     */
+    public static function assertNoCycle(string $selfUuid, array $sections): void
+    {
+        $root = self::rootElement($sections);
+        $level = $root === null ? [] : self::directDependencies([$root]);
+        $seen = [];
+        for ($depth = 1; $level !== []; $depth++) {
+            if (in_array($selfUuid, $level, true)) {
+                throw new RuntimeException(__('blox_component_cycle'));
+            }
+            if ($depth >= self::MAX_NESTING) {
+                throw new RuntimeException(__('blox_component_too_deep', ['max' => (string) self::MAX_NESTING]));
+            }
+            $next = [];
+            foreach ($level as $uuid) {
+                if (isset($seen[$uuid])) {
+                    continue;
+                }
+                $seen[$uuid] = true;
+                $definition = self::find($uuid);
+                if ($definition !== null) {
+                    $next = array_merge($next, self::directDependencies([$definition['root']]));
+                }
+            }
+            $level = array_values(array_unique($next));
         }
     }
 
@@ -403,8 +475,15 @@ final class BloxComponents
     {
         $uuid = $data['component'] ?? '';
         $data['component'] = self::validUuid($uuid) ? (string) $uuid : '';
+        // 锁定版本（2.1.0）：正整数版本号；不锁 = 跟随最新发布版
+        $pin = is_numeric($data['pin'] ?? null) ? max(0, (int) $data['pin']) : 0;
+        if ($pin > 0) {
+            $data['pin'] = $pin;
+        } else {
+            unset($data['pin']);
+        }
         $raw = is_array($data['props'] ?? null) ? $data['props'] : [];
-        $definition = $data['component'] !== '' ? self::find($data['component']) : null;
+        $definition = $data['component'] !== '' ? self::definitionFor($data['component'], $pin) : null;
         $props = [];
         if ($definition !== null) {
             foreach ($definition['props'] as $prop) {
@@ -490,7 +569,14 @@ final class BloxComponents
     {
         $editMode = !empty($context['edit_mode']);
         $uuid = (string) ($data['component'] ?? '');
-        $definition = self::validUuid($uuid) ? self::find($uuid) : null;
+        // 组件套组件：正在渲染的链里已经有它（成环）或超过层数，就不再往下渲染
+        if (in_array($uuid, self::$renderStack, true) || count(self::$renderStack) >= self::MAX_NESTING) {
+            return $editMode
+                ? '<div class="yk-component-missing border-2 border-dashed border-amber-300 bg-amber-50 px-4 py-5 text-center text-sm text-amber-800">'
+                    . e(__('blox_component_cycle')) . '</div>'
+                : '';
+        }
+        $definition = self::validUuid($uuid) ? self::definitionFor($uuid, (int) ($data['pin'] ?? 0)) : null;
         if ($definition === null) {
             return $editMode
                 ? '<div class="yk-component-missing border-2 border-dashed border-amber-300 bg-amber-50 px-4 py-5 text-center text-sm text-amber-800">'
@@ -498,7 +584,12 @@ final class BloxComponents
                 : '';
         }
         $root = self::expand($definition, self::effectiveProps($definition, $data), (string) ($context['node_id'] ?? 'cmp'));
-        $html = BlockRenderer::renderElementNode($root, (int) ($context['depth'] ?? 0) + 1, false, []);
+        self::$renderStack[] = $uuid;
+        try {
+            $html = BlockRenderer::renderElementNode($root, (int) ($context['depth'] ?? 0) + 1, false, []);
+        } finally {
+            array_pop(self::$renderStack);
+        }
         if ($html === '') {
             return '';
         }
@@ -519,7 +610,7 @@ final class BloxComponents
     public static function detach(array $element): ?array
     {
         $data = is_array($element['data'] ?? null) ? $element['data'] : [];
-        $definition = self::validUuid($data['component'] ?? null) ? self::find((string) $data['component']) : null;
+        $definition = self::validUuid($data['component'] ?? null) ? self::definitionFor((string) $data['component'], (int) ($data['pin'] ?? 0)) : null;
         if ($definition === null) {
             return null;
         }
@@ -581,7 +672,8 @@ final class BloxComponents
                 $replacement = self::detach($element);
                 if ($replacement !== null) {
                     $expanded++;
-                    return $replacement;
+                    // 组件里的组件一并脱离（层数有上限，成环的母版发布不了）
+                    return self::detachNested($replacement, $expanded);
                 }
                 return $element;
             }
@@ -611,6 +703,35 @@ final class BloxComponents
     }
 
     /**
+     * 脱离出来的结构里还有实例（组件套组件）：逐层脱离，最多 MAX_NESTING 层；更深的原样保留。
+     *
+     * @param array<string,mixed> $element
+     * @return array<string,mixed>
+     */
+    private static function detachNested(array $element, int &$count, int $depth = 1): array
+    {
+        $children = $element['data']['children'] ?? null;
+        if ($depth >= self::MAX_NESTING || !is_array($children)) {
+            return $element;
+        }
+        $out = [];
+        foreach ($children as $child) {
+            if (is_array($child) && ($child['type'] ?? '') === self::TYPE) {
+                $replacement = self::detach($child);
+                if ($replacement !== null) {
+                    $count++;
+                    $child = self::detachNested($replacement, $count, $depth + 1);
+                }
+            } elseif (is_array($child)) {
+                $child = self::detachNested($child, $count, $depth);
+            }
+            $out[] = $child;
+        }
+        $element['data']['children'] = $out;
+        return $element;
+    }
+
+    /**
      * 任意 JSON 树里的实例全部脱离（首页、页头页尾、历史快照的格式各不相同，按节点形状识别，不按文档格式）。
      */
     public static function detachInTree(mixed $tree, int &$count): mixed
@@ -622,7 +743,7 @@ final class BloxComponents
             $replacement = self::detach($tree);
             if ($replacement !== null) {
                 $count++;
-                return $replacement;
+                return self::detachNested($replacement, $count);
             }
             return $tree;
         }
@@ -776,6 +897,43 @@ final class BloxComponents
     }
 
     /**
+     * 实例实际用的定义（2.1.0 锁定版本）：$pin > 0 且早于最新发布版时，取那个版本的修订快照；
+     * 快照已被清掉（只保留最近 KEEP_REVISIONS 份）就退回最新版——编辑器会提示。
+     *
+     * @return array<string,mixed>|null
+     */
+    public static function definitionFor(string $uuid, int $pin = 0): ?array
+    {
+        $latest = self::find($uuid);
+        if ($latest === null || $pin <= 0 || $pin >= (int) $latest['version']) {
+            return $latest;
+        }
+        $key = $uuid . '@' . $pin;
+        if (!array_key_exists($key, self::$pinned)) {
+            $snapshot = self::revisionSnapshot($uuid, $pin);
+            self::$pinned[$key] = $snapshot === null ? null : self::definitionFromRow([
+                'id' => $latest['id'],
+                'name' => $latest['name'],
+                'metadata' => json_encode(['component' => ['uuid' => $uuid, 'version' => $pin, 'category' => $latest['category'], 'archived' => $latest['archived']]]),
+                'published_data' => $snapshot,
+            ]);
+        }
+        return self::$pinned[$key] ?? $latest;
+    }
+
+    /** 还留着修订快照的版本号（编辑器判断固定的版本还在不在）。 @return list<int> */
+    public static function availableVersions(string $uuid): array
+    {
+        if (!self::validUuid($uuid) || !db()->tableExists('blox_component_revisions')) {
+            return [];
+        }
+        return array_map('intval', array_column(db()->fetchAll(
+            'SELECT DISTINCT version FROM ' . DB_PREFIX . 'blox_component_revisions WHERE component_uuid = ? ORDER BY version DESC',
+            [$uuid]
+        ), 'version'));
+    }
+
+    /**
      * 全部已发布组件，一次查询（50 个实例 = 0 次额外查询）。
      *
      * @return array<string,array<string,mixed>>
@@ -818,7 +976,7 @@ final class BloxComponents
             return null;
         }
         $root = self::rootElement($document['sections']);
-        if ($root === null || self::containsInstance([$root])) {
+        if ($root === null || ($root['type'] ?? '') === self::TYPE) {   // 2.1.0：根之下可以有实例（组件套组件）
             return null;
         }
         $settings = is_array($document['settings']['component'] ?? null) ? $document['settings']['component'] : [];
@@ -1011,23 +1169,6 @@ final class BloxComponents
     }
 
     // ── 工具 ──────────────────────────────────────────────────────────
-
-    /** @param array<int,mixed> $elements */
-    public static function containsInstance(array $elements): bool
-    {
-        foreach ($elements as $element) {
-            if (!is_array($element)) {
-                continue;
-            }
-            if (($element['type'] ?? '') === self::TYPE) {
-                return true;
-            }
-            if (is_array($element['data']['children'] ?? null) && self::containsInstance($element['data']['children'])) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     /**
      * @param array<int,mixed> $elements
