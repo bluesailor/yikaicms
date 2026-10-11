@@ -39,6 +39,7 @@
         mixin: function (initial) {
             return {
                 componentMasterMode: !!initial.master,
+                componentSelfUuid: initial.selfUuid || "",
                 componentCanManage: !!initial.canManage,
                 componentText: initial.text || {},
                 componentInstanceLang: initial.instanceLang || "",
@@ -80,8 +81,10 @@
                 filteredComponents: function () {
                     var query = this.componentQuery.trim().toLowerCase();
                     var category = this.componentCategory;
+                    var self = this.componentSelfUuid;
                     return this.componentList.filter(function (card) {
-                        return (category === "all" || card.category === category)
+                        return card.uuid !== self
+                            && (category === "all" || card.category === category)
                             && (query === "" || card.name.toLowerCase().indexOf(query) !== -1);
                     });
                 },

@@ -294,6 +294,15 @@ final class BloxTemplateModel extends Model
         if (!$row || trim((string) ($row['draft_data'] ?? '')) === '') {
             throw new RuntimeException(__('blox_tpl_draft_missing'));
         }
+        if (($row['type'] ?? '') === 'component') {
+            // 组件套组件（2.1.0）：发布前确认不会绕回自己、层数不超限（所有发布入口都经过这里）
+            self::loadComponents();
+            $uuid = (string) (json_decode((string) ($row['metadata'] ?? ''), true)['component']['uuid'] ?? '');
+            $draft = json_decode((string) $row['draft_data'], true);
+            if (BloxComponents::validUuid($uuid) && is_array($draft)) {
+                BloxComponents::assertNoCycle($uuid, is_array($draft['sections'] ?? null) ? $draft['sections'] : $draft);
+            }
+        }
         $now = time();
         $this->updateById($id, [
             'published_data' => (string) $row['draft_data'],
