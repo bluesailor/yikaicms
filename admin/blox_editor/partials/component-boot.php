@@ -8,6 +8,10 @@
 /* v2.1 组件混入的启动数据（RFC-2）：输出一个 JSON 对象，作为 YikaiBloxComponents.mixin() 的参数。拆出主入口以守住 500 KB 预算 */
 echo json_encode([
                 'master' => $templateId > 0 && $templateType === BloxComponents::TYPE,
+                // 编辑母版时组件库不列它自己（组件不能包含自己；间接成环在发布时拦）
+                'selfUuid' => $templateId > 0 && $templateType === BloxComponents::TYPE
+                    ? (string) (json_decode((string) (bloxTemplateModel()->find($templateId)['metadata'] ?? ''), true)['component']['uuid'] ?? '')
+                    : '',
                 'canManage' => hasPermission('blox_global') && BloxFeaturePolicy::allows('components'),
                 // 多语言首页是共享文档：非默认语言下编辑时，可多语言属性写进 props_i18n[该语言]
                 'instanceLang' => ($isHomeBlox && $homeEditorLangQuery !== '') ? $homeEditorLanguage : '',

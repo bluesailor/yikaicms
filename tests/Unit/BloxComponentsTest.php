@@ -133,16 +133,101 @@ final class BloxComponentsTest extends TestCase
             self::assertSame(__('blox_component_shape'), $e->getMessage());
         }
 
+        // 2.1.0：根元素之下可以放组件；根元素本身不能是组件
         $nested = json_decode($this->masterJson(), true);
         $nested['sections'][0]['columns'][0]['elements'][0]['data']['children'][] = [
             'id' => 'e_inner', 'type' => 'component', 'data' => ['component' => 'cmp_0123456789abcdef'],
         ];
+        BloxComponents::processMaster(json_encode($nested, JSON_UNESCAPED_UNICODE), 'tpl0');
+        $rootInstance = json_decode($this->masterJson(), true);
+        $rootInstance['sections'][0]['columns'][0]['elements'][0] = ['id' => 'e_root', 'type' => 'component', 'data' => ['component' => 'cmp_0123456789abcdef']];
         try {
-            BloxComponents::processMaster(json_encode($nested, JSON_UNESCAPED_UNICODE), 'tpl0');
-            self::fail('组件里放组件应被拒绝');
+            BloxComponents::processMaster(json_encode($rootInstance, JSON_UNESCAPED_UNICODE), 'tpl0');
+            self::fail('根元素是组件应被拒绝');
         } catch (RuntimeException $e) {
-            self::assertSame(__('blox_component_nested'), $e->getMessage());
+            self::assertSame(__('blox_component_root_instance'), $e->getMessage());
         }
+    }
+
+    /** 外层母版：根容器里一个标题 + 一个内层组件实例 */
+    private function outerMasterJson(string $innerUuid, string $innerTitle = ''): string
+    {
+        return json_encode([
+            'schema' => 1,
+            'settings' => ['component' => ['props' => [
+                ['key' => 'heading', 'type' => 'text', 'label' => '标题', 'default' => '外层', 'targets' => [['node' => 'o_title', 'field' => 'text']]],
+            ]]],
+            'sections' => [[
+                'id' => 's_o', 'type' => 'section', 'settings' => [],
+                'columns' => [['id' => 'c_o', 'elements' => [[
+                    'id' => 'o_root', 'type' => 'container', 'data' => ['children' => [
+                        ['id' => 'o_title', 'type' => 'heading', 'data' => ['text' => '外层', 'level' => 'h2']],
+                        ['id' => 'o_inner', 'type' => 'component', 'data' => ['component' => $innerUuid, 'props' => $innerTitle !== '' ? ['title' => $innerTitle] : []]],
+                    ]],
+                ]]]],
+            ]],
+        ], JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+    }
+
+    public function testNestedComponentsRenderAndDetachAllLevels(): void
+    {
+        $inner = $this->publishComponent($this->masterJson('内层卡片'));
+        $outer = $this->publishComponent($this->outerMasterJson($inner['uuid'], '母版里改过的内层标题'));
+
+        $html = $this->renderPage($this->pageWith($outer['uuid'], ['heading' => '页面上的外层']));
+        self::assertStringContainsString('页面上的外层', $html);
+        self::assertStringContainsString('母版里改过的内层标题', $html, '外层母版里给内层实例填的属性生效');
+        self::assertStringContainsString('data-yk-component="' . $inner['uuid'] . '"', $html);
+
+        $detached = BloxComponents::detachAll($this->pageWith($outer['uuid']));
+        self::assertSame(2, $detached['expanded'], '外层与里面的内层都脱离');
+        self::assertFalse(BloxComponents::containsInstance($detached['sections'][0]['columns'][0]['elements']));
+        $count = 0;
+        $tree = BloxComponents::detachInTree(['sections' => $this->pageWith($outer['uuid'])], $count);
+        self::assertSame(2, $count);
+        self::assertStringNotContainsString('"component"', (string) json_encode($tree));
+
+        self::assertSame([$inner['uuid']], BloxComponents::directDependencies([BloxComponents::find($outer['uuid'])['root']]));
+    }
+
+    public function testPublishingRefusesCyclesAndTooDeepNesting(): void
+    {
+        $a = $this->publishComponent($this->masterJson('A'));
+        $b = $this->publishComponent($this->outerMasterJson($a['uuid']));
+        // A 改成包含 B：B 已经包含 A，发布 A 会成环
+        $model = bloxTemplateModel();
+        $model->updateDraft($a['id'], BloxComponents::processMaster($this->outerMasterJson($b['uuid']), 'tpl' . $a['id'])['json'], []);
+        try {
+            $model->publishDraft($a['id']);
+            self::fail('成环的母版不能发布');
+        } catch (RuntimeException $e) {
+            self::assertSame(__('blox_component_cycle'), $e->getMessage());
+        }
+        self::assertStringNotContainsString($b['uuid'], (string) $model->find($a['id'])['published_data'], '发布版没变');
+
+        // 层数：一条 MAX_NESTING 层的链，再套一层就超了
+        $chain = $this->publishComponent($this->masterJson('底层'));
+        for ($i = 1; $i < BloxComponents::MAX_NESTING; $i++) {
+            $chain = $this->publishComponent($this->outerMasterJson($chain['uuid']));
+        }
+        try {
+            $this->publishComponent($this->outerMasterJson($chain['uuid']));
+            self::fail('超过层数不能发布');
+        } catch (RuntimeException $e) {
+            self::assertSame(__('blox_component_too_deep', ['max' => (string) BloxComponents::MAX_NESTING]), $e->getMessage());
+        }
+    }
+
+    public function testRenderStopsOnACycleThatSlippedIn(): void
+    {
+        // 发布检查之外直接改库造出环（如旧数据、手工导入）：渲染不会无限递归，前台不输出该层
+        $a = $this->publishComponent($this->masterJson('A'));
+        $b = $this->publishComponent($this->outerMasterJson($a['uuid']));
+        $cyclic = BloxComponents::processMaster($this->outerMasterJson($b['uuid']), 'tpl' . $a['id'])['json'];
+        db()->update('blox_templates', ['published_data' => $cyclic, 'draft_data' => $cyclic], 'id = ?', [$a['id']]);
+        BloxComponents::resetForTests();
+        $html = $this->renderPage($this->pageWith($a['uuid']));
+        self::assertSame(2, substr_count($html, 'data-yk-component='), 'A → B → (A 停住)');
     }
 
     public function testPropsSchemaKeepsOnlyValidKeysTypesAndDeclaredTargets(): void

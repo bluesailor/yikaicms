@@ -105,8 +105,12 @@ test('master editor exposes and removes a prop from a control @ci', async ({ pag
   await page.goto(`/admin/blox_editor.php?template=${state.template}`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('blox-canvas')).toBeVisible();
   await expect(page.getByTestId('blox-component-props')).toBeVisible();
-  // 母版里不能再放组件：没有「组件」标签
-  await expect(page.getByTestId('blox-lib-tab-components')).toBeHidden();
+  // 2.1.0：母版里可以放别的组件——有「组件」标签，但不列这个母版自己
+  await page.getByTestId('blox-lib-tab-components').click();
+  await expect(page.getByTestId('blox-component-library')).toBeVisible();
+  await expect.poll(() => app(page, a => a.componentLoaded)).toBe(true);
+  await expect(page.getByTestId(`blox-insert-component-${state.uuid}`)).toHaveCount(0);
+  await page.getByTestId('blox-lib-tab-elements').click();
   expect(await app(page, a => a.masterProps().map(p => p.key))).toEqual(['title', 'cta']);
 
   // 标题的文字已导出为 title 属性：图标按下；链接字段还没导出

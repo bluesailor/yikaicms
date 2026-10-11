@@ -7,7 +7,7 @@
  */
 /* 组件库标签（v2.1）：已发布组件，搜索 / 分类 / 用量；点击插入实例（与元素同一插入目标规则）。 */
 ?>
-<div x-show="libTab === 'components' && !componentMasterMode" x-cloak class="flex-1 flex flex-col min-h-0" data-testid="blox-component-library">
+<div x-show="libTab === 'components'" x-cloak class="flex-1 flex flex-col min-h-0" data-testid="blox-component-library">
     <div class="p-2 border-b border-gray-100 shrink-0 flex items-center gap-1.5">
         <div class="relative flex-1 min-w-0">
             <i class="ti ti-search text-sm text-gray-300 absolute left-2 top-1/2 -translate-y-1/2" aria-hidden="true"></i>
