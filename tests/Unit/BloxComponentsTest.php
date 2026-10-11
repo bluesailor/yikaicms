@@ -242,6 +242,32 @@ final class BloxComponentsTest extends TestCase
         self::assertStringContainsString('第二版', $this->renderPage($this->pageWith($component['uuid'], [], ['pin' => 1])));
     }
 
+    public function testVariantsSitBetweenInstanceOverridesAndMasterDefaults(): void
+    {
+        $master = json_decode($this->masterJson('卡片'), true);
+        $master['settings']['component']['variants'] = [
+            ['key' => 'dark', 'label' => '深色', 'values' => ['title' => '深色标题', 'cta' => '深色按钮', 'ghost' => 'x']],
+            ['key' => 'dark', 'label' => '重复的键', 'values' => []],
+            ['key' => 'Bad Key', 'label' => 'x', 'values' => []],
+            ['key' => 'compact', 'label' => '', 'values' => ['link' => 'javascript:alert(1)']],
+        ];
+        $processed = BloxComponents::processMaster((string) json_encode($master, JSON_UNESCAPED_UNICODE), 'tpl0');
+        $variants = $processed['settings']['component']['variants'];
+        self::assertSame(['dark', 'compact'], array_column($variants, 'key'), '重复键、非法键丢掉');
+        self::assertSame(['title' => '深色标题', 'cta' => '深色按钮'], $variants[0]['values'], '只收已声明的属性');
+        self::assertSame('compact', $variants[1]['label'], '没名字用键名');
+        self::assertStringNotContainsString('javascript:', (string) json_encode($variants[1]['values']), '值按属性类型清洗');
+
+        $component = $this->publishComponent($processed['json']);
+        $html = $this->renderPage($this->pageWith($component['uuid'], ['cta' => '页面上的按钮'], ['variant' => 'dark']));
+        self::assertStringContainsString('深色标题', $html, '变体的值');
+        self::assertStringContainsString('页面上的按钮', $html, '实例自己的覆盖优先于变体');
+        self::assertStringContainsString('卡片', $this->renderPage($this->pageWith($component['uuid'])), '不选变体用母版默认');
+
+        $saved = BloxDocumentPipeline::process((string) json_encode(['schema' => 1, 'settings' => [], 'sections' => $this->pageWith($component['uuid'], [], ['variant' => 'gone'])]), 'pg1');
+        self::assertArrayNotHasKey('variant', $saved['sections'][0]['columns'][0]['elements'][0]['data'], '母版里没有的变体不保留');
+    }
+
     public function testRenderStopsOnACycleThatSlippedIn(): void
     {
         // 发布检查之外直接改库造出环（如旧数据、手工导入）：渲染不会无限递归，前台不输出该层

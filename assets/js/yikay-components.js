@@ -127,6 +127,44 @@
                     var i18n = data.props_i18n && !Array.isArray(data.props_i18n) ? data.props_i18n : {};
                     return i18n[lang] && !Array.isArray(i18n[lang]) ? i18n[lang] : {};
                 },
+                // ── 变体（2.1.0）──────────────────────────────────────
+                selectedVariant: function () {
+                    var data = this.selEl && this.selEl.data ? this.selEl.data : {};
+                    var card = data.component ? this.componentCard(data.component) : null;
+                    if (!card || !data.variant) return null;
+                    return (card.variants || []).filter(function (v) { return v.key === data.variant; })[0] || null;
+                },
+                setInstanceVariant: function (key) {
+                    var data = Object.assign({}, this.selEl.data);
+                    if (key) data.variant = key; else delete data.variant;
+                    this.selEl.data = data;
+                },
+                masterVariants: function () {
+                    this.masterProps();
+                    if (!Array.isArray(this.docSettings.component.variants)) this.docSettings.component.variants = [];
+                    return this.docSettings.component.variants;
+                },
+                addMasterVariant: function () {
+                    var variants = this.masterVariants();
+                    var label = (this.componentText.newVariant || "Variant") + " " + (variants.length + 1);
+                    variants.push({ key: slugKey("v" + (variants.length + 1), variants.map(function (v) { return v.key; })), label: label, values: {} });
+                    this.markDocumentSettingsChanged();
+                },
+                renameMasterVariant: function (variant, label) {
+                    variant.label = String(label).trim() || variant.key;
+                    this.markDocumentSettingsChanged();
+                },
+                removeMasterVariant: function (index) {
+                    this.masterVariants().splice(index, 1);
+                    this.markDocumentSettingsChanged();
+                },
+                setMasterVariantValue: function (variant, prop, value) {
+                    var values = Object.assign({}, variant.values || {});
+                    if (String(value).trim() === "") delete values[prop.key]; else values[prop.key] = value;
+                    variant.values = values;
+                    this.markDocumentSettingsChanged();
+                },
+
                 // ── 锁定版本 / 已修改（2.1.0）──────────────────────────
                 componentPinState: function () {
                     var card = this.selEl && this.selEl.data ? this.componentCard(this.selEl.data.component) : null;
@@ -165,6 +203,8 @@
                     if (Object.prototype.hasOwnProperty.call(bucket, prop.key)) return bucket[prop.key];
                     var props = this.selEl.data.props || {};
                     if (lang && Object.prototype.hasOwnProperty.call(props, prop.key)) return props[prop.key];
+                    var variant = this.selectedVariant();
+                    if (variant && variant.values && Object.prototype.hasOwnProperty.call(variant.values, prop.key)) return variant.values[prop.key];
                     if (lang && prop.default_i18n && prop.default_i18n[lang] !== undefined) return prop.default_i18n[lang];
                     return prop.default;
                 },

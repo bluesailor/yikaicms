@@ -155,6 +155,18 @@ test('master editor exposes and removes a prop from a control @ci', async ({ pag
 
   await expose.click();
   expect(await app(page, a => a.masterProps().map(p => p.key))).toEqual(['title', 'cta']);
+
+  // 2.1.0 变体：在属性弹层里加一个变体、填一个值，再删掉（不保存）
+  await page.getByTestId('blox-component-props').locator('summary').click();
+  await page.getByTestId('blox-master-variant-add').click();
+  const variant = await app(page, a => a.masterVariants()[0]);
+  expect(variant.key).toMatch(/^v1/);
+  const value = page.getByTestId(`blox-master-variant-value-${variant.key}-title`);
+  await value.fill('Dark title');
+  await value.press('Tab');
+  expect(await app(page, a => a.masterVariants()[0].values)).toEqual({ title: 'Dark title' });
+  await page.getByTestId(`blox-master-variant-${variant.key}`).getByRole('button').click();
+  expect(await app(page, a => a.masterVariants().length)).toBe(0);
 });
 
 test('component manager lists usage places and archives without breaking instances @ci', async ({ page }) => {
