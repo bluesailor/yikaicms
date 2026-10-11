@@ -16,6 +16,11 @@
     "category": "content",
     "description": "一个图标加一行文字，适合列优势、资质或服务承诺。"
   },
+  "names": {
+    "zh-CN": "图标列表项",
+    "en": "Icon list item",
+    "ja": "アイコンリスト項目"
+  },
   "document": {
     "schema": 1,
     "settings": {

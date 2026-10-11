@@ -18,6 +18,11 @@
     "category": "cards",
     "description": "图标、标题、说明和链接，适合列出产品特点或服务项目。"
   },
+  "names": {
+    "zh-CN": "功能卡片",
+    "en": "Feature card",
+    "ja": "機能カード"
+  },
   "document": {
     "schema": 1,
     "settings": {

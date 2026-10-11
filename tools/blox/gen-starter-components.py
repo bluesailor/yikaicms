@@ -39,7 +39,7 @@ COMPONENTS = []
 
 # 1 功能卡片
 COMPONENTS.append(dict(
-    slug='feature-card', category='cards',
+    slug='feature-card', names={'en': 'Feature card', 'ja': '機能カード'}, category='cards',
     name='功能卡片', description='图标、标题、说明和链接，适合列出产品特点或服务项目。',
     root=card([
         {'id': 'e_icon', 'type': 'icon', 'data': {'icon': 'rocket', 'size': 'lg'}},
@@ -60,7 +60,7 @@ COMPONENTS.append(dict(
 
 # 2 价格卡片
 COMPONENTS.append(dict(
-    slug='pricing-card', category='cards',
+    slug='pricing-card', names={'en': 'Pricing card', 'ja': '料金カード'}, category='cards',
     name='价格卡片', description='方案名、价格、包含内容和购买按钮。',
     root=card([
         {'id': 'e_plan', 'type': 'heading', 'data': {'text': '标准版', 'level': 'h3', 'type_token': 'heading-sm'}},
@@ -82,7 +82,7 @@ COMPONENTS.append(dict(
 
 # 3 评价卡片
 COMPONENTS.append(dict(
-    slug='testimonial-card', category='content',
+    slug='testimonial-card', names={'en': 'Testimonial card', 'ja': 'お客様の声カード'}, category='content',
     name='评价卡片', description='客户头像、评价内容、姓名与职位。',
     root=card([
         {'id': 'e_quote', 'type': 'quote', 'data': {'text': '从选型到交付只用了三周，技术团队全程跟进。', 'author': ''}},
@@ -111,7 +111,7 @@ COMPONENTS.append(dict(
 
 # 4 行动号召条
 COMPONENTS.append(dict(
-    slug='cta-bar', category='cta',
+    slug='cta-bar', names={'en': 'Call-to-action bar', 'ja': 'CTAバー'}, category='cta',
     name='行动号召条', description='一行标题、说明和按钮，放在页面段落之间引导咨询。',
     root={'id': 'e_root', 'type': 'container', 'data': {
         'layout': 'flex', 'direction': {'d': 'row', 'm': 'column'}, 'justify': {'d': 'between'}, 'align': {'d': 'center'},
@@ -137,7 +137,7 @@ COMPONENTS.append(dict(
 
 # 5 团队成员
 COMPONENTS.append(dict(
-    slug='team-member', category='cards',
+    slug='team-member', names={'en': 'Team member', 'ja': 'チームメンバー'}, category='cards',
     name='团队成员', description='照片、姓名、职位和一句介绍。',
     root=card([
         {'id': 'e_photo', 'type': 'image', 'data': {'src': '/assets/images/blox-templates/avatar-2.svg', 'alt': '林晓雯', 'image_ratio': 'square'}},
@@ -158,7 +158,7 @@ COMPONENTS.append(dict(
 
 # 6 常见问题条目
 COMPONENTS.append(dict(
-    slug='faq-item', category='content',
+    slug='faq-item', names={'en': 'FAQ item', 'ja': 'FAQ項目'}, category='content',
     name='常见问题条目', description='一个问题和它的回答；多条叠在一起就是问答列表。',
     root={'id': 'e_root', 'type': 'container', 'data': {
         'layout': 'flex', 'direction': {'d': 'column'}, 'gap': {'d': 'sm'}, 'padding': {'d': 'md'},
@@ -178,7 +178,7 @@ COMPONENTS.append(dict(
 
 # 7 图标列表项
 COMPONENTS.append(dict(
-    slug='icon-list-item', category='content',
+    slug='icon-list-item', names={'en': 'Icon list item', 'ja': 'アイコンリスト項目'}, category='content',
     name='图标列表项', description='一个图标加一行文字，适合列优势、资质或服务承诺。',
     root={'id': 'e_root', 'type': 'container', 'data': {
         'layout': 'flex', 'direction': {'d': 'row'}, 'align': {'d': 'center'}, 'gap': {'d': 'sm'},
@@ -197,7 +197,7 @@ COMPONENTS.append(dict(
 
 # 8 联系卡片
 COMPONENTS.append(dict(
-    slug='contact-card', category='cards',
+    slug='contact-card', names={'en': 'Contact card', 'ja': '連絡先カード'}, category='cards',
     name='联系卡片', description='联系方式图标、标题、内容和一个直达链接（电话、邮箱或地图）。',
     root=card([
         {'id': 'e_icon', 'type': 'icon', 'data': {'icon': 'phone', 'size': 'lg'}},
@@ -234,6 +234,8 @@ for c in COMPONENTS:
         'name': c['name'],
         'requires': {'elements': sorted(elements), 'plugins': []},
         'component': {'uuid': uuid(c['slug']), 'category': c['category'], 'description': c['description']},
+        # 组件库名称按站点默认语言取（安装器读，导入器不认这个键）
+        'names': {'zh-CN': c['name'], **c['names']},
         'document': {
             'schema': 1,
             'settings': {'component': {'props': c['props']}},

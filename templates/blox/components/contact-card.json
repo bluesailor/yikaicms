@@ -18,6 +18,11 @@
     "category": "cards",
     "description": "联系方式图标、标题、内容和一个直达链接（电话、邮箱或地图）。"
   },
+  "names": {
+    "zh-CN": "联系卡片",
+    "en": "Contact card",
+    "ja": "連絡先カード"
+  },
   "document": {
     "schema": 1,
     "settings": {
