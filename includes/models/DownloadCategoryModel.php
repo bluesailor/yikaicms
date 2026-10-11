@@ -6,7 +6,7 @@ require_once dirname(__DIR__) . '/i18n/LanguageRegistry.php';
 class DownloadCategoryModel extends Model
 {
     protected string $table = 'download_categories';
-    protected string $defaultOrder = 'sort_order DESC, id ASC';
+    protected string $defaultOrder = 'sort_order ASC, id ASC';   // 与前台 getActive() 同序（2026-10-11 前后台曾相反）
 
     /**
      * 获取有效分类
@@ -69,7 +69,7 @@ class DownloadCategoryModel extends Model
         return db()->fetchAll(
             "SELECT c.*, (SELECT COUNT(*) FROM " . DB_PREFIX . "downloads d WHERE d.category_id = c.id) as file_count
              FROM {$this->tableName()} c
-             ORDER BY c.sort_order DESC, c.id ASC"
+             ORDER BY c.sort_order ASC, c.id ASC"
         );
     }
 

@@ -50,8 +50,10 @@ test('article categories can be managed from the article tabs @ci', async ({ pag
 test('article categories reorder by dragging within the same parent @ci', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop-1440', 'one viewport is enough');
   await page.goto('/admin/article_category.php?lang=zh-CN');
-  const rows = page.locator('#acatRows tr[data-acat-row]');
-  const topLevel = page.locator('#acatRows tr[data-acat-row][data-parent="0"]');
+  const rows = page.locator('#acatRows tr[data-sort-row]');
+  // 顶层分类的上级是 news 栏目（不在表里）：第一行就是顶层
+  const rootParent = await rows.first().getAttribute('data-parent');
+  const topLevel = page.locator(`#acatRows tr[data-sort-row][data-parent="${rootParent}"]`);
   const ids = async (locator) => locator.evaluateAll((nodes) => nodes.map((n) => n.dataset.id));
   const original = await ids(topLevel);
   expect(original.length).toBeGreaterThanOrEqual(2);
@@ -72,7 +74,7 @@ test('article categories reorder by dragging within the same parent @ci', async 
     expect(await ids(topLevel)).toEqual(original);
 
     // 第一个顶层分类拖到第二个下面
-    const first = topLevel.nth(0).getByTestId('article-category-drag');
+    const first = topLevel.nth(0).getByTestId('row-drag');
     const second = topLevel.nth(1);
     const from = await first.boundingBox();
     const to = await second.boundingBox();
@@ -82,7 +84,7 @@ test('article categories reorder by dragging within the same parent @ci', async 
     await page.mouse.up();
     const expected = [original[1], original[0], ...original.slice(2)];
     await expect.poll(() => ids(topLevel)).toEqual(expected);
-    await expect(page.locator(`#acatRows tr[data-id="${original[0]}"] [data-acat-sort]`)).toHaveText('1');
+    await expect(page.locator(`#acatRows tr[data-id="${original[0]}"] [data-sort-cell]`)).toHaveText('1');
     const childFollows = () => rows.evaluateAll((nodes, [parent, child]) => {
       const order = nodes.map((n) => n.dataset.id);
       return order.indexOf(child) === order.indexOf(parent) + 1;
@@ -101,3 +103,45 @@ test('article categories reorder by dragging within the same parent @ci', async 
     await post([['action', 'sort'], ...original.map((id) => ['ids[]', id])]);
   }
 });
+
+// 产品 / 案例 / 下载分类共用同一套拖动排序（admin/includes/row_sort.php）：顶层前两个互换，刷新后保持，最后还原。
+for (const [pageUrl, tbody] of [
+  ['/admin/product_category.php', '#pcatRows'],
+  ['/admin/case_category.php', '#ccatRows'],
+  ['/admin/download_category.php', '#dcatRows'],
+]) {
+  test(`${pageUrl} reorders rows by dragging @ci`, async ({ page }, info) => {
+    test.skip(info.project.name !== 'desktop-1440', 'one viewport is enough');
+    await page.goto(pageUrl);
+    const rows = page.locator(`${tbody} tr[data-sort-row]`);
+    const ids = () => rows.evaluateAll((nodes) => nodes.map((n) => [n.dataset.id, n.dataset.parent]));
+    const all = await ids();
+    const present = new Set(all.map(([id]) => id));
+    const top = all.filter(([, parent]) => !present.has(parent)).map(([id]) => id);
+    test.skip(top.length < 2, 'needs two top-level rows');
+    const topIds = async () => (await ids()).filter(([, parent]) => !present.has(parent)).map(([id]) => id);
+    const restore = () => page.evaluate(async ({ url, order }) => {
+      const fd = new FormData();
+      fd.append('action', 'sort');
+      order.forEach((id) => fd.append('ids[]', id));
+      return (await fetch(url, { method: 'POST', body: fd })).json();
+    }, { url: pageUrl, order: top });
+
+    try {
+      const handle = page.locator(`${tbody} tr[data-id="${top[0]}"]`).getByTestId('row-drag');
+      const target = page.locator(`${tbody} tr[data-id="${top[1]}"]`);
+      const from = await handle.boundingBox();
+      const to = await target.boundingBox();
+      await page.mouse.move(from.x + from.width / 2, from.y + from.height / 2);
+      await page.mouse.down();
+      await page.mouse.move(from.x + from.width / 2, to.y + to.height * 0.8, { steps: 12 });
+      await page.mouse.up();
+      const expected = [top[1], top[0], ...top.slice(2)];
+      await expect.poll(topIds).toEqual(expected);
+      await page.reload();
+      await expect.poll(topIds).toEqual(expected);
+    } finally {
+      expect((await restore()).code).toBe(0);
+    }
+  });
+}
