@@ -1,0 +1,178 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "component",
+  "name": "功能卡片",
+  "requires": {
+    "elements": [
+      "button",
+      "container",
+      "heading",
+      "icon",
+      "text"
+    ],
+    "plugins": []
+  },
+  "component": {
+    "uuid": "cmp_327052f45e9d9297",
+    "category": "cards",
+    "description": "图标、标题、说明和链接，适合列出产品特点或服务项目。"
+  },
+  "document": {
+    "schema": 1,
+    "settings": {
+      "component": {
+        "props": [
+          {
+            "key": "icon",
+            "type": "icon",
+            "label": "图标",
+            "default": "rocket",
+            "targets": [
+              {
+                "node": "e_icon",
+                "field": "icon"
+              }
+            ]
+          },
+          {
+            "key": "title",
+            "type": "text",
+            "label": "标题",
+            "default": "快速部署",
+            "targets": [
+              {
+                "node": "e_title",
+                "field": "text"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "Fast Deployment",
+              "ja": "スピード導入"
+            }
+          },
+          {
+            "key": "text",
+            "type": "richtext",
+            "label": "说明",
+            "default": "<p>从选型到上线全程协助，标准方案一周内交付。</p>",
+            "targets": [
+              {
+                "node": "e_text",
+                "field": "html"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "<p>We help from selection to launch; standard solutions ship within a week.</p>",
+              "ja": "<p>選定から公開までサポートし、標準プランは1週間で納品します。</p>"
+            }
+          },
+          {
+            "key": "link_text",
+            "type": "text",
+            "label": "链接文字",
+            "default": "了解更多",
+            "targets": [
+              {
+                "node": "e_link",
+                "field": "text"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "Learn more",
+              "ja": "詳しく見る"
+            }
+          },
+          {
+            "key": "link_url",
+            "type": "url",
+            "label": "链接地址",
+            "default": "/contact.html",
+            "targets": [
+              {
+                "node": "e_link",
+                "field": "url"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "sections": [
+      {
+        "id": "s_cmp",
+        "type": "section",
+        "settings": {},
+        "columns": [
+          {
+            "id": "c_cmp",
+            "elements": [
+              {
+                "id": "e_root",
+                "type": "container",
+                "data": {
+                  "layout": "flex",
+                  "direction": {
+                    "d": "column"
+                  },
+                  "align": {
+                    "d": "start"
+                  },
+                  "gap": {
+                    "d": "sm"
+                  },
+                  "padding": {
+                    "d": "lg"
+                  },
+                  "bg_color": "#ffffff",
+                  "radius_token": "lg",
+                  "shadow_token": "sm",
+                  "children": [
+                    {
+                      "id": "e_icon",
+                      "type": "icon",
+                      "data": {
+                        "icon": "rocket",
+                        "size": "lg"
+                      }
+                    },
+                    {
+                      "id": "e_title",
+                      "type": "heading",
+                      "data": {
+                        "text": "快速部署",
+                        "level": "h3",
+                        "type_token": "heading-sm"
+                      }
+                    },
+                    {
+                      "id": "e_text",
+                      "type": "text",
+                      "data": {
+                        "html": "<p>从选型到上线全程协助，标准方案一周内交付。</p>"
+                      }
+                    },
+                    {
+                      "id": "e_link",
+                      "type": "button",
+                      "data": {
+                        "text": "了解更多",
+                        "url": "/contact.html",
+                        "variant": "link",
+                        "icon": "arrow-right",
+                        "icon_position": "right"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
