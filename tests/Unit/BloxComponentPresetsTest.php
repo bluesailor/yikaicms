@@ -51,7 +51,8 @@ final class BloxComponentPresetsTest extends TestCase
             )",
             "CREATE TABLE blox_page_drafts (id INTEGER PRIMARY KEY AUTOINCREMENT, page_id INTEGER NOT NULL, draft_data TEXT NOT NULL, published_data TEXT, admin_id INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0, published_at INTEGER NOT NULL DEFAULT 0)",
             "CREATE TABLE contents (id INTEGER PRIMARY KEY AUTOINCREMENT, blocks_data TEXT)",
-            "CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, \"key\" TEXT NOT NULL, value TEXT)",
+            // 与线上表一致：迁移后清整页缓存会 upsert 设置（全量跑时 HtmlCache 已加载）
+            "CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, \"group\" TEXT DEFAULT 'basic', \"key\" TEXT, value TEXT, type TEXT DEFAULT 'text', name TEXT DEFAULT '', tip TEXT DEFAULT '', options TEXT, sort_order INTEGER DEFAULT 0, UNIQUE(\"key\"))",
             "CREATE TABLE channels (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '', type TEXT NOT NULL DEFAULT 'page')",
             "CREATE TABLE blox_component_revisions (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
