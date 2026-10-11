@@ -288,6 +288,10 @@ function finalizeFreshInstallMigrations(): void
         if ($pending !== []) {
             throw new RuntimeException('仍有待执行迁移：' . implode(', ', $pending));
         }
+
+        // SQL 种子里的预置组件是中文名：按刚选定的站点语言改名（中文站不变）
+        require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+        BloxComponentPresets::localizeNames();
     } catch (Throwable $e) {
         throw new RuntimeException('全新安装迁移收尾失败：' . $e->getMessage(), 0, $e);
     }

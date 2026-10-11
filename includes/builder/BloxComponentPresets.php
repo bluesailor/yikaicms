@@ -48,6 +48,28 @@ final class BloxComponentPresets
         return $installed;   // 发布时 afterPublish 已清掉请求级组件目录，本请求内就能用
     }
 
+    /**
+     * 全新安装：SQL 种子里的预置组件是中文名，安装器设好站点语言后调这里换成该语言的名称。
+     * 只改仍是原始中文名的（作者改过名的不动），返回改了几个。
+     */
+    public static function localizeNames(): int
+    {
+        if (!db()->tableExists('blox_templates')) {
+            return 0;
+        }
+        $renamed = 0;
+        foreach (self::PRESETS as $slug) {
+            $package = json_decode(self::packageJson($slug), true);
+            $original = (string) ($package['names']['zh-CN'] ?? $package['name'] ?? '');
+            $name = self::name($slug);
+            if ($original === '' || $name === $original) {
+                continue;
+            }
+            $renamed += db()->update('blox_templates', ['name' => $name], 'source = ? AND source_ref = ? AND name = ?', ['builtin', 'component:' . $slug, $original]);
+        }
+        return $renamed;
+    }
+
     /** 组件库里显示的名称：按站点默认语言取包里的 names（中文站中文、日文站日文，其余英文）。 */
     public static function name(string $slug, ?string $lang = null): string
     {

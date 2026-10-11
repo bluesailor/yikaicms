@@ -106,6 +106,22 @@ final class BloxComponentPresetsTest extends TestCase
         self::assertSame(1, (int) db()->fetchColumn('SELECT COUNT(*) FROM blox_templates WHERE metadata LIKE ?', ['%' . $uuid . '%']));
     }
 
+    public function testFreshInstallRenamesStartersToTheSiteLanguage(): void
+    {
+        BloxComponentPresets::installMissing();
+        db()->execute("UPDATE blox_templates SET name = '我的卡片' WHERE source_ref = 'component:pricing-card'");
+        $GLOBALS['_test_config']['site_lang'] = 'en';
+        try {
+            self::assertSame(count(BloxComponentPresets::PRESETS) - 1, BloxComponentPresets::localizeNames());
+            self::assertSame('Feature card', (string) db()->fetchColumn("SELECT name FROM blox_templates WHERE source_ref = 'component:feature-card'"));
+            self::assertSame('我的卡片', (string) db()->fetchColumn("SELECT name FROM blox_templates WHERE source_ref = 'component:pricing-card'"), '改过名的不动');
+            self::assertSame(0, BloxComponentPresets::localizeNames());
+        } finally {
+            unset($GLOBALS['_test_config']['site_lang']);
+        }
+        self::assertStringContainsString('BloxComponentPresets::localizeNames();', (string) file_get_contents(ROOT_PATH . '/install/index.php'));
+    }
+
     public function testPackagesAreGeneratedAndMigrationInstallsThem(): void
     {
         foreach (BloxComponentPresets::PRESETS as $slug) {
