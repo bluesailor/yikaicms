@@ -307,6 +307,10 @@ final class BloxDocumentPipeline
         if (is_array($settings['component'] ?? null)) {
             $props = is_array($settings['component']['props'] ?? null) ? array_values($settings['component']['props']) : [];
             $clean['component'] = ['props' => array_slice($props, 0, BloxComponents::MAX_PROPS)];
+            // 变体（2.1.0）：原样带过去，由 BloxComponents::normalizeVariants 按属性定义逐项清洗
+            if (is_array($settings['component']['variants'] ?? null)) {
+                $clean['component']['variants'] = array_slice(array_values($settings['component']['variants']), 0, BloxComponents::MAX_VARIANTS);
+            }
         }
         // 页面自定义 CSS：只做长度与换行归一；是否合法、谁能改由 BloxCustomCode 在保存时判定
         if (array_key_exists('custom_css', $settings)) {

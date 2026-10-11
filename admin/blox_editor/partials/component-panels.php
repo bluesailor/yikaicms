@@ -50,6 +50,19 @@
             </button>
         </template>
 
+        <?php /* 变体（2.1.0）：选一组预设的属性值，下面各项仍可再改 */ ?>
+        <template x-if="componentCard(selEl.data.component) && (componentCard(selEl.data.component).variants || []).length">
+            <label class="block" data-testid="blox-component-variant">
+                <span class="mb-1 block text-[11px] font-semibold text-gray-700" x-text="componentText.variant"></span>
+                <select class="w-full rounded border border-gray-200 px-2 py-1.5 text-xs" data-testid="blox-component-variant-select"
+                        @change="setInstanceVariant($event.target.value)">
+                    <option value="" :selected="!selEl.data.variant" x-text="componentText.variantDefault"></option>
+                    <template x-for="variant in componentCard(selEl.data.component).variants" :key="variant.key">
+                        <option :value="variant.key" :selected="selEl.data.variant === variant.key" x-text="variant.label"></option>
+                    </template>
+                </select>
+            </label>
+        </template>
         <template x-for="prop in instanceProps()" :key="prop.key">
             <div :data-testid="'blox-component-prop-' + prop.key">
                 <div class="mb-1 flex items-center justify-between gap-2">

@@ -51,6 +51,7 @@ $componentCard = static function (array $definition, array $usage): array {
         'version' => (int) $definition['version'],
         'archived' => (bool) $definition['archived'],
         'props' => $definition['props'],
+        'variants' => $definition['variants'] ?? [],
         'docs' => (int) ($usage[$uuid]['docs'] ?? 0),
         'refs' => (int) ($usage[$uuid]['refs'] ?? 0),
     ];
