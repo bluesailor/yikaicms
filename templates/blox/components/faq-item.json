@@ -16,6 +16,11 @@
     "category": "content",
     "description": "一个问题和它的回答；多条叠在一起就是问答列表。"
   },
+  "names": {
+    "zh-CN": "常见问题条目",
+    "en": "FAQ item",
+    "ja": "FAQ項目"
+  },
   "document": {
     "schema": 1,
     "settings": {

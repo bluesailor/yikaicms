@@ -17,6 +17,11 @@
     "category": "cards",
     "description": "照片、姓名、职位和一句介绍。"
   },
+  "names": {
+    "zh-CN": "团队成员",
+    "en": "Team member",
+    "ja": "チームメンバー"
+  },
   "document": {
     "schema": 1,
     "settings": {

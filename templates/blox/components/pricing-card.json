@@ -17,6 +17,11 @@
     "category": "cards",
     "description": "方案名、价格、包含内容和购买按钮。"
   },
+  "names": {
+    "zh-CN": "价格卡片",
+    "en": "Pricing card",
+    "ja": "料金カード"
+  },
   "document": {
     "schema": 1,
     "settings": {

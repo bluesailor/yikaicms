@@ -18,6 +18,11 @@
     "category": "content",
     "description": "客户头像、评价内容、姓名与职位。"
   },
+  "names": {
+    "zh-CN": "评价卡片",
+    "en": "Testimonial card",
+    "ja": "お客様の声カード"
+  },
   "document": {
     "schema": 1,
     "settings": {

@@ -17,6 +17,11 @@
     "category": "cta",
     "description": "一行标题、说明和按钮，放在页面段落之间引导咨询。"
   },
+  "names": {
+    "zh-CN": "行动号召条",
+    "en": "Call-to-action bar",
+    "ja": "CTAバー"
+  },
   "document": {
     "schema": 1,
     "settings": {
