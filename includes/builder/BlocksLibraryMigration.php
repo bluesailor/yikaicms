@@ -160,21 +160,24 @@ final class BlocksLibraryMigration
     private static function referencedIds(mixed $tree): array
     {
         $out = [];
-        $walk = static function (mixed $node) use (&$walk, &$out): void {
-            if (!is_array($node)) {
-                return;
-            }
-            $libId = (int) ($node['library_id'] ?? 0);
-            if ($libId > 0) {
-                $out[$libId] = ($out[$libId] ?? 0) + 1;
-                return;
-            }
-            foreach ($node as $child) {
-                $walk($child);
-            }
-        };
-        $walk($tree);
+        self::collectReferences($tree, $out);
         return $out;
+    }
+
+    /** @param array<int,int> $out */
+    private static function collectReferences(mixed $node, array &$out): void
+    {
+        if (!is_array($node)) {
+            return;
+        }
+        $libId = (int) ($node['library_id'] ?? 0);
+        if ($libId > 0) {
+            $out[$libId] = ($out[$libId] ?? 0) + 1;
+            return;
+        }
+        foreach ($node as $child) {
+            self::collectReferences($child, $out);
+        }
     }
 
     /** @return array<int,true> 已经另存成区块模板的库块 id */
