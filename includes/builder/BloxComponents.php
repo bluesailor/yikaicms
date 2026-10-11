@@ -710,24 +710,24 @@ final class BloxComponents
      */
     private static function detachNested(array $element, int &$count, int $depth = 1): array
     {
-        if ($depth >= self::MAX_NESTING || !is_array($element['data']['children'] ?? null)) {
+        $children = $element['data']['children'] ?? null;
+        if ($depth >= self::MAX_NESTING || !is_array($children)) {
             return $element;
         }
-        $element['data']['children'] = array_map(static function (mixed $child) use (&$count, $depth): mixed {
-            if (!is_array($child)) {
-                return $child;
-            }
-            /** @var array<string,mixed> $child */
-            if (($child['type'] ?? '') === self::TYPE) {
+        $out = [];
+        foreach ($children as $child) {
+            if (is_array($child) && ($child['type'] ?? '') === self::TYPE) {
                 $replacement = self::detach($child);
-                if ($replacement === null) {
-                    return $child;
+                if ($replacement !== null) {
+                    $count++;
+                    $child = self::detachNested($replacement, $count, $depth + 1);
                 }
-                $count++;
-                return self::detachNested($replacement, $count, $depth + 1);
+            } elseif (is_array($child)) {
+                $child = self::detachNested($child, $count, $depth);
             }
-            return self::detachNested($child, $count, $depth);
-        }, array_values($element['data']['children']));
+            $out[] = $child;
+        }
+        $element['data']['children'] = $out;
         return $element;
     }
 
