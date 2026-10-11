@@ -30,6 +30,8 @@ final class BloxComponents
     public const MAX_PROPS = 24;
     /** 组件套组件的最大层数（2.1.0）：发布时检查，渲染时再兜底（未发布草稿之间也可能临时成环） */
     public const MAX_NESTING = 5;
+    /** 每个母版最多几个变体（2.1.0） */
+    public const MAX_VARIANTS = 12;
     public const MAX_TARGETS = 8;
     public const KEEP_REVISIONS = 20;
     private const KEY_PATTERN = '/^[a-z][a-z0-9_]{0,31}$/';
@@ -198,7 +200,13 @@ final class BloxComponents
         $root = self::rootElement($processed['sections']);
         $settings = $processed['settings'];
         $raw = is_array($settings['component'] ?? null) ? ($settings['component']['props'] ?? []) : [];
-        $settings['component'] = ['props' => self::normalizePropsSchema($raw, (array) $root)];
+        $props = self::normalizePropsSchema($raw, (array) $root);
+        $settings['component'] = ['props' => $props];
+        $rawVariants = is_array($processed['settings']['component'] ?? null) ? ($processed['settings']['component']['variants'] ?? []) : [];
+        $variants = self::normalizeVariants($rawVariants, $props);
+        if ($variants !== []) {
+            $settings['component']['variants'] = $variants;
+        }
         $processed['settings'] = $settings;
         $processed['json'] = json_encode(
             ['schema' => $processed['schema'], 'settings' => $settings, 'sections' => $processed['sections']],
@@ -273,6 +281,48 @@ final class BloxComponents
                 }
             }
             $out[] = $normalized;
+            $seen[$key] = true;
+        }
+        return $out;
+    }
+
+    /**
+     * 变体（2.1.0）：母版里具名的一组属性值，实例选了变体就用这组值，仍可逐项覆盖。
+     * 只收已声明属性的键，值按属性类型清洗；空值不存（= 用母版默认）。
+     *
+     * @param list<array<string,mixed>> $props 已归一的属性定义
+     * @return list<array{key:string,label:string,values:array<string,mixed>}>
+     */
+    public static function normalizeVariants(mixed $raw, array $props): array
+    {
+        if (!is_array($raw)) {
+            return [];
+        }
+        $byKey = [];
+        foreach ($props as $prop) {
+            $byKey[(string) $prop['key']] = $prop;
+        }
+        $out = [];
+        $seen = [];
+        foreach (array_values($raw) as $variant) {
+            if (!is_array($variant) || count($out) >= self::MAX_VARIANTS) {
+                continue;
+            }
+            $key = (string) ($variant['key'] ?? '');
+            if (preg_match(self::KEY_PATTERN, $key) !== 1 || isset($seen[$key])) {
+                continue;
+            }
+            $values = [];
+            foreach (is_array($variant['values'] ?? null) ? $variant['values'] : [] as $propKey => $value) {
+                if (isset($byKey[$propKey]) && is_scalar($value) && (string) $value !== '') {
+                    $values[(string) $propKey] = self::sanitizePropValue($byKey[$propKey], $value);
+                }
+            }
+            $out[] = [
+                'key' => $key,
+                'label' => mb_substr(trim(strip_tags((string) ($variant['label'] ?? ''))), 0, self::LABEL_MAX) ?: $key,
+                'values' => $values,
+            ];
             $seen[$key] = true;
         }
         return $out;
@@ -440,6 +490,15 @@ final class BloxComponents
         $lang ??= self::currentLang();
         $props = is_array($data['props'] ?? null) ? $data['props'] : [];
         $byLang = is_array($data['props_i18n'][$lang] ?? null) ? $data['props_i18n'][$lang] : [];
+        // 变体（2.1.0）：实例的覆盖 → 选中变体的值 → 母版默认（含按语言的默认）
+        $variantValues = [];
+        $variantKey = (string) ($data['variant'] ?? '');
+        foreach ($variantKey !== '' && is_array($definition['variants'] ?? null) ? $definition['variants'] : [] as $variant) {
+            if ($variant['key'] === $variantKey) {
+                $variantValues = $variant['values'];
+                break;
+            }
+        }
         $out = [];
         foreach ($definition['props'] as $prop) {
             $key = (string) $prop['key'];
@@ -452,6 +511,10 @@ final class BloxComponents
                     $out[$key] = $props[$key];
                     continue;
                 }
+                if (array_key_exists($key, $variantValues)) {
+                    $out[$key] = $variantValues[$key];
+                    continue;
+                }
                 if (isset($prop['default_i18n'][$lang])) {
                     $out[$key] = $prop['default_i18n'][$lang];
                 }
@@ -459,6 +522,8 @@ final class BloxComponents
             }
             if (array_key_exists($key, $props)) {
                 $out[$key] = $props[$key];
+            } elseif (array_key_exists($key, $variantValues)) {
+                $out[$key] = $variantValues[$key];
             }
         }
         return $out;
@@ -500,6 +565,16 @@ final class BloxComponents
             }
         }
         $data['props'] = $props;
+        // 变体：母版里有这个键才保留；母版暂不可用时按键名格式原样保留
+        $variant = (string) ($data['variant'] ?? '');
+        $known = $definition === null
+            ? preg_match(self::KEY_PATTERN, $variant) === 1
+            : in_array($variant, array_column($definition['variants'] ?? [], 'key'), true);
+        if ($variant !== '' && $known) {
+            $data['variant'] = $variant;
+        } else {
+            unset($data['variant']);
+        }
         // 共享文档（多语言首页）里实例的按语言覆盖：只收可多语言的属性
         $i18n = [];
         if ($definition !== null && is_array($data['props_i18n'] ?? null)) {
@@ -988,7 +1063,8 @@ final class BloxComponents
             'category' => $meta['category'],
             'archived' => $meta['archived'],
             'root' => $root,
-            'props' => self::normalizePropsSchema($settings['props'] ?? [], $root),
+            'props' => $props = self::normalizePropsSchema($settings['props'] ?? [], $root),
+            'variants' => self::normalizeVariants($settings['variants'] ?? [], $props),
         ];
     }
 

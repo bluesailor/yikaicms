@@ -507,6 +507,37 @@ declare(strict_types=1);
                             </div>
                         </template>
                     </div>
+                    <?php // 变体（2.1.0）：具名的一组属性值，实例选了变体后仍可逐项改 ?>
+                    <div class="mt-3 border-t border-gray-700 pt-3" data-testid="blox-master-variants">
+                        <div class="mb-1 flex items-center justify-between">
+                            <span class="font-semibold text-gray-200"><?php echo e(__('blox_component_variants')); ?></span>
+                            <button type="button" @click="addMasterVariant()" x-show="masterProps().length" data-testid="blox-master-variant-add"
+                                    class="text-violet-300 hover:text-white inline-flex items-center gap-0.5"><i class="ti ti-plus"></i><?php echo e(__('blox_component_variant_add')); ?></button>
+                        </div>
+                        <p class="mb-2 text-[10px] leading-relaxed text-gray-400"><?php echo e(__('blox_component_variant_hint')); ?></p>
+                        <div class="space-y-2">
+                            <template x-for="(variant, vIndex) in masterVariants()" :key="vIndex + ':' + variant.key">
+                                <div class="border border-gray-700 p-2" :data-testid="'blox-master-variant-' + variant.key">
+                                    <div class="mb-1.5 flex items-center gap-1.5">
+                                        <input type="text" :value="variant.label" @change="renameMasterVariant(variant, $event.target.value)"
+                                               aria-label="<?php echo e(__('blox_component_variant_label')); ?>"
+                                               class="min-w-0 flex-1 border border-gray-600 bg-gray-800 px-2 py-1 text-white">
+                                        <span class="font-mono text-[10px] text-gray-500" x-text="variant.key"></span>
+                                        <button type="button" @click="removeMasterVariant(vIndex)" class="text-gray-400 hover:text-red-400" aria-label="<?php echo e(__('admin_delete')); ?>"><i class="ti ti-trash"></i></button>
+                                    </div>
+                                    <template x-for="prop in masterProps()" :key="variant.key + ':' + prop.key">
+                                        <label class="flex items-center gap-1.5 py-0.5">
+                                            <span class="w-24 shrink-0 truncate text-[10px] text-gray-400" x-text="prop.label"></span>
+                                            <input type="text" :value="(variant.values || {})[prop.key] || ''" :placeholder="String(prop.default || '')"
+                                                   :data-testid="'blox-master-variant-value-' + variant.key + '-' + prop.key"
+                                                   @change="setMasterVariantValue(variant, prop, $event.target.value)"
+                                                   class="min-w-0 flex-1 border border-gray-600 bg-gray-800 px-2 py-0.5 text-white">
+                                        </label>
+                                    </template>
+                                </div>
+                            </template>
+                        </div>
+                    </div>
                 </div>
             </details>
 <?php endif; ?>
