@@ -21,6 +21,10 @@ module.exports = async function globalSetup(config) {
 
   const browser = await chromium.launch();
   const context = await browser.newContext({ baseURL });
+  // 登录后落在控制台，它会在后台检测主题更新 / 新版本并把结果写进设置（theme_updates_known 等）。
+  // 这里只为拿登录态，随即关浏览器，请求却还在服务器上跑完：约 1 秒后把用例夹具刚写的值覆盖掉
+  // （2026-10-11 CI 铃铛用例：命令行写 count=1，网页读到 count=0）。这些检测在登录这一步一律不发。
+  await context.route(/\/admin\/(index\.php\?action=theme_updates|upgrade_online\.php)/, (route) => route.abort());
   const page = await context.newPage();
   try {
     await page.goto('/admin/login.php', { waitUntil: 'domcontentloaded' });
