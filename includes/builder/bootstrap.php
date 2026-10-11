@@ -90,6 +90,7 @@ require_once __DIR__ . '/BloxAreaEditorTarget.php';
 require_once __DIR__ . '/BloxAreaConditions.php';
 require_once __DIR__ . '/DynamicLoopTemplateRenderer.php';
 require_once __DIR__ . '/BlocksLibrary.php';
+require_once __DIR__ . '/BlocksLibraryMigration.php';   // 旧块库下线（2.1.0）：报告 → 预览 → 迁移
 require_once __DIR__ . '/BloxDocumentWriteLock.php';
 require_once __DIR__ . '/HomeBloxDocument.php';
 require_once __DIR__ . '/PageBloxDocument.php';
