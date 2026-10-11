@@ -291,7 +291,8 @@ final class BloxTemplateImporter
      *   class_plan:list<array{class_id:string,name:string,settings:array<string,mixed>}>,
      *   class_diagnostics:array{reused:list<string>,created:list<string>,renamed:list<array{from:string,to:string}>,missing:list<string>},
      *   scale_plan:array<string,list<array<string,mixed>>>,
-     *   media:list<array{path:string,target:string,mime:string,sha256:string,bytes:string}>
+     *   media:list<array{path:string,target:string,mime:string,sha256:string,bytes:string}>,
+     *   components:list<array<string,mixed>>
      * }
      * @param array<string,mixed> $designOptions
      */
