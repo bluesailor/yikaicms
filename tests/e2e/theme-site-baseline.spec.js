@@ -26,7 +26,11 @@ for (const theme of ['default', 'business', 'minimal']) {
       const routes = JSON.parse(fixture('theme-site-baseline-fixture.php', 'manifest', language));
       expect(routes).toHaveLength(9);
       const evidence = [], failures = [];
-      page.on('requestfailed', request => failures.push(`${request.method()} ${request.url()} ${request.failure()?.errorText}`));
+      page.on('requestfailed', (request) => {
+        // 浏览器自己取消的图片请求不算故障：响应式图片（srcset）换候选图、离开页面时懒加载图片都会 ERR_ABORTED（与 site-diagnostics 同一口径，只放过图片）
+        if (request.failure()?.errorText === 'net::ERR_ABORTED' && request.resourceType() === 'image') return;
+        failures.push(`${request.method()} ${request.url()} ${request.failure()?.errorText}`);
+      });
       for (const route of routes) {
         await test.step(route.kind, async () => {
           const response = await page.goto(route.url);
