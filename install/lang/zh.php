@@ -6,7 +6,7 @@
 return [
     // 通用
     'lang_name' => '简体中文',
-    'title' => 'Yikai CMS 安装向导',
+    'title' => '易开CMS 安装向导',
     'prev' => '上一步',
     'next' => '下一步',
     'finish' => '完成安装',
@@ -91,7 +91,7 @@ return [
 
     // 完成
     'install_complete' => '安装完成',
-    'install_complete_desc' => 'Yikai CMS 已成功安装，请妥善保管管理员账号信息',
+    'install_complete_desc' => '易开CMS 已成功安装，请妥善保管管理员账号信息',
     'goto_admin' => '进入后台',
     // 一键极速安装（SQLite） + 完成页引导
     'quick_title' => '一键极速安装（SQLite，零配置）',
