@@ -1,0 +1,167 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "component",
+  "name": "团队成员",
+  "requires": {
+    "elements": [
+      "container",
+      "heading",
+      "image",
+      "text"
+    ],
+    "plugins": []
+  },
+  "component": {
+    "uuid": "cmp_5c128c19f59f75c6",
+    "category": "cards",
+    "description": "照片、姓名、职位和一句介绍。"
+  },
+  "document": {
+    "schema": 1,
+    "settings": {
+      "component": {
+        "props": [
+          {
+            "key": "photo",
+            "type": "image",
+            "label": "照片",
+            "default": "/assets/images/blox-templates/avatar-2.svg",
+            "targets": [
+              {
+                "node": "e_photo",
+                "field": "src"
+              }
+            ]
+          },
+          {
+            "key": "name",
+            "type": "text",
+            "label": "姓名",
+            "default": "林晓雯",
+            "targets": [
+              {
+                "node": "e_name",
+                "field": "text"
+              },
+              {
+                "node": "e_photo",
+                "field": "alt"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "Xiaowen Lin",
+              "ja": "林 暁雯"
+            }
+          },
+          {
+            "key": "role",
+            "type": "richtext",
+            "label": "职位",
+            "default": "<p>客户成功经理</p>",
+            "targets": [
+              {
+                "node": "e_role",
+                "field": "html"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "<p>Customer Success Manager</p>",
+              "ja": "<p>カスタマーサクセスマネージャー</p>"
+            }
+          },
+          {
+            "key": "bio",
+            "type": "richtext",
+            "label": "介绍",
+            "default": "<p>十年企业服务经验，负责项目交付与长期运维。</p>",
+            "targets": [
+              {
+                "node": "e_bio",
+                "field": "html"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "<p>Ten years in enterprise services, leading delivery and long-term support.</p>",
+              "ja": "<p>法人向けサービス歴10年。導入から長期運用まで担当しています。</p>"
+            }
+          }
+        ]
+      }
+    },
+    "sections": [
+      {
+        "id": "s_cmp",
+        "type": "section",
+        "settings": {},
+        "columns": [
+          {
+            "id": "c_cmp",
+            "elements": [
+              {
+                "id": "e_root",
+                "type": "container",
+                "data": {
+                  "layout": "flex",
+                  "direction": {
+                    "d": "column"
+                  },
+                  "align": {
+                    "d": "start"
+                  },
+                  "gap": {
+                    "d": "sm"
+                  },
+                  "padding": {
+                    "d": "lg"
+                  },
+                  "bg_color": "#ffffff",
+                  "radius_token": "lg",
+                  "shadow_token": "sm",
+                  "children": [
+                    {
+                      "id": "e_photo",
+                      "type": "image",
+                      "data": {
+                        "src": "/assets/images/blox-templates/avatar-2.svg",
+                        "alt": "林晓雯",
+                        "image_ratio": "square"
+                      }
+                    },
+                    {
+                      "id": "e_name",
+                      "type": "heading",
+                      "data": {
+                        "text": "林晓雯",
+                        "level": "h3",
+                        "type_token": "heading-sm"
+                      }
+                    },
+                    {
+                      "id": "e_role",
+                      "type": "text",
+                      "data": {
+                        "html": "<p>客户成功经理</p>",
+                        "typography_role": "caption"
+                      }
+                    },
+                    {
+                      "id": "e_bio",
+                      "type": "text",
+                      "data": {
+                        "html": "<p>十年企业服务经验，负责项目交付与长期运维。</p>"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

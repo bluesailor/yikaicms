@@ -1,0 +1,117 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "component",
+  "name": "图标列表项",
+  "requires": {
+    "elements": [
+      "container",
+      "icon",
+      "text"
+    ],
+    "plugins": []
+  },
+  "component": {
+    "uuid": "cmp_644b99231e88fe58",
+    "category": "content",
+    "description": "一个图标加一行文字，适合列优势、资质或服务承诺。"
+  },
+  "document": {
+    "schema": 1,
+    "settings": {
+      "component": {
+        "props": [
+          {
+            "key": "icon",
+            "type": "icon",
+            "label": "图标",
+            "default": "circle-check",
+            "targets": [
+              {
+                "node": "e_icon",
+                "field": "icon"
+              }
+            ]
+          },
+          {
+            "key": "text",
+            "type": "richtext",
+            "label": "文字",
+            "default": "<p>通过 ISO 9001 质量管理体系认证</p>",
+            "targets": [
+              {
+                "node": "e_text",
+                "field": "html"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "<p>ISO 9001 certified quality management</p>",
+              "ja": "<p>ISO 9001 品質マネジメントシステム認証取得</p>"
+            }
+          },
+          {
+            "key": "icon_color",
+            "type": "color",
+            "label": "图标颜色",
+            "default": "#16a34a",
+            "targets": [
+              {
+                "node": "e_icon",
+                "field": "color"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "sections": [
+      {
+        "id": "s_cmp",
+        "type": "section",
+        "settings": {},
+        "columns": [
+          {
+            "id": "c_cmp",
+            "elements": [
+              {
+                "id": "e_root",
+                "type": "container",
+                "data": {
+                  "layout": "flex",
+                  "direction": {
+                    "d": "row"
+                  },
+                  "align": {
+                    "d": "center"
+                  },
+                  "gap": {
+                    "d": "sm"
+                  },
+                  "children": [
+                    {
+                      "id": "e_icon",
+                      "type": "icon",
+                      "data": {
+                        "icon": "circle-check",
+                        "size": "md",
+                        "color": "#16a34a"
+                      }
+                    },
+                    {
+                      "id": "e_text",
+                      "type": "text",
+                      "data": {
+                        "html": "<p>通过 ISO 9001 质量管理体系认证</p>"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
