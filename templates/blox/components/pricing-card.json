@@ -1,0 +1,186 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "component",
+  "name": "价格卡片",
+  "requires": {
+    "elements": [
+      "button",
+      "container",
+      "heading",
+      "text"
+    ],
+    "plugins": []
+  },
+  "component": {
+    "uuid": "cmp_698ae201ec1db9f8",
+    "category": "cards",
+    "description": "方案名、价格、包含内容和购买按钮。"
+  },
+  "names": {
+    "zh-CN": "价格卡片",
+    "en": "Pricing card",
+    "ja": "料金カード"
+  },
+  "document": {
+    "schema": 1,
+    "settings": {
+      "component": {
+        "props": [
+          {
+            "key": "plan",
+            "type": "text",
+            "label": "方案名",
+            "default": "标准版",
+            "targets": [
+              {
+                "node": "e_plan",
+                "field": "text"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "Standard",
+              "ja": "スタンダード"
+            }
+          },
+          {
+            "key": "price",
+            "type": "richtext",
+            "label": "价格",
+            "default": "<p><strong>¥2,980</strong> / 年</p>",
+            "targets": [
+              {
+                "node": "e_price",
+                "field": "html"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "<p><strong>$399</strong> / year</p>",
+              "ja": "<p><strong>¥39,800</strong> / 年</p>"
+            }
+          },
+          {
+            "key": "features",
+            "type": "richtext",
+            "label": "包含内容",
+            "default": "<ul><li>5 个站点</li><li>全部模板</li><li>工作日技术支持</li></ul>",
+            "targets": [
+              {
+                "node": "e_features",
+                "field": "html"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "<ul><li>5 sites</li><li>All templates</li><li>Business-day support</li></ul>",
+              "ja": "<ul><li>5サイト</li><li>全テンプレート</li><li>平日サポート</li></ul>"
+            }
+          },
+          {
+            "key": "cta_text",
+            "type": "text",
+            "label": "按钮文字",
+            "default": "立即咨询",
+            "targets": [
+              {
+                "node": "e_cta",
+                "field": "text"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "Contact sales",
+              "ja": "お問い合わせ"
+            }
+          },
+          {
+            "key": "cta_url",
+            "type": "url",
+            "label": "按钮链接",
+            "default": "/contact.html",
+            "targets": [
+              {
+                "node": "e_cta",
+                "field": "url"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "sections": [
+      {
+        "id": "s_cmp",
+        "type": "section",
+        "settings": {},
+        "columns": [
+          {
+            "id": "c_cmp",
+            "elements": [
+              {
+                "id": "e_root",
+                "type": "container",
+                "data": {
+                  "layout": "flex",
+                  "direction": {
+                    "d": "column"
+                  },
+                  "align": {
+                    "d": "start"
+                  },
+                  "gap": {
+                    "d": "md"
+                  },
+                  "padding": {
+                    "d": "lg"
+                  },
+                  "bg_color": "#ffffff",
+                  "radius_token": "lg",
+                  "shadow_token": "sm",
+                  "children": [
+                    {
+                      "id": "e_plan",
+                      "type": "heading",
+                      "data": {
+                        "text": "标准版",
+                        "level": "h3",
+                        "type_token": "heading-sm"
+                      }
+                    },
+                    {
+                      "id": "e_price",
+                      "type": "text",
+                      "data": {
+                        "html": "<p><strong>¥2,980</strong> / 年</p>",
+                        "type_token": "heading-lg"
+                      }
+                    },
+                    {
+                      "id": "e_features",
+                      "type": "text",
+                      "data": {
+                        "html": "<ul><li>5 个站点</li><li>全部模板</li><li>工作日技术支持</li></ul>"
+                      }
+                    },
+                    {
+                      "id": "e_cta",
+                      "type": "button",
+                      "data": {
+                        "text": "立即咨询",
+                        "url": "/contact.html",
+                        "variant": "primary",
+                        "shape": "pill"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

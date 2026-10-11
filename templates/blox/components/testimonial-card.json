@@ -1,0 +1,219 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "component",
+  "name": "评价卡片",
+  "requires": {
+    "elements": [
+      "container",
+      "heading",
+      "image",
+      "quote",
+      "text"
+    ],
+    "plugins": []
+  },
+  "component": {
+    "uuid": "cmp_2f2f1f5fed1bb918",
+    "category": "content",
+    "description": "客户头像、评价内容、姓名与职位。"
+  },
+  "names": {
+    "zh-CN": "评价卡片",
+    "en": "Testimonial card",
+    "ja": "お客様の声カード"
+  },
+  "document": {
+    "schema": 1,
+    "settings": {
+      "component": {
+        "props": [
+          {
+            "key": "quote",
+            "type": "text",
+            "label": "评价内容",
+            "default": "从选型到交付只用了三周，技术团队全程跟进。",
+            "targets": [
+              {
+                "node": "e_quote",
+                "field": "text"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "From selection to delivery took just three weeks, with engineers on hand throughout.",
+              "ja": "選定から納品までわずか3週間。技術チームが最後まで伴走してくれました。"
+            }
+          },
+          {
+            "key": "author",
+            "type": "text",
+            "label": "姓名",
+            "default": "陈思远",
+            "targets": [
+              {
+                "node": "e_name",
+                "field": "text"
+              },
+              {
+                "node": "e_avatar",
+                "field": "alt"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "Siyuan Chen",
+              "ja": "陳 思遠"
+            }
+          },
+          {
+            "key": "role",
+            "type": "richtext",
+            "label": "职位",
+            "default": "<p>采购总监 · 华东制造集团</p>",
+            "targets": [
+              {
+                "node": "e_role",
+                "field": "html"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "<p>Procurement Director · East China Manufacturing Group</p>",
+              "ja": "<p>購買部長・華東製造グループ</p>"
+            }
+          },
+          {
+            "key": "avatar",
+            "type": "image",
+            "label": "头像",
+            "default": "/assets/images/blox-templates/avatar-1.svg",
+            "targets": [
+              {
+                "node": "e_avatar",
+                "field": "src"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "sections": [
+      {
+        "id": "s_cmp",
+        "type": "section",
+        "settings": {},
+        "columns": [
+          {
+            "id": "c_cmp",
+            "elements": [
+              {
+                "id": "e_root",
+                "type": "container",
+                "data": {
+                  "layout": "flex",
+                  "direction": {
+                    "d": "column"
+                  },
+                  "align": {
+                    "d": "start"
+                  },
+                  "gap": {
+                    "d": "sm"
+                  },
+                  "padding": {
+                    "d": "lg"
+                  },
+                  "bg_color": "#ffffff",
+                  "radius_token": "lg",
+                  "shadow_token": "sm",
+                  "children": [
+                    {
+                      "id": "e_quote",
+                      "type": "quote",
+                      "data": {
+                        "text": "从选型到交付只用了三周，技术团队全程跟进。",
+                        "author": ""
+                      }
+                    },
+                    {
+                      "id": "e_person",
+                      "type": "container",
+                      "data": {
+                        "layout": "flex",
+                        "direction": {
+                          "d": "row"
+                        },
+                        "align": {
+                          "d": "center"
+                        },
+                        "gap": {
+                          "d": "sm"
+                        },
+                        "children": [
+                          {
+                            "id": "e_avatar_box",
+                            "type": "container",
+                            "data": {
+                              "flex_basis_px": {
+                                "d": "56px"
+                              },
+                              "flex_shrink": "0",
+                              "children": [
+                                {
+                                  "id": "e_avatar",
+                                  "type": "image",
+                                  "data": {
+                                    "src": "/assets/images/blox-templates/avatar-1.svg",
+                                    "alt": "陈思远",
+                                    "image_preset": "avatar"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "id": "e_who",
+                            "type": "container",
+                            "data": {
+                              "layout": "flex",
+                              "direction": {
+                                "d": "column"
+                              },
+                              "gap": {
+                                "d": "none"
+                              },
+                              "children": [
+                                {
+                                  "id": "e_name",
+                                  "type": "heading",
+                                  "data": {
+                                    "text": "陈思远",
+                                    "level": "h4",
+                                    "type_token": "text-base"
+                                  }
+                                },
+                                {
+                                  "id": "e_role",
+                                  "type": "text",
+                                  "data": {
+                                    "html": "<p>采购总监 · 华东制造集团</p>",
+                                    "typography_role": "caption"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}

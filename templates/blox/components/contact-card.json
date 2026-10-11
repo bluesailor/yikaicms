@@ -1,0 +1,181 @@
+{
+  "format": "yikaicms-blox-template",
+  "version": 1,
+  "type": "component",
+  "name": "联系卡片",
+  "requires": {
+    "elements": [
+      "button",
+      "container",
+      "heading",
+      "icon",
+      "text"
+    ],
+    "plugins": []
+  },
+  "component": {
+    "uuid": "cmp_0b2fee649b9eab5c",
+    "category": "cards",
+    "description": "联系方式图标、标题、内容和一个直达链接（电话、邮箱或地图）。"
+  },
+  "names": {
+    "zh-CN": "联系卡片",
+    "en": "Contact card",
+    "ja": "連絡先カード"
+  },
+  "document": {
+    "schema": 1,
+    "settings": {
+      "component": {
+        "props": [
+          {
+            "key": "icon",
+            "type": "icon",
+            "label": "图标",
+            "default": "phone",
+            "targets": [
+              {
+                "node": "e_icon",
+                "field": "icon"
+              }
+            ]
+          },
+          {
+            "key": "title",
+            "type": "text",
+            "label": "标题",
+            "default": "电话咨询",
+            "targets": [
+              {
+                "node": "e_title",
+                "field": "text"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "Call us",
+              "ja": "お電話"
+            }
+          },
+          {
+            "key": "detail",
+            "type": "richtext",
+            "label": "内容",
+            "default": "<p>400-800-1234（工作日 9:00–18:00）</p>",
+            "targets": [
+              {
+                "node": "e_detail",
+                "field": "html"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "<p>+86 400-800-1234 (weekdays 9:00–18:00)</p>",
+              "ja": "<p>+86 400-800-1234（平日 9:00〜18:00）</p>"
+            }
+          },
+          {
+            "key": "link_text",
+            "type": "text",
+            "label": "链接文字",
+            "default": "立即拨打",
+            "targets": [
+              {
+                "node": "e_link",
+                "field": "text"
+              }
+            ],
+            "localizable": true,
+            "default_i18n": {
+              "en": "Call now",
+              "ja": "電話する"
+            }
+          },
+          {
+            "key": "link_url",
+            "type": "url",
+            "label": "链接地址",
+            "default": "tel:4008001234",
+            "targets": [
+              {
+                "node": "e_link",
+                "field": "url"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "sections": [
+      {
+        "id": "s_cmp",
+        "type": "section",
+        "settings": {},
+        "columns": [
+          {
+            "id": "c_cmp",
+            "elements": [
+              {
+                "id": "e_root",
+                "type": "container",
+                "data": {
+                  "layout": "flex",
+                  "direction": {
+                    "d": "column"
+                  },
+                  "align": {
+                    "d": "start"
+                  },
+                  "gap": {
+                    "d": "sm"
+                  },
+                  "padding": {
+                    "d": "lg"
+                  },
+                  "bg_color": "#ffffff",
+                  "radius_token": "lg",
+                  "shadow_token": "sm",
+                  "children": [
+                    {
+                      "id": "e_icon",
+                      "type": "icon",
+                      "data": {
+                        "icon": "phone",
+                        "size": "lg"
+                      }
+                    },
+                    {
+                      "id": "e_title",
+                      "type": "heading",
+                      "data": {
+                        "text": "电话咨询",
+                        "level": "h3",
+                        "type_token": "heading-sm"
+                      }
+                    },
+                    {
+                      "id": "e_detail",
+                      "type": "text",
+                      "data": {
+                        "html": "<p>400-800-1234（工作日 9:00–18:00）</p>"
+                      }
+                    },
+                    {
+                      "id": "e_link",
+                      "type": "button",
+                      "data": {
+                        "text": "立即拨打",
+                        "url": "tel:4008001234",
+                        "variant": "outline"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  }
+}
