@@ -17,8 +17,14 @@ require ROOT_PATH . '/config/config.php';
 require ROOT_PATH . '/includes/functions.php';
 require ROOT_PATH . '/includes/models/autoload.php';
 require ROOT_PATH . '/includes/UpdateNotice.php';
+require __DIR__ . '/admin-notice-probe-lib.php';
 
 $action = (string) ($argv[1] ?? '');
+if ($action === 'probe') {
+    echo json_encode(adminNoticeProbe()), "
+";
+    exit;
+}
 if ($action === 'themes') {
     // recordThemes() 吞掉写库异常（后台检测失败不该打断页面）；夹具要确认真的写进去了。
     // CI 上曾偶发没写进去、铃铛里没有主题项：数据库被占用时重试，最终失败就带着原因报错。
@@ -46,7 +52,7 @@ if ($action === 'themes') {
 } elseif ($action === 'clear') {
     settingModel()->set('theme_updates_known', '', 'system');
 } else {
-    throw new RuntimeException('usage: themes <n>|clear');
+    throw new RuntimeException('usage: themes <n>|clear|probe');
 }
 cacheClear();
 echo "ok\n";
