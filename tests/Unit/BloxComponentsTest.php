@@ -218,6 +218,30 @@ final class BloxComponentsTest extends TestCase
         }
     }
 
+    public function testPinnedInstancesKeepTheirVersionUntilUpdated(): void
+    {
+        $component = $this->publishComponent($this->masterJson('第一版'));
+        $model = bloxTemplateModel();
+        $model->updateDraft($component['id'], BloxComponents::processMaster($this->masterJson('第二版'), 'tpl' . $component['id'])['json'], []);
+        $model->publishDraft($component['id']);
+        BloxComponents::resetForTests();
+
+        $pinned = BloxDocumentPipeline::process((string) json_encode(['schema' => 1, 'settings' => [], 'sections' => $this->pageWith($component['uuid'], [], ['pin' => '1'])]), 'pg1');
+        self::assertSame(1, $pinned['sections'][0]['columns'][0]['elements'][0]['data']['pin'], '保存时归一成整数');
+        self::assertStringContainsString('第一版', $this->renderPage($pinned['sections']));
+        self::assertStringContainsString('第二版', $this->renderPage($this->pageWith($component['uuid'])), '不固定就跟随最新');
+        self::assertStringContainsString('第二版', $this->renderPage($this->pageWith($component['uuid'], [], ['pin' => 2])), '固定在最新版');
+
+        $detached = BloxComponents::detach(['id' => 'e_inst', 'type' => 'component', 'data' => ['component' => $component['uuid'], 'pin' => 1]]);
+        self::assertStringContainsString('第一版', (string) json_encode($detached, JSON_UNESCAPED_UNICODE), '脱离用固定的那一版');
+        self::assertSame([2, 1], BloxComponents::availableVersions($component['uuid']));
+
+        // 固定的版本已被清出修订记录：退回最新版（编辑器会提示）
+        db()->execute('DELETE FROM blox_component_revisions WHERE version = 1');
+        BloxComponents::resetForTests();
+        self::assertStringContainsString('第二版', $this->renderPage($this->pageWith($component['uuid'], [], ['pin' => 1])));
+    }
+
     public function testRenderStopsOnACycleThatSlippedIn(): void
     {
         // 发布检查之外直接改库造出环（如旧数据、手工导入）：渲染不会无限递归，前台不输出该层

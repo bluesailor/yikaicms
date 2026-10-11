@@ -101,6 +101,35 @@ test('instance props override, master updates follow, reset and detach @ci', asy
   await expect(page.getByTestId('blox-component-instance')).toHaveCount(0);
 });
 
+// 2.1.0 锁定版本：固定后母版再发布前台不变，点「更新」才跟到新版本；取消固定恢复跟随
+test('pinned instance keeps its version until updated @ci', async ({ page }) => {
+  await openPageEditor(page, state.page);
+  await selectNode(page, 'cfp-instance', 'h3');
+  const pinState = page.getByTestId('blox-component-pin-state');
+  await expect(pinState).toBeVisible();
+  const latest = await app(page, (a) => a.componentPinState().latest);
+  await page.getByTestId('blox-component-pin-action').click();
+  expect(await app(page, (a) => a.selEl.data.pin)).toBe(latest);
+  await expect(pinState).toContainText(`v${latest}`);
+  await publishPage(page);
+
+  fixture('republish', 'Pinned check title');
+  await page.goto(state.url);
+  await expect(page.locator(`[data-yk-component="${state.uuid}"]`)).not.toContainText('Pinned check title');
+
+  await openPageEditor(page, state.page);
+  await selectNode(page, 'cfp-instance', 'h3');
+  const update = page.getByTestId('blox-component-update-pin');
+  await expect(update).toBeVisible();
+  await update.click();
+  expect(await app(page, (a) => a.selEl.data.pin)).toBe(latest + 1);
+  await page.getByTestId('blox-component-unpin').click();
+  expect(await app(page, (a) => a.selEl.data.pin)).toBeUndefined();
+  await publishPage(page);
+  await page.goto(state.url);
+  await expect(page.locator(`[data-yk-component="${state.uuid}"]`)).toContainText('Pinned check title');
+});
+
 test('master editor exposes and removes a prop from a control @ci', async ({ page }) => {
   await page.goto(`/admin/blox_editor.php?template=${state.template}`, { waitUntil: 'domcontentloaded' });
   await expect(page.getByTestId('blox-canvas')).toBeVisible();

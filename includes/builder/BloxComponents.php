@@ -19,6 +19,8 @@ final class BloxComponents
 {
     /** @var list<string> 本请求正在渲染的组件链（组件套组件的成环兜底） */
     private static array $renderStack = [];
+    /** @var array<string,array<string,mixed>|null> 固定版本的定义（uuid@版本），本请求内缓存 */
+    private static array $pinned = [];
 
     public const TYPE = 'component';
     public const UUID_PATTERN = '/^cmp_[a-f0-9]{16}$/';
@@ -43,6 +45,7 @@ final class BloxComponents
     /** @psalm-suppress PossiblyUnusedMethod 测试专用 */
     public static function resetForTests(): void
     {
+        self::$pinned = [];
         self::$catalog = null;
     }
 
@@ -472,8 +475,15 @@ final class BloxComponents
     {
         $uuid = $data['component'] ?? '';
         $data['component'] = self::validUuid($uuid) ? (string) $uuid : '';
+        // 锁定版本（2.1.0）：正整数版本号；不锁 = 跟随最新发布版
+        $pin = is_numeric($data['pin'] ?? null) ? max(0, (int) $data['pin']) : 0;
+        if ($pin > 0) {
+            $data['pin'] = $pin;
+        } else {
+            unset($data['pin']);
+        }
         $raw = is_array($data['props'] ?? null) ? $data['props'] : [];
-        $definition = $data['component'] !== '' ? self::find($data['component']) : null;
+        $definition = $data['component'] !== '' ? self::definitionFor($data['component'], $pin) : null;
         $props = [];
         if ($definition !== null) {
             foreach ($definition['props'] as $prop) {
@@ -566,7 +576,7 @@ final class BloxComponents
                     . e(__('blox_component_cycle')) . '</div>'
                 : '';
         }
-        $definition = self::validUuid($uuid) ? self::find($uuid) : null;
+        $definition = self::validUuid($uuid) ? self::definitionFor($uuid, (int) ($data['pin'] ?? 0)) : null;
         if ($definition === null) {
             return $editMode
                 ? '<div class="yk-component-missing border-2 border-dashed border-amber-300 bg-amber-50 px-4 py-5 text-center text-sm text-amber-800">'
@@ -600,7 +610,7 @@ final class BloxComponents
     public static function detach(array $element): ?array
     {
         $data = is_array($element['data'] ?? null) ? $element['data'] : [];
-        $definition = self::validUuid($data['component'] ?? null) ? self::find((string) $data['component']) : null;
+        $definition = self::validUuid($data['component'] ?? null) ? self::definitionFor((string) $data['component'], (int) ($data['pin'] ?? 0)) : null;
         if ($definition === null) {
             return null;
         }
@@ -884,6 +894,43 @@ final class BloxComponents
     public static function find(string $uuid): ?array
     {
         return self::catalog()[$uuid] ?? null;
+    }
+
+    /**
+     * 实例实际用的定义（2.1.0 锁定版本）：$pin > 0 且早于最新发布版时，取那个版本的修订快照；
+     * 快照已被清掉（只保留最近 KEEP_REVISIONS 份）就退回最新版——编辑器会提示。
+     *
+     * @return array<string,mixed>|null
+     */
+    public static function definitionFor(string $uuid, int $pin = 0): ?array
+    {
+        $latest = self::find($uuid);
+        if ($latest === null || $pin <= 0 || $pin >= (int) $latest['version']) {
+            return $latest;
+        }
+        $key = $uuid . '@' . $pin;
+        if (!array_key_exists($key, self::$pinned)) {
+            $snapshot = self::revisionSnapshot($uuid, $pin);
+            self::$pinned[$key] = $snapshot === null ? null : self::definitionFromRow([
+                'id' => $latest['id'],
+                'name' => $latest['name'],
+                'metadata' => json_encode(['component' => ['uuid' => $uuid, 'version' => $pin, 'category' => $latest['category'], 'archived' => $latest['archived']]]),
+                'published_data' => $snapshot,
+            ]);
+        }
+        return self::$pinned[$key] ?? $latest;
+    }
+
+    /** 还留着修订快照的版本号（编辑器判断固定的版本还在不在）。 @return list<int> */
+    public static function availableVersions(string $uuid): array
+    {
+        if (!self::validUuid($uuid) || !db()->tableExists('blox_component_revisions')) {
+            return [];
+        }
+        return array_map('intval', array_column(db()->fetchAll(
+            'SELECT DISTINCT version FROM ' . DB_PREFIX . 'blox_component_revisions WHERE component_uuid = ? ORDER BY version DESC',
+            [$uuid]
+        ), 'version'));
     }
 
     /**
