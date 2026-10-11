@@ -195,24 +195,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && str_starts_with((string) ($_POST['a
     $libAction = $_POST['action'];
     try {
         if ($libAction === 'lib_save') {
-            $libName = trim(post('lib_name'));
-            $libSection = json_decode($_POST['section_data'] ?? '', true);
-            if ($libName === '' || !is_array($libSection)) {
-                error(__('pea_incomplete_params'));
-            }
-            if (!empty($libSection['library_id'])) {
-                error(__('pea_detach_before_save'));
-            }
-            unset($libSection['library_name']);
-            $now = time();
-            $libId = db()->insert('blocks_library', [
-                'name' => mb_substr($libName, 0, 100),
-                'data' => json_encode($libSection, JSON_UNESCAPED_UNICODE),
-                'created_at' => $now,
-                'updated_at' => $now,
-            ]);
-            adminLog('page', 'edit', '保存可复用块：' . $libName);
-            success(['id' => (int) $libId]);
+            // 2.1.0：块库下线，不再新存；要复用请「存为组件」或另存为区块模板（模板库页可迁移旧库块）
+            error(__('pea_library_retired'));
         }
         if ($libAction === 'lib_list') {
             $rows = db()->fetchAll(
@@ -579,12 +563,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                         class="p-1 text-gray-400 hover:text-gray-600 disabled:opacity-30 cursor-pointer" title="<?php echo e(__('nav_menu_move_down')); ?>">
                                     <i class="ti ti-chevron-down text-base"></i>
                                 </button>
-                                <template x-if="!section.library_id">
-                                    <button type="button" @click="saveToLibrary(si)"
-                                            class="p-1 text-gray-400 hover:text-purple-600 cursor-pointer" title="<?php echo e(__('pea_save_to_library')); ?>">
-                                        <i class="ti ti-bookmark-plus text-base"></i>
-                                    </button>
-                                </template>
                                 <template x-if="section.library_id">
                                     <button type="button" @click="detachLibRef(si)"
                                             class="p-1 text-gray-400 hover:text-purple-600 cursor-pointer" title="<?php echo e(__('pea_detach_copy')); ?>">
@@ -1417,8 +1395,6 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <div class="flex items-center gap-2 bg-white border rounded px-3 py-1.5">
                                     <i class="ti ti-library text-purple-400"></i>
                                     <span class="text-sm text-gray-700 flex-1" x-text="item.name"></span>
-                                    <button type="button" @click="insertLibRef(item); showPicker = false"
-                                            class="text-xs text-purple-600 hover:underline cursor-pointer"><?php echo e(__('pea_insert_reference')); ?></button>
                                     <button type="button" @click="insertLibCopy(item); showPicker = false"
                                             class="text-xs text-primary hover:underline cursor-pointer"><?php echo e(__('pea_insert_copy')); ?></button>
                                     <button type="button" @click="libDelete(item)"
@@ -2280,22 +2256,6 @@ function pageBuilder() {
             this.libPost({ action: "lib_list" }).then(function(res) {
                 if (res.code === 0) self.libItems = (res.data && res.data.items) || [];
             }).catch(function() {});
-        },
-        saveToLibrary(si) {
-            var name = prompt(' . (string) json_encode(__('pea_block_name_prompt'), JSON_UNESCAPED_UNICODE) . ');
-            if (!name) return;
-            var self = this;
-            this.libPost({
-                action: "lib_save",
-                lib_name: name,
-                section_data: JSON.stringify(this.sections[si])
-            }).then(function(res) {
-                if (res.code === 0) { showMessage(' . (string) json_encode(__('pea_saved_to_library'), JSON_UNESCAPED_UNICODE) . '); self.libRefresh(); }
-                else showMessage(res.msg, "error");
-            }).catch(function() { showMessage(' . (string) json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE) . ', "error"); });
-        },
-        insertLibRef(item) {
-            this.sections.push({ id: this.uid("s"), library_id: item.id, library_name: item.name, settings: {}, columns: [] });
         },
         insertLibCopy(item) {
             var self = this;

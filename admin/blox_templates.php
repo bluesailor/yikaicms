@@ -53,6 +53,10 @@ if ($filterType !== 'all' && !BloxTemplateModel::validType($filterType)) {
     $filterType = 'all';
 }
 
+if (isset($_GET['library_migrated'])) {
+    [$libTemplates, $libReferences] = array_map('intval', explode('-', (string) $_GET['library_migrated']) + [0, 0]);
+    $notice = __('blox_tpl_library_migrated', ['templates' => (string) $libTemplates, 'references' => (string) $libReferences]);
+}
 if (isset($_GET['imported'])) {
     $notice = __('blox_tpl_imported_msg') . ' #' . max(0, (int) $_GET['imported']);
 }
@@ -535,6 +539,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             redirect('/admin/blox_templates.php?remote_rolled_back=1');
         }
 
+        if ($action === 'library_migrate') {
+            // 旧块库下线（2.1.0）：库块另存为区块模板、引用就地展开；库数据保留一个版本
+            $result = BlocksLibraryMigration::migrate((int) ($_SESSION['admin_id'] ?? 0));
+            adminLog('blox_template', 'library_migrate', '旧块库迁移：' . $result['templates'] . ' 个区块模板，展开 ' . $result['references'] . ' 处引用');
+            redirect('/admin/blox_templates.php?type=section&library_migrated=' . $result['templates'] . '-' . $result['references']);
+        }
+
         if ($action === 'install_builtin_area') {
             // 固定清单解析 + Importer 安全链；重复安装只更新草稿，保留发布版本与显示条件。
             $slug = trim((string) post('slug', ''));
@@ -693,6 +704,8 @@ if (db()->tableExists('blocks_library')) {
     );
 }
 $libraryBlocks = in_array($filterType, ['all', 'section'], true) ? $allLibraryBlocks : [];
+$libraryReport = $libraryBlocks !== [] ? BlocksLibraryMigration::report() : ['entries' => [], 'references' => 0];
+$libraryPending = array_filter($libraryReport['entries'], static fn (array $entry): bool => !$entry['migrated'] || $entry['refs'] > 0) !== [];
 
 // r16 官方模板库（含 header/footer；远程不可达时静默降级为空列表+提示）
 $officialTemplates = [];
@@ -2012,11 +2025,33 @@ function confirmAreaPublish(form) {
         <?php if ($libraryBlocks === []): ?>
             <div class="px-5 py-10 text-center text-sm text-gray-400"><?php echo __('blox_tpl_no_reusable'); ?></div>
         <?php else: ?>
+            <?php /* 旧块库下线（2.1.0）：列出每个库块与引用处（预览），确认后转成区块模板并展开引用 */ ?>
+            <div class="flex flex-wrap items-center justify-between gap-3 border-b border-amber-100 bg-amber-50 px-5 py-3 text-sm text-amber-800" data-testid="blox-library-retire">
+                <span><?php echo e(__('blox_tpl_library_retire_hint')); ?></span>
+                <?php if ($libraryPending): ?>
+                <form method="post" onsubmit="return confirm(<?php echo e((string) json_encode(__('blox_tpl_library_migrate_confirm'), JSON_UNESCAPED_UNICODE)); ?>)">
+                    <?php echo csrfField(); ?>
+                    <input type="hidden" name="action" value="library_migrate">
+                    <button type="submit" class="rounded bg-amber-600 px-3 py-1.5 text-white hover:bg-amber-700" data-testid="blox-library-migrate"><?php echo e(__('blox_tpl_library_migrate')); ?></button>
+                </form>
+                <?php endif; ?>
+            </div>
             <div class="divide-y divide-gray-100">
-                <?php foreach ($libraryBlocks as $block): ?>
-                    <div class="flex items-center justify-between px-5 py-3 text-sm">
-                        <span class="font-medium text-gray-900"><?php echo e((string) $block['name']); ?></span>
-                        <span class="text-xs text-gray-400">#<?php echo (int) $block['id']; ?></span>
+                <?php foreach ($libraryReport['entries'] as $entry): ?>
+                    <div class="flex items-center justify-between gap-3 px-5 py-3 text-sm" data-testid="blox-library-entry-<?php echo (int) $entry['id']; ?>">
+                        <span class="min-w-0">
+                            <span class="font-medium text-gray-900"><?php echo e($entry['name']); ?></span>
+                            <span class="ml-1 text-xs text-gray-400">#<?php echo (int) $entry['id']; ?></span>
+                            <?php if ($entry['places'] !== []): ?>
+                            <span class="block truncate text-xs text-gray-500"><?php echo e(implode(', ', $entry['places'])); ?></span>
+                            <?php endif; ?>
+                        </span>
+                        <span class="shrink-0 text-xs">
+                            <span class="text-gray-500"><?php echo e(__('blox_tpl_library_refs', ['n' => (string) $entry['refs']])); ?></span>
+                            <?php if ($entry['migrated']): ?>
+                            <span class="ml-2 rounded bg-green-50 px-1.5 py-0.5 text-green-700"><?php echo e(__('blox_tpl_library_migrated_badge')); ?></span>
+                            <?php endif; ?>
+                        </span>
                     </div>
                 <?php endforeach; ?>
             </div>
