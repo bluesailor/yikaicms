@@ -8,6 +8,10 @@
 /* v2.1 组件混入的启动数据（RFC-2）：输出一个 JSON 对象，作为 YikaiBloxComponents.mixin() 的参数。拆出主入口以守住 500 KB 预算 */
 echo json_encode([
                 'master' => $templateId > 0 && $templateType === BloxComponents::TYPE,
+                // 编辑母版时组件库不列它自己（组件不能包含自己；间接成环在发布时拦）
+                'selfUuid' => $templateId > 0 && $templateType === BloxComponents::TYPE
+                    ? (string) (json_decode((string) (bloxTemplateModel()->find($templateId)['metadata'] ?? ''), true)['component']['uuid'] ?? '')
+                    : '',
                 'canManage' => hasPermission('blox_global') && BloxFeaturePolicy::allows('components'),
                 // 多语言首页是共享文档：非默认语言下编辑时，可多语言属性写进 props_i18n[该语言]
                 'instanceLang' => ($isHomeBlox && $homeEditorLangQuery !== '') ? $homeEditorLanguage : '',
@@ -20,6 +24,10 @@ echo json_encode([
                     'empty' => __('blox_component_empty'), 'noMatch' => __('blox_component_no_match'),
                     'usedTimes' => __('blox_component_used_times'), 'version' => __('blox_component_version'),
                     'followsMaster' => __('blox_component_follows_master'), 'reset' => __('blox_component_reset'),
+                    'followLatest' => __('blox_component_follow_latest'), 'pinned' => __('blox_component_pinned'),
+                    'pin' => __('blox_component_pin'), 'unpin' => __('blox_component_unpin'),
+                    'updatePin' => __('blox_component_update_pin'), 'pinMissing' => __('blox_component_pin_missing'),
+                    'overrides' => __('blox_component_overrides'),
                     'noProps' => __('blox_component_no_props'), 'editMaster' => __('blox_component_edit_master'),
                     'detach' => __('blox_component_detach'), 'detachConfirm' => __('blox_component_detach_confirm'),
                     'detached' => __('blox_component_detached'), 'autobind' => __('blox_component_autobind'),

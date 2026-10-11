@@ -110,6 +110,8 @@ try {
             'component' => $componentCard($definition, BloxComponents::usage()),
             // 放进查询循环时的自动绑定建议（作者确认后才写进实例）
             'loop_bindings' => BloxComponents::suggestLoopBindings($definition['props']),
+            // 锁定版本（2.1.0）：还留着修订快照的版本，编辑器据此提示固定的版本是否已被清掉
+            'versions' => BloxComponents::availableVersions($definition['uuid']),
         ]);
     }
 
