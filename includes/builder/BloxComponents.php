@@ -707,6 +707,7 @@ final class BloxComponents
             if (!is_array($child)) {
                 return $child;
             }
+            /** @var array<string,mixed> $child */
             if (($child['type'] ?? '') === self::TYPE) {
                 $replacement = self::detach($child);
                 if ($replacement === null) {
@@ -1121,23 +1122,6 @@ final class BloxComponents
     }
 
     // ── 工具 ──────────────────────────────────────────────────────────
-
-    /** @param array<int,mixed> $elements */
-    public static function containsInstance(array $elements): bool
-    {
-        foreach ($elements as $element) {
-            if (!is_array($element)) {
-                continue;
-            }
-            if (($element['type'] ?? '') === self::TYPE) {
-                return true;
-            }
-            if (is_array($element['data']['children'] ?? null) && self::containsInstance($element['data']['children'])) {
-                return true;
-            }
-        }
-        return false;
-    }
 
     /**
      * @param array<int,mixed> $elements

@@ -181,7 +181,7 @@ final class BloxComponentsTest extends TestCase
 
         $detached = BloxComponents::detachAll($this->pageWith($outer['uuid']));
         self::assertSame(2, $detached['expanded'], '外层与里面的内层都脱离');
-        self::assertFalse(BloxComponents::containsInstance($detached['sections'][0]['columns'][0]['elements']));
+        self::assertSame([], BloxComponents::directDependencies($detached['sections'][0]['columns'][0]['elements']));
         $count = 0;
         $tree = BloxComponents::detachInTree(['sections' => $this->pageWith($outer['uuid'])], $count);
         self::assertSame(2, $count);
@@ -392,7 +392,7 @@ final class BloxComponentsTest extends TestCase
         self::assertSame('{{loop.title}}', $root['data']['children'][0]['data']['text'], '脱离后保留标签原文，循环里照常解析');
         self::assertSame('询价', $root['data']['children'][1]['data']['text']);
         self::assertNotSame('e_title', $root['data']['children'][0]['id'], '节点 id 重新生成');
-        self::assertFalse(BloxComponents::containsInstance([$root]));
+        self::assertSame([], BloxComponents::directDependencies([$root]));
 
         // 母版之后再改，脱离出来的结构不受影响
         self::assertStringContainsString('询价', $this->renderPage($result['sections']));
