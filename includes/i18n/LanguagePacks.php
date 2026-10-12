@@ -44,6 +44,9 @@ final class LanguagePacks
 
     public const BASE_URL = 'https://down.yikai.cn/soft/yikaicms/lang/';
 
+    /** 最近一次 httpFetch 的 HTTP 状态（0 = 没连上）；下载失败时据此区分「这一版还没发布」与「连不上」 */
+    public static int $lastStatus = 0;
+
     /** 单个语言包上限：最大的 th 解压后约 1.1 MB，压缩后约 0.2 MB。 */
     public const MAX_DOWNLOAD_BYTES = 1048576;
     private const MAX_PHP_BYTES = 4194304;
@@ -142,9 +145,11 @@ final class LanguagePacks
         if (preg_match('/^\d+\.\d+\.\d+$/D', $cmsVersion) !== 1) {
             throw new LanguagePackException('bad_version', $cmsVersion);
         }
+        self::$lastStatus = 0;
         $bytes = $fetch(self::url($code, $cmsVersion), self::MAX_DOWNLOAD_BYTES);
         if (!is_string($bytes) || $bytes === '') {
-            throw new LanguagePackException('download_failed', self::url($code, $cmsVersion));
+            // 404：官方还没发布这一版的语言包（如开发中的版本号），不是网络问题
+            throw new LanguagePackException(self::$lastStatus === 404 ? 'not_published' : 'download_failed', self::url($code, $cmsVersion));
         }
         return self::installFromZip($root, $bytes, $cmsVersion, $publicKey, $code);
     }
@@ -282,6 +287,7 @@ final class LanguagePacks
             curl_exec($ch);
             $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
+            self::$lastStatus = $status;
             return !$tooLarge && $status === 200 && $body !== '' ? $body : null;
         }
         if (!ini_get('allow_url_fopen')) {
@@ -290,6 +296,7 @@ final class LanguagePacks
         $context = stream_context_create(['http' => ['timeout' => 30, 'follow_location' => 0, 'ignore_errors' => true]]);
         $body = @file_get_contents($url, false, $context, 0, $maxBytes + 1);
         $statusLine = (string) ($http_response_header[0] ?? '');
+        self::$lastStatus = preg_match('/^HTTP\/\S+\s+(\d{3})/', $statusLine, $m) === 1 ? (int) $m[1] : 0;
         return is_string($body) && $body !== '' && strlen($body) <= $maxBytes && preg_match('/^HTTP\/\S+\s+200\b/', $statusLine) === 1 ? $body : null;
     }
 
