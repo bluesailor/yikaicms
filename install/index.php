@@ -434,11 +434,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action'])) {
 
             // 选了不随安装包的语言：先下载语言包（建库之前——失败时数据库还没动，可换语言重试）。
             // 首页默认文案、法律页等种子按站点语言取 lang/<code>.php，必须在写种子之前装好。
+            $_packIndex = null;   // 语言包清单（2.1.0）：按清单里的最新版下载；取不到就按本版本号
             foreach (array_unique([$siteLang, $adminLang]) as $_packLang) {
                 if (!installerLangNeedsDownload($_packLang)) continue;
                 try {
                     require_once ROOT_PATH . '/includes/License.php';
-                    LanguagePacks::download(ROOT_PATH, $_packLang, $cmsVersion, license_pubkey(), [LanguagePacks::class, 'httpFetch']);
+                    $_packIndex ??= LanguagePacks::parseIndex(LanguagePacks::httpFetch(LanguagePacks::INDEX_URL, 65536)) ?? [];
+                    LanguagePacks::download(ROOT_PATH, $_packLang, $cmsVersion, license_pubkey(), [LanguagePacks::class, 'httpFetch'],
+                        LanguagePacks::targetVersion($_packLang, $cmsVersion, $_packIndex));
                 } catch (LanguagePackException $e) {
                     ob_end_clean();
                     echo json_encode([

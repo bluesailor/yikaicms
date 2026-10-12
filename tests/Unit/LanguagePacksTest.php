@@ -60,16 +60,43 @@ final class LanguagePacksTest extends TestCase
         self::assertSame(['hello' => 'Привет'], require $this->root . '/lang/ru.php');
         self::assertSame('2.1.1', LanguagePacks::manifest($this->root)['ru']['version']);
         self::assertSame(['ru'], LanguagePacks::installed($this->root));
-        self::assertSame([], LanguagePacks::outdated($this->root, '2.1.1'));
-        self::assertSame(['ru'], LanguagePacks::outdated($this->root, '2.1.2'), '升级后旧版本语言包要提示更新');
+        self::assertSame([], LanguagePacks::outdated($this->root, '2.1.1', ['ru' => '2.1.1']));
+        self::assertSame([], LanguagePacks::outdated($this->root, '2.1.2', ['ru' => '2.1.1']), '小版本没发新包：清单不变，不提示');
+        self::assertSame(['ru'], LanguagePacks::outdated($this->root, '2.1.2', ['ru' => '2.1.2']), '清单里有更新的包才提示');
+        self::assertSame([], LanguagePacks::outdated($this->root, '2.1.2', ['ru' => '2.2.0']), '比本站新的包不提示');
+        self::assertSame([], LanguagePacks::outdated($this->root, '2.1.2', null), '拿不到清单不提示');
         self::assertSame([], glob($this->root . '/lang/.*.tmp') ?: [], '临时文件不得残留');
     }
 
     public function testLegacyFileWithoutRecordCountsAsOutdated(): void
     {
-        // 2.1 之前随安装包来的 lang/ru.php：没有记录，升级后按「版本未知」更新
+        // 2.1 之前随安装包来的 lang/ru.php：没有记录，清单里有这种语言就按「版本未知」更新
         file_put_contents($this->root . '/lang/ru.php', "<?php return ['a' => 'b'];");
-        self::assertSame(['ru'], LanguagePacks::outdated($this->root, '2.1.1'));
+        self::assertSame(['ru'], LanguagePacks::outdated($this->root, '2.1.1', ['ru' => '2.1.0']));
+        self::assertSame([], LanguagePacks::outdated($this->root, '2.1.1', []), '清单里没有这种语言：不提示');
+    }
+
+    public function testIndexIsParsedStrictlyAndDrivesTheDownloadVersion(): void
+    {
+        self::assertSame(['ru' => '2.1.0'], LanguagePacks::parseIndex((string) json_encode(['schema' => 1, 'packs' => [
+            'ru' => '2.1.0', 'en' => '2.1.0', 'xx' => '2.1.0', 'ko' => 'latest',
+        ]])), '内置语言、未知语言、非法版本号丢掉');
+        self::assertNull(LanguagePacks::parseIndex('{"packs":{}}'), '没有 schema');
+        self::assertNull(LanguagePacks::parseIndex(null));
+        self::assertSame('2.1.0', LanguagePacks::targetVersion('ru', '2.1.3', ['ru' => '2.1.0']));
+        self::assertNull(LanguagePacks::targetVersion('ru', '2.0.9', ['ru' => '2.1.0']));
+
+        $asked = [];
+        $zip = $this->pack('ru', '2.1.0');
+        LanguagePacks::download($this->root, 'ru', '2.1.3', $this->publicKey, static function (string $url) use (&$asked, $zip): ?string {
+            $asked[] = $url;
+            return $zip;
+        }, '2.1.0');
+        self::assertSame([LanguagePacks::url('ru', '2.1.0')], $asked, '按清单版本下载，不按本站版本号');
+        self::assertSame('2.1.0', LanguagePacks::manifest($this->root)['ru']['version']);
+
+        $this->expectExceptionObject(new LanguagePackException('newer_than_cms', '2.2.0'));
+        LanguagePacks::download($this->root, 'ru', '2.1.3', $this->publicKey, static fn (): ?string => null, '2.2.0');
     }
 
     /** @return iterable<string, array{0: string, 1: string}> */
@@ -125,7 +152,7 @@ final class LanguagePacksTest extends TestCase
     {
         $result = LanguagePacks::installFromZip($this->root, $this->pack('ru', '2.1.0'), '2.1.1', $this->publicKey);
         self::assertSame('2.1.0', $result['version']);
-        self::assertSame(['ru'], LanguagePacks::outdated($this->root, '2.1.1'));
+        self::assertSame(['ru'], LanguagePacks::outdated($this->root, '2.1.1', ['ru' => '2.1.1']));
     }
 
     public function testDownloadUsesTheFixedOfficialAddress(): void
@@ -140,6 +167,21 @@ final class LanguagePacksTest extends TestCase
 
         $this->expectExceptionObject(new LanguagePackException('download_failed', LanguagePacks::url('ko', '2.1.1')));
         LanguagePacks::download($this->root, 'ko', '2.1.1', $this->publicKey, static fn(): ?string => null);
+    }
+
+    public function testUnpublishedVersionIsReportedSeparatelyFromNetworkFailure(): void
+    {
+        try {
+            LanguagePacks::download($this->root, 'ko', '2.0.6', $this->publicKey, static function (): ?string {
+                LanguagePacks::$lastStatus = 404;   // httpFetch 记下的状态
+                return null;
+            });
+            self::fail('404 应报「还没发布」');
+        } catch (LanguagePackException $e) {
+            self::assertSame('not_published', $e->reason());
+        }
+        $source = (string) file_get_contents(ROOT_PATH . '/includes/i18n/LanguagePackSite.php');
+        self::assertStringContainsString("file_exists(ROOT_PATH . '/.git')", $source, 'Git 检出不提示更新语言包');
     }
 
     public function testLanguageInUseCannotBeUninstalled(): void
