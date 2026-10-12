@@ -228,6 +228,9 @@ final class AutoUpgrade
         // 定时回访也更新右上角铃铛（没开定时任务的站靠控制台 / 升级页的检查）
         require_once ROOT_PATH . '/includes/UpdateNotice.php';
         UpdateNotice::record($d['data']);
+        // 顺带刷新语言包清单（铃铛只读缓存，不在页面加载时联网）
+        require_once ROOT_PATH . '/includes/i18n/LanguagePackSite.php';
+        LanguagePackSite::refreshIndex();
         // 站长点了邮件里的退订链接：服务器不再保存这个邮箱，本地也同步停止上报
         if (($d['data']['notify_state'] ?? '') === 'unsubscribed') {
             UpdateMailSubscription::unsubscribedByServer();
