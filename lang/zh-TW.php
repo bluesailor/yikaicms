@@ -4904,6 +4904,7 @@ return [
     'lpack_updated' => '已更新 :count 個語言包',
     'lpack_update_failed' => '以下語言包更新失敗：:langs。原語言包仍可使用，新增文案暫時顯示英文。',
     'lpack_err_download_failed' => '下載失敗：伺服器連不上易開官方下載地址。可改用「上傳語言包」。',
+    'lpack_err_not_published' => '這個版本的語言包還沒有發佈，請稍後再試，或改用「上傳語言包」。',
     'lpack_err_bad_signature' => '語言包簽名無效，已拒絕安裝。',
     'lpack_err_bad_zip' => '不是有效的語言包檔案。',
     'lpack_err_newer_than_cms' => '這個語言包適用於更新版本的系統，請先升級。',

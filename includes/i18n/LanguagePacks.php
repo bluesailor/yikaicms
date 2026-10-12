@@ -2,8 +2,10 @@
 /**
  * 按需下载的界面语言包（设计：yikaicms-docs/planning/features/language-packs-on-demand-design-2026-10-09.md）。
  *
- * 安装包只带 BUNDLED 三种；其余语言随每个 CMS 版本发布为签名语言包：
+ * 安装包只带 BUNDLED 三种；其余语言发布为签名语言包：
  *   https://down.yikai.cn/soft/yikaicms/lang/<版本>/yikaicms-lang-<code>-<版本>.zip
+ * 2.1.0 起有一份清单 lang/index.json：每种语言最新发布的包版本。站点按它判断要不要更新、下载哪个版本——
+ * 不改文案的小版本不必重新发包（清单不变，站点继续用上一版的包，缺的键走兜底）。
  * 包里恰好两个条目：lang/<code>.php 与 pack.json（code、cms_version、sha256、signature）。
  *
  * 装好后仍落在 lang/<code>.php——「语言已安装 = 文件存在」是路由、语言设置、安装向导的共同口径，
@@ -43,6 +45,10 @@ final class LanguagePacks
     public const BUNDLED = ['zh-CN', 'en', 'ja'];
 
     public const BASE_URL = 'https://down.yikai.cn/soft/yikaicms/lang/';
+    public const INDEX_URL = self::BASE_URL . 'index.json';
+
+    /** 最近一次 httpFetch 的 HTTP 状态（0 = 没连上）；下载失败时据此区分「这一版还没发布」与「连不上」 */
+    public static int $lastStatus = 0;
 
     /** 单个语言包上限：最大的 th 解压后约 1.1 MB，压缩后约 0.2 MB。 */
     public const MAX_DOWNLOAD_BYTES = 1048576;
@@ -117,17 +123,51 @@ final class LanguagePacks
     }
 
     /**
-     * 需要更新的语言包：装着、但记录的版本不是当前 CMS 版本（含 2.1 之前随包来的、没有记录的）。
+     * 解析清单 index.json：{"schema":1,"packs":{"ko":"2.1.0",…}}。格式不对返回 null（当作拿不到清单）。
      *
+     * @return array<string,string>|null 语言 => 最新包版本
+     */
+    public static function parseIndex(?string $json): ?array
+    {
+        $data = is_string($json) ? json_decode($json, true) : null;
+        if (!is_array($data) || ($data['schema'] ?? null) !== 1 || !is_array($data['packs'] ?? null)) {
+            return null;
+        }
+        $out = [];
+        foreach ($data['packs'] as $code => $version) {
+            if (is_string($code) && LanguageRegistry::has($code) && !self::isBundled($code)
+                && is_string($version) && preg_match('/^\d+\.\d+\.\d+$/D', $version) === 1) {
+                $out[$code] = $version;
+            }
+        }
+        return $out;
+    }
+
+    /** 这个站该装的版本：清单里的最新版，但不能比本站 CMS 新；清单没有这种语言返回 null。 @param array<string,string>|null $index */
+    public static function targetVersion(string $code, string $cmsVersion, ?array $index): ?string
+    {
+        $version = $index[$code] ?? null;
+        return $version !== null && !version_compare($version, $cmsVersion, '>') ? $version : null;
+    }
+
+    /**
+     * 需要更新的语言包：装着、清单里有比已装版本新的（且不比本站新）。没有装包记录的（2.1 之前随安装包来的）
+     * 只要清单里有就算。拿不到清单（$index = null）一律不提示——不知道有没有新包，提示了也装不上。
+     *
+     * @param array<string,string>|null $index parseIndex() 的结果
      * @return list<string>
      */
-    public static function outdated(string $root, string $cmsVersion): array
+    public static function outdated(string $root, string $cmsVersion, ?array $index): array
     {
+        if ($index === null) {
+            return [];
+        }
         $manifest = self::manifest($root);
-        return array_values(array_filter(
-            self::installed($root),
-            static fn(string $code): bool => ($manifest[$code]['version'] ?? '') !== $cmsVersion
-        ));
+        return array_values(array_filter(self::installed($root), static function (string $code) use ($manifest, $cmsVersion, $index): bool {
+            $target = self::targetVersion($code, $cmsVersion, $index);
+            $have = $manifest[$code]['version'] ?? '';
+            return $target !== null && ($have === '' || version_compare($have, $target, '<'));
+        }));
     }
 
     /**
@@ -136,15 +176,22 @@ final class LanguagePacks
      * @param callable(string $url, int $maxBytes): ?string $fetch 返回包字节；失败返回 null
      * @return array{code:string, version:string}
      */
-    public static function download(string $root, string $code, string $cmsVersion, string $publicKey, callable $fetch): array
+    public static function download(string $root, string $code, string $cmsVersion, string $publicKey, callable $fetch, ?string $packVersion = null): array
     {
         self::assertDownloadable($code);
-        if (preg_match('/^\d+\.\d+\.\d+$/D', $cmsVersion) !== 1) {
-            throw new LanguagePackException('bad_version', $cmsVersion);
+        // 要下载的包版本：清单给的（2.1.0 起）或当前 CMS 版本；不能比本站新
+        $packVersion ??= $cmsVersion;
+        if (preg_match('/^\d+\.\d+\.\d+$/D', $cmsVersion) !== 1 || preg_match('/^\d+\.\d+\.\d+$/D', $packVersion) !== 1) {
+            throw new LanguagePackException('bad_version', $packVersion);
         }
-        $bytes = $fetch(self::url($code, $cmsVersion), self::MAX_DOWNLOAD_BYTES);
+        if (version_compare($packVersion, $cmsVersion, '>')) {
+            throw new LanguagePackException('newer_than_cms', $packVersion);
+        }
+        self::$lastStatus = 0;
+        $bytes = $fetch(self::url($code, $packVersion), self::MAX_DOWNLOAD_BYTES);
         if (!is_string($bytes) || $bytes === '') {
-            throw new LanguagePackException('download_failed', self::url($code, $cmsVersion));
+            // 404：官方还没发布这一版的语言包（如开发中的版本号），不是网络问题
+            throw new LanguagePackException(self::$lastStatus === 404 ? 'not_published' : 'download_failed', self::url($code, $packVersion));
         }
         return self::installFromZip($root, $bytes, $cmsVersion, $publicKey, $code);
     }
@@ -260,6 +307,7 @@ final class LanguagePacks
      */
     public static function httpFetch(string $url, int $maxBytes): ?string
     {
+        self::$lastStatus = 0;
         if (!str_starts_with($url, self::BASE_URL)) {
             return null;
         }
@@ -282,6 +330,7 @@ final class LanguagePacks
             curl_exec($ch);
             $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
             curl_close($ch);
+            self::$lastStatus = $status;
             return !$tooLarge && $status === 200 && $body !== '' ? $body : null;
         }
         if (!ini_get('allow_url_fopen')) {
@@ -290,6 +339,7 @@ final class LanguagePacks
         $context = stream_context_create(['http' => ['timeout' => 30, 'follow_location' => 0, 'ignore_errors' => true]]);
         $body = @file_get_contents($url, false, $context, 0, $maxBytes + 1);
         $statusLine = (string) ($http_response_header[0] ?? '');
+        self::$lastStatus = preg_match('/^HTTP\/\S+\s+(\d{3})/', $statusLine, $m) === 1 ? (int) $m[1] : 0;
         return is_string($body) && $body !== '' && strlen($body) <= $maxBytes && preg_match('/^HTTP\/\S+\s+200\b/', $statusLine) === 1 ? $body : null;
     }
 

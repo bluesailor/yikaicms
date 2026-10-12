@@ -211,6 +211,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'check
     if (is_array($data) && (int) ($data['code'] ?? 1) === 0 && is_array($data['data'] ?? null)) {
         require_once ROOT_PATH . '/includes/UpdateNotice.php';
         UpdateNotice::record($data['data']);
+        // 顺带刷新语言包清单（铃铛只读缓存，不在页面加载时联网）
+        require_once ROOT_PATH . '/includes/i18n/LanguagePackSite.php';
+        LanguagePackSite::refreshIndex();
     }
 
     echo $response;
