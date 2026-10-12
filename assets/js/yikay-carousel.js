@@ -2,6 +2,7 @@
  * Blox 轮播运行时（客户评价轮播等）：原生横向滚动 + scroll-snap，本脚本只负责
  * 下方圆点导航、左右箭头与自动播放。无 JS 时内容仍可横向滑动查看。
  *
+ * - 缩略图导航（2.1.0，图片轮播）：[data-yk-carousel-thumb="序号"] 按钮点了滚到那张所在的页，当前页的缩略图标 aria-current。
  * - 圆点按「页」生成：每页显示条数由 CSS 决定（手机 1 / 平板 ≤2 / 桌面 per-view），窗口变化时重算。
  * - 自动播放：悬停、键盘聚焦、页面不可见、减少动态偏好或处于编辑器画布时暂停。
  * - 编辑器局部刷新后通过 blox:content-updated 重新绑定新节点。
@@ -26,6 +27,8 @@
 
         var slides = Array.prototype.slice.call(track.children);
         var dotsBox = root.querySelector('[data-yk-carousel-dots]');
+        var thumbsBox = root.querySelector('[data-yk-carousel-thumbs]');
+        var thumbs = thumbsBox ? Array.prototype.slice.call(thumbsBox.querySelectorAll('[data-yk-carousel-thumb]')) : [];
         var dotLabel = root.getAttribute('data-yk-carousel-dot-label') || '%d';
         var dots = [];
         var paused = false;
@@ -91,6 +94,18 @@
             dots.forEach(function (dot, index) {
                 dot.setAttribute('aria-current', index === active ? 'true' : 'false');
             });
+            var per = perView();
+            thumbs.forEach(function (thumb) {
+                var current = Math.floor(parseInt(thumb.getAttribute('data-yk-carousel-thumb'), 10) / per) === active;
+                thumb.setAttribute('aria-current', current ? 'true' : 'false');
+                // 当前缩略图滚进缩略图条可见范围（只滚缩略图条，不动整页）
+                if (current && thumbsBox.scrollWidth > thumbsBox.clientWidth) {
+                    var left = thumb.offsetLeft - thumbsBox.offsetLeft;
+                    if (left < thumbsBox.scrollLeft || left + thumb.offsetWidth > thumbsBox.scrollLeft + thumbsBox.clientWidth) {
+                        thumbsBox.scrollTo({ left: Math.max(0, left - 8), behavior: 'auto' });
+                    }
+                }
+            });
         }
 
         track.addEventListener('scroll', function () {
@@ -98,6 +113,12 @@
             ticking = true;
             window.requestAnimationFrame(update);
         }, { passive: true });
+
+        thumbs.forEach(function (thumb) {
+            thumb.addEventListener('click', function () {
+                goTo(Math.floor(parseInt(thumb.getAttribute('data-yk-carousel-thumb'), 10) / perView()));
+            });
+        });
 
         var prev = root.querySelector('[data-yk-carousel-prev]');
         var next = root.querySelector('[data-yk-carousel-next]');

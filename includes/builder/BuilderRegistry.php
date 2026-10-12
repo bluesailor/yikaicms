@@ -146,6 +146,7 @@ final class BuilderRegistry
             new OrgChartElement(),
             new PricingTableElement(),
             new TestimonialCarouselElement(),
+            new ImageCarouselElement(),
             new LogoWallElement(),
             new StatItemElement(),
             new ProcessStepElement(),
