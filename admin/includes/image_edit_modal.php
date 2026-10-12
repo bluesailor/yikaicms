@@ -54,7 +54,16 @@ declare(strict_types=1);
                     </div>
                 </div>
                 <div>
-                    <label for="imageEditAlt" class="font-medium text-gray-700 mb-1 block"><?php echo e(__('image_edit_alt')); ?></label>
+                    <div class="mb-1 flex items-center justify-between gap-2">
+                        <label for="imageEditAlt" class="font-medium text-gray-700"><?php echo e(__('image_edit_alt')); ?></label>
+                        <?php /* 2.1.0：配了 AI 就能让它看图写替代文字；只填进输入框，点保存才写入 */ ?>
+                        <?php if (function_exists('aiService') && aiService()->isConfigured()): ?>
+                        <button type="button" data-ie-alt-ai data-busy-text="<?php echo e(__('image_edit_alt_ai_busy')); ?>"
+                                class="text-xs text-purple-600 hover:text-purple-800 inline-flex items-center gap-0.5 disabled:opacity-50" data-testid="image-edit-alt-ai">
+                            <i class="ti ti-sparkles" aria-hidden="true"></i><span><?php echo e(__('image_edit_alt_ai')); ?></span>
+                        </button>
+                        <?php endif; ?>
+                    </div>
                     <input type="text" id="imageEditAlt" data-ie-alt maxlength="300" class="w-full border rounded px-2 py-1.5">
                     <p class="text-xs text-gray-500 mt-1"><?php echo e(__('image_edit_alt_hint')); ?></p>
                 </div>

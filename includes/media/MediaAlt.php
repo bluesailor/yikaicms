@@ -26,3 +26,30 @@ function mediaAltFor(string $url): string
     $path = (string) (parse_url($url, PHP_URL_PATH) ?? '');
     return $map[$path] ?? $map[$url] ?? '';
 }
+
+/**
+ * 正文里没写替代文字的图片（<img> 没有 alt 或 alt 为空）用媒体库里的兜底（2.1.0；renderContent 调用）。
+ * 写了替代文字的不动；媒体库里也没有的保持原样。
+ */
+function mediaAltFillHtml(string $html): string
+{
+    if (stripos($html, '<img') === false) {
+        return $html;
+    }
+    return (string) preg_replace_callback('/<img\b[^>]*>/i', static function (array $m): string {
+        $tag = $m[0];
+        if (preg_match('/\salt\s*=\s*(["\'])\s*\S.*?\1/is', $tag) === 1) {
+            return $tag;
+        }
+        if (preg_match('/\ssrc\s*=\s*(["\'])(.*?)\1/is', $tag, $src) !== 1) {
+            return $tag;
+        }
+        $alt = mediaAltFor(html_entity_decode($src[2], ENT_QUOTES | ENT_HTML5, 'UTF-8'));
+        if ($alt === '') {
+            return $tag;
+        }
+        $attr = ' alt="' . htmlspecialchars($alt, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '"';
+        $tag = (string) preg_replace('/\salt\s*=\s*(["\'])\s*\1/i', '', $tag);
+        return (string) preg_replace('/\s*\/?>$/', $attr . '$0', $tag, 1);
+    }, $html);
+}

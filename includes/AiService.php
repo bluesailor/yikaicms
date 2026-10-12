@@ -195,6 +195,59 @@ class AiService
     }
 
     /**
+     * 让模型看一张图并回答（2.1.0：媒体库用它生成替代文字）。模型不支持图片时供应商会报错，原样返回给调用方。
+     *
+     * @param string $bytes 图片原始字节（调用方负责只传本站文件、控制大小）
+     * @return array ['success' => bool, 'content' => string, 'error' => string]
+     */
+    public function describeImage(string $bytes, string $mime, string $instruction, string $system = '', float $temperature = 0.3): array
+    {
+        if (!$this->isConfigured()) {
+            return ['success' => false, 'content' => '', 'error' => 'AI 未配置，请先在设置中填写 API Key'];
+        }
+        $parts = [
+            ['type' => 'image', 'mime' => $mime, 'data' => base64_encode($bytes)],
+            ['type' => 'text', 'text' => $instruction],
+        ];
+        $cfg = self::PROVIDERS[$this->provider] ?? self::PROVIDERS['openai'];
+        try {
+            $result = $cfg['format'] === 'anthropic'
+                ? $this->callAnthropic($parts, $system, $temperature)
+                : $this->callOpenAI($parts, $system, $temperature);
+            $this->logUsage($result);
+            return $result;
+        } catch (\Throwable $e) {
+            $result = ['success' => false, 'content' => '', 'error' => $e->getMessage()];
+            $this->logUsage($result);
+            return $result;
+        }
+    }
+
+    /**
+     * 中性的消息内容（文字串，或 [{type:text,text} | {type:image,mime,data}] 列表）→ 各供应商格式。
+     *
+     * @param string|list<array<string,string>> $prompt
+     * @return string|list<array<string,mixed>>
+     */
+    private static function messageContent(string|array $prompt, string $format): string|array
+    {
+        if (is_string($prompt)) {
+            return $prompt;
+        }
+        $out = [];
+        foreach ($prompt as $part) {
+            if (($part['type'] ?? '') === 'image') {
+                $out[] = $format === 'anthropic'
+                    ? ['type' => 'image', 'source' => ['type' => 'base64', 'media_type' => (string) $part['mime'], 'data' => (string) $part['data']]]
+                    : ['type' => 'image_url', 'image_url' => ['url' => 'data:' . $part['mime'] . ';base64,' . $part['data']]];
+            } else {
+                $out[] = ['type' => 'text', 'text' => (string) ($part['text'] ?? '')];
+            }
+        }
+        return $out;
+    }
+
+    /**
      * 带工具调用（function-calling）的 agent 循环。
      * 让 AI 自主决定调用哪个 ability，自动执行并把结果回灌，直到 AI 给出最终回复或达到 maxIter。
      *
@@ -360,13 +413,14 @@ class AiService
     /**
      * OpenAI 兼容格式调用（OpenAI / DeepSeek / Qwen / 智谱）
      */
-    private function callOpenAI(string $prompt, string $system, float $temperature): array
+    /** @param string|list<array<string,string>> $prompt */
+    private function callOpenAI(string|array $prompt, string $system, float $temperature): array
     {
         $messages = [];
         if ($system) {
             $messages[] = ['role' => 'system', 'content' => $system];
         }
-        $messages[] = ['role' => 'user', 'content' => $prompt];
+        $messages[] = ['role' => 'user', 'content' => self::messageContent($prompt, 'openai')];
 
         $payload = [
             'model'       => $this->model,
@@ -408,14 +462,15 @@ class AiService
     /**
      * Anthropic Claude API 调用
      */
-    private function callAnthropic(string $prompt, string $system, float $temperature): array
+    /** @param string|list<array<string,string>> $prompt */
+    private function callAnthropic(string|array $prompt, string $system, float $temperature): array
     {
         $payload = [
             'model'       => $this->model,
             'max_tokens'  => 4096,
             'temperature' => $temperature,
             'messages'    => [
-                ['role' => 'user', 'content' => $prompt],
+                ['role' => 'user', 'content' => self::messageContent($prompt, 'anthropic')],
             ],
         ];
         if ($system) {
