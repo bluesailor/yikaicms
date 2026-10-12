@@ -24,7 +24,29 @@
         if (!modal || modal.dataset.ieReady) return !!modal;
         modal.dataset.ieReady = "1";
         stage = q("stage"); img = q("preview"); box = q("box");
-        ["size", "loading", "animated", "apply-crop", "undo", "redo", "alt", "status", "save", "restore"].forEach(function (k) { els[k] = q(k); });
+        ["size", "loading", "animated", "apply-crop", "undo", "redo", "alt", "alt-ai", "status", "save", "restore"].forEach(function (k) { els[k] = q(k); });
+        // 2.1.0：AI 看图写替代文字——只填进输入框，站长确认后点保存
+        if (els["alt-ai"]) {
+            els["alt-ai"].addEventListener("click", function () {
+                if (!state) return;
+                var button = els["alt-ai"], label = button.querySelector("span"), idle = label.textContent;
+                button.disabled = true;
+                label.textContent = button.getAttribute("data-busy-text") || idle;
+                var fd = new FormData();
+                fd.append("action", "generate_alt");
+                fd.append("media_id", state.id);
+                fetch((window.YK_BASE || "") + "/admin/api_ai.php", { method: "POST", body: fd })
+                    .then(function (r) { return r.json(); })
+                    .then(function (data) {
+                        if (!data.success) throw new Error(data.error || "");
+                        els.alt.value = data.alt || "";
+                        els.alt.dispatchEvent(new Event("input", { bubbles: true }));
+                        els.alt.focus();
+                    })
+                    .catch(function (err) { if (typeof showMessage === "function") showMessage(err.message, "error"); })
+                    .finally(function () { button.disabled = false; label.textContent = idle; });
+            });
+        }
 
         q("close").addEventListener("click", close);
         modal.addEventListener("click", function (e) { if (e.target === modal) close(); });

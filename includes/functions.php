@@ -2516,6 +2516,7 @@ function renderContent(?string $html): string
         $sanitized = TagEngine::render($sanitized);
     }
     $html = (string) apply_filters('content_render', $sanitized);
+    $html = mediaAltFillHtml($html);   // 正文图片没写替代文字时用媒体库里的（2.1.0）
     codeBlockSeen($html);
     return $html;
 }
