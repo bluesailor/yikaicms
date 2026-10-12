@@ -26,7 +26,7 @@ if (!defined('ROOT_PATH')) {
  */
 function contentPermTypes(): array
 {
-    return ['article', 'product', 'case', 'download', 'page', 'job', 'timeline'];
+    return ['article', 'product', 'case', 'download', 'page', 'job', 'timeline', 'testimonial'];
 }
 
 /** 辅助模块单权限 */

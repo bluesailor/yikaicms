@@ -75,7 +75,8 @@ final class TestimonialLogoWallElementsTest extends TestCase
     public function testBothElementsUseTheSharedItemsRepeaterControl(): void
     {
         foreach (['testimonial-carousel', 'logo-wall'] as $type) {
-            $control = BuilderRegistry::get($type)->controls()[0];
+            // 按键找（2.1.0 起评价轮播在条目前面多了「数据来源」）
+            $control = array_values(array_filter(BuilderRegistry::get($type)->controls(), static fn (array $c): bool => ($c['key'] ?? '') === 'items'))[0];
             self::assertSame('items_repeater', $control['type']);
             self::assertNotEmpty($control['fields']);
             self::assertNotEmpty($control['default']);
