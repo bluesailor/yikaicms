@@ -9,7 +9,11 @@ declare(strict_types=1);
 function mediaAltFor(string $url): string
 {
     static $map = null;
-    if ($map === null) {
+    static $connection = null;
+    // 每个数据库连接查一次（同一请求只有一个连接；测试里每个用例换库，缓存跟着换）
+    $current = spl_object_id(db());
+    if ($map === null || $connection !== $current) {
+        $connection = $current;
         $map = [];
         try {
             if (db()->tableExists('metas') && db()->tableExists('media')) {
