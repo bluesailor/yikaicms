@@ -37,8 +37,14 @@ final class TestimonialCarouselElement extends AbstractElement
     public function controls(): array
     {
         return [
+            // 数据来源（2.1.0）：在这里填写，或取后台「客户评价」里当前语言的已显示评价
+            ['key' => 'source', 'type' => 'select', 'label' => __('blox_testimonial_source'), 'default' => 'custom',
+                'options' => ['custom' => __('blox_testimonial_source_custom'), 'library' => __('blox_testimonial_source_library')]],
+            ['key' => 'library_limit', 'type' => 'number', 'label' => __('blox_testimonial_library_limit'), 'default' => 0, 'min' => 0, 'max' => self::MAX_ITEMS,
+                'visible_when' => ['terms' => [['source', '=', 'library']]]],
             [
                 'key' => 'items', 'type' => 'items_repeater', 'label' => __('blox_testimonial_items'),
+                'visible_when' => ['terms' => [['source', 'in', ['', 'custom']]]],
                 'max' => self::MAX_ITEMS, 'title_field' => 'name', 'thumb_field' => 'avatar',
                 'item_label' => __('blox_testimonial_item'),
                 'fields' => [
@@ -107,6 +113,19 @@ final class TestimonialCarouselElement extends AbstractElement
     }
 
     /** @return list<array{avatar:string,name:string,role:string,content:string,rating:int}> */
+    /** 后台「客户评价」里当前语言的已显示评价（2.1.0；这一语言没有就用默认语言的）。 @return list<array<string,mixed>> */
+    public static function libraryItems(int $limit = 0): array
+    {
+        if (!function_exists('testimonialModel') || !db()->tableExists('testimonials')) {
+            return [];
+        }
+        $limit = $limit > 0 ? min($limit, self::MAX_ITEMS) : self::MAX_ITEMS;
+        return self::normalizeItems(array_map(static fn (array $row): array => [
+            'avatar' => (string) ($row['avatar'] ?? ''), 'name' => (string) ($row['name'] ?? ''), 'role' => (string) ($row['role'] ?? ''),
+            'content' => (string) ($row['content'] ?? ''), 'rating' => (int) ($row['rating'] ?? 0),
+        ], testimonialModel()->getActive(null, $limit)));
+    }
+
     public static function normalizeItems(mixed $raw): array
     {
         if (is_string($raw)) {
@@ -136,7 +155,9 @@ final class TestimonialCarouselElement extends AbstractElement
 
     public function render(array $data, string $children = ''): string
     {
-        $items = self::normalizeItems(array_key_exists('items', $data) ? $data['items'] : self::seedItems());
+        $items = ($data['source'] ?? 'custom') === 'library'
+            ? self::libraryItems((int) ($data['library_limit'] ?? 0))
+            : self::normalizeItems(array_key_exists('items', $data) ? $data['items'] : self::seedItems());
         if ($items === []) {
             return '';
         }

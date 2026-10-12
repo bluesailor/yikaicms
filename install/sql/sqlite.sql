@@ -2428,10 +2428,10 @@ CREATE TABLE "yikai_roles" (
 
 
 INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (1,'超级管理员','Super Admin','スーパー管理者','拥有全部权限','Full access to all features','すべての機能にアクセス可能','["*"]',1,1776652898);
-INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (2,'投稿者','Contributor','投稿者','仅可撰写文章并插图，不能删除内容','Write and illustrate articles only; cannot delete','記事の作成と画像挿入のみ（削除不可）','["edit_article", "edit_job", "edit_timeline"]',1,1776652898);
-INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (3,'内容编辑','Editor','編集者','编辑各类内容并上传媒体（不含删除）','Edit all content and upload media (no delete)','各種コンテンツの編集とメディア（削除不可）','["edit_article", "edit_product", "edit_case", "edit_download", "edit_page", "blox_edit", "media", "edit_job", "edit_timeline"]',1,1776652898);
-INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (4,'内容主管','Content Manager','コンテンツ管理者','各类内容的增删改与媒体','Full content management incl. delete','コンテンツの追加・編集・削除とメディア','["edit_article", "edit_product", "edit_case", "edit_download", "edit_page", "blox_edit", "delete_article", "delete_product", "delete_case", "delete_download", "delete_page", "media", "edit_job", "edit_timeline", "delete_job", "delete_timeline"]',1,1776652898);
-INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (5,'运营','Operations','運営','内容主管 + 横幅/友链/表单/会员','Content Manager plus banner/link/form/member','コンテンツ管理者＋バナー/リンク/フォーム/会員','["edit_article", "edit_product", "edit_case", "edit_download", "edit_page", "blox_edit", "delete_article", "delete_product", "delete_case", "delete_download", "delete_page", "media", "banner", "link", "form", "member", "edit_job", "edit_timeline", "delete_job", "delete_timeline"]',1,1776652898);
+INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (2,'投稿者','Contributor','投稿者','仅可撰写文章并插图，不能删除内容','Write and illustrate articles only; cannot delete','記事の作成と画像挿入のみ（削除不可）','["edit_article", "edit_job", "edit_timeline","edit_testimonial"]',1,1776652898);
+INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (3,'内容编辑','Editor','編集者','编辑各类内容并上传媒体（不含删除）','Edit all content and upload media (no delete)','各種コンテンツの編集とメディア（削除不可）','["edit_article", "edit_product", "edit_case", "edit_download", "edit_page", "blox_edit", "media", "edit_job", "edit_timeline","edit_testimonial"]',1,1776652898);
+INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (4,'内容主管','Content Manager','コンテンツ管理者','各类内容的增删改与媒体','Full content management incl. delete','コンテンツの追加・編集・削除とメディア','["edit_article", "edit_product", "edit_case", "edit_download", "edit_page", "blox_edit", "delete_article", "delete_product", "delete_case", "delete_download", "delete_page", "media", "edit_job", "edit_timeline","edit_testimonial", "delete_job", "delete_timeline","delete_testimonial"]',1,1776652898);
+INSERT INTO "yikai_roles" ("id", "name", "name_en", "name_ja", "description", "description_en", "description_ja", "permissions", "status", "created_at") VALUES (5,'运营','Operations','運営','内容主管 + 横幅/友链/表单/会员','Content Manager plus banner/link/form/member','コンテンツ管理者＋バナー/リンク/フォーム/会員','["edit_article", "edit_product", "edit_case", "edit_download", "edit_page", "blox_edit", "delete_article", "delete_product", "delete_case", "delete_download", "delete_page", "media", "banner", "link", "form", "member", "edit_job", "edit_timeline","edit_testimonial", "delete_job", "delete_timeline","delete_testimonial"]',1,1776652898);
 DROP TABLE IF EXISTS "yikai_settings";
 CREATE TABLE "yikai_settings" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -2774,6 +2774,34 @@ INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "ti
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (252,'basic','banner_fullscreen','0','select','全屏大Banner','开启后 PC 端首页轮播图满屏高(100vh-头部)，忽略 PC 高度；移动端仍用移动端高度',NULL,0);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (253,'basic','theme_color_profiles','{"aurora":{"primary":"#6366F1","secondary":"#8B5CF6"},"business":{"primary":"#3B6CF5","secondary":"#2554D4"},"default":{"primary":"#2563EB","secondary":"#1D4ED8"},"minimal":{"primary":"#0F766E","secondary":"#256D85"}}','text','模板配色档案','系统按模板保存的配色，请勿手工修改',NULL,0);
 INSERT INTO "yikai_settings" ("id", "group", "key", "value", "type", "name", "tip", "options", "sort_order") VALUES (254,'system','page_hero_style_options','{"background_color":"","overlay_opacity":60,"height":"compact","mobile_height":"inherit","focal_x":50,"focal_y":50,"alignment":"center","text_tone":"auto","layout":"compact"}','json','全局页面标题区版式','页面标题区的全局版式参数，由 Blox 编辑器读取',NULL,0);
+DROP TABLE IF EXISTS "yikai_testimonials";
+CREATE TABLE "yikai_testimonials" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "lang" TEXT NOT NULL DEFAULT 'zh-CN',
+  "translation_group_id" INTEGER NOT NULL DEFAULT '0',
+  "name" TEXT NOT NULL,
+  "role" TEXT DEFAULT '',
+  "content" TEXT,
+  "avatar" TEXT DEFAULT '',
+  "rating" INTEGER DEFAULT '5',
+  "sort_order" INTEGER DEFAULT '0',
+  "status" INTEGER DEFAULT '1',
+  "created_at" INTEGER DEFAULT '0',
+  "updated_at" INTEGER DEFAULT '0'
+);
+CREATE INDEX "idx_tm_lang_yikai_testimonials" ON "yikai_testimonials" ("lang","status","sort_order");
+CREATE INDEX "idx_tm_trans_yikai_testimonials" ON "yikai_testimonials" ("translation_group_id");
+INSERT INTO "yikai_testimonials" ("id","lang","translation_group_id","name","role","content","avatar","rating","sort_order","status","created_at","updated_at") VALUES (1,'zh-CN',1,'陈思远','采购总监 · 华东制造集团','从选型到交付只用了三周，技术团队全程跟进，现场调试一次通过。后续两条产线也继续选择了他们。','/assets/images/blox-templates/avatar-1.svg',5,0,1,1776652898,1776652898);
+INSERT INTO "yikai_testimonials" ("id","lang","translation_group_id","name","role","content","avatar","rating","sort_order","status","created_at","updated_at") VALUES (2,'zh-CN',2,'林晓雯','运营经理 · 星禾连锁','门店系统上线后，库存盘点时间缩短了一半。遇到问题随时有人响应，这是我们最看重的。','/assets/images/blox-templates/avatar-2.svg',5,1,1,1776652898,1776652898);
+INSERT INTO "yikai_testimonials" ("id","lang","translation_group_id","name","role","content","avatar","rating","sort_order","status","created_at","updated_at") VALUES (3,'zh-CN',3,'王建国','技术负责人 · 远拓物流','方案很务实，没有堆砌功能。按我们的业务流程做了定制，培训一周员工就能独立使用。','/assets/images/blox-templates/avatar-3.svg',5,2,1,1776652898,1776652898);
+INSERT INTO "yikai_testimonials" ("id","lang","translation_group_id","name","role","content","avatar","rating","sort_order","status","created_at","updated_at") VALUES (4,'en',1,'Siyuan Chen','Procurement Director · East China Manufacturing Group','From selection to delivery took just three weeks. Their engineers stayed with us the whole way, and on-site commissioning passed on the first try. We chose them again for our next two production lines.','/assets/images/blox-templates/avatar-1.svg',5,0,1,1776652898,1776652898);
+INSERT INTO "yikai_testimonials" ("id","lang","translation_group_id","name","role","content","avatar","rating","sort_order","status","created_at","updated_at") VALUES (5,'en',2,'Xiaowen Lin','Operations Manager · Xinghe Retail','Since the store system went live, stock-taking takes half the time. Whenever something comes up, someone responds right away — that is what we value most.','/assets/images/blox-templates/avatar-2.svg',5,1,1,1776652898,1776652898);
+INSERT INTO "yikai_testimonials" ("id","lang","translation_group_id","name","role","content","avatar","rating","sort_order","status","created_at","updated_at") VALUES (6,'en',3,'Jianguo Wang','Head of Technology · Yuantuo Logistics','A practical solution without feature bloat. It was tailored to our workflow, and after one week of training our staff could use it on their own.','/assets/images/blox-templates/avatar-3.svg',5,2,1,1776652898,1776652898);
+INSERT INTO "yikai_testimonials" ("id","lang","translation_group_id","name","role","content","avatar","rating","sort_order","status","created_at","updated_at") VALUES (7,'ja',1,'陳 思遠','購買部長 · 華東製造グループ','選定から納品までわずか3週間。技術チームが最後まで伴走してくれ、現地での調整も一度で完了しました。その後の2本の生産ラインでも引き続き採用しています。','/assets/images/blox-templates/avatar-1.svg',5,0,1,1776652898,1776652898);
+INSERT INTO "yikai_testimonials" ("id","lang","translation_group_id","name","role","content","avatar","rating","sort_order","status","created_at","updated_at") VALUES (8,'ja',2,'林 暁雯','運営マネージャー · 星禾チェーン','店舗システムの導入後、棚卸しにかかる時間が半分になりました。困ったときにすぐ対応してもらえるのが、何よりありがたいです。','/assets/images/blox-templates/avatar-2.svg',5,1,1,1776652898,1776652898);
+INSERT INTO "yikai_testimonials" ("id","lang","translation_group_id","name","role","content","avatar","rating","sort_order","status","created_at","updated_at") VALUES (9,'ja',3,'王 建国','技術責任者 · 遠拓物流','機能を詰め込みすぎない、実用的な提案でした。業務フローに合わせてカスタマイズしてもらい、1週間の研修でスタッフが自分で使いこなせるようになりました。','/assets/images/blox-templates/avatar-3.svg',5,2,1,1776652898,1776652898);
+
+
 DROP TABLE IF EXISTS "yikai_timelines";
 CREATE TABLE "yikai_timelines" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,

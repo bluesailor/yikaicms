@@ -36,6 +36,7 @@ if (!function_exists('adminPagesCatalog')) {
             ['url'=>'/admin/media.php',            'title'=>'媒体库',       'keywords'=>'媒体 图片 文件 上传 media upload',                                       'group'=>'媒体'],
             ['url'=>'/admin/album.php',            'title'=>'相册',         'keywords'=>'相册 照片集 photo gallery',                                             'group'=>'媒体'],
             ['url'=>'/admin/timeline.php',         'title'=>'时间轴',       'keywords'=>'时间轴 历程 大事记 timeline history',                                   'group'=>'媒体'],
+            ['url'=>'/admin/testimonial.php',      'title'=>'客户评价',     'keywords'=>'客户评价 评价 口碑 testimonial review',                                   'group'=>'媒体'],
             ['url'=>'/admin/link.php',             'title'=>'友情链接',     'keywords'=>'友链 link 友情链接',                                                    'group'=>'媒体'],
 
             // 数据
