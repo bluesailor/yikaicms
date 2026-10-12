@@ -1,0 +1,23 @@
+/* 堆叠卡片（2.1.0，容器「滚动时堆叠」）：子元素依次吸顶，每张比上一张低一点，滚动时一张压一张。
+   纯 CSS（position: sticky）；前 12 张逐张错开，更多的与第 12 张同高。手机上错开更小。 */
+.yk-stack { --yk-stack-top: 96px; --yk-stack-step: 24px; }
+.yk-stack > * {
+    position: sticky;
+    top: calc(var(--yk-stack-top) + 11 * var(--yk-stack-step));
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, .08);
+}
+.yk-stack > :nth-child(1) { top: calc(var(--yk-stack-top) + 0 * var(--yk-stack-step)); }
+.yk-stack > :nth-child(2) { top: calc(var(--yk-stack-top) + 1 * var(--yk-stack-step)); }
+.yk-stack > :nth-child(3) { top: calc(var(--yk-stack-top) + 2 * var(--yk-stack-step)); }
+.yk-stack > :nth-child(4) { top: calc(var(--yk-stack-top) + 3 * var(--yk-stack-step)); }
+.yk-stack > :nth-child(5) { top: calc(var(--yk-stack-top) + 4 * var(--yk-stack-step)); }
+.yk-stack > :nth-child(6) { top: calc(var(--yk-stack-top) + 5 * var(--yk-stack-step)); }
+.yk-stack > :nth-child(7) { top: calc(var(--yk-stack-top) + 6 * var(--yk-stack-step)); }
+.yk-stack > :nth-child(8) { top: calc(var(--yk-stack-top) + 7 * var(--yk-stack-step)); }
+.yk-stack > :nth-child(9) { top: calc(var(--yk-stack-top) + 8 * var(--yk-stack-step)); }
+.yk-stack > :nth-child(10) { top: calc(var(--yk-stack-top) + 9 * var(--yk-stack-step)); }
+.yk-stack > :nth-child(11) { top: calc(var(--yk-stack-top) + 10 * var(--yk-stack-step)); }
+.yk-stack > :nth-child(12) { top: calc(var(--yk-stack-top) + 11 * var(--yk-stack-step)); }
+@media (max-width: 767px) {
+    .yk-stack { --yk-stack-top: 72px; --yk-stack-step: 12px; }
+}
