@@ -66,3 +66,15 @@ foreach ($summary['packs'] as $code => &$row) {
 unset($row);
 
 file_put_contents($summaryFile, json_encode($summary, JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+
+// 语言包清单（2.1.0）：上一级目录的 index.json 记每种语言最新发布的包版本，站点据此判断要不要更新。
+// 与本版语言包一起上传到 lang/index.json；清单只决定下载哪个版本，包本身仍逐个验签。
+$indexFile = dirname(rtrim($dir, DIRECTORY_SEPARATOR . "/")) . "/index.json";
+$index = json_decode((string) @file_get_contents($indexFile), true);
+$packs = is_array($index) && is_array($index['packs'] ?? null) ? $index['packs'] : [];
+foreach (array_keys($summary['packs']) as $code) {
+    $packs[$code] = $version;
+}
+ksort($packs);
+file_put_contents($indexFile, json_encode(['schema' => 1, 'updated_at' => gmdate('c'), 'packs' => $packs], JSON_PRETTY_PRINT | JSON_UNESCAPED_SLASHES) . "\n");
+echo "index: {$indexFile}（上传到 lang/index.json）\n";

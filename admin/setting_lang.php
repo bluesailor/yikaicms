@@ -384,6 +384,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php /* 更多语言：不随安装包附带的语言包（下载 / 上传 / 更新 / 卸载）。在表单外：各按钮单独提交 */ ?>
     <?php
     require_once ROOT_PATH . '/includes/i18n/LanguagePackSite.php';
+    LanguagePackSite::refreshIndex();   // 语言包清单：过了缓存时效才联网
     $packOutdated = LanguagePackSite::outdated();
     $packInUse = LanguagePackSite::inUse();
     $packVersions = LanguagePacks::manifest(ROOT_PATH);

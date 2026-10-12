@@ -147,6 +147,9 @@ if ($action !== '') {
         if ((int) ($data['code'] ?? 1) === 0 && is_array($data['data'] ?? null)) {
             require_once ROOT_PATH . '/includes/UpdateNotice.php';
             UpdateNotice::record($data['data']);
+            // 顺带刷新语言包清单（铃铛只读缓存，不在页面加载时联网）
+            require_once ROOT_PATH . '/includes/i18n/LanguagePackSite.php';
+            LanguagePackSite::refreshIndex();
         }
         // 本地构建的文件与同号正式版不同，增量包前提不成立：去掉 delta，前端自然改下完整包。
         if (YikaiProductIdentity::localBuildLabel() !== '' && is_array($data['data'] ?? null)) {

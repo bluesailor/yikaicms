@@ -10,6 +10,39 @@ require_once __DIR__ . '/LanguagePacks.php';
 
 final class LanguagePackSite
 {
+    /** 清单缓存（settings，system 组）：{fetched_at, packs|null}；铃铛只读缓存，不在页面加载时联网 */
+    private const INDEX_KEY = 'lang_pack_index';
+    private const INDEX_TTL = 43200;          // 拿到清单后 12 小时内不再取
+    private const INDEX_RETRY = 3600;         // 取失败后 1 小时再试
+
+    /** 缓存里的清单；没取过或取失败返回 null。 @return array<string,string>|null */
+    public static function index(): ?array
+    {
+        $cached = json_decode((string) config(self::INDEX_KEY, ''), true);
+        return is_array($cached) && is_array($cached['packs'] ?? null) ? LanguagePacks::parseIndex((string) json_encode(['schema' => 1, 'packs' => $cached['packs']])) : null;
+    }
+
+    /**
+     * 需要时重新取清单（检查更新、打开语言设置页时调）。$force 忽略缓存时效。
+     *
+     * @return array<string,string>|null
+     */
+    public static function refreshIndex(bool $force = false): ?array
+    {
+        $cached = json_decode((string) config(self::INDEX_KEY, ''), true);
+        $fetchedAt = is_array($cached) ? (int) ($cached['fetched_at'] ?? 0) : 0;
+        $hasPacks = is_array($cached) && is_array($cached['packs'] ?? null);
+        if (!$force && $fetchedAt > time() - ($hasPacks ? self::INDEX_TTL : self::INDEX_RETRY)) {
+            return self::index();
+        }
+        $index = LanguagePacks::parseIndex(LanguagePacks::httpFetch(LanguagePacks::INDEX_URL, 65536));
+        try {
+            settingModel()->set(self::INDEX_KEY, (string) json_encode(['fetched_at' => time(), 'packs' => $index]), 'system');
+        } catch (Throwable) {
+        }
+        return $index;
+    }
+
     /**
      * 正在使用、不能卸载的语言：前台启用的、默认的、后台的。
      * 前台启用取 enabledLanguages()：enabled_languages 为空时前台确实对外提供全部已装语言。
@@ -27,7 +60,9 @@ final class LanguagePackSite
     /** @return array{code:string, version:string} */
     public static function install(string $code): array
     {
-        $result = LanguagePacks::download(ROOT_PATH, $code, CMS_VERSION, self::publicKey(), [LanguagePacks::class, 'httpFetch']);
+        // 清单里的最新版（不比本站新）；没有清单时按本站版本号取
+        $version = LanguagePacks::targetVersion($code, CMS_VERSION, self::refreshIndex());
+        $result = LanguagePacks::download(ROOT_PATH, $code, CMS_VERSION, self::publicKey(), [LanguagePacks::class, 'httpFetch'], $version);
         self::changed('lang_pack_install', $result['code'] . ' ' . $result['version']);
         return $result;
     }
@@ -59,7 +94,7 @@ final class LanguagePackSite
         if (file_exists(ROOT_PATH . '/.git')) {
             return [];
         }
-        return array_values(array_intersect(LanguagePacks::outdated(ROOT_PATH, CMS_VERSION), self::inUse()));
+        return array_values(array_intersect(LanguagePacks::outdated(ROOT_PATH, CMS_VERSION, self::index()), self::inUse()));
     }
 
     /**
@@ -71,9 +106,10 @@ final class LanguagePackSite
     {
         $updated = [];
         $failed = [];
+        $index = self::index();
         foreach (self::outdated() as $code) {
             try {
-                LanguagePacks::download(ROOT_PATH, $code, CMS_VERSION, self::publicKey(), [LanguagePacks::class, 'httpFetch']);
+                LanguagePacks::download(ROOT_PATH, $code, CMS_VERSION, self::publicKey(), [LanguagePacks::class, 'httpFetch'], LanguagePacks::targetVersion($code, CMS_VERSION, $index));
                 $updated[] = $code;
             } catch (LanguagePackException $e) {
                 $failed[$code] = $e->reason();
