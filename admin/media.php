@@ -231,6 +231,12 @@ if ($healthAttention) {
     $mediaList = $result['items'];
 }
 $mediaHealth = $selectMode ? [] : MediaOptimization::inspectMany($mediaList);
+// 2.1.0：配了 AI 时显示「用 AI 补齐替代文字」（只数还没有替代文字的图片）
+$aiAltMissing = 0;
+if (!$selectMode && function_exists('aiService') && aiService()->isConfigured()) {
+    require_once ROOT_PATH . '/includes/media/MediaAltAi.php';
+    $aiAltMissing = MediaAltAi::missingCount();
+}
 $mediaHealthSummary = ['healthy' => 0, 'pending' => 0, 'missing' => 0];
 $mediaPendingIds = [];
 foreach ($mediaHealth as $mediaId => $health) {
@@ -325,6 +331,14 @@ $mediaUrl = static function (array $overrides = []) use ($type, $keyword, $sort,
                 <i class="ti ti-photo-cog text-base"></i>
                 <?php echo e(__('media_opt_selected')); ?>
             </button>
+            <?php if ($aiAltMissing > 0): ?>
+            <button type="button" onclick="aiFillAlt(this)" data-testid="media-alt-ai-fill" data-missing="<?php echo $aiAltMissing; ?>"
+                    class="border border-purple-200 text-purple-700 px-4 py-2 rounded hover:bg-purple-50 inline-flex items-center justify-center gap-1"
+                    title="<?php echo e(__('media_alt_ai_missing', ['n' => (string) $aiAltMissing])); ?>">
+                <i class="ti ti-sparkles text-base" aria-hidden="true"></i>
+                <span><?php echo e(__('media_alt_ai_fill')); ?></span>
+            </button>
+            <?php endif; ?>
             <button type="button" onclick="orphansReport(this)" data-testid="media-orphans-report"
                     class="border px-4 py-2 rounded hover:bg-gray-100 inline-flex items-center justify-center gap-1"
                     title="<?php echo e(__('media_orphans_tip')); ?>">
@@ -937,6 +951,38 @@ function replaceMedia(id, ext) {
 }
 
 // 孤立媒体报告：核对最近一批媒体的引用，count=0 即孤立（删除仍走 usage 二次校验）
+// 2.1.0：用 AI 补齐缺少的替代文字——确认后逐批（每批 3 张）生成并保存，显示进度；一批全失败就停
+async function aiFillAlt(button) {
+    const t = <?php echo json_encode([
+        'confirm' => __('media_alt_ai_confirm'), 'progress' => __('media_alt_ai_progress'),
+        'done' => __('media_alt_ai_done'), 'stopped' => __('media_alt_ai_stopped'),
+    ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG); ?>;
+    const missing = parseInt(button.dataset.missing || '0', 10);
+    if (!missing || !confirm(t.confirm.replace(':n', missing))) return;
+    const label = button.querySelector('span');
+    const idle = label.textContent;
+    button.disabled = true;
+    let done = 0;
+    try {
+        for (;;) {
+            const fd = new FormData();
+            fd.append('action', 'generate_alt_batch');
+            const data = await (await fetch((window.YK_BASE || '') + '/admin/api_ai.php', { method: 'POST', body: fd })).json();
+            if (!data.success) throw new Error(data.error || '');
+            done += Object.keys(data.done || {}).length;
+            label.textContent = t.progress.replace(':done', done).replace(':left', data.remaining);
+            if (data.stop) throw new Error(Object.values(data.failed || {})[0] || '');
+            if (!data.remaining) break;
+        }
+        showMessage(t.done.replace(':done', done));
+        setTimeout(() => location.reload(), 900);
+    } catch (err) {
+        showMessage(t.stopped.replace(':error', err.message), 'error');
+        button.disabled = false;
+        label.textContent = idle;
+    }
+}
+
 async function orphansReport(button) {
     const icon = button.querySelector('i');
     if (icon) icon.classList.add('animate-spin');
