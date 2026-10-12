@@ -516,17 +516,62 @@ final class BloxComponentsTest extends TestCase
 
     // ── 导出 / 整站模板导入 ─────────────────────────────────────────
 
-    public function testTemplatePackagesExpandInstancesSoOtherSitesDoNotNeedTheMaster(): void
+    /** @return array{inner:array{id:int,uuid:string},outer:array{id:int,uuid:string},package:array<string,mixed>} */
+    private function exportNestedSectionPackage(): array
     {
-        $component = $this->publishComponent($this->masterJson());
+        $inner = $this->publishComponent($this->masterJson('内层'));
+        $outer = $this->publishComponent($this->outerMasterJson($inner['uuid']));
         $package = \BloxTemplateImporter::exportPackage([
             'type' => 'section', 'name' => 'With component',
-            'draft_data' => (string) json_encode(['sections' => $this->pageWith($component['uuid'], ['cta' => '询价'])], JSON_UNESCAPED_UNICODE),
+            'draft_data' => (string) json_encode(['sections' => $this->pageWith($outer['uuid'], ['heading' => '询价'], ['pin' => 1])], JSON_UNESCAPED_UNICODE),
         ]);
+        return ['inner' => $inner, 'outer' => $outer, 'package' => $package];
+    }
+
+    public function testTemplatePackagesCarryTheMastersTheyUse(): void
+    {
+        ['inner' => $inner, 'outer' => $outer, 'package' => $package] = $this->exportNestedSectionPackage();
         $json = (string) json_encode($package, JSON_UNESCAPED_UNICODE);
-        self::assertStringNotContainsString('"type":"component"', $json);
+        self::assertStringContainsString('"type":"component"', $json, '实例保持引用');
         self::assertStringContainsString('询价', $json);
-        self::assertNotContains('component', $package['requires']['elements'] ?? []);
+        self::assertStringNotContainsString('"pin"', $json, '锁定的版本号只在本站有意义');
+        self::assertContains('component', $package['requires']['elements'], '旧版本导入端会因缺这个元素而明确拒绝');
+        self::assertSame([$inner['uuid'], $outer['uuid']], array_map(static fn (array $c): string => $c['component']['uuid'], $package['components']), '被依赖的在前');
+        self::assertArrayNotHasKey('components', $package['components'][1], '每一层都在外层清单里，子包不再重复带');
+    }
+
+    public function testLicensedImportInstallsMissingMastersAndKeepsExistingOnes(): void
+    {
+        ['inner' => $inner, 'outer' => $outer, 'package' => $package] = $this->exportNestedSectionPackage();
+        $json = (string) json_encode($package, JSON_UNESCAPED_UNICODE);
+        // 目标站：外层母版已经有（作者改过），内层没有
+        db()->execute('DELETE FROM blox_templates WHERE id = ?', [$inner['id']]);
+        db()->execute("UPDATE blox_templates SET published_data = REPLACE(published_data, '外层', '本站改过') WHERE id = ?", [$outer['id']]);
+        BloxComponents::resetForTests();
+
+        $imported = \BloxFeaturePolicy::asTrustedWrite(static fn (): array => \BloxTemplateImporter::importJson($json));
+        BloxComponents::resetForTests();
+        self::assertNotNull(BloxComponents::find($inner['uuid']), '缺的内层母版按包新建并发布');
+        self::assertStringContainsString('本站改过', (string) bloxTemplateModel()->find($outer['id'])['published_data'], '已有的母版不覆盖');
+        self::assertSame(1, (int) db()->fetchColumn("SELECT COUNT(*) FROM blox_templates WHERE type = 'component' AND metadata LIKE ?", ['%' . $outer['uuid'] . '%']), '不重复建');
+        $draft = (string) bloxTemplateModel()->find($imported['id'])['draft_data'];
+        self::assertStringContainsString($outer['uuid'], $draft, '模板里的实例仍是引用');
+    }
+
+    public function testUnlicensedImportExpandsInstancesWithTheBundledMasters(): void
+    {
+        ['inner' => $inner, 'outer' => $outer, 'package' => $package] = $this->exportNestedSectionPackage();
+        $json = (string) json_encode($package, JSON_UNESCAPED_UNICODE);
+        db()->execute("DELETE FROM blox_templates WHERE type = 'component'");
+        BloxComponents::resetForTests();
+
+        $imported = \BloxTemplateImporter::importJson($json);   // 测试环境没有组件授权
+        $draft = (string) bloxTemplateModel()->find($imported['id'])['draft_data'];
+        self::assertStringNotContainsString('"type":"component"', $draft, '实例按包里的母版展开成普通结构');
+        self::assertStringContainsString('询价', $draft);
+        self::assertStringContainsString('内层', $draft, '组件里的组件也展开');
+        self::assertSame(0, (int) db()->fetchColumn("SELECT COUNT(*) FROM blox_templates WHERE type = 'component'"), '不装母版');
+        self::assertNull(BloxComponents::find($outer['uuid']), '展开用的临时目录不留下');
     }
 
     public function testReindexSiteRebuildsUsageFromImportedDocuments(): void

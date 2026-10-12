@@ -17,6 +17,9 @@ require_once dirname(__DIR__) . '/ProductIdentity.php';
 
 final class BloxTemplateImporter
 {
+    /** 一个模板包最多带多少个母版（2.1.0） */
+    private const MAX_BUNDLED_COMPONENTS = 50;
+
     public const FORMAT = 'yikaicms-blox-template';
     public const VERSION = 1;
     // 2.0.3 起包内可嵌入图片（base64，图片原始总量 ≤ 5MB），整包上限相应放到 8MB
@@ -38,9 +41,13 @@ final class BloxTemplateImporter
         }
         // 包里带的图片先落盘（内容寻址，同内容复用）；数据库任一步失败就删掉本次新写的文件
         $writtenMedia = BloxTemplateMedia::writeFiles($prepared['media']);
+        foreach ($prepared['components'] as $component) {
+            $writtenMedia = array_merge($writtenMedia, BloxTemplateMedia::writeFiles($component['media']));
+        }
         db()->beginTransaction();
         try {
             BloxTemplateMedia::register($prepared['media'], $adminId);
+            self::installBundledComponents($prepared['components'], $adminId, $source);
             // 包里带来的全局类与模板草稿同一事务：任一步失败都不留半套类
             BloxGlobalClasses::applyImportPlan($prepared['class_plan'], $adminId);
             BloxDesignSystem::applyScaleImport($prepared['scale_plan']);
@@ -86,6 +93,38 @@ final class BloxTemplateImporter
             'name' => $prepared['name'],
             'sections' => count($prepared['sections']),
         ];
+    }
+
+    /**
+     * 模板包带来的母版（2.1.0）：本站没有的按包新建并发布（被依赖的在前，发布时的依赖检查才找得到）；
+     * 本站已有同一 uuid 的不动——作者在本站的修改优先。与模板写入同一事务。
+     *
+     * @param list<array<string,mixed>> $components prepare() 归一后的组件包
+     */
+    private static function installBundledComponents(array $components, int $adminId, string $source): void
+    {
+        foreach ($components as $component) {
+            if (self::componentRowByUuid((string) $component['metadata']['component']['uuid']) !== null) {
+                continue;
+            }
+            BloxTemplateMedia::register($component['media'], $adminId);
+            BloxGlobalClasses::applyImportPlan($component['class_plan'], $adminId);
+            BloxDesignSystem::applyScaleImport($component['scale_plan']);
+            $id = bloxTemplateModel()->createDraft(
+                BloxComponents::TYPE,
+                $component['name'],
+                $component['draft_json'],
+                $source,
+                $component['schema_version'],
+                $component['requirements'],
+                $component['thumbnail'],
+                $adminId,
+                '',
+                $component['metadata']
+            );
+            BloxDocumentIndexes::update('template:' . $id, $component['sections']);
+            bloxTemplateModel()->publishDraft($id);
+        }
     }
 
     /** @return array<string,mixed>|null 本站 uuid 相同的组件母版行 */
@@ -143,10 +182,17 @@ final class BloxTemplateImporter
         }
 
         $sections = BloxDocumentPipeline::extractSections($decoded);
-        // v2.1 组件：模板包里的实例展开成普通结构——目标站多半没有这个母版（单独导出组件推到 2.1.x）。
-        // 导出母版本身时不动（母版里本来就不许放实例）。
-        if ($type !== BloxComponents::TYPE) {
-            $sections = BloxComponents::detachAll($sections)['sections'];
+        // 2.1.0：模板包带上用到的母版（含组件里的组件），实例保持引用；目标站有组件授权就装母版，没有就按包里的母版展开。
+        // 锁定的版本号只在本站有意义，导出时去掉。母版本身导出时里面的实例也一样带母版。
+        $sections = BloxComponents::stripPins($sections);
+        $components = [];
+        foreach (BloxComponents::bundleDefinitions($sections) as $definition) {
+            $row = bloxTemplateModel()->find((int) $definition['id']);
+            if ($row !== null && ($type !== BloxComponents::TYPE || (string) $definition['uuid'] !== (string) (self::decodeStoredMetadata($row['metadata'] ?? null)['component']['uuid'] ?? ''))) {
+                $package = self::exportPackage($row, true, $withMedia);
+                unset($package['components']);   // 外层清单已按依赖顺序收齐每一层
+                $components[] = $package;
+            }
         }
         $requirements = self::mergeRequirements(
             self::decodeStoredRequirements($template['requirements'] ?? null),
@@ -202,7 +248,8 @@ final class BloxTemplateImporter
                 'exported_at' => time(),
             ],
             'document' => $document,
-        ] + ($media !== [] ? ['media' => $media] : []);
+        ] + ($media !== [] ? ['media' => $media] : [])
+            + ($components !== [] ? ['components' => $components] : []);
     }
 
     /** @return array{elements:list<string>,plugins:list<string>,design_tokens:list<string>,design_styles:list<string>} */
@@ -244,7 +291,8 @@ final class BloxTemplateImporter
      *   class_plan:list<array{class_id:string,name:string,settings:array<string,mixed>}>,
      *   class_diagnostics:array{reused:list<string>,created:list<string>,renamed:list<array{from:string,to:string}>,missing:list<string>},
      *   scale_plan:array<string,list<array<string,mixed>>>,
-     *   media:list<array{path:string,target:string,mime:string,sha256:string,bytes:string}>
+     *   media:list<array{path:string,target:string,mime:string,sha256:string,bytes:string}>,
+     *   components:list<array<string,mixed>>
      * }
      * @param array<string,mixed> $designOptions
      */
@@ -277,6 +325,34 @@ final class BloxTemplateImporter
 
         $rawSections = BloxDocumentPipeline::extractSections($package['document']);
         self::assertNoLibraryReferences($rawSections);
+        // 2.1.0：包里带的母版。每个按单独的组件包校验；本站没有组件授权时不装母版，改用它们把实例展开成普通结构
+        $bundled = [];
+        foreach (array_slice(is_array($package['components'] ?? null) ? array_values($package['components']) : [], 0, self::MAX_BUNDLED_COMPONENTS) as $componentPackage) {
+            if (!is_array($componentPackage) || ($componentPackage['type'] ?? '') !== BloxComponents::TYPE) {
+                continue;
+            }
+            unset($componentPackage['components']);
+            $prepared = self::prepare(json_encode($componentPackage, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+            if (BloxComponents::validUuid($prepared['metadata']['component']['uuid'] ?? null)) {
+                $bundled[] = $prepared;
+            }
+        }
+        if ($bundled !== [] && !BloxFeaturePolicy::inTrustedWrite() && !BloxFeaturePolicy::allows('components')) {
+            $definitions = [];
+            foreach ($bundled as $prepared) {
+                $definition = BloxComponents::definitionFromRow([
+                    'id' => 0,
+                    'name' => $prepared['name'],
+                    'metadata' => json_encode(['component' => $prepared['metadata']['component']], JSON_THROW_ON_ERROR),
+                    'published_data' => $prepared['draft_json'],
+                ]);
+                if ($definition !== null) {
+                    $definitions[(string) $definition['uuid']] = $definition;
+                }
+            }
+            $rawSections = BloxComponents::withDefinitions($definitions, static fn (): array => BloxComponents::detachAll($rawSections)['sections']);
+            $bundled = [];
+        }
         // 包里带的图片：先整体校验，再把文档、类定义与缩略图里的引用改写到本站落盘路径
         $media = BloxTemplateMedia::validate($package['media'] ?? null);
         $mediaMap = BloxTemplateMedia::referenceMap($media);
@@ -398,6 +474,7 @@ final class BloxTemplateImporter
             'class_diagnostics' => $classPlan['diagnostics'],
             'scale_plan' => BloxDesignDependencies::planScaleImport(BloxDesignDependencies::scaleReferences($rawSections), $definitions['scales'] ?? null),
             'media' => $media,
+            'components' => $bundled,
         ];
     }
 
