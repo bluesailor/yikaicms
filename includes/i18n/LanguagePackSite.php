@@ -54,6 +54,11 @@ final class LanguagePackSite
      */
     public static function outdated(): array
     {
+        // Git 检出（开发站直接指向仓库）：lang/ 里的文件就是这份源码自带的，永远是当前版本，不提示更新
+        // （2026-10-11 本机开发站：没有装包记录 → 被当成旧包 → 去下载这个版本号还没发布的包，失败）
+        if (file_exists(ROOT_PATH . '/.git')) {
+            return [];
+        }
         return array_values(array_intersect(LanguagePacks::outdated(ROOT_PATH, CMS_VERSION), self::inUse()));
     }
 

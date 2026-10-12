@@ -142,6 +142,21 @@ final class LanguagePacksTest extends TestCase
         LanguagePacks::download($this->root, 'ko', '2.1.1', $this->publicKey, static fn(): ?string => null);
     }
 
+    public function testUnpublishedVersionIsReportedSeparatelyFromNetworkFailure(): void
+    {
+        try {
+            LanguagePacks::download($this->root, 'ko', '2.0.6', $this->publicKey, static function (): ?string {
+                LanguagePacks::$lastStatus = 404;   // httpFetch 记下的状态
+                return null;
+            });
+            self::fail('404 应报「还没发布」');
+        } catch (LanguagePackException $e) {
+            self::assertSame('not_published', $e->reason());
+        }
+        $source = (string) file_get_contents(ROOT_PATH . '/includes/i18n/LanguagePackSite.php');
+        self::assertStringContainsString("file_exists(ROOT_PATH . '/.git')", $source, 'Git 检出不提示更新语言包');
+    }
+
     public function testLanguageInUseCannotBeUninstalled(): void
     {
         LanguagePacks::installFromZip($this->root, $this->pack('ru', '2.1.1'), '2.1.1', $this->publicKey);
