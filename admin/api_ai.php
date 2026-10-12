@@ -197,6 +197,41 @@ switch ($action) {
         echo json_encode($result, JSON_UNESCAPED_UNICODE);
         break;
 
+    // 媒体库图片的替代文字（2.1.0）：单张只返回不保存（站长在图片编辑弹窗里确认后保存）；
+    // 批量是站长确认「补齐缺少的」之后逐批写入，每次处理几张、返回剩余数，前端循环
+    case 'generate_alt':
+    case 'generate_alt_batch':
+        if (!hasPermission('media')) {
+            echo json_encode(['success' => false, 'error' => __('media_alt_ai_no_permission')], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        require_once ROOT_PATH . '/includes/media/MediaAltAi.php';
+        try {
+            if ($action === 'generate_alt') {
+                $alt = MediaAltAi::generate((int) ($_POST['media_id'] ?? 0), $ai);
+                echo json_encode(['success' => true, 'alt' => $alt], JSON_UNESCAPED_UNICODE);
+                break;
+            }
+            $done = [];
+            $failed = [];
+            foreach (MediaAltAi::missingIds(3) as $mediaId) {
+                try {
+                    $done[$mediaId] = MediaAltAi::generateAndSave($mediaId, $ai);
+                } catch (Throwable $e) {
+                    $failed[$mediaId] = $e->getMessage();
+                }
+            }
+            if ($done !== []) {
+                adminLog('media', 'ai_alt', 'AI 生成替代文字：' . implode(',', array_keys($done)));
+            }
+            // 一批全失败就停（多半是模型不支持图片或额度用完），不再循环
+            echo json_encode(['success' => true, 'done' => $done, 'failed' => $failed, 'remaining' => MediaAltAi::missingCount(),
+                'stop' => $done === [] && $failed !== []], JSON_UNESCAPED_UNICODE);
+        } catch (Throwable $e) {
+            echo json_encode(['success' => false, 'error' => $e->getMessage()], JSON_UNESCAPED_UNICODE);
+        }
+        break;
+
     // 生成文章摘要
     case 'generate_summary':
         $title = trim($_POST['title'] ?? '');
