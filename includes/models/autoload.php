@@ -114,6 +114,10 @@ function timelineModel(): TimelineModel {
     static $i; return $i ??= new TimelineModel();
 }
 
+function testimonialModel(): TestimonialModel {
+    static $i; return $i ??= new TestimonialModel();
+}
+
 function pluginModel(): PluginModel {
     static $i; return $i ??= new PluginModel();
 }
