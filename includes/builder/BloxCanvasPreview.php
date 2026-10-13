@@ -817,7 +817,13 @@ body.yk-gap-resizing{cursor:row-resize!important;user-select:none!important}
 html.yk-palette-dragging{scrollbar-color:transparent transparent}
 html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-webkit-scrollbar-track{background:transparent}
 .yk-empty-hint{border:2px dashed #cbd5e1;border-radius:8px;margin:8px;padding:32px 16px;text-align:center;color:#94a3b8;font-size:13px;font-family:system-ui,sans-serif}
-.yk-empty-hint-sm{margin:0;padding:12px 8px;font-size:12px}
+.yk-empty-hint-sm{container-type:inline-size;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:6px;margin:0;padding:8px 4px;font-size:12px}
+.yk-empty-hint.yk-empty-hint-sm .yk-empty-btn{margin:0}
+.yk-empty-btn{white-space:nowrap}
+.yk-empty-btn .ti{font-size:14px;line-height:1}
+.yk-empty-btn .ti + .yk-empty-btn-text{margin-inline-start:4px}
+.yk-empty-label{white-space:nowrap}
+@container (max-width:200px){.yk-empty-hint-sm .yk-empty-label,.yk-empty-hint-sm .yk-empty-btn-text{display:none}.yk-empty-hint.yk-empty-hint-sm .yk-empty-btn{padding:3px 6px}}
 .yk-insert-rail{position:relative;box-sizing:border-box;height:48px;min-height:48px;padding:8px 16px;display:flex;align-items:center;justify-content:center;gap:12px;background:#f8fafc;clear:both}
 .yk-insert-rail:before,.yk-insert-rail:after{content:'';flex:1;border-top:1px dashed #cbd5e1}
 .yk-insert-rail .yk-insert-btn{min-width:32px;height:32px;padding:0 10px;border-radius:6px;border:1px solid #cbd5e1;background:#fff;color:#1d4ed8;font:500 12px/1 system-ui,sans-serif;cursor:pointer;display:inline-flex;align-items:center;gap:5px;flex-shrink:0}
@@ -2413,11 +2419,30 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         });
         return b;
     }
+    // 提示里的按钮：图标 + 文字；空间窄时（容器查询）只留图标，文字仍在 title / aria-label 里
+    function hintButtonContent(b, icon, text) {
+        var i = document.createElement('i');
+        i.className = 'ti ti-' + icon;
+        i.setAttribute('aria-hidden', 'true');
+        var span = document.createElement('span');
+        span.className = 'yk-empty-btn-text';
+        span.textContent = text;
+        b.appendChild(i);
+        b.appendChild(span);
+        b.setAttribute('title', text);
+        b.setAttribute('aria-label', text);
+    }
+    function hintLabel(text) {
+        var span = document.createElement('span');
+        span.className = 'yk-empty-label';
+        span.textContent = text;
+        return span;
+    }
     function quickAddButton(target) {
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'yk-empty-btn yk-empty-btn-primary';
-        b.textContent = @@pea_add_element@@;
+        hintButtonContent(b, 'plus', @@pea_add_element@@);
         b.setAttribute('data-yk-quick-add', target.kind + ':' + (target.path || (target.sec + '.' + target.col)));
         b.addEventListener('click', function (e) {
             e.stopPropagation();
@@ -2430,7 +2455,7 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'yk-empty-btn';
-        b.textContent = @@blox_split_layout@@;
+        hintButtonContent(b, 'layout-columns', @@blox_split_layout@@);
         b.setAttribute('aria-haspopup', 'dialog');
         b.setAttribute('data-yk-split', target.kind + ':' + (target.path || (target.sec + '.' + target.col)));
         b.addEventListener('click', function (e) {
@@ -2474,18 +2499,21 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
             if (host && host.querySelector('[data-yk-el]')) hint.remove();
         });
         contentNodes(root, '[data-yk-col]').forEach(function (c) {
+            // 已挂过提示就不再挂：窄时提示只剩图标，innerText 为空，不能再靠它判断
+            if (c.querySelector(':scope > .yk-empty-hint')) return;
             if ((c.innerText || '').trim() !== '') return;
             if (c.querySelector('img,svg,iframe,video,picture,[data-yk-el]')) return;
             var parts = (c.getAttribute('data-yk-col') || '').split('.').map(function (v) { return parseInt(v, 10); });
             if (parts.length !== 2 || parts.some(function (v) { return isNaN(v); })) return;
             var d = document.createElement('div');
             d.className = 'yk-empty-hint yk-empty-hint-sm';
-            d.textContent = @@pea_empty_column@@;
+            d.appendChild(hintLabel(@@pea_empty_column@@));
             d.appendChild(quickAddButton({ kind: 'column', sec: parts[0], col: parts[1] }));
             d.appendChild(splitButton({ kind: 'column', sec: parts[0], col: parts[1] }));
             c.appendChild(d);
         });
         contentNodes(root, '.yk-container, .yk-div').forEach(function (c) {
+            if (c.querySelector(':scope > .yk-empty-hint')) return;
             if ((c.innerText || '').trim() !== '') return;
             if (c.querySelector('img,svg,iframe,video,picture,table')) return;
             // 里面已有子元素（例如拆分出来的几个空布局块）就把提示留给最里层，不往网格里塞一格提示
@@ -2496,7 +2524,7 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
             if (!/^\d+(?:\.\d+){2,8}$/.test(path)) return;
             var d = document.createElement('div');
             d.className = 'yk-empty-hint yk-empty-hint-sm';
-            d.textContent = c.classList.contains('yk-div') ? @@pea_empty_div@@ : @@pea_empty_container@@;
+            d.appendChild(hintLabel(c.classList.contains('yk-div') ? @@pea_empty_div@@ : @@pea_empty_container@@));
             d.appendChild(quickAddButton({ kind: 'container', path: path }));
             var hostType = wrapper.getAttribute('data-yk-el-type') || '';
             if (hostType === 'container' || hostType === 'div') d.appendChild(splitButton({ kind: 'container', path: path }));
@@ -2510,7 +2538,7 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
             var n = parseInt(sec.getAttribute('data-yk-sec'), 10) + 1;
             var d = document.createElement('div');
             d.className = 'yk-empty-hint';
-            d.textContent = @@pea_empty_section@@.replace(':n', n);
+            d.appendChild(hintLabel(@@pea_empty_section@@.replace(':n', n)));
             d.appendChild(quickAddButton({ kind: 'column', sec: n - 1, col: 0 }));
             if (@@templates_enabled@@) {
                 d.appendChild(emptyActionButton('templates', @@pea_import_template@@, false));
