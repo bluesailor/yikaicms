@@ -13,6 +13,7 @@ declare(strict_types=1);
             <button type="button" @click="closeSectionInsert()" aria-label="<?= e(__('close')) ?>" class="h-8 w-8 inline-flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded"><i class="ti ti-x text-lg"></i></button>
         </header>
         <p class="text-xs text-gray-600 mb-3 break-words" x-text="sectionInsertLabel"></p>
+        <p class="mb-1.5 text-[11px] font-medium text-gray-500"><?= e(__('blox_layout_equal')) ?></p>
         <div class="grid grid-cols-3 gap-2">
             <?php for ($insertCols = 1; $insertCols <= 6; $insertCols++): ?>
             <button type="button" @click="chooseSectionLayout(<?= $insertCols ?>)" data-layout-choice data-testid="blox-add-section-<?= $insertCols ?>"
@@ -21,6 +22,24 @@ declare(strict_types=1);
                 <span class="text-xs"><?= e(__('pea_n_columns', ['n' => $insertCols])) ?></span>
             </button>
             <?php endfor; ?>
+        </div>
+        <?php
+        // 按比例（2.1.0）：与容器「布局」同一组比例，另加 1/4 单栏（余下留白，列面板里可改位置）
+        $insertRatios = [
+            [[4, 8], '1/3+2/3'], [[8, 4], '2/3+1/3'], [[3, 9], '1/4+3/4'],
+            [[9, 3], '3/4+1/4'], [[3, 6, 3], '1/4+1/2+1/4'], [[3], __('blox_layout_single_quarter')],
+        ];
+        ?>
+        <p class="mt-3 mb-1.5 text-[11px] font-medium text-gray-500"><?= e(__('blox_layout_by_ratio')) ?></p>
+        <div class="grid grid-cols-3 gap-2">
+            <?php foreach ($insertRatios as [$ratioSpans, $ratioLabel]): ?>
+            <button type="button" @click="chooseSectionPreset(<?= e((string) json_encode($ratioSpans)) ?>)" data-layout-choice
+                    data-testid="blox-add-section-ratio-<?= e(implode('-', $ratioSpans)) ?>" title="<?= e($ratioLabel) ?>"
+                    class="h-16 min-w-0 rounded border border-gray-300 hover:border-blue-500 hover:bg-blue-50 text-gray-700 inline-flex flex-col items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-blue-500">
+                <span class="grid grid-cols-12 gap-0.5 w-12 h-4" aria-hidden="true"><?php foreach ($ratioSpans as $ratioSpan): ?><span class="border border-gray-400 bg-gray-100 rounded-sm" style="grid-column: span <?= (int) $ratioSpan ?> / span <?= (int) $ratioSpan ?>"></span><?php endforeach; ?></span>
+                <span class="max-w-full truncate px-1 text-[11px]"><?= e($ratioLabel) ?></span>
+            </button>
+            <?php endforeach; ?>
         </div>
         <?php if (bloxPageEditorEnabled()): ?>
         <button type="button" @click="chooseSectionTemplate()" class="mt-3 w-full h-9 rounded border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 inline-flex items-center justify-center gap-2"><i class="ti ti-layout-grid" aria-hidden="true"></i><?= e(__('pea_import_template')) ?></button>

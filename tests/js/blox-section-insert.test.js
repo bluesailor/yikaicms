@@ -158,3 +158,33 @@ test('desktop palette click inserts into the selected section and never guesses 
     assert.deepEqual(state.calls, ['heading', 'heading', 'heading']);
     assert.equal(state.paletteSelected, '');
 });
+
+test('ratio presets insert their spans once; invalid spans or totals over 12 do nothing (2.1.0)', () => {
+    for (const spans of [[4, 8], [3, 6, 3], [3]]) {
+        const state = fixture();
+        state.openSectionInsert(1);
+        state.chooseSectionPreset(spans);
+        assert.deepEqual(JSON.parse(JSON.stringify(state.calls)), [{ index: 1, count: spans }]);
+        assert.equal(state._insertAt, null);
+        assert.equal(state.sectionInsertOpen, false);
+    }
+    for (const spans of [[], [8, 8], [0], [13], [2.5], 'x', [1, 1, 1, 1, 1, 1, 1]]) {
+        const state = fixture();
+        state.openSectionInsert(1);
+        state.chooseSectionPreset(spans);
+        assert.deepEqual(state.calls, []);
+    }
+    const closed = fixture();
+    closed.chooseSectionPreset([4, 8]);
+    assert.deepEqual(closed.calls, [], 'picker must be open');
+});
+
+test('toolbar layout entry opens the same picker at the next insertion point (2.1.0)', () => {
+    const state = fixture();
+    state.insertIndex = () => 2;
+    state.openLayoutPicker({ currentTarget: { isConnected: true, focus() {}, getBoundingClientRect: () => ({ left: 100, top: 10, width: 32, bottom: 42 }) } });
+    assert.equal(state.sectionInsertOpen, true);
+    assert.equal(state.sectionInsertLabel, 'After b');
+    state.chooseSectionPreset([3, 9]);
+    assert.deepEqual(JSON.parse(JSON.stringify(state.calls)), [{ index: 2, count: [3, 9] }]);
+});

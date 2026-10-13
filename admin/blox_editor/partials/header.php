@@ -617,6 +617,12 @@ declare(strict_types=1);
                         title="<?php echo e(__('blox_open_elements')); ?>" aria-label="<?php echo e(__('blox_open_elements')); ?>">
                     <i class="ti ti-circle-plus text-lg"></i>
                 </button>
+                <?php // 添加布局（2.1.0）：与画布区块之间的「+」同一个选择器，等分或按比例新建一个区块 ?>
+                <button type="button" @click.stop="openLayoutPicker($event)" data-testid="blox-layout-open" aria-haspopup="dialog"
+                        class="w-8 h-8 rounded inline-flex items-center justify-center text-gray-300 hover:text-white hover:bg-gray-800 transition"
+                        title="<?php echo e(__('blox_add_layout')); ?>" aria-label="<?php echo e(__('blox_add_layout')); ?>">
+                    <i class="ti ti-layout-columns text-lg"></i>
+                </button>
             </div>
 <?php if (!$isHomeBlox && !$templateId && ($pageType ?? '') === 'page'): ?>
             <button type="button" @click="openPageFrame()" data-testid="blox-page-frame-open"
@@ -777,6 +783,10 @@ declare(strict_types=1);
                 <button type="button" @click="openElementLibrary(); mobileActionsOpen = false"
                         data-testid="blox-mobile-add-elements">
                     <i class="ti ti-circle-plus"></i><?php echo e(__('blox_open_elements')); ?>
+                </button>
+                <button type="button" @click.stop="openLayoutPicker($event); mobileActionsOpen = false"
+                        data-testid="blox-mobile-add-layout">
+                    <i class="ti ti-layout-columns"></i><?php echo e(__('blox_add_layout')); ?>
                 </button>
 <?php if ($templateId && in_array(($templateType ?? ''), ['header', 'footer'], true)): ?>
                 <button type="button" @click="openHeaderPresets(); mobileActionsOpen = false">
