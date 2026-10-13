@@ -28,6 +28,8 @@ final class BloxCssCompiler
         'row-gap' => ['length', 0, 160],
         'column-gap' => ['length', 0, 160],
         'flex-basis' => ['length', 0, 1200],
+        // 2.1.0 画布拖底边改高度（参照 Bricks）：容器 / 布局块的最小高度
+        'min-height' => ['length', 0, 1200],
         'flex-grow' => ['number', 0, 10],
         'flex-shrink' => ['number', 0, 10],
         'order' => ['int', -10, 10],

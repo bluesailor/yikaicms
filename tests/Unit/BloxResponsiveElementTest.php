@@ -179,9 +179,9 @@ final class BloxResponsiveElementTest extends TestCase
             [new HeadingElement(), ['visual_size', 'type_font_size']],
             // 2.0.3：长内容折叠的折叠高度按设备设置（每档可单独「不折叠」）
             [new ContainerElement(), ['direction', 'grid_cols', 'gap', 'gap_px', 'row_gap_px', 'column_gap_px',
-                'align', 'justify', 'align_content', 'padding', 'order_n', 'flex_basis_px', 'grid_span', 'collapse_height']],
+                'align', 'justify', 'align_content', 'padding', 'min_height_px', 'order_n', 'flex_basis_px', 'grid_span', 'collapse_height']],
             [new DivElement(), ['direction', 'grid_cols', 'gap', 'gap_px', 'row_gap_px', 'column_gap_px',
-                'align', 'justify', 'align_content', 'padding', 'order_n', 'flex_basis_px', 'grid_span', 'collapse_height']],
+                'align', 'justify', 'align_content', 'padding', 'min_height_px', 'order_n', 'flex_basis_px', 'grid_span', 'collapse_height']],
         ] as [$element, $keys]) {
             $responsive = [];
             foreach ($element->controls() as $control) {

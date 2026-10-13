@@ -272,3 +272,34 @@ test('context menu splits columns and container elements at the menu position (2
     state.ctx = { kind: 'section', target: { si: 0 }, x: 0, y: 0 };
     assert.equal(state.ctxSplitTarget(), null);
 });
+
+test('canvas size drags write min heights and single-column widths as one command each (2.1.0)', () => {
+    const { state, div } = splitFixture();
+    const column = state.sections[0].columns[0];
+    state.sections = [{ id: 's1', columns: [column] }, { id: 's2', columns: [{ id: 'c2', elements: [div] }, { id: 'c3', elements: [] }] }];
+    state.elementAtPath = (path) => (path === '1.0.0' ? div : null);
+    state.selected = [];
+    Object.assign(state, {
+        selectColumn(si, ci) { this.selected.push('col ' + si + '.' + ci); },
+        selectPath(path) { this.selected.push('el ' + path); },
+        highlightCanvasSelection() {},
+        rawSpanT() { return null; },
+        writeSpan(col, d) { col.span = d; },
+    });
+    state.applyCanvasSizeDrag({ target: { kind: 'column', sec: 0, col: 0 }, prop: 'min_height', value: 166 });
+    assert.equal(column.min_height, 166);
+    state.applyCanvasSizeDrag({ target: { kind: 'column', sec: 0, col: 0 }, prop: 'span', value: 3 });
+    assert.equal(column.span, 3);
+    column.position = 'center';
+    state.applyCanvasSizeDrag({ target: { kind: 'column', sec: 0, col: 0 }, prop: 'span', value: 12 });
+    assert.equal(column.position, undefined, '整行时位置不再有意义');
+    state.applyCanvasSizeDrag({ target: { kind: 'column', sec: 0, col: 0 }, prop: 'min_height', value: 0 });
+    assert.equal(column.min_height, undefined, '0 = 清掉');
+    state.applyCanvasSizeDrag({ target: { kind: 'container', path: '1.0.0' }, prop: 'min_height', value: 240 });
+    assert.equal(div.data.min_height_px, 240);
+    // 多列区块的列宽走分隔条，不接受；超界也不接受
+    state.applyCanvasSizeDrag({ target: { kind: 'column', sec: 1, col: 0 }, prop: 'span', value: 4 });
+    state.applyCanvasSizeDrag({ target: { kind: 'column', sec: 0, col: 0 }, prop: 'min_height', value: 5000 });
+    assert.deepEqual(state.commands, ['canvas-size-drag', 'canvas-size-drag', 'canvas-size-drag', 'canvas-size-drag', 'canvas-size-drag']);
+    assert.deepEqual(state.selected, ['col 0.0', 'col 0.0', 'col 0.0', 'col 0.0', 'el 1.0.0']);
+});

@@ -590,7 +590,8 @@ final class BlockRenderer
                     && $columnOverlayOpacity > 0;
                 $columnAurora = BloxAurora::declarations($column);   // 区块列的极光背景（2.0.5）
                 $hasColumnVisual = $columnBg !== null || $columnBgImage !== null || $hasColumnOverlay || $columnAurora !== '';
-                $wrapColumn = $colCount > 1 || $narrowSingle || $editMode || $hasColumnVisual
+                $columnMinHeight = is_numeric($column['min_height'] ?? null) ? max(0, min(1200, (int) $column['min_height'])) : 0;
+                $wrapColumn = $colCount > 1 || $narrowSingle || $editMode || $hasColumnVisual || $columnMinHeight > 0
                     || $colHideCls !== '' || $colHideAttr !== '';
 
                 if ($wrapColumn) {
@@ -609,6 +610,9 @@ final class BlockRenderer
                     }
 
                     $columnStyle = $columnAurora;
+                    if ($columnMinHeight > 0) {
+                        $columnStyle .= 'min-height:' . $columnMinHeight . 'px;';
+                    }
                     if ($columnBg !== null) {
                         $columnStyle .= 'background-color:' . $columnBg . ';';
                     }

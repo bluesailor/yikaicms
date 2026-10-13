@@ -107,6 +107,10 @@ final class DivElement extends AbstractElement
             ...$this->backgroundControls(),
             ['key' => 'padding', 'type' => 'select', 'label' => __('blox_padding'), 'default' => 'none', 'tab' => 'style', 'responsive' => true,
                 'options' => ['none' => __('blox_spacing_none'), 'sm' => __('blox_spacing_sm'), 'md' => __('blox_spacing_md'), 'lg' => __('blox_spacing_lg'), 'xl' => __('blox_spacing_xl')]],
+            // 最小高度（2.1.0）：画布上拖底边即可调，也能在这里按设备分别填
+            ['key' => 'min_height_px', 'type' => BloxCssCompiler::CONTROL_TYPE, 'label' => __('blox_min_height_px'),
+                'default' => '', 'tab' => 'style', 'responsive' => true, 'min' => 0, 'max' => 1200, 'step' => 1, 'unit' => 'px',
+                'css' => [['property' => 'min-height']]],
             ['key' => 'radius', 'type' => 'select', 'label' => __('blox_radius'), 'default' => 'none', 'tab' => 'style',
                 'options' => ['none' => __('blox_spacing_none'), 'md' => __('blox_spacing_md'), 'xl' => __('blox_spacing_lg')]],
             ...$this->designScaleControls(),

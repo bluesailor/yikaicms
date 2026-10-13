@@ -2709,6 +2709,17 @@ declare(strict_types=1);
                                         </div>
                                         <p class="text-[10px] text-gray-400 mt-1"><?= e(__('blox_col_position_hint')) ?></p>
                                     </div>
+                                    <div class="blox-property-span-full" data-testid="blox-column-min-height">
+                                        <label class="block text-xs font-medium text-gray-600 mb-1.5" for="blox-column-min-height-input"><?= e(__('blox_min_height_px')) ?></label>
+                                        <div class="flex items-center gap-2">
+                                            <input id="blox-column-min-height-input" type="number" min="0" max="1200" step="1" inputmode="numeric"
+                                                   class="w-28 border border-gray-200 rounded px-2 py-1.5 text-sm"
+                                                   :value="selectedColData().min_height || ''"
+                                                   @change="setColumnMinHeight($event.target.value)">
+                                            <span class="text-xs text-gray-400">px</span>
+                                        </div>
+                                        <p class="text-[10px] text-gray-400 mt-1"><?= e(__('blox_min_height_hint')) ?></p>
+                                    </div>
                                     <div class="blox-property-span-full">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_col_bg') ?></label>
                                         <button type="button"
