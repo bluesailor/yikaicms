@@ -80,6 +80,10 @@ abstract class TestCase extends BaseTestCase
      */
     protected function resetDatabase(): void
     {
+        // 按请求缓存的数据（媒体替代文字表）跟着库一起清：各用例共用同一个 db() 连接
+        if (function_exists('mediaAltForget')) {
+            mediaAltForget();
+        }
         $pdo = db()->getPdo();
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
