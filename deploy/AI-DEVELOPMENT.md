@@ -11,7 +11,7 @@
 5. 阅读指南指定的实际源码和相邻实现，再给出修改范围并动手。
 
 2.0.4 起常用的现成能力，先查它们再决定要不要自己写：扩展字段（`includes/ExtFields.php`，插件指南 8.1、模板指南 8.5）、自定义网址与 301 跳转（`ProductRouteModel`、`includes/Redirects.php`，支持 `/旧目录/*` 前缀规则）、从 WordPress 迁移（命令行 `tools/wp-import.php`，含 Contact Form 7 表单、菜单、ACF 字段与旧地址兜底；2.0.5 起支持 Betheme / Muffin 页面、`--type-map` 自定义类型映射与迁移程度报告）。
-2.1 起（开发中，以发版时为准）：网页构建器组件（母版 + 引用实例，模板指南 9.5）；插件密钥统一存 `SecretStore`（插件指南 8.2）；AI 能力注册必须声明权限键与确认档位（插件指南 6.2）。
+2.1.0 起：网页构建器组件（母版 + 引用实例，可嵌套、锁定版本、变体，模板包带母版，模板指南 9.5）与预置组件；插件密钥统一存 `SecretStore`（插件指南 8.2）；AI 能力注册必须声明权限键与确认档位（插件指南 6.2）；`AiService::describeImage($bytes, $mime, $instruction)` 让模型看一张图（OpenAI 兼容与 Anthropic 两种格式，媒体库的 AI 替代文字用它，`includes/media/MediaAltAi.php`）；界面语言包按需下载（[多语言部署](./LANGUAGES.md) 第五节）；客户评价独立成表（`testimonialModel()`，模板指南 9.6）。
 2.0.6（热修复）：控制台「检查更新」恢复（升级接口只认 POST + CSRF），控制台顶部提醒收进后台右上角铃铛（`includes/AdminNotices.php`，已知最新版本由 `includes/UpdateNotice.php` 记录）；扩展接口不变。
 2.0.5 起：多语言网址统一走 `LocalizedUrl`（内容、产品、栏目的各语言网址、hreflang、语言切换与 canonical，插件指南 5.5），设计变量扩到间距 / 容器宽度 / 排版（`BloxDesignScale`、`BloxDesignType`，模板指南 9.x），后台文章分类可由插件接管（`admin_article_categories` 过滤器）。
 
