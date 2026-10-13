@@ -43,6 +43,7 @@ final class MediaAltAi
             throw new RuntimeException(__('media_alt_ai_failed', ['error' => 'empty']));
         }
         metaModel()->set('media', $mediaId, 'alt', $alt);
+        mediaAltForget();
         if (function_exists('do_action')) {
             do_action('data_changed', 'media', $mediaId);
         }

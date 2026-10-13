@@ -83,6 +83,7 @@ try {
         $plan = ImageEditPlan::normalize($sw, $sh, $history());
         $alt = trim((string) ($_POST['alt'] ?? ''));
         setMeta('media', $id, 'alt', mb_substr($alt, 0, 300));
+        mediaAltForget();
         if ($plan['ops'] === [] && !is_file($originalPath)) {
             success(['id' => $id, 'changed' => false, 'alt' => $alt], __('image_edit_saved'));
         }
