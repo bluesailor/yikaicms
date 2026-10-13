@@ -3603,6 +3603,7 @@ return [
     'pea_add_section' => '＋ セクションを追加',
     'pea_add_section_plain' => 'セクションを追加',
     'pea_add_element' => '要素を追加',
+    'blox_el_div' => 'Div',
     'pea_empty_div' => '空の Div',
     'pea_empty_container' => '空のコンテナ',
     'pea_empty_column' => '空のカラム',
