@@ -626,6 +626,11 @@ final class BloxDocumentPipeline
         if (in_array($column['position'] ?? null, ['center', 'right'], true)) {
             $extras['position'] = $column['position'];
         }
+        // 最小高度 px（2.1.0，画布拖底边或列面板填写）；0 / 空不落盘
+        $minHeight = is_numeric($column['min_height'] ?? null) ? (int) $column['min_height'] : 0;
+        if ($minHeight > 0) {
+            $extras['min_height'] = min(1200, $minHeight);
+        }
         return $extras;
     }
 

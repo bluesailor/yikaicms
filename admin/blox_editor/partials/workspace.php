@@ -1065,7 +1065,7 @@ declare(strict_types=1);
                                              :style="containerPreviewStyle()">
                                             <template x-for="n in containerPreviewItemCount()" :key="n">
                                                 <div class="blox-layout-preview-item rounded bg-white/90 border border-gray-200 shadow-sm text-[10px] text-gray-400"
-                                                     data-testid="blox-layout-preview-item"
+                                                     data-testid="blox-layout-preview-item" :style="containerPreviewItemStyle(n)"
                                                      :data-placeholder="n > containerChildCount()"
                                                      :title="n <= containerChildCount() ? <?= e($jt('blox_element_word')) ?>.replace(':n', n) : <?= e($jt('blox_placeholder')) ?>"
                                                      :aria-label="n <= containerChildCount() ? <?= e($jt('blox_element_word')) ?>.replace(':n', n) : <?= e($jt('blox_placeholder')) ?>"
@@ -1112,7 +1112,7 @@ declare(strict_types=1);
                                         </div>
                                     </div>
 
-                                    <div x-show="selEl && (selEl.type !== 'div' || (selEl.data.display || 'block') === 'flex')">
+                                    <div x-show="selEl && !containerIsGrid() && (selEl.type !== 'div' || (selEl.data.display || 'block') === 'flex')">
                                         <div class="flex items-center justify-between gap-2 mb-1.5">
                                             <label class="block text-xs font-medium text-gray-600"><?= __('blox_direction') ?></label>
                                             <div class="flex items-center gap-1">
@@ -1137,7 +1137,7 @@ declare(strict_types=1);
                                         </div>
                                     </div>
 
-                                    <div x-show="selEl && (selEl.type !== 'div' || (selEl.data.display || 'block') === 'flex')">
+                                    <div x-show="selEl && !containerIsGrid() && (selEl.type !== 'div' || (selEl.data.display || 'block') === 'flex')">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?php echo e(__('blox_flex_wrap')); ?></label>
                                         <div class="grid grid-cols-3 gap-1">
                                             <template x-for="opt in containerWrapOptions" :key="'cw'+opt.k">
@@ -1580,6 +1580,15 @@ declare(strict_types=1);
                             <?php require __DIR__ . '/banner-control-groups.php'; ?>
                             <?php require __DIR__ . '/home-content-groups.php'; ?>
                             <?php require __DIR__ . '/heading-content.php'; ?>
+                            <?php // 容器 / 布局块的「拆分」（2.1.0）：在里面放一个按比例分好的网格，与列面板同一个选择器 ?>
+                            <div x-show="selEl && (selEl.type === 'container' || selEl.type === 'div')" x-cloak
+                                 class="mb-3 flex items-center justify-between gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2">
+                                <span class="text-[11px] leading-snug text-gray-500"><?= e(__('blox_split_title')) ?></span>
+                                <button type="button" @click.stop="openSplitForSelection($event)" data-testid="blox-element-split" aria-haspopup="dialog"
+                                        class="h-7 shrink-0 inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-2 text-[11px] text-gray-600 hover:border-blue-300 hover:text-blue-600">
+                                    <i class="ti ti-layout-columns text-xs" aria-hidden="true"></i><?= e(__('blox_split_layout')) ?>
+                                </button>
+                            </div>
                             <div class="blox-property-pair-grid" data-testid="blox-element-property-grid" x-show="!headingPanelVisible()">
                             <template x-for="(ctrl, ctrlIndex) in visibleCtrls()" :key="ctrl.compact_richtext ? selEl.id + ':' + ctrl.key : ctrl.key">
                                 <div class="contents">
@@ -2658,7 +2667,13 @@ declare(strict_types=1);
                                             <span class="text-xs font-medium text-gray-600 inline-flex items-center gap-1">
                                                 <i class="ti ti-columns-1 text-sm text-green-500"></i><?= __('blox_col_settings') ?>
                                             </span>
-                                            <span class="text-[10px] text-gray-400" x-text="<?= e($jt('blox_col_word')) ?>.replace(':n', selectedCi + 1)"></span>
+                                            <span class="ml-auto mr-2 text-[10px] text-gray-400" x-text="<?= e($jt('blox_col_word')) ?>.replace(':n', selectedCi + 1)"></span>
+                                            <?php // 拆分（2.1.0）：在这一列里放一个网格容器，按比例分成几栏 ?>
+                                            <button type="button" @click.stop="openSplitForSelection($event)" data-testid="blox-column-split" aria-haspopup="dialog"
+                                                    title="<?= e(__('blox_split_title')) ?>"
+                                                    class="h-6 inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-1.5 text-[11px] text-gray-600 hover:border-green-300 hover:text-green-700">
+                                                <i class="ti ti-layout-columns text-xs" aria-hidden="true"></i><?= e(__('blox_split_layout')) ?>
+                                            </button>
                                         </div>
                                         <?php /* 示意条按实际占位画：宽度占整行的比例；单列不足整行时按位置靠左/居中/靠右 */ ?>
                                         <div class="flex h-8 rounded bg-white border border-gray-200 p-1" data-testid="blox-column-span-visual"
@@ -2693,6 +2708,17 @@ declare(strict_types=1);
                                             </template>
                                         </div>
                                         <p class="text-[10px] text-gray-400 mt-1"><?= e(__('blox_col_position_hint')) ?></p>
+                                    </div>
+                                    <div class="blox-property-span-full" data-testid="blox-column-min-height">
+                                        <label class="block text-xs font-medium text-gray-600 mb-1.5" for="blox-column-min-height-input"><?= e(__('blox_min_height_px')) ?></label>
+                                        <div class="flex items-center gap-2">
+                                            <input id="blox-column-min-height-input" type="number" min="0" max="1200" step="1" inputmode="numeric"
+                                                   class="w-28 border border-gray-200 rounded px-2 py-1.5 text-sm"
+                                                   :value="selectedColData().min_height || ''"
+                                                   @change="setColumnMinHeight($event.target.value)">
+                                            <span class="text-xs text-gray-400">px</span>
+                                        </div>
+                                        <p class="text-[10px] text-gray-400 mt-1"><?= e(__('blox_min_height_hint')) ?></p>
                                     </div>
                                     <div class="blox-property-span-full">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_col_bg') ?></label>

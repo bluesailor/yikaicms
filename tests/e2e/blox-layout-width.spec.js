@@ -71,3 +71,128 @@ test('toolbar layout picker adds a quarter-width column that really takes a quar
   // 不保存、不撤销，直接结束：编辑器没有自动保存，改动不会落盘。撤销会先选回新区块再把它删掉，
   // 设置面板开着时选中项变空会刷出一串 Alpine 报错——2.1.0 之前就有的问题，另行处理。
 });
+
+// 拆分（2.1.0，参照 Bricks 在 Block 里再插列）：列面板拆成 1/3 + 2/3，画布空布局块上再拆成两栏；不保存。
+test('columns and blocks split into grids that can be split again @ci', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop-1440', 'Canvas geometry baseline at desktop width');
+  await openPageEditor(page, fixtures.blox_page);
+  const clear = page.getByTestId('blox-clear-selection');
+  if (await clear.isVisible()) await clear.click();
+  await waitPreviewSettled(page);
+  const sections = page.getByTestId('blox-tree-section');
+  const before = await sections.count();
+  await page.getByTestId('blox-layout-open').click();
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-add-section-1').click());
+  await expect(sections).toHaveCount(before + 1);
+
+  await sections.last().getByTestId('blox-tree-column').first().locator(':scope > div').first().click();
+  await page.getByTestId('blox-column-split').click();
+  const picker = page.getByTestId('blox-section-insert-picker');
+  await expect(picker).toBeVisible();
+  await expect(picker.getByRole('heading')).toHaveText(/拆分成几栏|Split into columns|列に分割/);
+  await expect(picker.getByTestId('blox-add-section-1')).toBeHidden();
+  await expect(picker.getByTestId('blox-add-section-ratio-3')).toBeHidden();
+  await performPagePreviewUpdate(page, () => picker.getByTestId('blox-add-section-ratio-4-8').click());
+  await waitPreviewSettled(page);
+
+  const canvas = await frame(page);
+  const lastSection = canvas.locator('[data-yk-sec]').last();
+  const grid = lastSection.locator('[data-yk-el-type="container"]').first();
+  const parts = grid.locator(':scope [data-yk-el-type="div"]');
+  await expect(parts).toHaveCount(2);
+  // 元素外层编辑包装是 display:contents，量里面的 .yk-div
+  const widths = await grid.locator('.yk-div').evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().width));
+  expect(widths[0] / widths[1]).toBeGreaterThan(0.45);
+  expect(widths[0] / widths[1]).toBeLessThan(0.56);
+  await expect(page.getByTestId('blox-element-split')).toBeVisible();
+  await expect(page.getByTestId('blox-layout-preview')).toHaveClass(/(^|\s)grid(\s|$)/);
+  await expect(page.getByTestId('blox-layout-preview-item').first()).toHaveAttribute('style', /span 4/);
+
+  // 画布里第一个空布局块上的「拆分」：与面板同一个选择器
+  const splitFirst = lastSection.locator('[data-yk-split^="container:"]').first();
+  await expect(splitFirst).toBeVisible();
+  await splitFirst.dispatchEvent('click');
+  await expect(picker).toBeVisible();
+  await performPagePreviewUpdate(page, () => picker.getByTestId('blox-add-section-2').click());
+  await waitPreviewSettled(page);
+  const nested = lastSection.locator('[data-yk-el-type="div"] [data-yk-el-type="container"]');
+  await expect(nested).toHaveCount(1);
+  await expect(nested.locator('[data-yk-el-type="div"]')).toHaveCount(2);
+  // 只有三个空布局块挂「拆分」；外层列、两层网格在有了子元素后不再留提示（局部补丁也会摘掉旧提示）
+  await expect.poll(() => lastSection.locator('[data-yk-split]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('data-yk-split').replace(/[0-9.]+$/, (path) => path.split('.').length + 'seg'))
+    .sort().join(' ')), { timeout: 8000 }).toBe('container:4seg container:6seg container:6seg');
+  await lastSection.evaluate((node) => node.scrollIntoView({ block: 'center' }));
+  await page.screenshot({ path: info.outputPath('split.png') });
+  // 不保存不撤销直接结束，理由同上一个用例
+});
+
+// 拖尺寸（2.1.0，参照 Bricks）：选中单列区块的列，拖底边改最小高度、拖右边改列宽；选中容器拖底边改最小高度。不保存。
+test('selected columns and containers resize by dragging their edges @ci', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop-1440', 'Canvas drag baseline at desktop width');
+  await openPageEditor(page, fixtures.blox_page);
+  const clear = page.getByTestId('blox-clear-selection');
+  if (await clear.isVisible()) await clear.click();
+  await waitPreviewSettled(page);
+  const sections = page.getByTestId('blox-tree-section');
+  await page.getByTestId('blox-layout-open').click();
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-add-section-1').click());
+  await sections.last().getByTestId('blox-tree-column').first().locator(':scope > div').first().click();
+  await waitPreviewSettled(page);
+
+  const canvas = await frame(page);
+  // 新区块在页面最下面：先滚进画布可视区，手柄才在鼠标够得着的地方
+  await canvas.locator('[data-yk-sec]').last().evaluate((node) => node.scrollIntoView({ block: 'center' }));
+  const heightHandle = canvas.locator('[data-yk-size-handle="height"]');
+  const widthHandle = canvas.locator('[data-yk-size-handle="width"]');
+  await expect(heightHandle).toBeVisible();
+  await expect(widthHandle).toBeVisible();
+  const lastColumn = () => page.evaluate(() => {
+    const app = window.Alpine.$data(document.body);
+    return JSON.parse(JSON.stringify(app.sections[app.sections.length - 1].columns[0]));
+  });
+  // 画布 iframe 用 CSS zoom 缩放，Playwright 的 boundingBox 不换算：自己按缩放比把画布坐标换成页面坐标
+  async function pagePoint(handle) {
+    const inner = await handle.evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, vw: window.innerWidth };
+    });
+    const outer = await page.getByTestId('blox-canvas').evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      return { x: rect.left + node.clientLeft, y: rect.top + node.clientTop, w: node.clientWidth ? rect.width * (node.clientWidth / node.offsetWidth) : rect.width };
+    });
+    const scale = outer.w / inner.vw;
+    return { x: outer.x + inner.x * scale, y: outer.y + inner.y * scale, scale };
+  }
+  async function drag(handle, dx, dy) {
+    const start = await pagePoint(handle);
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(start.x + dx * start.scale / 2, start.y + dy * start.scale / 2, { steps: 4 });
+    await page.mouse.move(start.x + dx * start.scale, start.y + dy * start.scale, { steps: 4 });
+    await page.mouse.up();
+  }
+  await performPagePreviewUpdate(page, () => drag(heightHandle, 0, 120));
+  await expect.poll(async () => (await lastColumn()).min_height || 0).toBeGreaterThan(80);
+  await expect(canvas.locator('[data-yk-sec]').last().locator('[data-yk-col]').first()).toHaveAttribute('style', /min-height:\s*\d+px/);
+  await expect(page.getByTestId('blox-column-min-height').locator('input')).not.toHaveValue('');
+
+  // 往左拖到大约一半宽
+  const halfWidth = await canvas.locator('[data-yk-sec]').last().locator('[data-yk-col]').first().evaluate((node) => node.getBoundingClientRect().width / 2);
+  await performPagePreviewUpdate(page, () => drag(widthHandle, -halfWidth, 0));
+  await expect.poll(async () => (await lastColumn()).span || 12).toBeLessThan(12);
+  await expect(canvas.locator('[data-yk-sec]').last().locator('[data-yk-col]').first()).not.toHaveAttribute('data-yk-col-span', '12');
+  await expect(page.getByTestId('blox-column-position')).toBeVisible();
+
+  // 拆一个网格出来，选中里面的容器拖底边
+  await page.getByTestId('blox-column-split').click();
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-section-insert-picker').getByTestId('blox-add-section-2').click());
+  await waitPreviewSettled(page);
+  await expect(heightHandle).toBeVisible();
+  await expect(widthHandle).toBeHidden();
+  await performPagePreviewUpdate(page, () => drag(heightHandle, 0, 90));
+  await expect.poll(() => page.evaluate(() => {
+    const app = window.Alpine.$data(document.body);
+    return Number((app.selEl && app.selEl.data && app.selEl.data.min_height_px) || 0);
+  })).toBeGreaterThan(40);
+  // 不保存不撤销直接结束，理由同第一个用例
+});

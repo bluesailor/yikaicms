@@ -80,7 +80,7 @@ abstract class AbstractElement
                 'css' => [['property' => 'flex-basis']]],
             // 0b Grid：作为网格子项时的跨列（父级非 grid 时这些类不生效，无害）。
             ['key' => 'grid_span', 'type' => 'select', 'label' => __('blox_grid_span'), 'default' => '', 'tab' => 'style', 'responsive' => true,
-                'options' => ['' => __('blox_grid_span_auto'), '2' => '2', '3' => '3', '4' => '4', '6' => '6', 'full' => __('blox_grid_span_full')]],
+                'options' => ['' => __('blox_grid_span_auto'), '2' => '2', '3' => '3', '4' => '4', '6' => '6', '8' => '8', '9' => '9', 'full' => __('blox_grid_span_full')]],
         ];
     }
 
@@ -112,19 +112,19 @@ abstract class AbstractElement
     ];
     private const GRID_SPAN_MOBILE_MAP = [
         2 => 'col-span-2', 3 => 'col-span-3', 4 => 'col-span-4',
-        6 => 'col-span-6', 'full' => 'col-span-full',
+        6 => 'col-span-6', 8 => 'col-span-8', 9 => 'col-span-9', 'full' => 'col-span-full',
     ];
     private const GRID_SPAN_TABLET_MAP = [
         2 => 'md:col-span-2', 3 => 'md:col-span-3', 4 => 'md:col-span-4',
-        6 => 'md:col-span-6', 'full' => 'md:col-span-full',
+        6 => 'md:col-span-6', 8 => 'md:col-span-8', 9 => 'md:col-span-9', 'full' => 'md:col-span-full',
     ];
     private const GRID_SPAN_DESKTOP_MAP = [
         2 => 'lg:col-span-2', 3 => 'lg:col-span-3', 4 => 'lg:col-span-4',
-        6 => 'lg:col-span-6', 'full' => 'lg:col-span-full',
+        6 => 'lg:col-span-6', 8 => 'lg:col-span-8', 9 => 'lg:col-span-9', 'full' => 'lg:col-span-full',
     ];
     private const GRID_SPAN_WIDE_MAP = [
         2 => 'wide:col-span-2', 3 => 'wide:col-span-3', 4 => 'wide:col-span-4',
-        6 => 'wide:col-span-6', 'full' => 'wide:col-span-full',
+        6 => 'wide:col-span-6', 8 => 'wide:col-span-8', 9 => 'wide:col-span-9', 'full' => 'wide:col-span-full',
     ];
 
     /**
