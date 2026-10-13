@@ -135,6 +135,9 @@ final class ContainerElement extends AbstractElement
             ...$this->flexItemControls(),
             ...$this->staggerControls(),
             ...BloxOverlap::controls(),
+            // 堆叠卡片（2.1.0）：滚动时每个子元素依次吸顶、往下错开一点叠在一起（纯 CSS，sticky）
+            ['key' => 'stack_scroll', 'type' => 'checkbox', 'label' => __('blox_container_stack'), 'tab' => 'style', 'default' => false,
+                'help' => __('blox_container_stack_help'), 'visible_when' => ['terms' => [['layout', 'in', ['', 'flex']]]]],
             ...$this->collapseControls(),
         ];
     }
@@ -182,6 +185,10 @@ final class ContainerElement extends AbstractElement
             if ($c !== '') {
                 $layout .= ' ' . $c;
             }
+        }
+        if (!empty($data['stack_scroll']) && ($data['layout'] ?? 'flex') !== 'grid') {
+            $layout .= ' yk-stack';
+            BloxAssetCollector::addStyle('/assets/css/yikay-stack.css');
         }
         // 内边距仍是最后一个类（与历史输出逐字节一致）；折叠时它留在根上，按钮落在内边距以内
         $padCls = $this->resp($data['padding'] ?? 'none', self::PAD_MAP, 'none');
