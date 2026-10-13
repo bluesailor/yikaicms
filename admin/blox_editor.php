@@ -1231,6 +1231,8 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
 
     <script>
     function bloxEditor() {
+        // 草稿变更摘要的缓存放在响应式之外：写缓存不会再惊动十几处读摘要的绑定
+        var draftSummaryCache = { rev: -1, key: "", value: null };
         return Object.assign({
             sections: <?php echo $initBlocks; ?>,
             pageHero: <?php echo json_encode($pageHero, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
@@ -1300,8 +1302,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             publishedDocument: <?php echo $publishedDocumentJson; ?>,
             draftSummaryOpen: false,
-            _draftSummaryKey: "",
-            _draftSummaryValue: null,
+            draftRevision: 0,
             sectionLabelPolicy: <?php echo json_encode(
                 BlockRenderer::sectionLabelPolicy(),
                 JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT
@@ -5250,18 +5251,28 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                         items: [],
                     };
                 }
+                // 只在文档改动、停手约 250ms 后重算一次（queueDraftSummary 递增 draftRevision）。
+                // 以前十几处绑定每次按键都把发布版和草稿各序列化一遍，页面越大打字越卡。
+                var rev = this.draftRevision;
+                if (draftSummaryCache.rev === rev && draftSummaryCache.value) return draftSummaryCache.value;
                 var currentDocument = {
                     schema: 1,
                     settings: this.docSettings || {},
                     sections: this.sections || [],
                 };
                 var key = JSON.stringify(this.publishedDocument || {}) + "\n" + JSON.stringify(currentDocument);
-                if (key === this._draftSummaryKey && this._draftSummaryValue) {
-                    return this._draftSummaryValue;
+                if (key !== draftSummaryCache.key || !draftSummaryCache.value) {
+                    draftSummaryCache.key = key;
+                    draftSummaryCache.value = Summary.summarize(this.publishedDocument, currentDocument);
                 }
-                this._draftSummaryKey = key;
-                this._draftSummaryValue = Summary.summarize(this.publishedDocument, currentDocument);
-                return this._draftSummaryValue;
+                draftSummaryCache.rev = rev;
+                return draftSummaryCache.value;
+            },
+
+            queueDraftSummary() {
+                var self = this;
+                clearTimeout(this._draftSummaryTimer);
+                this._draftSummaryTimer = setTimeout(function () { self.draftRevision++; }, 250);
             },
 
             draftSummaryCountText() {
@@ -5304,6 +5315,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                     var document = JSON.parse(payload);
                     if (!document || !Array.isArray(document.sections)) return;
                     this.publishedDocument = document;
+                    this.queueDraftSummary();
                 } catch (_) {
                     return;
                 }
@@ -5814,7 +5826,9 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                     }
                     self.schedulePreview();
                     self.scheduleTreeSortable();
+                    self.queueDraftSummary();
                 });
+                this.$watch("docSettings", function () { self.queueDraftSummary(); });
                 this.canvasBridge().start();
                 this.postDragRules();
             },
