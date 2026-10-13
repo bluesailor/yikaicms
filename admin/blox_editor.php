@@ -3604,6 +3604,58 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 var col = this.selectedCol();
                 if (!col) return;
                 this.writeSpan(col, span, this.rawSpanT(col));
+                if (this.rawSpanD(col) >= 12) delete col.position;
+            },
+
+            // 结构树逐区块标列宽：没存宽度时按这一区块自己的列数平分，余数给前几列（与画布 data-yk-col-span 一致）；
+            // columnSpan() 的兜底只看选中的区块，放在树里会标错
+            columnSpanIn(section, ci) {
+                var columns = section && Array.isArray(section.columns) ? section.columns : [];
+                var span = this.rawSpanD(columns[ci]);
+                if (!span) {
+                    var n = Math.max(1, columns.length);
+                    span = Math.floor(12 / n) + (ci < 12 % n ? 1 : 0);
+                }
+                return Math.min(12, Math.max(1, span));
+            },
+
+            // 只有一列、宽度又不足整行（2.1.0）：渲染器按宽度占位，面板相应给出位置与各设备宽度
+            singleColumnNarrow() {
+                var s = this.sel;
+                if (!s || !Array.isArray(s.columns) || s.columns.length !== 1) return false;
+                var d = this.rawSpanD(s.columns[0]);
+                return d >= 1 && d < 12;
+            },
+
+            columnSizingVisible() {
+                var s = this.sel;
+                return !!(s && Array.isArray(s.columns) && (s.columns.length > 1 || this.singleColumnNarrow()));
+            },
+
+            // 宽度按钮与下拉的文字：3 → "1/4 · 25%"，12 → 「满宽」
+            spanFraction(n) {
+                n = Math.min(12, Math.max(1, parseInt(n, 10) || 12));
+                var a = n, b = 12;
+                while (b) { var r = a % b; a = b; b = r; }
+                return (n / a) + "/" + (12 / a);
+            },
+
+            spanOptionLabel(n) {
+                n = Math.min(12, Math.max(1, parseInt(n, 10) || 12));
+                if (n === 12) return <?= $jt('blox_col_full_width') ?>;
+                return this.spanFraction(n) + " · " + Math.round(n / 12 * 100) + "%";
+            },
+
+            columnPosition() {
+                var col = this.selectedCol();
+                return col && (col.position === "center" || col.position === "right") ? col.position : "left";
+            },
+
+            setColumnPosition(position) {
+                var col = this.selectedCol();
+                if (!col) return;
+                if (position === "center" || position === "right") col.position = position;
+                else delete col.position;
             },
 
             // 断点可见性 hide_on = ['m','t','d'] 子集；空数组时删除键保持文档干净。
@@ -6236,7 +6288,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 if (!sec) return items;
                 items.push({ act: "sec", label: <?= $jt('blox_section_word') ?>.replace(":n", si + 1) });
                 if (this.selLayer === "con") {
-                    items.push({ act: "con", label: <?= $jt('blox_el_container') ?> });
+                    items.push({ act: "con", label: <?= $jt('blox_tree_container') ?> });
                     return items;
                 }
                 if (this.selectedCi < 0) return items;
@@ -7563,11 +7615,12 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 var cols = [];
                 for (var i = 0; i < normalized.length; i++) {
                     var old = oldColumns[i] || null;
-                    cols.push({
+                    // 留住原列的背景、显示设备等设置（2.1.0 前改布局会把它们一并清掉）
+                    cols.push(Object.assign({}, old || {}, {
                         id: old && old.id ? old.id : this.uid("c"),
                         span: normalized[i],
                         elements: old && Array.isArray(old.elements) ? old.elements : [],
-                    });
+                    }));
                 }
                 for (var j = normalized.length; j < oldColumns.length; j++) {
                     if (oldColumns[j] && Array.isArray(oldColumns[j].elements)) {

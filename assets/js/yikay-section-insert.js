@@ -67,6 +67,24 @@
                     this._insertAt = index;
                     try { this.addSection(count); } finally { this._insertAt = null; }
                 },
+                // 按比例插入（2.1.0）：各列宽度合计不超过 12，单列可以不足整行
+                chooseSectionPreset: function (spans) {
+                    if (!this.sectionInsertOpen || !Array.isArray(spans) || spans.length < 1 || spans.length > 6) return;
+                    var total = 0;
+                    for (var i = 0; i < spans.length; i++) {
+                        if (!Number.isInteger(spans[i]) || spans[i] < 1 || spans[i] > 12) return;
+                        total += spans[i];
+                    }
+                    if (total > 12) return;
+                    var index = this.resolveSectionInsert();
+                    if (index === null) return;
+                    this._insertAt = index;
+                    try { this.addSection(spans.slice()); } finally { this._insertAt = null; }
+                },
+                // 顶栏「添加布局」（2.1.0）：插在选中区块之后，没选中就加在末尾；与画布「+」同一个选择器
+                openLayoutPicker: function (event) {
+                    this.openSectionInsert(this.insertIndex(), event);
+                },
                 chooseSectionTemplate: function () {
                     if (!this.sectionInsertOpen) return;
                     var index = this.resolveSectionInsert();
