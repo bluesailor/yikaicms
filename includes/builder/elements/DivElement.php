@@ -60,7 +60,8 @@ final class DivElement extends AbstractElement
     ];
 
     public function type(): string { return 'div'; }
-    public function label(): string { return 'Div'; }
+    // 中文界面叫「布局块」（2.1.0）；英文、日文仍叫 Div
+    public function label(): string { return __('blox_el_div'); }
     public function icon(): string { return 'square'; }
     public function category(): string { return 'layout'; }
     public function isContainer(): bool { return true; }
