@@ -125,3 +125,74 @@ test('columns and blocks split into grids that can be split again @ci', async ({
   await page.screenshot({ path: info.outputPath('split.png') });
   // 不保存不撤销直接结束，理由同上一个用例
 });
+
+// 拖尺寸（2.1.0，参照 Bricks）：选中单列区块的列，拖底边改最小高度、拖右边改列宽；选中容器拖底边改最小高度。不保存。
+test('selected columns and containers resize by dragging their edges @ci', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop-1440', 'Canvas drag baseline at desktop width');
+  await openPageEditor(page, fixtures.blox_page);
+  const clear = page.getByTestId('blox-clear-selection');
+  if (await clear.isVisible()) await clear.click();
+  await waitPreviewSettled(page);
+  const sections = page.getByTestId('blox-tree-section');
+  await page.getByTestId('blox-layout-open').click();
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-add-section-1').click());
+  await sections.last().getByTestId('blox-tree-column').first().locator(':scope > div').first().click();
+  await waitPreviewSettled(page);
+
+  const canvas = await frame(page);
+  // 新区块在页面最下面：先滚进画布可视区，手柄才在鼠标够得着的地方
+  await canvas.locator('[data-yk-sec]').last().evaluate((node) => node.scrollIntoView({ block: 'center' }));
+  const heightHandle = canvas.locator('[data-yk-size-handle="height"]');
+  const widthHandle = canvas.locator('[data-yk-size-handle="width"]');
+  await expect(heightHandle).toBeVisible();
+  await expect(widthHandle).toBeVisible();
+  const lastColumn = () => page.evaluate(() => {
+    const app = window.Alpine.$data(document.body);
+    return JSON.parse(JSON.stringify(app.sections[app.sections.length - 1].columns[0]));
+  });
+  // 画布 iframe 用 CSS zoom 缩放，Playwright 的 boundingBox 不换算：自己按缩放比把画布坐标换成页面坐标
+  async function pagePoint(handle) {
+    const inner = await handle.evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, vw: window.innerWidth };
+    });
+    const outer = await page.getByTestId('blox-canvas').evaluate((node) => {
+      const rect = node.getBoundingClientRect();
+      return { x: rect.left + node.clientLeft, y: rect.top + node.clientTop, w: node.clientWidth ? rect.width * (node.clientWidth / node.offsetWidth) : rect.width };
+    });
+    const scale = outer.w / inner.vw;
+    return { x: outer.x + inner.x * scale, y: outer.y + inner.y * scale, scale };
+  }
+  async function drag(handle, dx, dy) {
+    const start = await pagePoint(handle);
+    await page.mouse.move(start.x, start.y);
+    await page.mouse.down();
+    await page.mouse.move(start.x + dx * start.scale / 2, start.y + dy * start.scale / 2, { steps: 4 });
+    await page.mouse.move(start.x + dx * start.scale, start.y + dy * start.scale, { steps: 4 });
+    await page.mouse.up();
+  }
+  await performPagePreviewUpdate(page, () => drag(heightHandle, 0, 120));
+  await expect.poll(async () => (await lastColumn()).min_height || 0).toBeGreaterThan(80);
+  await expect(canvas.locator('[data-yk-sec]').last().locator('[data-yk-col]').first()).toHaveAttribute('style', /min-height:\s*\d+px/);
+  await expect(page.getByTestId('blox-column-min-height').locator('input')).not.toHaveValue('');
+
+  // 往左拖到大约一半宽
+  const halfWidth = await canvas.locator('[data-yk-sec]').last().locator('[data-yk-col]').first().evaluate((node) => node.getBoundingClientRect().width / 2);
+  await performPagePreviewUpdate(page, () => drag(widthHandle, -halfWidth, 0));
+  await expect.poll(async () => (await lastColumn()).span || 12).toBeLessThan(12);
+  await expect(canvas.locator('[data-yk-sec]').last().locator('[data-yk-col]').first()).not.toHaveAttribute('data-yk-col-span', '12');
+  await expect(page.getByTestId('blox-column-position')).toBeVisible();
+
+  // 拆一个网格出来，选中里面的容器拖底边
+  await page.getByTestId('blox-column-split').click();
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-section-insert-picker').getByTestId('blox-add-section-2').click());
+  await waitPreviewSettled(page);
+  await expect(heightHandle).toBeVisible();
+  await expect(widthHandle).toBeHidden();
+  await performPagePreviewUpdate(page, () => drag(heightHandle, 0, 90));
+  await expect.poll(() => page.evaluate(() => {
+    const app = window.Alpine.$data(document.body);
+    return Number((app.selEl && app.selEl.data && app.selEl.data.min_height_px) || 0);
+  })).toBeGreaterThan(40);
+  // 不保存不撤销直接结束，理由同第一个用例
+});

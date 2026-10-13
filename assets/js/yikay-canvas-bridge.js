@@ -239,6 +239,7 @@
         this.onEmptyAction = options.onEmptyAction || noop;
         this.onQuickAdd = options.onQuickAdd || noop;
         this.onSplitAt = options.onSplitAt || noop;
+        this.onSizeDrag = options.onSizeDrag || noop;
         this.onInsertAt = options.onInsertAt || noop;
         this.onDropRejected = options.onDropRejected || noop;
         this.onMultiIds = options.onMultiIds || noop;
@@ -426,6 +427,17 @@
         payload = quickAddPayload(data.ykQuickAdd);
         if (payload) {
             this.onQuickAdd(payload);
+            return true;
+        }
+        // 画布拖底边 / 右边改尺寸（2.1.0）：最小高度 0–1200px；列宽只给列，1–12 格
+        if (isObject(data.ykSizeDrag)) {
+            var sized = quickAddPayload(data.ykSizeDrag.target);
+            var sizeValue = data.ykSizeDrag.value;
+            var sizeProp = data.ykSizeDrag.prop;
+            if (!sized || !Number.isInteger(sizeValue)
+                || !((sizeProp === "min_height" && sizeValue >= 0 && sizeValue <= 1200)
+                    || (sizeProp === "span" && sized.kind === "column" && sizeValue >= 1 && sizeValue <= 12))) return false;
+            this.onSizeDrag({ target: sized, prop: sizeProp, value: sizeValue });
             return true;
         }
         // 「拆分」（2.1.0）：目标与快捷添加同一套白名单，另带画布坐标用来放选择器

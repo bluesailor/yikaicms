@@ -5882,6 +5882,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                     onQuickAdd: function (payload) { self.openElementLibraryAt(payload); },
                     // 画布空列 / 空容器上的「拆分」（2.1.0）
                     onSplitAt: function (payload) { self.openSplitPicker(payload.target, null, payload.anchor); },
+                    onSizeDrag: function (payload) { self.applyCanvasSizeDrag(payload); },
                     // 画布插入轨道（r13）：边界/末尾「+」的定点插入
                     onInsertAt: function (payload) { self.insertAtBoundary(payload); },
                     // 具名拒因（r14）：无效落点松手不再静默，toast 说明原因

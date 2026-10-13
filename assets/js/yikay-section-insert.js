@@ -154,6 +154,44 @@
                     this.closeCtx();
                     if (target) this.openSplitPicker(target, null, null, point);
                 },
+                // 画布拖尺寸（2.1.0）：列 / 容器 / 布局块的最小高度，单列区块的列宽；一次拖动一步撤销
+                applyCanvasSizeDrag: function (payload) {
+                    payload = payload || {};
+                    var target = payload.target || {};
+                    var value = parseInt(payload.value, 10);
+                    if (!Number.isInteger(value) || value < 0) return;
+                    if (target.kind === "column") {
+                        var section = this.sections[target.sec];
+                        var col = section && section.columns ? section.columns[target.col] : null;
+                        if (!col) return;
+                        if (payload.prop === "span") {
+                            if (section.columns.length !== 1 || value < 1 || value > 12) return;
+                            this.selectColumn(target.sec, target.col, false);
+                            this.runCommand("canvas-size-drag", function () {
+                                this.writeSpan(col, value, this.rawSpanT(col));
+                                if (value >= 12) delete col.position;
+                            });
+                        } else if (payload.prop === "min_height" && value <= 1200) {
+                            this.selectColumn(target.sec, target.col, false);
+                            this.runCommand("canvas-size-drag", function () {
+                                if (value > 0) col.min_height = value; else delete col.min_height;
+                            });
+                        } else {
+                            return;
+                        }
+                    } else if (target.kind === "container" && payload.prop === "min_height" && value <= 1200) {
+                        var el = this.elementAtPath(String(target.path || ""));
+                        if (!el || (el.type !== "container" && el.type !== "div")) return;
+                        this.selectPath(String(target.path), false);
+                        this.runCommand("canvas-size-drag", function () {
+                            if (!el.data || typeof el.data !== "object") el.data = {};
+                            if (value > 0) el.data.min_height_px = value; else delete el.data.min_height_px;
+                        });
+                    } else {
+                        return;
+                    }
+                    this.highlightCanvasSelection();
+                },
                 // 网格容器（拆分出来的就是）：面板里的布局预览按列数和各子项跨度画；排列方向、换行是 flex 设置，不适用
                 containerIsGrid: function () {
                     return !!(this.selEl && this.selEl.type === "container" && (this.selEl.data || {}).layout === "grid");
