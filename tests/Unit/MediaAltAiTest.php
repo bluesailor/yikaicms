@@ -88,6 +88,21 @@ final class MediaAltAiTest extends TestCase
         }
     }
 
+    /**
+     * CI 曾在这里红：前面的用例先查过一次（表还空），缓存留到下一个用例。各用例共用同一个 db() 连接，
+     * 按连接缓存挡不住；基类清表时 mediaAltForget()，保存替代文字后也要清。
+     */
+    public function testCacheIsForgottenWhenAltChangesOrTheTestDatabaseResets(): void
+    {
+        self::assertSame('', mediaAltFor('/uploads/p.jpg'));
+        db()->execute("INSERT INTO media (path, url, mime) VALUES ('uploads/p.jpg', '/uploads/p.jpg', 'image/jpeg')");
+        db()->execute("INSERT INTO metas (owner_type, owner_id, meta_key, meta_value) VALUES ('media', 1, 'alt', '先查后写')");
+        self::assertSame('', mediaAltFor('/uploads/p.jpg'), '同一请求内只查一次');
+        mediaAltForget();
+        self::assertSame('先查后写', mediaAltFor('/uploads/p.jpg'));
+        // 留着这份缓存进入下一个用例：基类换库时要把它清掉
+    }
+
     public function testContentImagesWithoutAltFallBackToTheMediaLibrary(): void
     {
         db()->execute("INSERT INTO media (path, url, mime) VALUES ('uploads/p.jpg', '/uploads/p.jpg', 'image/jpeg')");

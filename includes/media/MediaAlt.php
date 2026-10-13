@@ -8,28 +8,46 @@ declare(strict_types=1);
  */
 function mediaAltFor(string $url): string
 {
-    static $map = null;
-    static $connection = null;
-    // 每个数据库连接查一次（同一请求只有一个连接；测试里每个用例换库，缓存跟着换）。
-    // 比对连接对象本身而不是 spl_object_id：旧连接释放后编号会被新连接复用，缓存就串了
-    $current = db();
-    if ($map === null || $connection !== $current) {
-        $connection = $current;
-        $map = [];
-        try {
-            if (db()->tableExists('metas') && db()->tableExists('media')) {
-                foreach (db()->fetchAll('SELECT m.url, x.meta_value FROM ' . DB_PREFIX . 'media m JOIN ' . DB_PREFIX
-                    . "metas x ON x.owner_type = 'media' AND x.owner_id = m.id AND x.meta_key = 'alt' WHERE x.meta_value <> ''") as $row) {
-                    $map[(string) $row['url']] = (string) $row['meta_value'];
-                }
-            }
-        } catch (Throwable) {
-            $map = [];
-        }
-    }
+    $map = mediaAltMap();
     if ($map === []) return '';
     $path = (string) (parse_url($url, PHP_URL_PATH) ?? '');
     return $map[$path] ?? $map[$url] ?? '';
+}
+
+/**
+ * 网址 → 替代文字，本请求内只查一次。数据变了要调 mediaAltForget()：
+ * 保存替代文字之后；测试共用一个数据库连接、每个用例清表重建，基类换库时也要清
+ * （按连接缓存挡不住——连接对象始终是同一个）。
+ *
+ * @return array<string,string>
+ */
+function mediaAltMap(bool $forget = false): array
+{
+    static $map = null;
+    if ($forget) {
+        $map = null;
+        return [];
+    }
+    if ($map !== null) {
+        return $map;
+    }
+    $map = [];
+    try {
+        if (db()->tableExists('metas') && db()->tableExists('media')) {
+            foreach (db()->fetchAll('SELECT m.url, x.meta_value FROM ' . DB_PREFIX . 'media m JOIN ' . DB_PREFIX
+                . "metas x ON x.owner_type = 'media' AND x.owner_id = m.id AND x.meta_key = 'alt' WHERE x.meta_value <> ''") as $row) {
+                $map[(string) $row['url']] = (string) $row['meta_value'];
+            }
+        }
+    } catch (Throwable) {
+        $map = [];
+    }
+    return $map;
+}
+
+function mediaAltForget(): void
+{
+    mediaAltMap(true);
 }
 
 /**
