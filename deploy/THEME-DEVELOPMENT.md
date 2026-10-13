@@ -608,6 +608,7 @@ component        （2.1：组件母版，见 9.5）
 - **图片轮播**（`image-carousel`，媒体类）：`items` 每项 `image`、`alt`、`caption`、`link`；`ratio`（`auto` / `landscape` / `wide` / `banner` / `square` / `portrait`）、`per_view`（1–3）、`nav`（`dots` / `thumbs` / `none`）、`show_arrows`、`autoplay`、`interval`、`rounded`。与客户评价轮播共用 `assets/js/yikay-carousel.js` 与 `.css`；缩略图是 `[data-yk-carousel-thumb="序号"]` 按钮，当前页的带 `aria-current="true"`。`alt` 为空时用媒体库里这张图的替代文字（`mediaAltFor()`）。
 - **容器「滚动时堆叠」**（`stack_scroll`，仅 flex 布局）：给内容层加 `yk-stack`，子元素 `position: sticky`、逐个下移错开（`assets/css/yikay-stack.css`，用到时才加载；变量 `--yk-stack-top`、`--yk-stack-step` 可在主题里覆盖）。子元素要有背景色才看得出叠放；祖先元素不能设 `overflow: hidden`，否则 sticky 不生效。
 - **客户评价轮播的数据来源**（`source`）：`custom`（默认，条目写在元素里）或 `library`（取后台「客户评价」表里当前语言已显示的评价，`library_limit` 限条数，该语言没有就用默认语言）。主题或插件要读这张表用 `testimonialModel()->getActive($lang, $limit)`。客户评价表不随整站模板导出（加可移植表会改变整站模板格式），整站模板请继续把评价写在轮播元素里。
+- **区块的列宽与位置**：列的 `span` 是 1–12，或按设备分设的 `{"d": 3, "t": 6, "m": 12}`（桌面 / 平板 / 手机，另有宽屏 `w`）。只有一列、`span` 小于 12 时按宽度占位、余下留白（2.1.0 之前单列的宽度不生效，一律整行）；这时列上的 `position` 决定靠哪边：`center` 或 `right`，靠左是默认、不写。手机上照旧整行，除非设了 `m`。列的 `hide_on`（`m` / `t` / `d` / `w` 的子集）从 2.1.0 起随文档保存，首页文档与普通页面保留同一组列设置。
 
 ## 10. 打包、安装、升级和删除
 

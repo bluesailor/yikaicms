@@ -80,7 +80,25 @@ final class BlockRenderer
     /** 断点隐藏类（前台输出；编辑态改打 data-yk-hide-on 标记以便画布仍可选中）。类名字面量供 Tailwind 扫描。 */
     // 桌面隐藏覆盖 ≥1024（含宽屏，与旧文档一致）；宽屏档另可单独隐藏 ≥1440
     private const HIDE_ON_MAP = ['m' => 'max-md:hidden', 't' => 'md:max-lg:hidden', 'd' => 'lg:hidden', 'w' => 'wide:hidden'];
-    private const SECTION_ALIGN_MAP = ['left' => 'text-start', 'center' => 'text-center', 'right' => 'text-end'];   // 左右 = 起始/结束（RTL 镜像）
+    /** 单列不足整行时的位置（左右为起始/结束，RTL 镜像）；宽度类按 x/12 写全以供 Tailwind 扫描。 */
+    private const SINGLE_COLUMN_POSITION_MAP = ['left' => 'justify-start', 'center' => 'justify-center', 'right' => 'justify-end'];
+    private const SINGLE_WIDTH_MAP = [
+        1 => 'md:w-1/12', 2 => 'md:w-2/12', 3 => 'md:w-3/12', 4 => 'md:w-4/12', 5 => 'md:w-5/12', 6 => 'md:w-6/12',
+        7 => 'md:w-7/12', 8 => 'md:w-8/12', 9 => 'md:w-9/12', 10 => 'md:w-10/12', 11 => 'md:w-11/12', 12 => 'md:w-full',
+    ];
+    private const SINGLE_WIDTH_DESKTOP_MAP = [
+        1 => 'lg:w-1/12', 2 => 'lg:w-2/12', 3 => 'lg:w-3/12', 4 => 'lg:w-4/12', 5 => 'lg:w-5/12', 6 => 'lg:w-6/12',
+        7 => 'lg:w-7/12', 8 => 'lg:w-8/12', 9 => 'lg:w-9/12', 10 => 'lg:w-10/12', 11 => 'lg:w-11/12', 12 => 'lg:w-full',
+    ];
+    private const SINGLE_WIDTH_MOBILE_MAP = [
+        1 => 'max-md:w-1/12', 2 => 'max-md:w-2/12', 3 => 'max-md:w-3/12', 4 => 'max-md:w-4/12', 5 => 'max-md:w-5/12', 6 => 'max-md:w-6/12',
+        7 => 'max-md:w-7/12', 8 => 'max-md:w-8/12', 9 => 'max-md:w-9/12', 10 => 'max-md:w-10/12', 11 => 'max-md:w-11/12', 12 => 'max-md:w-full',
+    ];
+    private const SINGLE_WIDTH_WIDE_MAP = [
+        1 => 'wide:w-1/12', 2 => 'wide:w-2/12', 3 => 'wide:w-3/12', 4 => 'wide:w-4/12', 5 => 'wide:w-5/12', 6 => 'wide:w-6/12',
+        7 => 'wide:w-7/12', 8 => 'wide:w-8/12', 9 => 'wide:w-9/12', 10 => 'wide:w-10/12', 11 => 'wide:w-11/12', 12 => 'wide:w-full',
+    ];
+    private const SECTION_ALIGN_MAP =['left' => 'text-start', 'center' => 'text-center', 'right' => 'text-end'];   // 左右 = 起始/结束（RTL 镜像）
     private const SECTION_TITLE_SIZE_MAP = ['sm' => '1.5rem', 'md' => '1.875rem', 'lg' => '2.25rem', 'xl' => '3rem'];
     private const SECTION_SUBTITLE_SIZE_MAP = ['sm' => '0.875rem', 'md' => '1rem', 'lg' => '1.25rem'];
     private const BG_POSITION_MAP = [
@@ -344,6 +362,14 @@ final class BlockRenderer
 
             $gap = AbstractElement::respClasses($settings['gap'] ?? 'lg', self::GAP_MAP, 'lg');
             $gridClass = '';
+            // 只有一列、又设了不足整行的宽度（2.1.0）：按宽度占位，余下留白，按列的「位置」靠左/居中/靠右；
+            // 手机上照旧整行，除非这一列单独设了手机宽度。
+            $narrowSingle = $colCount === 1 && $useCustomSpans
+                && self::spanValue(is_array($columns[0] ?? null) ? ($columns[0]['span'] ?? 0) : 0, 'd') < 12;
+            if ($narrowSingle) {
+                $position = is_array($columns[0]) ? (string) ($columns[0]['position'] ?? '') : '';
+                $gridClass = 'flex ' . (self::SINGLE_COLUMN_POSITION_MAP[$position] ?? 'justify-start');
+            }
             if ($colCount > 1) {
                 $gridMap = !empty($settings['tablet_stack']) ? self::GRIDCOL_DESKTOP_MAP : self::GRIDCOL_MAP;
                 $gridClass = 'grid grid-cols-1 ' . ($useCustomSpans ? $gridMap[12] : ($gridMap[$colCount] ?? $gridMap[12])) . ' ' . $gap;
@@ -535,8 +561,8 @@ final class BlockRenderer
                 $column = is_array($col) ? $col : [];
                 $spanClass = $colCount > 1 && $useCustomSpans
                     ? self::colSpanClass($column['span'] ?? 0, !empty($settings['tablet_stack']), $useMobileSpans)
-                    : '';
-                $editSpan = $colCount > 1
+                    : ($narrowSingle ? self::singleColumnWidthClass($column['span'] ?? 0, !empty($settings['tablet_stack'])) : '');
+                $editSpan = $colCount > 1 || $narrowSingle
                     ? ($useCustomSpans
                         ? max(1, self::spanValue($column['span'] ?? 1, 'd'))
                         : intdiv(12, $colCount) + ($ci < (12 % $colCount) ? 1 : 0))
@@ -564,7 +590,7 @@ final class BlockRenderer
                     && $columnOverlayOpacity > 0;
                 $columnAurora = BloxAurora::declarations($column);   // 区块列的极光背景（2.0.5）
                 $hasColumnVisual = $columnBg !== null || $columnBgImage !== null || $hasColumnOverlay || $columnAurora !== '';
-                $wrapColumn = $colCount > 1 || $editMode || $hasColumnVisual
+                $wrapColumn = $colCount > 1 || $narrowSingle || $editMode || $hasColumnVisual
                     || $colHideCls !== '' || $colHideAttr !== '';
 
                 if ($wrapColumn) {
@@ -852,6 +878,37 @@ final class BlockRenderer
             return $base;
         }
         return trim($mobile . ' ' . trim($base . ' ' . $wide));
+    }
+
+    /**
+     * 单列不足整行时的宽度类（2.1.0）：与多列跨度同一套断点——平板 t（缺省继承桌面）、桌面 d、
+     * 宽屏 w 仅差异时输出；手机默认整行，设了 m 才按 m。tablet_stack 时平板也整行。
+     */
+    private static function singleColumnWidthClass(mixed $span, bool $desktopOnly): string
+    {
+        $d = self::spanValue($span, 'd');
+        if ($d < 1) {
+            return '';
+        }
+        $t = self::spanValue($span, 't');
+        $m = self::spanValue($span, 'm');
+        $classes = ['w-full', 'min-w-0'];
+        if ($m >= 1 && $m < 12) {
+            $classes[] = self::SINGLE_WIDTH_MOBILE_MAP[$m];
+        }
+        if (!$desktopOnly) {
+            $classes[] = self::SINGLE_WIDTH_MAP[$t >= 1 ? $t : $d];
+        }
+        if ($desktopOnly || ($t >= 1 && $t !== $d)) {
+            $classes[] = self::SINGLE_WIDTH_DESKTOP_MAP[$d];
+        }
+        if (is_array($span) && BloxResponsiveValue::wideEnabled()) {
+            $w = self::spanValue($span, 'w');
+            if ($w >= 1 && $w !== $d) {
+                $classes[] = self::SINGLE_WIDTH_WIDE_MAP[$w];
+            }
+        }
+        return implode(' ', $classes);
     }
 
     /** d/t 两档的既有输出，逐字节保持（0a 之前的黄金对拍基线）。 */
