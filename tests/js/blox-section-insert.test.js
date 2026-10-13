@@ -7,12 +7,15 @@ const vm = require('node:vm');
 function fixture() {
     const context = { window: { innerWidth: 1440, innerHeight: 900 } };
     vm.runInNewContext(fs.readFileSync(path.resolve(__dirname, '../../assets/js/yikay-section-insert.js'), 'utf8'), context);
-    const state = context.window.YikaiBloxSectionInsert.mixin({ after: 'After :name', start: 'Start', changed: 'Missing target' });
+    const state = context.window.YikaiBloxSectionInsert.mixin({ after: 'After :name', start: 'Start', changed: 'Missing target', split: 'Split', splitHint: 'Split hint' });
     return Object.assign(state, {
         sections: [{ id: 'a' }, { id: 'b' }, { id: 'c' }], calls: [], notices: [], focused: 0,
         $refs: {
             canvas: { clientWidth: 1000, isConnected: true, focus() {}, getBoundingClientRect: () => ({ left: 200, top: 80, width: 800, bottom: 800 }) },
-            sectionInsertPicker: { querySelector: () => ({ focus: () => { state.focused++; } }) }
+            sectionInsertPicker: {
+                querySelector: () => ({ focus: () => { state.focused++; } }),
+                querySelectorAll: () => [{ offsetParent: null, focus: () => {} }, { offsetParent: {}, focus: () => { state.focused++; } }]
+            }
         },
         $nextTick(callback) { callback(); },
         sectionLabel(section) { return section.id; },
@@ -187,4 +190,85 @@ test('toolbar layout entry opens the same picker at the next insertion point (2.
     assert.equal(state.sectionInsertLabel, 'After b');
     state.chooseSectionPreset([3, 9]);
     assert.deepEqual(JSON.parse(JSON.stringify(state.calls)), [{ index: 2, count: [3, 9] }]);
+});
+
+function splitFixture() {
+    const state = fixture();
+    const column = { id: 'c1', elements: [] };
+    const div = { id: 'd1', type: 'div', data: { children: [] } };
+    state.sections = [{ id: 's1', columns: [column, { id: 'c2', elements: [div] }] }];
+    state.ctx = { kind: 'column', target: { si: 0, ci: 0 }, x: 40, y: 50 };
+    state.uidCount = 0;
+    state.commands = [];
+    Object.assign(state, {
+        uid(prefix) { this.uidCount += 1; return prefix + this.uidCount; },
+        elSchema(type) { return { label: type === 'container' ? 'Container' : 'Div', defaults: type === 'container' ? { layout: 'flex', gap: 'md' } : { direction: 'column' } }; },
+        elementAtPath(path) { return path === '0.1.0' ? div : null; },
+        ctxChildSubPath() { return []; },
+        closeCtx() { this.ctx.open = false; },
+        runCommand(name, fn) { this.commands.push(name); return fn.call(this); },
+        insertElementAt(node, target, label) { this.calls.push({ node, target, label }); return true; },
+    });
+    return { state, column, div };
+}
+
+test('split mode builds one grid container of divs, equal or by ratio (2.1.0)', () => {
+    const { state } = splitFixture();
+    state.openSplitPicker({ kind: 'column', sec: 0, col: 0 });
+    assert.equal(state.sectionInsertMode, 'split');
+    assert.equal(state.sectionInsertLabel, 'Split hint');
+    state.chooseSectionLayout(3);
+    assert.deepEqual(state.commands, ['split-layout']);
+    const equal = state.calls[0].node;
+    assert.equal(equal.type, 'container');
+    assert.equal(equal.data.layout, 'grid');
+    assert.equal(equal.data.grid_cols, '3');
+    assert.equal(equal.data.gap, 'md', 'container defaults kept');
+    assert.equal(equal.data.children.length, 3);
+    assert.ok(equal.data.children.every((child) => child.type === 'div' && child.data.grid_span === undefined && child.data.direction === 'column'));
+    assert.deepEqual(JSON.parse(JSON.stringify(state.calls[0].target)), { kind: 'column', sec: 0, col: 0 });
+    assert.equal(state.sectionInsertOpen, false);
+
+    state.openSplitPicker({ kind: 'container', path: '0.1.0' });
+    state.chooseSectionPreset([4, 8]);
+    const ratio = state.calls[1].node;
+    assert.equal(ratio.data.grid_cols, '12');
+    assert.deepEqual(ratio.data.children.map((child) => child.data.grid_span), ['4', '8']);
+    assert.deepEqual(JSON.parse(JSON.stringify(state.calls[1].target)), { kind: 'container', path: '0.1.0' });
+});
+
+test('split refuses one column, unsupported spans, other element types and stale targets (2.1.0)', () => {
+    const { state, column } = splitFixture();
+    state.openSplitPicker({ kind: 'column', sec: 0, col: 0 });
+    state.chooseSectionLayout(1);
+    state.chooseSectionLayout(5);
+    state.chooseSectionPreset([3]);
+    state.chooseSectionPreset([5, 7]);
+    assert.deepEqual(state.calls, []);
+    assert.equal(state.sectionInsertOpen, true, 'invalid picks leave the picker open');
+
+    state.sections[0].columns[0] = { id: 'c1', elements: [] }; // undo replaced the column object
+    state.chooseSectionPreset([4, 8]);
+    assert.deepEqual(state.calls, []);
+    assert.deepEqual(state.notices, ['Missing target']);
+    assert.notEqual(state.sections[0].columns[0], column);
+
+    state.openSplitPicker({ kind: 'container', path: '9.9.9' });
+    assert.equal(state.sectionInsertOpen, false, 'no host, no picker');
+    state.openSplitPicker({ kind: 'column', sec: 0, col: 0 });
+    state.closeSectionInsert();
+    state.openSectionInsert(0);
+    assert.equal(state.sectionInsertMode, 'section', 'section insert resets the mode');
+});
+
+test('context menu splits columns and container elements at the menu position (2.1.0)', () => {
+    const { state } = splitFixture();
+    assert.deepEqual(JSON.parse(JSON.stringify(state.ctxSplitTarget())), { kind: 'column', sec: 0, col: 0 });
+    state.ctx = { kind: 'element', target: { si: 0, ci: 1, ei: 0 }, x: 300, y: 200 };
+    assert.deepEqual(JSON.parse(JSON.stringify(state.ctxSplitTarget())), { kind: 'container', path: '0.1.0' });
+    state.openSplitFromCtx();
+    assert.equal(state.sectionInsertMode, 'split');
+    assert.match(state.sectionInsertStyle, /top:200px/);
+    state.ctx = { kind: 'section', target: { si: 0 }, x: 0, y: 0 };
+    assert.equal(state.ctxSplitTarget(), null);
 });

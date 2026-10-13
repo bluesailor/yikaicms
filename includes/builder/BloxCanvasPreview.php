@@ -2282,6 +2282,21 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         });
         return b;
     }
+    // 「拆分」（2.1.0，参照 Bricks）：空列、空容器 / 布局块上直接分成几栏；选择器在编辑器里，按钮坐标随消息带过去
+    function splitButton(target) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'yk-empty-btn';
+        b.textContent = @@blox_split_layout@@;
+        b.setAttribute('aria-haspopup', 'dialog');
+        b.setAttribute('data-yk-split', target.kind + ':' + (target.path || (target.sec + '.' + target.col)));
+        b.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var r = b.getBoundingClientRect();
+            postToEditor({ ykSplitAt: { target: target, anchor: { x: Math.max(0, r.left + r.width / 2), y: Math.max(0, r.bottom) } } });
+        });
+        return b;
+    }
     function setupEmptyDocHint() {
         // 文档级空态：一个区块都没有时画布纯空白，给「从零搭建 / 模板库起步」双入口。
         // 每次预览更新先清旧卡再按需重建（删光区块要出现、插入内容要消失）。
@@ -2310,6 +2325,11 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
     function setupEmptyHints(root) {
         // 辅助节点只存在于画布。空列/空容器的动作通过 bridge 定位到文档节点，
         // 再复用编辑器元素库和统一插入命令。
+        // 局部补丁只重建改动的节点：外层原先挂的「空列 / 空容器」提示在宿主有了元素后要摘掉
+        document.querySelectorAll('.yk-empty-hint:not(.yk-empty-doc)').forEach(function (hint) {
+            var host = hint.parentElement;
+            if (host && host.querySelector('[data-yk-el]')) hint.remove();
+        });
         contentNodes(root, '[data-yk-col]').forEach(function (c) {
             if ((c.innerText || '').trim() !== '') return;
             if (c.querySelector('img,svg,iframe,video,picture,[data-yk-el]')) return;
@@ -2319,18 +2339,24 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
             d.className = 'yk-empty-hint yk-empty-hint-sm';
             d.textContent = @@pea_empty_column@@;
             d.appendChild(quickAddButton({ kind: 'column', sec: parts[0], col: parts[1] }));
+            d.appendChild(splitButton({ kind: 'column', sec: parts[0], col: parts[1] }));
             c.appendChild(d);
         });
         contentNodes(root, '.yk-container, .yk-div').forEach(function (c) {
             if ((c.innerText || '').trim() !== '') return;
             if (c.querySelector('img,svg,iframe,video,picture,table')) return;
+            // 里面已有子元素（例如拆分出来的几个空布局块）就把提示留给最里层，不往网格里塞一格提示
+            if (c.querySelector('[data-yk-el]')) return;
             var wrapper = c.closest('[data-yk-el]');
             var path = wrapper ? (wrapper.getAttribute('data-yk-el') || '') : '';
-            if (!/^\d+\.\d+\.\d+(?:\.\d+)?$/.test(path)) return;
+            // 最深 9 段，与编辑器容器落点上限一致（拆分后的布局块还能接着拆）
+            if (!/^\d+(?:\.\d+){2,8}$/.test(path)) return;
             var d = document.createElement('div');
             d.className = 'yk-empty-hint yk-empty-hint-sm';
             d.textContent = c.classList.contains('yk-div') ? @@pea_empty_div@@ : @@pea_empty_container@@;
             d.appendChild(quickAddButton({ kind: 'container', path: path }));
+            var hostType = wrapper.getAttribute('data-yk-el-type') || '';
+            if (hostType === 'container' || hostType === 'div') d.appendChild(splitButton({ kind: 'container', path: path }));
             c.appendChild(d);
         });
         contentNodes(root, '[data-yk-sec]').forEach(function (sec) {
@@ -2442,6 +2468,7 @@ HTML;
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             '@@pea_add_blank_section@@' => json_encode(__('pea_add_blank_section'), JSON_UNESCAPED_UNICODE),
             '@@blox_choose_layout@@' => json_encode(__('blox_choose_layout'), JSON_UNESCAPED_UNICODE),
+            '@@blox_split_layout@@' => json_encode(__('blox_split_layout'), JSON_UNESCAPED_UNICODE),
             '@@blox_insert_section@@' => json_encode(__('blox_insert_section'), JSON_UNESCAPED_UNICODE),
             '@@blox_insert_section_here@@' => json_encode(__('blox_insert_section_here'), JSON_UNESCAPED_UNICODE),
             '@@pea_add_element@@' => json_encode(__('pea_add_element'), JSON_UNESCAPED_UNICODE),

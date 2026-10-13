@@ -238,6 +238,7 @@
         this.onEditPageHero = options.onEditPageHero || noop;
         this.onEmptyAction = options.onEmptyAction || noop;
         this.onQuickAdd = options.onQuickAdd || noop;
+        this.onSplitAt = options.onSplitAt || noop;
         this.onInsertAt = options.onInsertAt || noop;
         this.onDropRejected = options.onDropRejected || noop;
         this.onMultiIds = options.onMultiIds || noop;
@@ -425,6 +426,16 @@
         payload = quickAddPayload(data.ykQuickAdd);
         if (payload) {
             this.onQuickAdd(payload);
+            return true;
+        }
+        // 「拆分」（2.1.0）：目标与快捷添加同一套白名单，另带画布坐标用来放选择器
+        if (isObject(data.ykSplitAt)) {
+            payload = quickAddPayload(data.ykSplitAt.target);
+            var splitAnchor = data.ykSplitAt.anchor;
+            if (!payload || !isObject(splitAnchor) || ![splitAnchor.x, splitAnchor.y].every(function (n) {
+                return typeof n === "number" && Number.isFinite(n) && n >= 0 && n <= 100000;
+            })) return false;
+            this.onSplitAt({ target: payload, anchor: { x: splitAnchor.x, y: splitAnchor.y } });
             return true;
         }
         if (data.ykDropRejected === "restricted-children" || data.ykDropRejected === "no-nested-container" || data.ykDropRejected === "invalid") {
