@@ -2171,9 +2171,9 @@ declare(strict_types=1);
                         </div>
                     </template>
 
-                    <?php /* 区块标题字段：按元素式交互单独编辑，不再混入整块设置 */ ?>
+                    <?php /* 区块标题字段：按元素式交互单独编辑，不再混入整块设置。sel 用面板别名，见 sectionPanelScope() */ ?>
                     <template x-if="sel && selectedSectionField">
-                        <div class="space-y-5">
+                        <div class="space-y-5" x-data="sectionPanelScope()">
                             <div x-show="panelTab === 'content'" class="space-y-4">
                                 <div>
                                     <label class="block text-xs font-medium text-gray-600 mb-1.5"
@@ -2306,9 +2306,9 @@ declare(strict_types=1);
                         </div>
                     </template>
 
-                    <?php /* ── 区块设置：内容 / 样式 两页签 ── */ ?>
+                    <?php /* ── 区块设置：内容 / 样式 两页签。sel 用面板别名，见 sectionPanelScope() ── */ ?>
                     <template x-if="sel && !selEl && !selectedSectionField && panelTab !== 'condition'">
-                        <div>
+                        <div x-data="sectionPanelScope()">
                             <div x-show="panelTab === 'content' && (!ctaQuickTarget() || ctaQuickDetails || ctrlQuery.trim() || modifiedOnly)" class="space-y-5">
                                 <template x-if="selLayer === 'con'">
                                     <p class="text-xs text-gray-400 leading-relaxed">
