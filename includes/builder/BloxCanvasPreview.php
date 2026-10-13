@@ -791,6 +791,17 @@ body.yk-gap-resizing{cursor:row-resize!important;user-select:none!important}
 [data-table-text]{display:block;min-height:1.6em}
 .yk-pick-overlay{position:fixed;z-index:2147483646;pointer-events:none;border:2px solid #3b82f6;border-radius:4px;box-shadow:0 0 0 1px rgba(255,255,255,.8),0 6px 18px rgba(37,99,235,.18)}
 .yk-pick-label{position:fixed;z-index:2147483647;pointer-events:none;background:#2563eb;color:#fff;font:12px/1.4 system-ui,sans-serif;padding:2px 6px;border-radius:4px;box-shadow:0 4px 12px rgba(37,99,235,.25)}
+.yk-size-handle{position:fixed;z-index:2147483646;display:flex;align-items:center;justify-content:center;transform:translate(-50%,-50%);touch-action:none;user-select:none}
+.yk-size-height{width:40px;height:14px;cursor:row-resize}
+.yk-size-width{width:14px;height:40px;cursor:col-resize}
+.yk-size-handle:before{content:'';position:absolute;border-radius:999px;background:#2563eb;box-shadow:0 0 0 2px #fff,0 2px 6px rgba(15,23,42,.25)}
+.yk-size-height:before{left:6px;right:6px;top:5px;height:4px}
+.yk-size-width:before{top:6px;bottom:6px;left:5px;width:4px}
+.yk-size-handle.yk-resizing:before{background:#1d4ed8}
+.yk-size-handle span{position:absolute;bottom:18px;white-space:nowrap;padding:0 6px;border-radius:4px;background:#111827;color:#fff;font:700 11px/20px system-ui,sans-serif;pointer-events:none}
+.yk-size-width span{bottom:auto;left:18px}
+.yk-size-handle span:empty{display:none}
+@media(max-width:1023px){.yk-size-handle{display:none!important}}
 .yk-multi-selected{outline:2px dashed #2563eb;outline-offset:2px}
 .yk-drop-line{position:fixed;z-index:2147483645;display:none;height:3px;min-width:36px;background:#2563eb;border-radius:999px;box-shadow:0 0 0 2px rgba(255,255,255,.9),0 2px 8px rgba(37,99,235,.35);pointer-events:none}
 .yk-drop-line:before,.yk-drop-line:after{content:'';position:absolute;top:50%;width:8px;height:8px;background:#2563eb;border-radius:50%;transform:translateY(-50%)}
@@ -1440,6 +1451,8 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
 
     document.addEventListener('click', function (e) {
         if (e.target.closest('.yk-table-tools')) return;
+        // 拖尺寸松手时手柄已回原位，这一下 click 会落到空白处被当成「取消选择」：拖完片刻内的 click 不算
+        if (e.target.closest('.yk-size-handle') || Date.now() - sizeDragEndedAt < 500) return;
         var tableText = e.target.closest('[data-table-text]');
         if (!tableText) {
             var tableCell = e.target.closest('[data-yk-el-type="table"] td, [data-yk-el-type="table"] th');
@@ -1802,6 +1815,7 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         if (!overlayRaf) overlayRaf = requestAnimationFrame(trackOverlay);
     }
     function clearElementOverlay() {
+        clearSizeTarget();
         activeEl = null;
         if (overlayRaf) cancelAnimationFrame(overlayRaf);
         overlayRaf = 0;
@@ -1809,10 +1823,137 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         label.style.display = 'none';
     }
     function clearLayerSelections() {
+        clearSizeTarget();
         document.querySelectorAll('[data-yk-sec].yk-selected').forEach(function (el) { el.classList.remove('yk-selected'); });
         document.querySelectorAll('[data-yk-con].yk-con-selected').forEach(function (el) { el.classList.remove('yk-con-selected'); });
         document.querySelectorAll('[data-yk-col].yk-col-selected').forEach(function (el) { el.classList.remove('yk-col-selected'); });
     }
+    // ── 2.1.0 尺寸拖拽（参照 Bricks）：选中的列 / 容器 / 布局块拖底边改最小高度（px）；
+    //    只有一列的区块，列的右边左右拖改列宽（按 12 格吸附、显示百分比）。提交走 ykSizeDrag，编辑器里可撤销。 ──
+    var sizeTarget = null;
+    var sizeDrag = null;
+    var sizeRaf = 0;
+    var sizeDragEndedAt = 0;
+    function makeSizeHandle(kind) {
+        var handle = document.createElement('div');
+        handle.className = 'yk-size-handle yk-size-' + kind;
+        handle.setAttribute('data-yk-size-handle', kind);
+        handle.setAttribute('title', kind === 'height' ? __YK_SIZE_HEIGHT_HINT__ : __YK_SIZE_WIDTH_HINT__);
+        handle.style.display = 'none';
+        handle.innerHTML = '<span></span>';
+        document.body.appendChild(handle);
+        return handle;
+    }
+    var heightHandle = makeSizeHandle('height');
+    var widthHandle = makeSizeHandle('width');
+    function hideSizeHandles() {
+        heightHandle.style.display = 'none';
+        widthHandle.style.display = 'none';
+    }
+    function clearSizeTarget() {
+        if (sizeDrag) return; // 拖动中预览重绘不收手柄
+        sizeTarget = null;
+        if (sizeRaf) cancelAnimationFrame(sizeRaf);
+        sizeRaf = 0;
+        hideSizeHandles();
+    }
+    function setSizeTarget(node, target, canWidth) {
+        if (!node || !target) { clearSizeTarget(); return; }
+        sizeTarget = { node: node, target: target, canWidth: !!canWidth };
+        syncSizeHandles();
+        if (!sizeRaf) sizeRaf = requestAnimationFrame(trackSizeHandles);
+    }
+    function trackSizeHandles() {
+        if (!sizeTarget) { sizeRaf = 0; return; }
+        syncSizeHandles();
+        sizeRaf = requestAnimationFrame(trackSizeHandles);
+    }
+    function syncSizeHandles() {
+        if (!sizeTarget || !document.documentElement.contains(sizeTarget.node) || window.innerWidth < 1024) { hideSizeHandles(); return; }
+        var r = sizeTarget.node.getBoundingClientRect();
+        if (!r.width) { hideSizeHandles(); return; }
+        heightHandle.style.display = 'flex';
+        heightHandle.style.left = (r.left + r.width / 2) + 'px';
+        heightHandle.style.top = r.bottom + 'px';
+        widthHandle.style.display = sizeTarget.canWidth ? 'flex' : 'none';
+        widthHandle.style.left = r.right + 'px';
+        widthHandle.style.top = (r.top + r.height / 2) + 'px';
+    }
+    function columnSizeTarget(node, path) {
+        var parts = String(path || '').split('.').map(function (v) { return parseInt(v, 10); });
+        if (parts.length !== 2 || parts.some(function (v) { return isNaN(v); })) { clearSizeTarget(); return; }
+        // 只有一列的区块才给列宽手柄；多列之间已有分隔条
+        var siblings = document.querySelectorAll('[data-yk-col^="' + parts[0] + '."]').length;
+        setSizeTarget(node, { kind: 'column', sec: parts[0], col: parts[1] }, siblings === 1);
+    }
+    function elementSizeTarget(wrapper, path) {
+        var type = wrapper ? (wrapper.getAttribute('data-yk-el-type') || '') : '';
+        if (type !== 'container' && type !== 'div') { clearSizeTarget(); return; }
+        setSizeTarget(boxNode(wrapper), { kind: 'container', path: path }, false);
+    }
+    function startSizeDrag(kind, e) {
+        if (!sizeTarget || e.button !== 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        var node = sizeTarget.node;
+        var rect = node.getBoundingClientRect();
+        var parent = node.parentElement;
+        var parentStyle = parent ? getComputedStyle(parent) : null;
+        var parentWidth = parent ? parent.getBoundingClientRect().width
+            - (parseFloat(parentStyle.paddingLeft) || 0) - (parseFloat(parentStyle.paddingRight) || 0) : rect.width;
+        sizeDrag = {
+            kind: kind, handle: kind === 'height' ? heightHandle : widthHandle, node: node, target: sizeTarget.target,
+            startX: e.clientX, startY: e.clientY, startHeight: rect.height, startWidth: rect.width,
+            parentWidth: Math.max(1, parentWidth), value: null,
+            inline: { minHeight: node.style.minHeight, width: node.style.width, maxWidth: node.style.maxWidth }
+        };
+        sizeDrag.handle.setPointerCapture(e.pointerId);
+        sizeDrag.handle.classList.add('yk-resizing');
+        document.body.classList.add(kind === 'height' ? 'yk-gap-resizing' : 'yk-column-resizing');
+    }
+    function moveSizeDrag(e) {
+        if (!sizeDrag) return;
+        var label = sizeDrag.handle.querySelector('span');
+        if (sizeDrag.kind === 'height') {
+            var height = Math.max(0, Math.min(1200, Math.round(sizeDrag.startHeight + e.clientY - sizeDrag.startY)));
+            sizeDrag.node.style.minHeight = height + 'px';
+            sizeDrag.value = height;
+            label.textContent = height + 'px';
+        } else {
+            var width = sizeDrag.startWidth + e.clientX - sizeDrag.startX;
+            var span = Math.max(2, Math.min(12, Math.round(width / sizeDrag.parentWidth * 12)));
+            sizeDrag.node.style.width = (span / 12 * 100) + '%';
+            sizeDrag.node.style.maxWidth = 'none';
+            sizeDrag.value = span;
+            label.textContent = Math.round(span / 12 * 100) + '%';
+        }
+        syncSizeHandles();
+    }
+    function endSizeDrag(e, commit) {
+        if (!sizeDrag) return;
+        var drag = sizeDrag;
+        sizeDrag = null;
+        if (drag.handle.hasPointerCapture(e.pointerId)) drag.handle.releasePointerCapture(e.pointerId);
+        drag.handle.classList.remove('yk-resizing');
+        document.body.classList.remove('yk-gap-resizing', 'yk-column-resizing');
+        sizeDragEndedAt = Date.now();
+        drag.handle.querySelector('span').textContent = '';
+        drag.node.style.minHeight = drag.inline.minHeight;
+        drag.node.style.width = drag.inline.width;
+        drag.node.style.maxWidth = drag.inline.maxWidth;
+        if (commit && drag.value !== null) {
+            postToEditor({ ykSizeDrag: { target: drag.target, prop: drag.kind === 'height' ? 'min_height' : 'span', value: drag.value } });
+        }
+        syncSizeHandles();
+    }
+    [heightHandle, widthHandle].forEach(function (handle) {
+        var kind = handle === heightHandle ? 'height' : 'width';
+        handle.addEventListener('pointerdown', function (e) { startSizeDrag(kind, e); });
+        handle.addEventListener('pointermove', moveSizeDrag);
+        handle.addEventListener('pointerup', function (e) { endSizeDrag(e, true); });
+        handle.addEventListener('pointercancel', function (e) { endSizeDrag(e, false); });
+        handle.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); });
+    });
     function highlightSection(i) {
         clearElementOverlay();
         clearLayerSelections();
@@ -1830,6 +1971,7 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         clearLayerSelections();
         var t = document.querySelector('[data-yk-col="' + cssEscape(path) + '"]');
         if (t) t.classList.add('yk-col-selected');
+        if (t) columnSizeTarget(t, path);
     }
     function highlightSectionField(si, field) {
         clearLayerSelections();
@@ -1887,6 +2029,7 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         label.textContent = 'Element ' + path;
         syncOverlay();
         startOverlayTracking();
+        elementSizeTarget(activeEl, path);
     }
     function scrollToPath(path) {
         var t = document.querySelector('[data-yk-el="' + cssEscape(path) + '"]');
@@ -2282,6 +2425,21 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         });
         return b;
     }
+    // 「拆分」（2.1.0，参照 Bricks）：空列、空容器 / 布局块上直接分成几栏；选择器在编辑器里，按钮坐标随消息带过去
+    function splitButton(target) {
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'yk-empty-btn';
+        b.textContent = @@blox_split_layout@@;
+        b.setAttribute('aria-haspopup', 'dialog');
+        b.setAttribute('data-yk-split', target.kind + ':' + (target.path || (target.sec + '.' + target.col)));
+        b.addEventListener('click', function (e) {
+            e.stopPropagation();
+            var r = b.getBoundingClientRect();
+            postToEditor({ ykSplitAt: { target: target, anchor: { x: Math.max(0, r.left + r.width / 2), y: Math.max(0, r.bottom) } } });
+        });
+        return b;
+    }
     function setupEmptyDocHint() {
         // 文档级空态：一个区块都没有时画布纯空白，给「从零搭建 / 模板库起步」双入口。
         // 每次预览更新先清旧卡再按需重建（删光区块要出现、插入内容要消失）。
@@ -2310,6 +2468,11 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
     function setupEmptyHints(root) {
         // 辅助节点只存在于画布。空列/空容器的动作通过 bridge 定位到文档节点，
         // 再复用编辑器元素库和统一插入命令。
+        // 局部补丁只重建改动的节点：外层原先挂的「空列 / 空容器」提示在宿主有了元素后要摘掉
+        document.querySelectorAll('.yk-empty-hint:not(.yk-empty-doc)').forEach(function (hint) {
+            var host = hint.parentElement;
+            if (host && host.querySelector('[data-yk-el]')) hint.remove();
+        });
         contentNodes(root, '[data-yk-col]').forEach(function (c) {
             if ((c.innerText || '').trim() !== '') return;
             if (c.querySelector('img,svg,iframe,video,picture,[data-yk-el]')) return;
@@ -2319,18 +2482,24 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
             d.className = 'yk-empty-hint yk-empty-hint-sm';
             d.textContent = @@pea_empty_column@@;
             d.appendChild(quickAddButton({ kind: 'column', sec: parts[0], col: parts[1] }));
+            d.appendChild(splitButton({ kind: 'column', sec: parts[0], col: parts[1] }));
             c.appendChild(d);
         });
         contentNodes(root, '.yk-container, .yk-div').forEach(function (c) {
             if ((c.innerText || '').trim() !== '') return;
             if (c.querySelector('img,svg,iframe,video,picture,table')) return;
+            // 里面已有子元素（例如拆分出来的几个空布局块）就把提示留给最里层，不往网格里塞一格提示
+            if (c.querySelector('[data-yk-el]')) return;
             var wrapper = c.closest('[data-yk-el]');
             var path = wrapper ? (wrapper.getAttribute('data-yk-el') || '') : '';
-            if (!/^\d+\.\d+\.\d+(?:\.\d+)?$/.test(path)) return;
+            // 最深 9 段，与编辑器容器落点上限一致（拆分后的布局块还能接着拆）
+            if (!/^\d+(?:\.\d+){2,8}$/.test(path)) return;
             var d = document.createElement('div');
             d.className = 'yk-empty-hint yk-empty-hint-sm';
             d.textContent = c.classList.contains('yk-div') ? @@pea_empty_div@@ : @@pea_empty_container@@;
             d.appendChild(quickAddButton({ kind: 'container', path: path }));
+            var hostType = wrapper.getAttribute('data-yk-el-type') || '';
+            if (hostType === 'container' || hostType === 'div') d.appendChild(splitButton({ kind: 'container', path: path }));
             c.appendChild(d);
         });
         contentNodes(root, '[data-yk-sec]').forEach(function (sec) {
@@ -2429,6 +2598,8 @@ HTML;
             '@@templates_enabled@@' => bloxPageEditorEnabled() ? 'true' : 'false',
             '__YK_COLUMN_RESIZE_LABEL__' => json_encode(__('blox_canvas_column_resize'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             '__YK_COLUMN_RESIZE_HINT__' => json_encode(__('blox_canvas_column_resize_hint'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            '__YK_SIZE_HEIGHT_HINT__' => json_encode(__('blox_canvas_size_height_hint'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
+            '__YK_SIZE_WIDTH_HINT__' => json_encode(__('blox_canvas_size_width_hint'), JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             '__YK_DROP_TEXT__' => json_encode([
                 'before' => __('blox_drop_before'),
                 'after' => __('blox_drop_after'),
@@ -2442,6 +2613,7 @@ HTML;
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             '@@pea_add_blank_section@@' => json_encode(__('pea_add_blank_section'), JSON_UNESCAPED_UNICODE),
             '@@blox_choose_layout@@' => json_encode(__('blox_choose_layout'), JSON_UNESCAPED_UNICODE),
+            '@@blox_split_layout@@' => json_encode(__('blox_split_layout'), JSON_UNESCAPED_UNICODE),
             '@@blox_insert_section@@' => json_encode(__('blox_insert_section'), JSON_UNESCAPED_UNICODE),
             '@@blox_insert_section_here@@' => json_encode(__('blox_insert_section_here'), JSON_UNESCAPED_UNICODE),
             '@@pea_add_element@@' => json_encode(__('pea_add_element'), JSON_UNESCAPED_UNICODE),

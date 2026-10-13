@@ -128,6 +128,15 @@ declare(strict_types=1);
                 else delete col.position;
             },
 
+            // 列的最小高度 px（2.1.0）：面板填写或画布拖底边；空 / 0 不落盘
+            setColumnMinHeight(value) {
+                var col = this.selectedCol();
+                if (!col) return;
+                var px = parseInt(value, 10);
+                if (Number.isInteger(px) && px > 0) col.min_height = Math.min(1200, px);
+                else delete col.min_height;
+            },
+
             setColumnSpanT(t) {
                 var col = this.selectedCol();
                 if (!col) return;
