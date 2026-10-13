@@ -15,9 +15,9 @@
 </p>
 <p align="center"><sub>左：前台首页（Default 主题） · 右：易开网页构建器可视化编辑首页</sub></p>
 
-**简体中文** · 轻量、多语言、可视化的企业建站系统：PHP 原生部署，MySQL / SQLite 均可；企业官网常用的栏目、产品、新闻、案例、表单询盘、SEO 都已内置，不用装一堆插件；前台支持 18 种语言（简体 / 繁体中文、English、日本語、한국어、Español、Français、Deutsch、Русский、العربية 等，阿拉伯语与波斯语从右到左排版），后台界面可选 16 种语言。
+**简体中文** · 易开CMS（YikaiCMS）是轻量、多语言、可视化的企业建站系统：PHP 原生部署，MySQL / SQLite 均可；企业官网常用的栏目、产品、新闻、案例、表单询盘、SEO 都已内置，不用装一堆插件；前台支持 18 种语言（简体 / 繁体中文、English、日本語、한국어、Español、Français、Deutsch、Русский、العربية 等，阿拉伯语与波斯语从右到左排版），后台界面可选 18 种语言（简体中文、English、日本語随包，其余按需下载签名语言包）。
 
-**English** · A lightweight PHP CMS for business and export websites: deploys on plain PHP with MySQL or SQLite, ships the columns, products, news, cases, inquiry forms and SEO a company site needs, and builds multilingual sites in 18 languages (Simplified and Traditional Chinese, English, Japanese, Korean, Spanish, French, German, Russian, Arabic and more, with right-to-left layout for Arabic and Persian); the admin is available in 16 languages. Source available and free for commercial use.
+**English** · A lightweight PHP CMS for business and export websites: deploys on plain PHP with MySQL or SQLite, ships the columns, products, news, cases, inquiry forms and SEO a company site needs, and builds multilingual sites in 18 languages (Simplified and Traditional Chinese, English, Japanese, Korean, Spanish, French, German, Russian, Arabic and more, with right-to-left layout for Arabic and Persian); the admin is available in 18 languages (Simplified Chinese, English and Japanese ship with the package; the others download on demand as signed language packs). Source available and free for commercial use.
 
 **日本語** · 企業サイト・海外向けサイトのための軽量 PHP CMS。PHP だけで動作し、MySQL / SQLite に対応。カテゴリ、製品、ニュース、事例、問い合わせフォーム、SEO を標準搭載し、簡体字・繁体字中国語、英語、日本語、韓国語、スペイン語、フランス語、ドイツ語、ロシア語、アラビア語など 18 言語の多言語サイトを構築でき（アラビア語・ペルシア語は右から左のレイアウト）、管理画面は 16 言語に対応しています。ソース公開・商用無料。
 
@@ -49,7 +49,7 @@
 - **企业建站内容** — 无限层级栏目，文章、产品（多级分类 / 规格参数 / 图片组）、案例、下载、招聘、相册、单页、发展历程
 - **易开网页构建器（Yikay Builder）** — 可视化拖拽编辑页面、首页、网页头 / 网页尾、详情页、列表页、搜索页与 404 页，桌面 / 平板 / 手机分档预览与设置
 - **轻量商城** — 免费商城插件（2.0.4 起在插件市场按需安装）：商品规格与库存、购物车、微信支付 / 支付宝、配送区域与运费、订单与退款
-- **多语言与外贸** — 18 种语言的多语言站点（含繁体中文与从右到左的阿拉伯语、波斯语），按语言编辑内容与首页区块，常用栏目名按内置词典自动翻译；后台界面 16 种语言；语言网址可用前缀（`/en/`）或独立语言域名（`en.example.com`），hreflang 与多语言 SEO
+- **多语言与外贸** — 18 种语言的多语言站点（含繁体中文与从右到左的阿拉伯语、波斯语），按语言编辑内容与首页区块，常用栏目名按内置词典自动翻译；后台界面 18 种语言（3 种随包，15 种按需下载签名语言包）；语言网址可用前缀（`/en/`）或独立语言域名（`en.example.com`），hreflang 与多语言 SEO
 - **表单与询盘** — 可视化表单设计、产品询盘、邮件通知、垃圾信息防护
 - **SEO** — Sitemap、OG 标签、Canonical、站长验证、自定义网址
 - **AI 内容助手** — 标题、摘要、正文、SEO 与翻译辅助，支持 OpenAI、Claude、DeepSeek、通义千问、智谱
@@ -75,10 +75,10 @@
 - **导出（专业版）** — 把整站（主题、栏目、内容、产品、表单、媒体与插件数据）打成模板包，用于复制给其他客户站；同一版本线（如 2.0.x）内均可导入
 
 ### 易开网页构建器
-- **可视化编辑** — 区块 → 列 → 元素三层结构，拖拽排序，常用元素开箱即用（标题、富文本、图片、按钮、视频、卡片、轮播、导航、表单、价格方案、客户评价等）
+- **可视化编辑** — 区块 → 列 → 元素三层结构，拖拽排序，常用元素开箱即用（标题、富文本、图片、按钮、视频、卡片、轮播、图片轮播、导航、表单、价格方案、客户评价等）
 - **实时预览** — 桌面 / 平板 / 手机与宽屏断点，响应式间距与显示控制
-- **模板与区块库** — 内置整页模板、页头 / 页脚预设与常用区块，一键插入
-- **布局与动态内容** — 容器嵌套、CSS Grid、画布上拖动调整间距；容器循环查询与 `{{数据来源.字段}}` 动态标签
+- **模板、区块与组件** — 内置整页模板、页头 / 页脚预设与常用区块，一键插入；组件（专业版）做一次、多处引用，改母版处处更新，可嵌套、锁定版本、做变体，随模板包带走，另附 8 个预置组件（功能卡片、价格卡片、团队成员、常见问题等）
+- **布局与动态内容** — 一个入口添加布局（等分或按比例），列、容器可就地拆分成几栏并接着拆；画布上拖动调整间距、高度与单列宽度；容器嵌套、CSS Grid；容器循环查询与 `{{数据来源.字段}}` 动态标签
 - **样式与代码** — 元素、区块与区块标题可设置 ID、CSS 类、属性与自定义 CSS，另有页面 CSS；图片取景、成组灯箱与元素动效
 - **网站页面模板** — 产品 / 文章 / 自定义内容的详情页，栏目列表页、搜索页与 404 页均可自行设计，按分类 / 栏目指定适用范围
 - **专业功能** — 循环模板、显示条件、样式预设、表格、价格方案、全局类与元素交互由「易开网页构建器 Pro」插件提供（需专业授权，从插件市场安装）；内容维护模式、单页外框覆盖与整站模板导出填写注册码即可使用。已发布的内容始终正常显示
@@ -91,12 +91,14 @@
 ### 媒体与互动
 - **媒体库与相册** — 图片与文件统一管理，自动缩略图；多相册拖拽排序
 - **轮播图** — PC / 移动端双图、定时展示、分组管理
+- **客户评价** — 按语言管理客户姓名、职位与公司、评价内容、头像与评分，拖动排序；评价轮播可直接读取
 - **表单与询盘** — 可视化表单设计器，`[form-slug]` 短码嵌入；产品详情页内联询盘，多阶段状态管理，邮件模板
 - **会员与社交** — 前台注册登录、下载登录限制；常用社交平台与在线客服图标配置；友情链接
 
 ### AI 内容助手
 - 支持 OpenAI、Claude (Anthropic)、DeepSeek、通义千问 (Qwen)、智谱 (GLM)
 - 一次生成标题、摘要、标签、URL 别名与正文；改写润色、续写、SEO 优化、摘要生成
+- 看图写图片替代文字（需能识别图片的模型），媒体库可一键补齐缺失的替代文字
 - API Key 加密存储，调用日志与 Token 用量统计
 
 ### 系统管理
