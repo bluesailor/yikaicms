@@ -2,7 +2,7 @@
 
 文档版本：0.5。更新：2026-10-04。对象：为 YikaiCMS 编写业务扩展和后台工具的开发者。
 
-本文根据当前主仓源码整理，不是 WordPress 插件教程。源码核对基线：YikaiCMS v2.0.5（按发版前的 main `f729a9cd` 核对）（上一版基线为 v2.0.4 `caf137b0`；0.4 版基线为 v2.0.3 `18f8dbdc695d18d0537909209e59f43613cf9869`；0.3 版基线为 v2.0.2 `0bcb322f8c9b8a59975e5917d449e0753428b2bd`；0.2 版历史基线为 v1.19.9 `c97ca429`；2.0.1、2.0.2 未改变插件接口）。本版指南已按当前的插件依赖声明、整站模板插件数据接入、插件安装与来源回执规则复核；2.0.3 未改变插件加载、钩子与安装接口，新增的是多语言（语言注册表、语言域名、从右到左、繁体整页转换）与升级前核心文件检查带来的约束。2.0.4 仍未改变插件加载与安装接口，新增的公开能力是：网页构建器图标集注册（6.1）、扩展字段的读写接口（8.1）、即将 404 时的旧地址兜底（`render_404` 的执行顺序，见第 6 节表格）。2.0.6 是热修复，插件接口不变；后台右上角新增提醒铃铛，目前只收核心自己的提醒，插件暂不能往里加。2.0.5 同样不改加载与安装接口，新增：后台文章分类接管（`admin_article_categories`，第 6 节表格）、`LocalizedUrl` 覆盖栏目与 canonical（5.5）。代码须兼容 PHP 8.0（产品运行下限），推荐 8.2+；数据库兼容 MySQL 5.7 / MariaDB 10.x 与 SQLite。
+本文根据当前主仓源码整理，不是 WordPress 插件教程。源码核对基线：YikaiCMS v2.0.5（按发版前的 main `f729a9cd` 核对）（上一版基线为 v2.0.4 `caf137b0`；0.4 版基线为 v2.0.3 `18f8dbdc695d18d0537909209e59f43613cf9869`；0.3 版基线为 v2.0.2 `0bcb322f8c9b8a59975e5917d449e0753428b2bd`；0.2 版历史基线为 v1.19.9 `c97ca429`；2.0.1、2.0.2 未改变插件接口）。本版指南已按当前的插件依赖声明、整站模板插件数据接入、插件安装与来源回执规则复核；2.0.3 未改变插件加载、钩子与安装接口，新增的是多语言（语言注册表、语言域名、从右到左、繁体整页转换）与升级前核心文件检查带来的约束。2.0.4 仍未改变插件加载与安装接口，新增的公开能力是：网页构建器图标集注册（6.1）、扩展字段的读写接口（8.1）、即将 404 时的旧地址兜底（`render_404` 的执行顺序，见第 6 节表格）。2.0.6 是热修复，插件接口不变；后台右上角新增提醒铃铛，目前只收核心自己的提醒，插件暂不能往里加。2.0.5 同样不改加载与安装接口，新增：后台文章分类接管（`admin_article_categories`，第 6 节表格）、`LocalizedUrl` 覆盖栏目与 canonical（5.5）。2.1.0 也不改加载与安装接口，新增：AI 能力必须声明权限键（6.2）、密钥统一存 `SecretStore`（8.2）、插件实体接入多语言网址（`LocalizedUrl::registerKind`，5.5）、编辑填写的站内链接按当前语言输出（`LocalizedUrl::siteLink`，5.5）、后台列表拖动排序的共用部件（第 7 节）；核心界面语言改为按需下载的语言包，插件自己的 `lang/*.php` 不受影响（5.4）。代码须兼容 PHP 8.0（产品运行下限），推荐 8.2+；数据库兼容 MySQL 5.7 / MariaDB 10.x 与 SQLite。
 
 示例是开发起点，尚未安装到站点或进行浏览器验收。发布前应针对目标 CMS 版本验证。本指南不把开发分支的未发布能力视为稳定公共接口。
 
@@ -192,13 +192,13 @@ return [
 
 插件语言加载先以 zh-CN 兜底，再合并当前语言；核心已有键不会被插件覆盖。因此必须使用插件前缀，不能通过同名键偷偷重写核心文案。
 
-语言代码以 [`includes/i18n/LanguageRegistry.php`](../includes/i18n/LanguageRegistry.php) 为准（2.0.3 起登记 16 种，2.0.4 加入波斯语 fa、马来语 ms 共 18 种；文件名如 `lang/ko.php`、`lang/ar.php`）。插件语言包只有上面两层，没有核心语言包那一层英文兜底（`loadPluginLang()`）：站点启用了韩语而插件没有 `lang/ko.php` 时，插件文案显示中文。`plugin.json` 的其他语言写作 `name_ko`、`description_ko`，缺译同样回落中文（`pluginMetaLabel()`）。繁体中文（zh-TW）不需要单独的语言包，见 5.5。
+语言代码以 [`includes/i18n/LanguageRegistry.php`](../includes/i18n/LanguageRegistry.php) 为准（2.0.3 起登记 16 种，2.0.4 加入波斯语 fa、马来语 ms 共 18 种；文件名如 `lang/ko.php`、`lang/ar.php`）。2.1.0 起核心只随包带 zh-CN / en / ja 三种界面语言，其余语言由站点按需下载签名语言包（[多语言部署](./LANGUAGES.md) 第五节）；这只涉及核心的 `lang/*.php`，插件照旧在自己目录里带全部语言文件。插件语言包只有上面两层，没有核心语言包那一层英文兜底（`loadPluginLang()`）：站点启用了韩语而插件没有 `lang/ko.php` 时，插件文案显示中文。`plugin.json` 的其他语言写作 `name_ko`、`description_ko`，缺译同样回落中文（`pluginMetaLabel()`）。繁体中文（zh-TW）不需要单独的语言包，见 5.5。
 
 ### 5.5 前台输出的多语言要求
 
 - 语言函数分清两种（2.0.5 起有语义别名）：`displayLang()` 是访客看到的语言（界面文字、网址前缀）；`contentLang()` 是数据语言，查内容、产品、栏目、设置时用它——繁体视图（zh-TW）读的是简体数据，两者此时不同。旧代码里的 `siteLang()` 与 `contentLang()` 永远相同，可以继续用。
 - 内容、产品详情的各语言网址（2.0.5）：核心按翻译组里真实存在、已发布的版本给 hreflang 与语言切换链接，没有译文的语言不出现；请求的语言没有这一条的译文时 302 到它自己的语言版本（不在英文界面下显示中文正文）。插件要拿某条内容在某语言下的网址，用 `LocalizedUrl::urlFor('content'|'product'|'channel', $row, $lang)`（栏目自 2.0.5 起；链接栏目返回空串），不要自己拼前缀或换 `lang=` 参数。单页栏目没有本语言版本时同样 302 回原文；列表栏目不跳（条目本就按语言筛选），第 2 页起 hreflang 仍按路径。canonical 用 `LocalizedUrl::canonical($kind, $row, $prettyPath)`：动态网址模式下给动态地址。2.1 起相册（`album`）、产品分类（`product_category`）、文章标签（`content_tag`）也登记（标签没有跨语言关联，只给它自己）；插件自己的实体用 `LocalizedUrl::registerKind($kind, $siblings, $url)` 接入（`$siblings($row)` 返回同翻译组已发布的行，`$url($row, $lang)` 返回该语言下的站内路径），详情页拿到行后照常 `LocalizedUrl::enter($kind, $row)`。
-- 站内链接用 `langUrl()`、`langPrefix()`，不手工拼 `/en/`。站点启用语言域名（`en.example.com`）后，带前缀的地址会被 301 到语言域名（`LanguageDomains::redirectTarget()`）：页面 HTML 里 `<a>`、`<form>` 等的地址有输出兜底改写，脚本里拼出的地址和 JSON 返回的地址没有，AJAX 请求会多一次跳转，POST 经 301 后会被浏览器改成 GET。语言列表用 `enabledLanguages()`，不写死。
+- 站内链接用 `langUrl()`、`langPrefix()`，不手工拼 `/en/`。站长在后台填写、存成不带语言前缀的地址（如按钮链接 `/about.html`），输出时用 `LocalizedUrl::siteLink($url)`（2.1.0）：`/{栏目别名}.html` 换成该栏目在当前语言的译本地址，其余页面地址补当前语言前缀，默认语言、外链、静态文件原样返回。站点启用语言域名（`en.example.com`）后，带前缀的地址会被 301 到语言域名（`LanguageDomains::redirectTarget()`）：页面 HTML 里 `<a>`、`<form>` 等的地址有输出兜底改写，脚本里拼出的地址和 JSON 返回的地址没有，AJAX 请求会多一次跳转，POST 经 301 后会被浏览器改成 GET。语言列表用 `enabledLanguages()`，不写死。
 - 繁体中文（2.0.4 起）分两层：**界面文案**有自己的语言包，后台也可选繁体；**内容**仍只存简体，前台整页转换。插件的繁体文案放 `lang/zh-TW.php`，缺了回落 `zh-CN.php`——前台会被整页转成繁体，但繁体后台里显示简体。仓库内的插件由 `php tools/i18n/zh-tw.php` 从 `zh-CN.php` 生成（含产品术语表 `tools/i18n/glossary/zh-TW.json`），第三方插件可照此生成后再人工审。
 - 前台的整页转换（`includes/i18n/S2T.php`）：页面正文、行内 `<script>` 和前台 AJAX 返回的 JSON 都会转成繁体（`/api/` 不转）。如果页面上的数据会原样提交回服务器、并在服务器上按简体比对（选项值、地区名等），服务器端用 `S2T::canonical($value, $allowed)` 映射回简体原值，或给那段 `<script>` 加 `data-s2t="skip"`；整个响应不能转换时发 `X-S2T: skip` 响应头。详见 [多语言部署](./LANGUAGES.md) 第四节。
 - 前台样式用逻辑方向（`ms-*` / `me-*`、`text-start`、`margin-inline-start` 等），阿拉伯语页面才能镜像；规则见 [主题与模板指南](./THEME-DEVELOPMENT.md) 第 8.3 节。在源码仓库中可用 `php tools/check_rtl.php --file=<相对项目根目录的路径>` 逐处检查插件前台文件（`tools/` 不随安装包分发）。
@@ -286,6 +286,8 @@ add_filter('admin_sidebar', static function (array $menu): array {
 另一现有接口是 `register_admin_menu($groupKey, $item, $groupDefaults)`，定义于后台的 sidebar_menu_api.php。必须在该 helper 已加载且 header 解析菜单之前调用；不要照搬历史示例挂到未经核实的 `admin_init`。
 
 菜单过滤发生在当前排序阶段之后时，如需精确排序，应在 filter 中维护该分组顺序；不要认为追加项的 priority 会被自动再次排序。菜单隐藏不能取代路由的 `requirePermission()`。
+
+插件后台的列表要拖动排序时（2.1.0），用核心的共用部件 `admin/includes/row_sort.php`，与文章、产品、案例、下载分类和客户评价同一套：每行输出 `adminRowSortAttrs($id, $parentId)`，名称前放 `adminRowSortHandle()`，排序号单元格加 `data-sort-cell`，页尾 `echo adminRowSortScript('tbody 的 id')`；POST `action=sort` 时 `adminRowSortApply($model, adminRowSortIds(fn (int $id): ?array => 本页可管理的行或 null), '日志模块名')`。只能在同一上级、同一语言的行之间移动，服务端按提交顺序写 `sort_order = 0、1、2…`。
 
 ## 8. 配置、数据和升级
 
