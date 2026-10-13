@@ -3254,6 +3254,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
 
             containerPreviewClass() {
                 if (!this.isSelectedContainerEl()) return "";
+                if (this.containerIsGrid()) return "grid";
                 var d = this.selEl.data || {};
                 var isDiv = this.selEl.type === "div";
                 var isFlex = !isDiv || (d.display || "block") === "flex";
@@ -3280,6 +3281,8 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 var padding = ({none:"0px", sm:"4px", md:"6px", lg:"8px", xl:"10px"}[this.containerControlValue("padding")] || "0px");
                 return {
                     background: bg,
+                    gap: this.containerIsGrid() ? gap : undefined,
+                    gridTemplateColumns: this.containerIsGrid() ? "repeat(" + this.containerGridColumns() + ", minmax(0, 1fr))" : undefined,
                     "--blox-preview-gap": gap,
                     "--blox-preview-padding": padding,
                 };
@@ -5877,6 +5880,8 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                     },
                     // Quick-add uses the same validated insertion command as the palette.
                     onQuickAdd: function (payload) { self.openElementLibraryAt(payload); },
+                    // 画布空列 / 空容器上的「拆分」（2.1.0）
+                    onSplitAt: function (payload) { self.openSplitPicker(payload.target, null, payload.anchor); },
                     // 画布插入轨道（r13）：边界/末尾「+」的定点插入
                     onInsertAt: function (payload) { self.insertAtBoundary(payload); },
                     // 具名拒因（r14）：无效落点松手不再静默，toast 说明原因
@@ -7095,6 +7100,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 }
                 if (k === "container" || k === "column") {
                     items.push({ key: "addElement", label: this.ctxText.addElement, icon: "plus" });
+                    if (k === "column") items.push({ key: "split", label: this.layoutSplitText.split, icon: "layout-columns" });
                     if (this.clipboard) items.push({ key: "paste", label: this.clipboardText.paste, icon: "clipboard", disabled: !this.canPasteTo(k, t) });
                     items.push({ key: "addSectionAfter", label: this.ctxText.addSectionAfter, icon: "layout-board-split" });
                     if (this.ctxSectionIsEmpty(t)) {
@@ -7110,6 +7116,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                     var isContainer = !!(el && this.elSchema(el.type).container && k === "element"
                         && (!this.isHomeBlockHost(el) || this.isHomeBannerHost(el)));
                     items.push({ key: "addChild", label: this.ctxText.addChild, icon: "corner-down-right", disabled: !isContainer });
+                    if (this.ctxSplitTarget()) items.push({ key: "split", label: this.layoutSplitText.split, icon: "layout-columns" });
                     items.push({ key: "copy", label: this.clipboardText.copy, icon: "copy" });
                     items.push({ key: "cut", label: this.clipboardText.cut, icon: "scissors" });
                     if (this.clipboard) items.push({ key: "paste", label: this.clipboardText.paste, icon: "clipboard", disabled: !this.canPasteTo(k, t) });
@@ -7149,6 +7156,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                     return;
                 }
                 if (action === "addChild") { this.selectElement(t.si, t.ci, t.ei); this.libOpen = true; return; }
+                if (action === "split") { this.openSplitFromCtx(); return; }
                 if (action === "addSectionAfter") { this.selectSection(t.si); this.addSection(1); return; }
                 if (action === "deleteSection") { this.deleteSection(t.si); return; }
                 if (action === "moveUp") { this.ctxMove(-1); return; }
@@ -8784,7 +8792,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             'reset' => __('blox_style_reset_done'),
         ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>),
         window.YikaiBloxBatchProperties ? window.YikaiBloxBatchProperties.mixin() : {},
-            window.YikaiBloxSectionInsert.mixin(<?= json_encode(['after' => __('blox_insert_after_named'), 'start' => __('blox_insert_at_start'), 'changed' => __('blox_insert_target_changed')], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>),
+            window.YikaiBloxSectionInsert.mixin(<?= json_encode(['after' => __('blox_insert_after_named'), 'start' => __('blox_insert_at_start'), 'changed' => __('blox_insert_target_changed'), 'split' => __('blox_split_layout'), 'splitHint' => __('blox_split_hint')], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>),
             window.YikaiBloxPageSettings.mixin(<?= json_encode([
                 'id' => (int) $id,
                 'slug' => (string) ($page['slug'] ?? ''),

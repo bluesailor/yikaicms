@@ -9,14 +9,17 @@ declare(strict_types=1);
              role="dialog" aria-modal="false" aria-labelledby="blox-section-insert-title" data-testid="blox-section-insert-picker"
              class="fixed z-[150] bg-white rounded-lg shadow-xl border border-gray-200 p-3 max-h-[calc(100vh-24px)] overflow-y-auto">
         <header class="flex items-center justify-between gap-2">
-            <h2 id="blox-section-insert-title" class="text-sm font-semibold text-gray-900"><?= e(__('blox_insert_section')) ?></h2>
+            <h2 id="blox-section-insert-title" class="text-sm font-semibold text-gray-900"
+                x-text="sectionInsertMode === 'split' ? <?= e($jt('blox_split_title')) ?> : <?= e($jt('blox_insert_section')) ?>"><?= e(__('blox_insert_section')) ?></h2>
             <button type="button" @click="closeSectionInsert()" aria-label="<?= e(__('close')) ?>" class="h-8 w-8 inline-flex items-center justify-center text-gray-600 hover:bg-gray-100 rounded"><i class="ti ti-x text-lg"></i></button>
         </header>
         <p class="text-xs text-gray-600 mb-3 break-words" x-text="sectionInsertLabel"></p>
         <p class="mb-1.5 text-[11px] font-medium text-gray-500"><?= e(__('blox_layout_equal')) ?></p>
         <div class="grid grid-cols-3 gap-2">
             <?php for ($insertCols = 1; $insertCols <= 6; $insertCols++): ?>
+            <?php // 拆分时只给网格能均分的 2 / 3 / 4 / 6 栏 ?>
             <button type="button" @click="chooseSectionLayout(<?= $insertCols ?>)" data-layout-choice data-testid="blox-add-section-<?= $insertCols ?>"
+                    <?php if (in_array($insertCols, [1, 5], true)): ?>x-show="sectionInsertMode !== 'split'"<?php endif; ?>
                     class="h-16 min-w-0 rounded border border-gray-300 hover:border-blue-500 hover:bg-blue-50 text-gray-700 inline-flex flex-col items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-blue-500">
                 <span class="flex gap-1 w-12 h-4" aria-hidden="true"><?php for ($colBar = 0; $colBar < $insertCols; $colBar++): ?><span class="flex-1 border border-gray-400 bg-gray-100 rounded-sm"></span><?php endfor; ?></span>
                 <span class="text-xs"><?= e(__('pea_n_columns', ['n' => $insertCols])) ?></span>
@@ -34,6 +37,7 @@ declare(strict_types=1);
         <div class="grid grid-cols-3 gap-2">
             <?php foreach ($insertRatios as [$ratioSpans, $ratioLabel]): ?>
             <button type="button" @click="chooseSectionPreset(<?= e((string) json_encode($ratioSpans)) ?>)" data-layout-choice
+                    <?php if (count($ratioSpans) === 1): ?>x-show="sectionInsertMode !== 'split'"<?php endif; ?>
                     data-testid="blox-add-section-ratio-<?= e(implode('-', $ratioSpans)) ?>" title="<?= e($ratioLabel) ?>"
                     class="h-16 min-w-0 rounded border border-gray-300 hover:border-blue-500 hover:bg-blue-50 text-gray-700 inline-flex flex-col items-center justify-center gap-2 focus-visible:ring-2 focus-visible:ring-blue-500">
                 <span class="grid grid-cols-12 gap-0.5 w-12 h-4" aria-hidden="true"><?php foreach ($ratioSpans as $ratioSpan): ?><span class="border border-gray-400 bg-gray-100 rounded-sm" style="grid-column: span <?= (int) $ratioSpan ?> / span <?= (int) $ratioSpan ?>"></span><?php endforeach; ?></span>
@@ -42,7 +46,7 @@ declare(strict_types=1);
             <?php endforeach; ?>
         </div>
         <?php if (bloxPageEditorEnabled()): ?>
-        <button type="button" @click="chooseSectionTemplate()" class="mt-3 w-full h-9 rounded border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 inline-flex items-center justify-center gap-2"><i class="ti ti-layout-grid" aria-hidden="true"></i><?= e(__('pea_import_template')) ?></button>
+        <button type="button" @click="chooseSectionTemplate()" x-show="sectionInsertMode !== 'split'" class="mt-3 w-full h-9 rounded border border-gray-300 text-sm text-gray-700 hover:bg-gray-50 inline-flex items-center justify-center gap-2"><i class="ti ti-layout-grid" aria-hidden="true"></i><?= e(__('pea_import_template')) ?></button>
         <?php endif; ?>
     </section>
     <div x-show="pageFrameOpen" x-cloak x-ref="pageFrameDialog" tabindex="-1"

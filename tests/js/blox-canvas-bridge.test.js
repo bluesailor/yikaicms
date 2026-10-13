@@ -422,3 +422,19 @@ test('gap drag payload enforces element path and clamped integer value', functio
     assert.deepEqual(current.calls, [["gap", { path: '0.0.1.2', value: 24 }]]);
 });
 
+
+test('ykSplitAt 只接受规范的拆分目标和画布坐标（2.1.0）', function () {
+    const got = [];
+    const current = fixture({ onSplitAt: function (payload) { got.push(payload); } });
+    const send = (value) => current.bridge.handleMessage({ source: current.frameWindow, data: { ykSplitAt: value } });
+    assert.equal(send({ target: { kind: 'column', sec: 0, col: 1, extra: 1 }, anchor: { x: 10, y: 20 } }), true);
+    assert.equal(send({ target: { kind: 'container', path: '0.1.0.2.0' }, anchor: { x: 0, y: 5.5 } }), true);
+    assert.equal(send({ target: { kind: 'container', path: '0.1' }, anchor: { x: 1, y: 1 } }), false, '路径太短');
+    assert.equal(send({ target: { kind: 'column', sec: 0, col: 0 }, anchor: { x: -1, y: 1 } }), false, '坐标越界');
+    assert.equal(send({ target: { kind: 'column', sec: 0, col: 0 } }), false, '缺坐标');
+    assert.equal(send({ target: { kind: 'section', sec: 0 }, anchor: { x: 1, y: 1 } }), false);
+    assert.deepEqual(got, [
+        { target: { kind: 'column', sec: 0, col: 1 }, anchor: { x: 10, y: 20 } },
+        { target: { kind: 'container', path: '0.1.0.2.0' }, anchor: { x: 0, y: 5.5 } },
+    ]);
+});
