@@ -10,8 +10,9 @@ function mediaAltFor(string $url): string
 {
     static $map = null;
     static $connection = null;
-    // 每个数据库连接查一次（同一请求只有一个连接；测试里每个用例换库，缓存跟着换）
-    $current = spl_object_id(db());
+    // 每个数据库连接查一次（同一请求只有一个连接；测试里每个用例换库，缓存跟着换）。
+    // 比对连接对象本身而不是 spl_object_id：旧连接释放后编号会被新连接复用，缓存就串了
+    $current = db();
     if ($map === null || $connection !== $current) {
         $connection = $current;
         $map = [];
