@@ -588,6 +588,8 @@ component        （2.1：组件母版，见 9.5）
 
 ### 9.5 组件（2.1）
 
+2.1.0 随包带 8 个预置组件（功能卡片、价格卡片、评价卡片、行动号召条、团队成员、常见问题条目、图标列表项、联系卡片），包文件在 `templates/blox/components/`，由 `tools/blox/gen-starter-components.py` 生成，各站同一预置组件是同一个 uuid（`BloxComponentPresets`）。
+
 组件是可复用的构建器结构：母版只有一份，页面里放的是引用它的**实例**，母版发布后所有实例一起更新。设计说明见内部文档 RFC-2；对模板作者重要的是这些：
 
 - 母版是 `type = component` 的构建器模板，文档固定 1 个区块、1 栏、**1 个根元素**（通常是容器，区块级背景、内边距设在它上面）。2.1.0 起根元素之下可以再放组件（根元素本身不能是组件）；发布时检查不能直接或间接包含自己、最多嵌套 5 层。稳定标识 uuid（`cmp_` + 16 位十六进制）、版本号、分类存在模板 `metadata.component`。
@@ -599,6 +601,13 @@ component        （2.1：组件母版，见 9.5）
 - 多语言：文案、富文本、图片、链接属性可设 `localizable: true` 并在 `default_i18n` 里按语言给默认值，结构只有一份；多语言首页（共享文档）里的实例按语言存在 `props_i18n[语言]`。取值顺序：实例本语言值 → 实例值 → 母版本语言默认 → 母版默认。
 - 导出：2.1.0 起页面 / 区块模板包里的实例保持引用，包里多一个顶层 `components`：用到的母版（含组件里的组件），每项是一个完整的组件包，被依赖的在前；实例上的 `pin` 导出时去掉，`requires.elements` 含 `component`（2.1.0 之前的版本会因此明确拒绝导入）。导入时本站有组件授权：本站没有的母版按包新建并发布，已有同一 uuid 的不动；没有授权：按包里的母版把实例展开成普通结构，不装母版。组件母版本身可以单独导出成模板包（带顶层 `component`：uuid、分类、说明），导入到本站已有同一 uuid 的母版时写进它的草稿、发布后成为新版本，没有则按原 uuid 新建。整站模板随模板表带走母版，导入后自动重建用量。
 - 不要手写实例去引用别的站点的 uuid；需要在模板包里给出一张卡片时，直接给普通结构。
+
+
+### 9.6 2.1.0 新增的元素与选项
+
+- **图片轮播**（`image-carousel`，媒体类）：`items` 每项 `image`、`alt`、`caption`、`link`；`ratio`（`auto` / `landscape` / `wide` / `banner` / `square` / `portrait`）、`per_view`（1–3）、`nav`（`dots` / `thumbs` / `none`）、`show_arrows`、`autoplay`、`interval`、`rounded`。与客户评价轮播共用 `assets/js/yikay-carousel.js` 与 `.css`；缩略图是 `[data-yk-carousel-thumb="序号"]` 按钮，当前页的带 `aria-current="true"`。`alt` 为空时用媒体库里这张图的替代文字（`mediaAltFor()`）。
+- **容器「滚动时堆叠」**（`stack_scroll`，仅 flex 布局）：给内容层加 `yk-stack`，子元素 `position: sticky`、逐个下移错开（`assets/css/yikay-stack.css`，用到时才加载；变量 `--yk-stack-top`、`--yk-stack-step` 可在主题里覆盖）。子元素要有背景色才看得出叠放；祖先元素不能设 `overflow: hidden`，否则 sticky 不生效。
+- **客户评价轮播的数据来源**（`source`）：`custom`（默认，条目写在元素里）或 `library`（取后台「客户评价」表里当前语言已显示的评价，`library_limit` 限条数，该语言没有就用默认语言）。主题或插件要读这张表用 `testimonialModel()->getActive($lang, $limit)`。客户评价表不随整站模板导出（加可移植表会改变整站模板格式），整站模板请继续把评价写在轮播元素里。
 
 ## 10. 打包、安装、升级和删除
 
