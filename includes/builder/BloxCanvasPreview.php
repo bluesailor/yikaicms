@@ -2255,13 +2255,17 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
             return;
         }
     }
-    function emptyActionButton(action, label, primary) {
+    function emptyActionButton(action, label, primary, onClick) {
         var b = document.createElement('button');
         b.type = 'button';
         b.className = 'yk-empty-btn' + (primary ? ' yk-empty-btn-primary' : '');
         b.textContent = label;
         b.addEventListener('click', function (e) {
             e.stopPropagation();
+            if (onClick) {
+                onClick(b);
+                return;
+            }
             postToEditor({ ykEmptyAction: action });
         });
         return b;
@@ -2293,7 +2297,14 @@ html.yk-palette-dragging::-webkit-scrollbar-thumb,html.yk-palette-dragging::-web
         if (@@templates_enabled@@) {
             d.appendChild(emptyActionButton('templates', @@pea_import_template@@, true));
         }
-        d.appendChild(emptyActionButton('section', @@pea_add_blank_section@@, !@@templates_enabled@@));
+        // 「选择布局」（2.1.0）：与区块边界「+」同一个选择器，可直接选等分或按比例的列
+        var layout = emptyActionButton('layout', @@blox_choose_layout@@, !@@templates_enabled@@, function (b) {
+            insertPopover(0, b.getBoundingClientRect());
+        });
+        layout.setAttribute('aria-haspopup', 'dialog');
+        layout.setAttribute('data-yk-empty-layout', '');
+        d.appendChild(layout);
+        d.appendChild(emptyActionButton('section', @@pea_add_blank_section@@, false));
         host.appendChild(d);
     }
     function setupEmptyHints(root) {
@@ -2430,6 +2441,7 @@ HTML;
                 'invalid' => __('blox_drop_invalid'),
             ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES),
             '@@pea_add_blank_section@@' => json_encode(__('pea_add_blank_section'), JSON_UNESCAPED_UNICODE),
+            '@@blox_choose_layout@@' => json_encode(__('blox_choose_layout'), JSON_UNESCAPED_UNICODE),
             '@@blox_insert_section@@' => json_encode(__('blox_insert_section'), JSON_UNESCAPED_UNICODE),
             '@@blox_insert_section_here@@' => json_encode(__('blox_insert_section_here'), JSON_UNESCAPED_UNICODE),
             '@@pea_add_element@@' => json_encode(__('pea_add_element'), JSON_UNESCAPED_UNICODE),

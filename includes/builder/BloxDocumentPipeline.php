@@ -431,26 +431,7 @@ final class BloxDocumentPipeline
                         0
                     );
                 }
-                if (isset($column['card_bg'])) {
-                    $normalizedColumn['card_bg'] = AbstractElement::cssColor($column['card_bg']) ?? '';
-                }
-                if (isset($column['card_bg_image'])) {
-                    $normalizedColumn['card_bg_image'] = AbstractElement::cssImageUrl($column['card_bg_image']) ?? '';
-                }
-                if (isset($column['card_bg_overlay_color'])) {
-                    $normalizedColumn['card_bg_overlay_color'] = AbstractElement::cssColor(
-                        $column['card_bg_overlay_color']
-                    ) ?? '';
-                }
-                if (isset($column['card_bg_overlay_opacity'])) {
-                    $normalizedColumn['card_bg_overlay_opacity'] = max(
-                        0,
-                        min(100, (int) $column['card_bg_overlay_opacity'])
-                    );
-                }
-                // 区块列的极光背景（2.0.5）
-                $normalizedColumn += BloxAurora::normalizeStored($column);
-                $columns[] = $normalizedColumn;
+                $columns[] = $normalizedColumn + self::normalizeColumnExtras($column);
             }
 
             $settings = is_array($section['settings'] ?? null) ? $section['settings'] : [];
@@ -602,6 +583,50 @@ final class BloxDocumentPipeline
     {
         $anchorId = is_string($value) || is_int($value) ? ltrim(trim((string) $value), '#') : '';
         return preg_match('/^[A-Za-z][A-Za-z0-9_-]{0,63}$/', $anchorId) === 1 ? $anchorId : '';
+    }
+
+    /**
+     * 列上除 id / elements / span 以外可以保存的键，页面与首页文档共用这一份白名单：
+     * 列背景与遮罩、极光（2.0.5）、各设备显示 hide_on 与单列位置 position（2.1.0）。
+     * 2.1.0 之前 hide_on 不在白名单里，列的「显示设备」一保存就丢；首页文档只留背景色。
+     *
+     * @param array<string,mixed> $column
+     * @return array<string,mixed>
+     */
+    public static function normalizeColumnExtras(array $column): array
+    {
+        $extras = [];
+        if (isset($column['card_bg'])) {
+            $extras['card_bg'] = AbstractElement::cssColor($column['card_bg']) ?? '';
+        }
+        if (isset($column['card_bg_image'])) {
+            $extras['card_bg_image'] = AbstractElement::cssImageUrl($column['card_bg_image']) ?? '';
+        }
+        if (isset($column['card_bg_overlay_color'])) {
+            $extras['card_bg_overlay_color'] = AbstractElement::cssColor($column['card_bg_overlay_color']) ?? '';
+        }
+        if (isset($column['card_bg_overlay_opacity'])) {
+            $extras['card_bg_overlay_opacity'] = max(0, min(100, (int) $column['card_bg_overlay_opacity']));
+        }
+        $extras += BloxAurora::normalizeStored($column);
+        $hideOn = $column['hide_on'] ?? null;
+        if (is_string($hideOn)) {
+            $hideOn = explode(',', $hideOn);
+        }
+        if (is_array($hideOn)) {
+            $devices = array_values(array_unique(array_filter(
+                array_map(static fn (mixed $device): string => is_string($device) ? trim($device) : '', $hideOn),
+                static fn (string $device): bool => in_array($device, ['m', 't', 'd', 'w'], true)
+            )));
+            if ($devices !== []) {
+                $extras['hide_on'] = $devices;
+            }
+        }
+        // 靠左是默认，不落盘
+        if (in_array($column['position'] ?? null, ['center', 'right'], true)) {
+            $extras['position'] = $column['position'];
+        }
+        return $extras;
     }
 
     public static function normalizeSectionName(mixed $value): string

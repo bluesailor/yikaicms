@@ -2660,20 +2660,39 @@ declare(strict_types=1);
                                             </span>
                                             <span class="text-[10px] text-gray-400" x-text="<?= e($jt('blox_col_word')) ?>.replace(':n', selectedCi + 1)"></span>
                                         </div>
-                                        <div class="grid grid-cols-12 gap-1 h-8 rounded bg-white border border-gray-200 p-1">
-                                            <span class="rounded bg-green-400" :style="'grid-column: span ' + columnSpan(selectedCol()) + ' / span ' + columnSpan(selectedCol())"></span>
+                                        <?php /* 示意条按实际占位画：宽度占整行的比例；单列不足整行时按位置靠左/居中/靠右 */ ?>
+                                        <div class="flex h-8 rounded bg-white border border-gray-200 p-1" data-testid="blox-column-span-visual"
+                                             :class="singleColumnNarrow() ? { center: 'justify-center', right: 'justify-end' }[columnPosition()] || 'justify-start' : 'justify-start'">
+                                            <span class="rounded bg-green-400" :style="'width:' + (columnSpan(selectedCol()) / 12 * 100) + '%'"></span>
                                         </div>
                                     </div>
                                     <div class="blox-property-span-full">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_col_ratio') ?></label>
                                         <div class="grid grid-cols-4 gap-1">
                                             <template x-for="n in [2,3,4,6,8,9,10,12]" :key="'span'+n">
-                                                <button type="button" @click="setColumnSpan(n)"
-                                                        class="h-8 rounded text-xs border transition"
-                                                        :class="columnSpan(selectedCol()) === n ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 text-gray-500 hover:border-green-300'"
-                                                        x-text="n + '/12'"></button>
+                                                <button type="button" @click="setColumnSpan(n)" :title="n + '/12'" :data-testid="'blox-column-span-' + n"
+                                                        class="h-10 rounded border transition inline-flex flex-col items-center justify-center leading-tight"
+                                                        :class="columnSpan(selectedCol()) === n ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 text-gray-500 hover:border-green-300'">
+                                                    <span class="text-xs font-medium" x-text="n === 12 ? <?= e($jt('blox_col_full_width')) ?> : spanFraction(n)"></span>
+                                                    <span class="text-[10px] opacity-70" x-text="Math.round(n / 12 * 100) + '%'"></span>
+                                                </button>
                                             </template>
                                         </div>
+                                    </div>
+                                    <div x-show="singleColumnNarrow()" x-cloak class="blox-property-span-full" data-testid="blox-column-position">
+                                        <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= e(__('blox_col_position')) ?></label>
+                                        <div class="grid grid-cols-3 gap-1">
+                                            <template x-for="opt in [{k:'left',icon:'layout-align-left',l:<?= e($jt('blox_align_left')) ?>},{k:'center',icon:'layout-align-center',l:<?= e($jt('blox_align_center')) ?>},{k:'right',icon:'layout-align-right',l:<?= e($jt('blox_align_right')) ?>}]" :key="'colpos'+opt.k">
+                                                <button type="button" @click="setColumnPosition(opt.k)" :title="opt.l" :aria-label="opt.l"
+                                                        :aria-pressed="columnPosition() === opt.k ? 'true' : 'false'"
+                                                        :data-testid="'blox-column-position-' + opt.k"
+                                                        class="h-8 rounded border inline-flex items-center justify-center transition"
+                                                        :class="columnPosition() === opt.k ? 'border-green-400 bg-green-50 text-green-700' : 'border-gray-200 text-gray-500 hover:border-green-300'">
+                                                    <i class="ti text-base" :class="'ti-' + opt.icon" aria-hidden="true"></i>
+                                                </button>
+                                            </template>
+                                        </div>
+                                        <p class="text-[10px] text-gray-400 mt-1"><?= e(__('blox_col_position_hint')) ?></p>
                                     </div>
                                     <div class="blox-property-span-full">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_col_bg') ?></label>
@@ -2760,36 +2779,36 @@ declare(strict_types=1);
                                             </div>
                                         </div>
                                     </div>
-                                    <div x-show="sel.columns.length > 1 && !sel.settings.tablet_stack">
+                                    <div x-show="columnSizingVisible() && !sel.settings.tablet_stack">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_span_tablet') ?></label>
                                         <select class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm"
                                                 :value="columnSpanT(selectedCol()) === null ? '' : columnSpanT(selectedCol())"
                                                 @change="setColumnSpanT($event.target.value)">
                                             <option value=""><?= e(__('blox_inherit_desktop')) ?></option>
-                                            <template x-for="n in 12" :key="'tspan'+n"><option :value="n" x-text="n + '/12'"></option></template>
+                                            <template x-for="n in 12" :key="'tspan'+n"><option :value="n" x-text="spanOptionLabel(n)"></option></template>
                                         </select>
                                     </div>
-                                    <div x-show="sel.columns.length > 1">
+                                    <div x-show="columnSizingVisible()">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_span_mobile') ?></label>
                                         <select class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm"
                                                 data-testid="blox-column-span-mobile"
                                                 :value="columnSpanM(selectedCol()) === null ? '' : columnSpanM(selectedCol())"
                                                 @change="setColumnSpanM($event.target.value)">
                                             <option value=""><?= e(__('blox_span_mobile_stack')) ?></option>
-                                            <template x-for="n in 12" :key="'mspan'+n"><option :value="n" x-text="n + '/12'"></option></template>
+                                            <template x-for="n in 12" :key="'mspan'+n"><option :value="n" x-text="spanOptionLabel(n)"></option></template>
                                         </select>
                                     </div>
-                                    <div x-show="sel.columns.length > 1 && wideTierEnabled()">
+                                    <div x-show="columnSizingVisible() && wideTierEnabled()">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_span_wide') ?></label>
                                         <select class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm"
                                                 data-testid="blox-column-span-wide"
                                                 :value="columnSpanW(selectedCol()) === null ? '' : columnSpanW(selectedCol())"
                                                 @change="setColumnSpanW($event.target.value)">
                                             <option value=""><?= e(__('blox_inherit_desktop')) ?></option>
-                                            <template x-for="n in 12" :key="'wspan'+n"><option :value="n" x-text="n + '/12'"></option></template>
+                                            <template x-for="n in 12" :key="'wspan'+n"><option :value="n" x-text="spanOptionLabel(n)"></option></template>
                                         </select>
                                     </div>
-                                    <div :class="sel.columns.length > 1 && !sel.settings.tablet_stack ? '' : 'blox-property-span-full'">
+                                    <div :class="columnSizingVisible() && !sel.settings.tablet_stack ? '' : 'blox-property-span-full'">
                                         <label class="block text-xs font-medium text-gray-600 mb-1.5"><?= __('blox_visible_devices') ?></label>
                                         <div class="flex gap-1">
                                             <template x-for="dev in [{k:'w',l:<?= e($jt('blox_device_wide')) ?>},{k:'d',l:<?= e($jt('blox_device_desktop')) ?>},{k:'t',l:<?= e($jt('blox_device_tablet')) ?>},{k:'m',l:<?= e($jt('blox_device_mobile')) ?>}].filter(dev => dev.k !== 'w' || wideTierEnabled())" :key="'colvis'+dev.k">
@@ -2863,6 +2882,7 @@ declare(strict_types=1);
                                             </button>
                                         </template>
                                     </div>
+                                    <p class="mt-2 text-[10px] leading-snug text-gray-400" data-testid="blox-layout-apply-hint"><?= e(__('blox_layout_apply_hint')) ?></p>
                                     <template x-if="sel.columns.length === 2">
                                         <div class="mt-3 rounded border border-gray-200 bg-white p-2.5">
                                             <div class="mb-3">
@@ -3397,7 +3417,7 @@ declare(strict_types=1);
                                              :class="isColumnSelected(si, ci) ? 'bg-green-100 text-green-700' : 'hover:bg-gray-100 text-gray-500'">
                                             <i class="ti ti-columns-1 text-[11px] shrink-0"></i>
                                             <span class="text-[10px] flex-1" x-text="<?= e($jt('blox_col_word')) ?>.replace(':n', ci + 1)"></span>
-                                            <span class="text-[10px] text-gray-400" x-text="columnSpan(col) + '/12'"></span>
+                                            <span class="text-[10px] text-gray-400" :title="columnSpanIn(section, ci) + '/12'" x-text="columnSpanIn(section, ci) === 12 ? <?= e($jt('blox_col_full_width')) ?> : spanFraction(columnSpanIn(section, ci))"></span>
                                         </div>
                                         <template x-if="col.elements.length === 0">
                                             <p class="text-[10px] text-gray-300 pl-2 py-1"><?= __('blox_tree_empty') ?></p>

@@ -257,10 +257,7 @@ public static function isActive(): bool
                         0
                     );
                 }
-                if (isset($column['card_bg'])) {
-                    $normalizedColumn['card_bg'] = (string) $column['card_bg'];
-                }
-                $normalizedColumns[] = $normalizedColumn;
+                $normalizedColumns[] = $normalizedColumn + BloxDocumentPipeline::normalizeColumnExtras($column);
             }
 
             $settings = is_array($section['settings'] ?? null) ? $section['settings'] : [];
