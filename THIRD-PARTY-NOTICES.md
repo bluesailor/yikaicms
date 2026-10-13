@@ -117,6 +117,8 @@ Psalm、PHP-Parser 等只用于开发与测试，见 `composer.json` 的 `requir
   随包只保留运行时文件（*.min.js、皮肤、插件数据），语言包沿用原 zh_CN / ja 两份并改挂
   `hugerte.addI18n`。`assets/tinymce/` 整目录删除；`window.tinymce` 作为别名保留给第三方插件。
 
+- **2026-10-13（v2.1.0 核对）**：新增 Inter 4.1 可变字体的 woff2 分片（OFL-1.1，见上表；许可原文随包 `assets/fonts/inter/OFL.txt`，来源与哈希见同目录 `manifest.json`），「无衬线（现代）」字体方案不再依赖外部字体服务。除 zh-CN / en / ja 外的 15 种界面语言改为按需下载的签名语言包，语言文件是本项目文案，不涉及第三方许可。新增的 `assets/images/demo/*_medium.webp` 是本项目演示图的缩小版；`assets/js/yikay-components.js`、`assets/js/admin-row-sort.js`、`assets/css/yikay-stack.css` 为本项目源码。`composer.json` / `composer.lock` 与 `package.json` 生产依赖自 v2.0.6 起无变化。反向核对：本周期 `assets/` 下没有删除任何文件，第三方组件的加载点均在。
+
 - **2026-10-05（v2.0.4 核对）**：Swiper 11.2.10 → **12.2.0**（MIT，协议未变；修复 CVE-2026-27212），随包 LICENSE 原文已核对。新增 `assets/hugerte/langs/zh_TW.js` 由随包的 HugeRTE `zh_CN.js` 经 OpenCC 词表转换生成（`tools/i18n/zh-tw.php`），沿用 HugeRTE 的 MIT 许可；繁体界面语言包 `lang/zh-TW.php` 与插件的 `lang/zh-TW.php` 由本项目简体文案经同一词表生成，OpenCC 词表许可见上文「OpenCC 简繁转换词典」一节（此前漏登，本次补上）。`assets/js/admin-a11y.js` 为本项目源码；无障碍检测用的 axe-core 只在开发机临时使用，不随包、不进仓库。`composer.json` / `composer.lock` 与 `package.json` 生产依赖自 v2.0.3 起无变化。反向核对：本周期未删除任何组件的加载点。
 
 - **2026-09-28（v2.0.1 核对）**：本周期未引入或升级第三方组件，`composer.json` /
