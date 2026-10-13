@@ -887,6 +887,9 @@ final class BlockRenderer
     private static function singleColumnWidthClass(mixed $span, bool $desktopOnly): string
     {
         $d = self::spanValue($span, 'd');
+        if ($d < 1) {
+            return '';
+        }
         $t = self::spanValue($span, 't');
         $m = self::spanValue($span, 'm');
         $classes = ['w-full', 'min-w-0'];
