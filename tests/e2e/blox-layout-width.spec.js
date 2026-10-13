@@ -196,3 +196,48 @@ test('selected columns and containers resize by dragging their edges @ci', async
   })).toBeGreaterThan(40);
   // 不保存不撤销直接结束，理由同第一个用例
 });
+
+// 空栏提示在窄处收成图标（2.1.0）：1/4 单栏拆三份，每份不到 100px，按钮不折行、不再叠成一大块占位。
+test('empty hints in narrow blocks shrink to one-line icon buttons @ci', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop-1440', 'Canvas geometry baseline at desktop width');
+  await openPageEditor(page, fixtures.blox_page);
+  const clear = page.getByTestId('blox-clear-selection');
+  if (await clear.isVisible()) await clear.click();
+  await waitPreviewSettled(page);
+  const sections = page.getByTestId('blox-tree-section');
+  await page.getByTestId('blox-layout-open').click();
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-add-section-ratio-3').click());
+  await sections.last().getByTestId('blox-tree-column').first().locator(':scope > div').first().click();
+  await page.getByTestId('blox-column-split').click();
+  await performPagePreviewUpdate(page, () => page.getByTestId('blox-section-insert-picker').getByTestId('blox-add-section-3').click());
+  await waitPreviewSettled(page);
+
+  const canvas = await frame(page);
+  const lastSection = canvas.locator('[data-yk-sec]').last();
+  await lastSection.evaluate((node) => node.scrollIntoView({ block: 'center' }));
+  const hints = lastSection.locator('.yk-empty-hint-sm');
+  await expect(hints).toHaveCount(3);
+  const facts = await hints.evaluateAll((nodes) => nodes.map((hint) => {
+    const buttons = Array.from(hint.querySelectorAll('.yk-empty-btn'));
+    return {
+      width: Math.round(hint.getBoundingClientRect().width),
+      height: Math.round(hint.getBoundingClientRect().height),
+      labelShown: getComputedStyle(hint.querySelector('.yk-empty-label')).display !== 'none',
+      textShown: buttons.some((b) => getComputedStyle(b.querySelector('.yk-empty-btn-text')).display !== 'none'),
+      tallestButton: Math.max(...buttons.map((b) => Math.round(b.getBoundingClientRect().height))),
+      named: buttons.every((b) => (b.getAttribute('aria-label') || '').length > 0),
+    };
+  }));
+  for (const fact of facts) {
+    expect(fact.width).toBeLessThan(200);
+    expect(fact.labelShown).toBe(false);
+    expect(fact.textShown).toBe(false);
+    expect(fact.tallestButton).toBeLessThan(32);
+    expect(fact.named).toBe(true);
+    expect(fact.height).toBeLessThan(fact.width >= 70 ? 50 : 80); // 够宽时一行排开；改前约 150px
+  }
+  // 宽处照旧显示文字
+  const wide = canvas.locator('.yk-empty-hint-sm').filter({ has: canvas.locator('.yk-empty-label:visible') }).first();
+  if (await wide.count()) await expect(wide.locator('.yk-empty-btn-text').first()).toBeVisible();
+  await page.screenshot({ path: info.outputPath('narrow-hints.png') });
+});
