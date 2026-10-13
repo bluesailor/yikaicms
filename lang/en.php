@@ -3445,6 +3445,7 @@ return [
     'pea_add_section' => '+ Add section',
     'pea_add_section_plain' => 'Add section',
     'pea_add_element' => 'Add element',
+    'blox_el_div' => 'Div',
     'pea_empty_div' => 'Empty div',
     'pea_empty_container' => 'Empty container',
     'pea_empty_column' => 'Empty column',
