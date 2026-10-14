@@ -429,6 +429,24 @@ declare(strict_types=1);
 
             get sel() { return this.selectedSi >= 0 && this.sections[this.selectedSi] ? this.sections[this.selectedSi] : null; },
 
+            /**
+             * 区块设置面板（区块/容器/列层与区块标题字段）的 x-data：面板里的 sel 换成这个别名。
+             * Alpine 按触发顺序冲刷 effect，面板的 x-if 只要重新求值过（切页签、换层级）就排到
+             * 子表达式后面；取消选择、撤销、删除让 sel 变 null 时，子表达式先对着 null 求值、
+             * x-if 才拆面板，一次上百条 Alpine Expression Error。面板只在 sel 非空时存在，
+             * 别名平时就等于 sel；只有拆除前那一次求值读到上一个区块，不写任何数据。
+             */
+            sectionPanelScope() {
+                var editor = this, last = null;
+                return {
+                    get sel() {
+                        var live = editor.sel;
+                        if (live) last = live;
+                        return live || last;
+                    },
+                };
+            },
+
             /** 列级选中元素（容器场景下=容器本身，不下钻子元素） */
             get selTopEl() {
                 var s = this.sel;
