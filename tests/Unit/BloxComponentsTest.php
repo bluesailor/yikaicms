@@ -236,10 +236,95 @@ final class BloxComponentsTest extends TestCase
         self::assertStringContainsString('第一版', (string) json_encode($detached, JSON_UNESCAPED_UNICODE), '脱离用固定的那一版');
         self::assertSame([2, 1], BloxComponents::availableVersions($component['uuid']));
 
-        // 固定的版本已被清出修订记录：退回最新版（编辑器会提示）
+        // 固定的版本已被清出修订记录（2.1.1 前的清理）：前台退回最新版，但标记为缺失（编辑器与站点健康会提示）
         db()->execute('DELETE FROM blox_component_revisions WHERE version = 1');
         BloxComponents::resetForTests();
         self::assertStringContainsString('第二版', $this->renderPage($this->pageWith($component['uuid'], [], ['pin' => 1])));
+        self::assertTrue(BloxComponents::pinMissing($component['uuid'], 1));
+        self::assertFalse(BloxComponents::pinMissing($component['uuid'], 2), '固定在最新版不算缺失');
+        self::assertFalse(BloxComponents::pinMissing($component['uuid'], 0));
+    }
+
+    /** @param array<int,mixed> $sections */
+    private function savePageDraft(int $pageId, array $sections): void
+    {
+        db()->insert('blox_page_drafts', [
+            'page_id' => $pageId,
+            'draft_data' => (string) json_encode(['schema' => 1, 'settings' => [], 'sections' => $sections], JSON_UNESCAPED_UNICODE),
+            'published_data' => '',
+        ]);
+    }
+
+    private function republish(int $id, string $json, int $times): void
+    {
+        $model = bloxTemplateModel();
+        for ($i = 0; $i < $times; $i++) {
+            $model->updateDraft($id, BloxComponents::processMaster($json, 'tpl' . $id)['json'], []);
+            $model->publishDraft($id);
+        }
+        BloxComponents::resetForTests();
+    }
+
+    public function testPinnedVersionsSurviveRevisionPruning(): void
+    {
+        $component = $this->publishComponent($this->masterJson('第一版'));
+        $this->savePageDraft(7, $this->pageWith($component['uuid'], [], ['pin' => 1]));
+        $this->republish($component['id'], $this->masterJson('后来的版本'), BloxComponents::KEEP_REVISIONS + 2);
+
+        $versions = BloxComponents::availableVersions($component['uuid']);
+        self::assertContains(1, $versions, '页面固定的 v1 发布再多次也不清');
+        self::assertNotContains(2, $versions, '没人固定的旧版本照常清');
+        self::assertCount(BloxComponents::KEEP_REVISIONS + 1, $versions);
+        self::assertSame([1], BloxComponents::pinnedVersions($component['uuid']));
+        self::assertStringContainsString('第一版', $this->renderPage($this->pageWith($component['uuid'], [], ['pin' => 1])));
+        self::assertSame(['instances' => 0, 'documents' => 0], BloxComponents::missingPins());
+    }
+
+    public function testInnerVersionsPinnedInsideAPinnedOuterVersionAreKept(): void
+    {
+        $inner = $this->publishComponent($this->masterJson('内层第一版'));
+        $outerJson = json_decode($this->outerMasterJson($inner['uuid']), true);
+        $outerJson['sections'][0]['columns'][0]['elements'][0]['data']['children'][1]['data']['pin'] = 1;
+        $outer = $this->publishComponent((string) json_encode($outerJson, JSON_UNESCAPED_UNICODE));
+        // 外层后来改成内层跟随最新；页面固定在外层 v1——v1 的快照里固定着内层 v1
+        $this->republish($outer['id'], $this->outerMasterJson($inner['uuid']), 1);
+        $this->savePageDraft(8, $this->pageWith($outer['uuid'], [], ['pin' => 1]));
+        $this->republish($inner['id'], $this->masterJson('内层新版'), BloxComponents::KEEP_REVISIONS + 2);
+
+        self::assertContains(1, BloxComponents::availableVersions($inner['uuid']), '外层留下来的版本里固定的内层版本也留着');
+        self::assertStringContainsString('内层第一版', $this->renderPage($this->pageWith($outer['uuid'], [], ['pin' => 1])));
+    }
+
+    public function testPinningIsShallowInnerComponentsFollowTheirOwnSetting(): void
+    {
+        $inner = $this->publishComponent($this->masterJson('内层第一版'));
+        $outer = $this->publishComponent($this->outerMasterJson($inner['uuid']));
+        $this->republish($outer['id'], $this->outerMasterJson($inner['uuid']), 1);   // 外层 v2：页面固定的 v1 早于最新
+        $this->republish($inner['id'], $this->masterJson('内层第二版'), 1);
+
+        $html = $this->renderPage($this->pageWith($outer['uuid'], [], ['pin' => 1]));
+        self::assertStringContainsString('内层第二版', $html, '外层固定不冻结里面没单独固定的内层');
+    }
+
+    public function testSavingKeepsOverridesWhenThePinnedVersionIsGone(): void
+    {
+        $component = $this->publishComponent($this->masterJson('第一版'));
+        // 新版删掉了「按钮文字」这个属性
+        $this->republish($component['id'], $this->masterJson('第二版', '/contact', [
+            ['key' => 'title', 'type' => 'text', 'label' => '标题', 'default' => '第二版', 'targets' => [['node' => 'e_title', 'field' => 'text']]],
+        ]), 1);
+        db()->execute('DELETE FROM blox_component_revisions WHERE version = 1');
+        BloxComponents::resetForTests();
+
+        $page = $this->pageWith($component['uuid'], ['title' => '页面标题', 'cta' => '立即询价'], ['pin' => 1, 'variant' => 'dark']);
+        $saved = BloxDocumentPipeline::process((string) json_encode(['schema' => 1, 'settings' => [], 'sections' => $page], JSON_UNESCAPED_UNICODE), 'pg1');
+        $data = $saved['sections'][0]['columns'][0]['elements'][0]['data'];
+        self::assertSame(['title' => '页面标题', 'cta' => '立即询价'], $data['props'], '快照没了也不按最新版删覆盖');
+        self::assertSame(1, $data['pin']);
+        self::assertSame('dark', $data['variant']);
+
+        $this->savePageDraft(9, $page);
+        self::assertSame(['instances' => 1, 'documents' => 1], BloxComponents::missingPins());
     }
 
     public function testVariantsSitBetweenInstanceOverridesAndMasterDefaults(): void
@@ -538,6 +623,29 @@ final class BloxComponentsTest extends TestCase
         self::assertContains('component', $package['requires']['elements'], '旧版本导入端会因缺这个元素而明确拒绝');
         self::assertSame([$inner['uuid'], $outer['uuid']], array_map(static fn (array $c): string => $c['component']['uuid'], $package['components']), '被依赖的在前');
         self::assertArrayNotHasKey('components', $package['components'][1], '每一层都在外层清单里，子包不再重复带');
+    }
+
+    public function testExportKeepsWhatAPinnedOlderVersionShows(): void
+    {
+        $component = $this->publishComponent($this->masterJson('第一版'));
+        $this->republish($component['id'], $this->masterJson('第二版'), 1);
+        $export = static fn (array $sections): array => \BloxTemplateImporter::exportPackage([
+            'type' => 'section', 'name' => 'Pinned',
+            'draft_data' => (string) json_encode(['sections' => $sections], JSON_UNESCAPED_UNICODE),
+        ]);
+
+        $old = $export($this->pageWith($component['uuid'], ['cta' => '询价'], ['pin' => 1]));
+        $json = (string) json_encode($old, JSON_UNESCAPED_UNICODE);
+        self::assertStringContainsString('第一版', $json, '按固定的那一版展开');
+        self::assertStringContainsString('询价', $json, '实例的覆盖一并带上');
+        self::assertStringNotContainsString('"type":"component"', $json);
+        self::assertSame([], $old['components'] ?? [], '展开后不再需要带母版');
+
+        $latest = $export($this->pageWith($component['uuid'], [], ['pin' => 2]));
+        $json = (string) json_encode($latest, JSON_UNESCAPED_UNICODE);
+        self::assertStringContainsString('"type":"component"', $json, '固定在最新版的仍是引用');
+        self::assertStringNotContainsString('"pin"', $json);
+        self::assertSame([$component['uuid']], array_map(static fn (array $c): string => $c['component']['uuid'], $latest['components']));
     }
 
     public function testLicensedImportInstallsMissingMastersAndKeepsExistingOnes(): void
