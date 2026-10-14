@@ -79,8 +79,12 @@ final class SecretStoreTest extends TestCase
         db()->insert('settings', ['key' => 'ai_api_key', 'value' => $legacy]);
         db()->insert('settings', ['key' => 'smtp_pass', 'value' => 'mail-pass']);
         db()->insert('settings', ['key' => 'seo_baidu_token', 'value' => 'plugin-owned']);
+        // 2.1.1 站点健康：能加密时报出还没封装的核心密钥（旧 CBC 格式也算），插件的不算
+        self::assertSame('', SecretStore::unavailableReason());
+        self::assertSame(['ai_api_key', 'smtp_pass'], SecretStore::plaintextCoreSecrets());
 
         self::assertSame(2, SecretStore::sealLegacyCoreSecrets());
+        self::assertSame([], SecretStore::plaintextCoreSecrets());
         $stored = static fn (string $key): string => (string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', [$key]);
         self::assertTrue(SecretStore::isSealed($stored('ai_api_key')));
         self::assertSame('sk-ai-legacy', SecretStore::open($stored('ai_api_key'), true));

@@ -320,6 +320,9 @@ if ($_emailLangAware) {
                     <?php if ($smtpPassSet): ?>
                     <label class="mt-2 inline-flex items-center gap-2 text-sm text-gray-500"><input type="checkbox" name="smtp_pass_clear" value="1"> <?php echo e(__('email_smtp_pass_clear')); ?></label>
                     <?php endif; ?>
+                    <?php if (!SecretStore::available()): // 2.1.1：加密不可用时明说会存明文，原因在站点健康里 ?>
+                    <p class="mt-2 text-sm text-amber-700" data-testid="secret-store-plaintext-notice"><i class="ti ti-alert-triangle" aria-hidden="true"></i> <?php echo e(__('secret_store_plaintext_notice')); ?></p>
+                    <?php endif; ?>
                 </div>
             </div>
         </div>

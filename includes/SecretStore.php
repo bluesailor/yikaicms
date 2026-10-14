@@ -26,8 +26,39 @@ final class SecretStore
 
     public static function available(): bool
     {
-        return defined('ENCRYPT_KEY') && is_string(ENCRYPT_KEY) && ENCRYPT_KEY !== '' && ENCRYPT_KEY !== '{{ENCRYPT_KEY}}'
-            && function_exists('openssl_encrypt') && in_array(self::CIPHER, openssl_get_cipher_methods(), true);
+        return self::unavailableReason() === '';
+    }
+
+    /**
+     * 加密为什么用不了（2.1.1：站点健康与设置页据此提示，不再静默存明文）：
+     * 'key' = config.php 没有有效的 ENCRYPT_KEY；'cipher' = 服务器 OpenSSL 不支持 AES-256-GCM；能用返回 ''。
+     */
+    public static function unavailableReason(): string
+    {
+        if (!defined('ENCRYPT_KEY') || !is_string(ENCRYPT_KEY) || ENCRYPT_KEY === '' || ENCRYPT_KEY === '{{ENCRYPT_KEY}}') {
+            return 'key';
+        }
+        if (!function_exists('openssl_encrypt') || !in_array(self::CIPHER, openssl_get_cipher_methods(), true)) {
+            return 'cipher';
+        }
+        return '';
+    }
+
+    /**
+     * 存着值却还不是信封的核心密钥（2.1.1 站点健康）：加密不可用时保存的，或升级时环境还不支持。
+     *
+     * @return list<string> 键名
+     */
+    public static function plaintextCoreSecrets(): array
+    {
+        $names = [];
+        foreach (self::CORE_KEYS as $name) {
+            $value = db()->fetchColumn('SELECT value FROM ' . DB_PREFIX . 'settings WHERE `key` = ?', [$name]);
+            if (is_string($value) && $value !== '' && !self::isSealed($value)) {
+                $names[] = $name;
+            }
+        }
+        return $names;
     }
 
     public static function isSealed(string $stored): bool
