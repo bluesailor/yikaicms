@@ -218,6 +218,28 @@ final class BloxComponentsTest extends TestCase
         }
     }
 
+    public function testANewMasterIsRefusedOnceTheCatalogIsFull(): void
+    {
+        $existing = $this->publishComponent($this->masterJson('已有'));
+        // 目录只取 MAX_COMPONENTS 个已发布母版：填满（直接写行，省得逐个发布）
+        for ($i = 1; $i < BloxComponents::MAX_COMPONENTS; $i++) {
+            db()->insert('blox_templates', ['type' => 'component', 'name' => 'c' . $i, 'draft_data' => '[]', 'published_data' => '[]', 'status' => 1]);
+        }
+        $model = bloxTemplateModel();
+        $fresh = $model->createDraft('component', '第 201 个', BloxComponents::processMaster($this->masterJson('新'), 'tpl0')['json']);
+        try {
+            $model->publishDraft($fresh);
+            self::fail('目录满了还发布，新母版会悄悄显示成不可用');
+        } catch (RuntimeException $e) {
+            self::assertSame(__('blox_component_too_many', ['max' => (string) BloxComponents::MAX_COMPONENTS]), $e->getMessage());
+        }
+        self::assertSame(0, (int) $model->find($fresh)['status']);
+
+        $model->updateDraft($existing['id'], BloxComponents::processMaster($this->masterJson('已有·改'), 'tpl' . $existing['id'])['json'], []);
+        $model->publishDraft($existing['id']);   // 已在目录里的母版照常重新发布
+        self::assertStringContainsString('已有·改', (string) $model->find($existing['id'])['published_data']);
+    }
+
     public function testPinnedInstancesKeepTheirVersionUntilUpdated(): void
     {
         $component = $this->publishComponent($this->masterJson('第一版'));
