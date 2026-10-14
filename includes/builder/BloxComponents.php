@@ -289,6 +289,7 @@ final class BloxComponents
     /**
      * 变体（2.1.0）：母版里具名的一组属性值，实例选了变体就用这组值，仍可逐项覆盖。
      * 只收已声明属性的键，值按属性类型清洗；空值不存（= 用母版默认）。
+     * 开关属性的 false / '0' 是「关」，不算空（2.1.1：布尔 false 转字符串是空串，以前会被当成没设）。
      *
      * @param list<array<string,mixed>> $props 已归一的属性定义
      * @return list<array{key:string,label:string,values:array<string,mixed>}>
@@ -314,8 +315,15 @@ final class BloxComponents
             }
             $values = [];
             foreach (is_array($variant['values'] ?? null) ? $variant['values'] : [] as $propKey => $value) {
-                if (isset($byKey[$propKey]) && is_scalar($value) && (string) $value !== '') {
-                    $values[(string) $propKey] = self::sanitizePropValue($byKey[$propKey], $value);
+                $prop = $byKey[$propKey] ?? null;
+                if ($prop === null) {
+                    continue;
+                }
+                $set = (string) $prop['type'] === 'boolean'
+                    ? is_bool($value) || (is_scalar($value) && trim((string) $value) !== '')
+                    : is_scalar($value) && (string) $value !== '';
+                if ($set) {
+                    $values[(string) $propKey] = self::sanitizePropValue($prop, $value);
                 }
             }
             $out[] = [

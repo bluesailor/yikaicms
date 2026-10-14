@@ -528,10 +528,24 @@ declare(strict_types=1);
                                     <template x-for="prop in masterProps()" :key="variant.key + ':' + prop.key">
                                         <label class="flex items-center gap-1.5 py-0.5">
                                             <span class="w-24 shrink-0 truncate text-[10px] text-gray-400" x-text="prop.label"></span>
-                                            <input type="text" :value="(variant.values || {})[prop.key] || ''" :placeholder="String(prop.default || '')"
-                                                   :data-testid="'blox-master-variant-value-' + variant.key + '-' + prop.key"
-                                                   @change="setMasterVariantValue(variant, prop, $event.target.value)"
-                                                   class="min-w-0 flex-1 border border-gray-600 bg-gray-800 px-2 py-0.5 text-white">
+                                            <?php // 2.1.1：开关与下拉属性用下拉框——「默认」= 用母版默认值，开关选「否」就是关，不再要手填 0/1 ?>
+                                            <template x-if="masterVariantChoices(prop)">
+                                                <select :data-testid="'blox-master-variant-value-' + variant.key + '-' + prop.key"
+                                                        @change="setMasterVariantValue(variant, prop, $event.target.value)"
+                                                        class="min-w-0 flex-1 border border-gray-600 bg-gray-800 px-2 py-0.5 text-white">
+                                                    <option value="" :selected="!masterVariantHas(variant, prop)"><?php echo e(__('blox_component_variant_default')); ?></option>
+                                                    <template x-for="choice in masterVariantChoices(prop)" :key="choice.value">
+                                                        <option :value="choice.value" x-text="choice.label"
+                                                                :selected="masterVariantHas(variant, prop) && String(variant.values[prop.key]) === choice.value"></option>
+                                                    </template>
+                                                </select>
+                                            </template>
+                                            <template x-if="!masterVariantChoices(prop)">
+                                                <input type="text" :value="(variant.values || {})[prop.key] || ''" :placeholder="String(prop.default || '')"
+                                                       :data-testid="'blox-master-variant-value-' + variant.key + '-' + prop.key"
+                                                       @change="setMasterVariantValue(variant, prop, $event.target.value)"
+                                                       class="min-w-0 flex-1 border border-gray-600 bg-gray-800 px-2 py-0.5 text-white">
+                                            </template>
                                         </label>
                                     </template>
                                 </div>

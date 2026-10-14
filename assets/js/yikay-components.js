@@ -164,6 +164,21 @@
                     variant.values = values;
                     this.markDocumentSettingsChanged();
                 },
+                masterVariantHas: function (variant, prop) {
+                    return Object.prototype.hasOwnProperty.call(variant.values || {}, prop.key);
+                },
+                /** 变体值的可选项（2.1.1）：开关给 是/否，下拉给母版选项；其余类型返回 null 用文本框。 */
+                masterVariantChoices: function (prop) {
+                    if (prop.type === "boolean") {
+                        return [{ value: "1", label: this.componentText.yes }, { value: "0", label: this.componentText.no }];
+                    }
+                    if (prop.type === "select" && prop.options && typeof prop.options === "object") {
+                        return Object.keys(prop.options).map(function (value) {
+                            return { value: String(value), label: String(prop.options[value]) };
+                        });
+                    }
+                    return null;
+                },
 
                 // ── 锁定版本 / 已修改（2.1.0）──────────────────────────
                 componentPinState: function () {

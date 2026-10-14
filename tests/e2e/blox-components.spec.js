@@ -165,6 +165,13 @@ test('master editor exposes and removes a prop from a control @ci', async ({ pag
   await value.fill('Dark title');
   await value.press('Tab');
   expect(await app(page, a => a.masterVariants()[0].values)).toEqual({ title: 'Dark title' });
+  // 2.1.1：开关属性在变体里是下拉框——选「否」存 '0'（关），选回「默认」就删掉这一项
+  await app(page, a => { a.masterProps().push({ key: 'featured', type: 'boolean', label: 'Featured', default: '1', targets: [] }); });
+  const toggle = page.getByTestId(`blox-master-variant-value-${variant.key}-featured`);
+  await toggle.selectOption('0');
+  expect(await app(page, a => a.masterVariants()[0].values)).toEqual({ title: 'Dark title', featured: '0' });
+  await toggle.selectOption('');
+  expect(await app(page, a => a.masterVariants()[0].values)).toEqual({ title: 'Dark title' });
   await page.getByTestId(`blox-master-variant-${variant.key}`).getByRole('button').click();
   expect(await app(page, a => a.masterVariants().length)).toBe(0);
 });
