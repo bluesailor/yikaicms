@@ -111,6 +111,7 @@ test('pinned instance keeps its version until updated @ci', async ({ page }) => 
   await page.getByTestId('blox-component-pin-action').click();
   expect(await app(page, (a) => a.selEl.data.pin)).toBe(latest);
   await expect(pinState).toContainText(`v${latest}`);
+  await expect(page.getByTestId('blox-component-pin-shallow')).toBeVisible();   // 2.1.1：写明只固定这一层
   await publishPage(page);
 
   fixture('republish', 'Pinned check title');

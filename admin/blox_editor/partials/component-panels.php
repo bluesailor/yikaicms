@@ -36,6 +36,8 @@
                 <button type="button" x-show="componentPinState().behind" @click="pinComponent()" data-testid="blox-component-update-pin"
                         class="mt-1 text-blue-600 hover:text-blue-800" x-text="componentText.updatePin.replace(':v', componentPinState().latest)"></button>
                 <p x-show="componentPinState().missing" class="mt-1 text-amber-700" x-text="componentText.pinMissing.replace(':v', componentPinState().pin)"></p>
+                <?php /* 浅层锁定（2.1.1 写明）：固定的快照里没单独固定的内层组件仍跟随最新 */ ?>
+                <p x-show="componentPinState().pinned" class="mt-1 text-gray-500" data-testid="blox-component-pin-shallow" x-text="componentText.pinShallow"></p>
             </div>
         </template>
         <template x-if="componentCard(selEl.data.component) && componentCard(selEl.data.component).missing">
