@@ -156,6 +156,21 @@ final class BloxComponents
     }
 
     /**
+     * 首次发布一个母版前（2.1.1）：组件目录一次只取 MAX_COMPONENTS 个已发布母版（归档的也算），
+     * 再多出来的不会显示也插不进页面——到了上限就拒绝发布，而不是发布后悄悄失效。
+     */
+    public static function assertCatalogRoom(): void
+    {
+        $published = (int) db()->fetchColumn(
+            'SELECT COUNT(*) FROM ' . DB_PREFIX . 'blox_templates WHERE type = ? AND status = 1',
+            [self::TYPE]
+        );
+        if ($published >= self::MAX_COMPONENTS) {
+            throw new RuntimeException(__('blox_component_too_many', ['max' => (string) self::MAX_COMPONENTS]));
+        }
+    }
+
+    /**
      * 发布前的依赖检查：$selfUuid 的母版里用到的组件（按各自已发布的版本往下找）不能绕回它自己，
      * 层数不超过 MAX_NESTING。不通过抛给作者看的消息。
      *

@@ -297,6 +297,9 @@ final class BloxTemplateModel extends Model
         if (($row['type'] ?? '') === 'component') {
             // 组件套组件（2.1.0）：发布前确认不会绕回自己、层数不超限（所有发布入口都经过这里）
             self::loadComponents();
+            if ((int) ($row['status'] ?? 0) !== 1) {
+                BloxComponents::assertCatalogRoom();   // 2.1.1：新进目录的母版先看有没有空位
+            }
             $uuid = (string) (json_decode((string) ($row['metadata'] ?? ''), true)['component']['uuid'] ?? '');
             $draft = json_decode((string) $row['draft_data'], true);
             if (BloxComponents::validUuid($uuid) && is_array($draft)) {

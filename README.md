@@ -19,7 +19,7 @@
 
 **English** · A lightweight PHP CMS for business and export websites: deploys on plain PHP with MySQL or SQLite, ships the columns, products, news, cases, inquiry forms and SEO a company site needs, and builds multilingual sites in 18 languages (Simplified and Traditional Chinese, English, Japanese, Korean, Spanish, French, German, Russian, Arabic and more, with right-to-left layout for Arabic and Persian); the admin is available in 18 languages (Simplified Chinese, English and Japanese ship with the package; the others download on demand as signed language packs). Source available and free for commercial use.
 
-**日本語** · 企業サイト・海外向けサイトのための軽量 PHP CMS。PHP だけで動作し、MySQL / SQLite に対応。カテゴリ、製品、ニュース、事例、問い合わせフォーム、SEO を標準搭載し、簡体字・繁体字中国語、英語、日本語、韓国語、スペイン語、フランス語、ドイツ語、ロシア語、アラビア語など 18 言語の多言語サイトを構築でき（アラビア語・ペルシア語は右から左のレイアウト）、管理画面は 16 言語に対応しています。ソース公開・商用無料。
+**日本語** · 企業サイト・海外向けサイトのための軽量 PHP CMS。PHP だけで動作し、MySQL / SQLite に対応。カテゴリ、製品、ニュース、事例、問い合わせフォーム、SEO を標準搭載し、簡体字・繁体字中国語、英語、日本語、韓国語、スペイン語、フランス語、ドイツ語、ロシア語、アラビア語など 18 言語の多言語サイトを構築でき（アラビア語・ペルシア語は右から左のレイアウト）、管理画面は 18 言語に対応しています。ソース公開・商用無料。
 
 ---
 
