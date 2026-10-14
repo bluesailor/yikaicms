@@ -130,6 +130,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                            class="w-full border rounded-lg px-4 py-2.5 text-sm font-mono tracking-wide" placeholder="sk-..."
                            onfocus="if(this.value.indexOf('***')!==-1){this.value='';this.style.color=''}">
                     <p class="text-xs text-gray-400 mt-1"><?php echo $maskedApiKey ? __('ai_key_saved') : __('ai_api_key_hint'); ?></p>
+                    <?php if (!SecretStore::available()): // 2.1.1：加密不可用时明说会存明文，原因在站点健康里 ?>
+                    <p class="text-xs text-amber-700 mt-1" data-testid="secret-store-plaintext-notice"><i class="ti ti-alert-triangle" aria-hidden="true"></i> <?php echo e(__('secret_store_plaintext_notice')); ?></p>
+                    <?php endif; ?>
                 </div>
                 <?php // 官方接口用授权码调用，无需填 Key；这里显示授权状态代替输入框 ?>
                 <div id="yikaiKeyInfo" class="hidden">
