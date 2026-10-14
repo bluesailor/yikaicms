@@ -35,9 +35,6 @@ if (!function_exists('adminPagesCatalog')) {
             ['url'=>'/admin/banner.php',           'title'=>'幻灯片',       'keywords'=>'banner 轮播 首页大图 头图 slideshow',                                  'group'=>'媒体'],
             ['url'=>'/admin/media.php',            'title'=>'媒体库',       'keywords'=>'媒体 图片 文件 上传 media upload',                                       'group'=>'媒体'],
             ['url'=>'/admin/album.php',            'title'=>'相册',         'keywords'=>'相册 照片集 photo gallery',                                             'group'=>'媒体'],
-            ['url'=>'/admin/timeline.php',         'title'=>'时间轴',       'keywords'=>'时间轴 历程 大事记 timeline history',                                   'group'=>'媒体'],
-            ['url'=>'/admin/testimonial.php',      'title'=>'客户评价',     'keywords'=>'客户评价 评价 口碑 testimonial review',                                   'group'=>'媒体'],
-            ['url'=>'/admin/link.php',             'title'=>'友情链接',     'keywords'=>'友链 link 友情链接',                                                    'group'=>'媒体'],
 
             // 数据
             ['url'=>'/admin/form.php',             'title'=>'表单数据',     'keywords'=>'留言 表单 询盘 反馈 contact form submission',                            'group'=>'数据'],
@@ -60,6 +57,9 @@ if (!function_exists('adminPagesCatalog')) {
             ['url'=>'/admin/setting_email.php',    'title'=>'邮件 / SMTP',  'keywords'=>'SMTP 邮件发送 发件 邮箱配置 mail email server',                          'group'=>'站点'],
             ['url'=>'/admin/redirects.php',        'title'=>'301 跳转',     'keywords'=>'301 302 redirect 重定向 跳转 旧网址 死链 迁移 WordPress',                  'group'=>'站点'],
             ['url'=>'/admin/setting_seo.php',      'title'=>'SEO 设置',     'keywords'=>'SEO sitemap robots 站长 统计代码 google analytics',                       'group'=>'站点'],
+            ['url'=>'/admin/timeline.php',         'title'=>'时间轴',       'keywords'=>'时间轴 历程 大事记 timeline history',                                   'group'=>'站点'],
+            ['url'=>'/admin/testimonial.php',      'title'=>'客户评价',     'keywords'=>'客户评价 评价 口碑 testimonial review',                                   'group'=>'站点'],
+            ['url'=>'/admin/link.php',             'title'=>'友情链接',     'keywords'=>'友链 link 友情链接',                                                    'group'=>'站点'],
 
             // 外观
             ['url'=>'/admin/theme.php',            'title'=>'主题切换',     'keywords'=>'主题 模板 皮肤 外观 theme template',                                     'group'=>'外观'],
