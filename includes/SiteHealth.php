@@ -45,6 +45,7 @@ final class SiteHealth
             self::checkFormPolicy(),
             self::checkSessionCookie(),
             self::checkPasswordHashes(),
+            self::checkSecretStore(),
             self::checkPendingMigrations($root),
             self::checkRecentBackup($root),
             self::checkCron(),
@@ -802,6 +803,36 @@ final class SiteHealth
         } catch (Throwable) {
             return self::result('password_hashes', self::UNKNOWN, 'security', 'health_password_hash_title', 'health_password_hash_unknown');
         }
+    }
+
+    /**
+     * 密钥加密存储（2.1.1）：缺 ENCRYPT_KEY 或 OpenSSL 不支持时，AI 接口密钥、SMTP 密码只能存明文——
+     * 保存时不报错（不让站长存不了），所以在这里说清楚；能加密但还有明文旧值的，提示重新保存一次。
+     *
+     * @return array<string,mixed>
+     */
+    private static function checkSecretStore(): array
+    {
+        if (!class_exists('SecretStore')) {
+            return self::result('secret_store', self::UNKNOWN, 'security', 'health_secret_store_title', 'health_secret_store_unknown');
+        }
+        $reason = SecretStore::unavailableReason();
+        if ($reason !== '') {
+            return self::result('secret_store', self::RECOMMENDED, 'security', 'health_secret_store_title',
+                $reason === 'key' ? 'health_secret_store_no_key' : 'health_secret_store_no_cipher');
+        }
+        try {
+            $plaintext = SecretStore::plaintextCoreSecrets();
+        } catch (Throwable) {
+            return self::result('secret_store', self::UNKNOWN, 'security', 'health_secret_store_title', 'health_secret_store_unknown');
+        }
+        if ($plaintext !== []) {
+            return self::result('secret_store', self::RECOMMENDED, 'security', 'health_secret_store_title',
+                'health_secret_store_plaintext',
+                in_array('ai_api_key', $plaintext, true) ? '/admin/setting_ai.php' : '/admin/setting_email.php',
+                ['count' => (string) count($plaintext)]);
+        }
+        return self::result('secret_store', self::GOOD, 'security', 'health_secret_store_title', 'health_secret_store_good');
     }
 
     /** @return array<string,mixed> */
