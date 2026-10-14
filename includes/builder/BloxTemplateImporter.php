@@ -184,6 +184,9 @@ final class BloxTemplateImporter
         $sections = BloxDocumentPipeline::extractSections($decoded);
         // 2.1.0：模板包带上用到的母版（含组件里的组件），实例保持引用；目标站有组件授权就装母版，没有就按包里的母版展开。
         // 锁定的版本号只在本站有意义，导出时去掉。母版本身导出时里面的实例也一样带母版。
+        // 2.1.1：固定在旧版本的实例先按那一版展开成普通结构——包里带的是最新母版，留着引用目标站就会变样。
+        $expandedPins = 0;
+        $sections = (array) BloxComponents::expandBehindPins($sections, $expandedPins);
         $sections = BloxComponents::stripPins($sections);
         $components = [];
         foreach (BloxComponents::bundleDefinitions($sections) as $definition) {
