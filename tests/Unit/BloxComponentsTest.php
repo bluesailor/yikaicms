@@ -365,6 +365,23 @@ final class BloxComponentsTest extends TestCase
         self::assertSame(2, substr_count($html, 'data-yk-component='), 'A → B → (A 停住)');
     }
 
+    public function testBooleanVariantValuesCanTurnAPropOff(): void
+    {
+        $variants = BloxComponents::normalizeVariants([
+            ['key' => 'plain', 'label' => '普通', 'values' => ['featured' => false, 'title' => '']],
+            ['key' => 'zero', 'values' => ['featured' => '0']],
+            ['key' => 'on', 'values' => ['featured' => true, 'title' => false]],
+            ['key' => 'blank', 'values' => ['featured' => '  ']],
+        ], [
+            ['key' => 'featured', 'type' => 'boolean', 'default' => '1'],
+            ['key' => 'title', 'type' => 'text', 'default' => 'A'],
+        ]);
+        self::assertSame(['featured' => '0'], $variants[0]['values'], '开关的 false 是「关」；空文本仍是用默认值');
+        self::assertSame(['featured' => '0'], $variants[1]['values']);
+        self::assertSame(['featured' => '1'], $variants[2]['values'], '文本属性给布尔值不算设了');
+        self::assertSame([], $variants[3]['values']);
+    }
+
     public function testPropsSchemaKeepsOnlyValidKeysTypesAndDeclaredTargets(): void
     {
         $processed = BloxComponents::processMaster($this->masterJson('卡片', '/x', [
