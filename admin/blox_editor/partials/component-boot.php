@@ -29,7 +29,7 @@ echo json_encode([
                     'updatePin' => __('blox_component_update_pin'), 'pinMissing' => __('blox_component_pin_missing'),
                     'overrides' => __('blox_component_overrides'),
                     'variant' => __('blox_component_variant'), 'variantDefault' => __('blox_component_variant_default'),
-                    'newVariant' => __('blox_component_variant_new'),
+                    'newVariant' => __('blox_component_variant_new'), 'yes' => __('admin_yes'), 'no' => __('admin_no'),
                     'noProps' => __('blox_component_no_props'), 'editMaster' => __('blox_component_edit_master'),
                     'detach' => __('blox_component_detach'), 'detachConfirm' => __('blox_component_detach_confirm'),
                     'detached' => __('blox_component_detached'), 'autobind' => __('blox_component_autobind'),
