@@ -27,6 +27,7 @@ echo json_encode([
                     'followLatest' => __('blox_component_follow_latest'), 'pinned' => __('blox_component_pinned'),
                     'pin' => __('blox_component_pin'), 'unpin' => __('blox_component_unpin'),
                     'updatePin' => __('blox_component_update_pin'), 'pinMissing' => __('blox_component_pin_missing'),
+                    'pinShallow' => __('blox_component_pin_shallow'),
                     'overrides' => __('blox_component_overrides'),
                     'variant' => __('blox_component_variant'), 'variantDefault' => __('blox_component_variant_default'),
                     'newVariant' => __('blox_component_variant_new'),

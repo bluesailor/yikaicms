@@ -47,6 +47,7 @@ final class SiteHealth
             self::checkPasswordHashes(),
             self::checkPendingMigrations($root),
             self::checkRecentBackup($root),
+            self::checkComponentPins(),
             self::checkCron(),
             // 性能中心：缓存 / 静态化 / 响应 / 大资源（只读诊断，操作项跳转对应管理页）
             self::checkHtmlCache(),
@@ -837,6 +838,31 @@ final class SiteHealth
         $recent = $latest > time() - 14 * 86400;
         return self::result('recent_backup', $recent ? self::GOOD : self::RECOMMENDED, 'operations',
             'health_backup_title', $recent ? 'health_backup_good' : 'health_backup_bad', '/admin/database.php?tab=backup');
+    }
+
+    /**
+     * 组件固定的版本（2.1.1）：2.1.1 前发布超过 20 次会把被页面固定的旧版本清掉，这些实例前台只能显示最新版。
+     * 列出来让站长去「更新到最新」或「改为跟随最新」，不再静默。
+     */
+    private static function checkComponentPins(): array
+    {
+        try {
+            if (!class_exists('BloxComponents') || !BloxComponents::available()) {
+                return self::result('component_pins', self::GOOD, 'operations',
+                    'health_component_pins_title', 'health_component_pins_good');
+            }
+            $missing = BloxComponents::missingPins();
+        } catch (Throwable) {
+            return self::result('component_pins', self::UNKNOWN, 'operations',
+                'health_component_pins_title', 'health_component_pins_unknown');
+        }
+        if ($missing['instances'] === 0) {
+            return self::result('component_pins', self::GOOD, 'operations',
+                'health_component_pins_title', 'health_component_pins_good');
+        }
+        return self::result('component_pins', self::RECOMMENDED, 'operations',
+            'health_component_pins_title', 'health_component_pins_bad', '/admin/blox_templates.php?type=component',
+            ['instances' => (string) $missing['instances'], 'documents' => (string) $missing['documents']]);
     }
 
     /** 定时任务：定时发布、自动备份、自动升级都靠它；从未运行或两天没动静就提示去配置。 */

@@ -7,7 +7,8 @@
  * 属性定义存在文档 settings.component.props（随结构一起发布）。
  *
  * 页面里的实例是元素 `component`：data.component = uuid，data.props 只存覆盖过的属性；
- * 重置 = 删掉该键。实例不存版本号——永远渲染最新发布版；改结构走「脱离」（展开成普通元素）。
+ * 重置 = 删掉该键。默认渲染最新发布版；data.pin 固定某个已发布版本（2.1.0，浅层：只冻结这一层），
+ * 被固定的版本发布时不清理（2.1.1）。改结构走「脱离」（展开成普通元素）。
  * 属性值可以直接写动态标签（{{loop.title}}），渲染时先解析再按属性类型清洗，然后写进目标元素字段。
  *
  * 授权：渲染、插入、改实例属性、脱离免费；母版的新建 / 编辑 / 发布属 components 作者端能力。
@@ -549,6 +550,10 @@ final class BloxComponents
         }
         $raw = is_array($data['props'] ?? null) ? $data['props'] : [];
         $definition = $data['component'] !== '' ? self::definitionFor($data['component'], $pin) : null;
+        // 固定的版本快照已不在（2.1.1 前被清理）：不按最新版筛，与母版暂不可用一样原样保留作者的覆盖
+        if ($definition !== null && self::pinMissing($data['component'], $pin)) {
+            $definition = null;
+        }
         $props = [];
         if ($definition !== null) {
             foreach ($definition['props'] as $prop) {
@@ -972,8 +977,11 @@ final class BloxComponents
     }
 
     /**
-     * 实例实际用的定义（2.1.0 锁定版本）：$pin > 0 且早于最新发布版时，取那个版本的修订快照；
-     * 快照已被清掉（只保留最近 KEEP_REVISIONS 份）就退回最新版——编辑器会提示。
+     * 实例实际用的定义（2.1.0 锁定版本）：$pin > 0 且早于最新发布版时，取那个版本的修订快照。
+     * 被锁定的版本发布时不清理（2.1.1）；快照仍缺失（2.1.1 前被清掉）就退回最新版，
+     * 编辑器提示、站点健康列出（missingPins），保存时不按最新版筛覆盖（pinMissing）。
+     *
+     * 锁定是浅层的：固定的快照里没单独固定的内层组件，仍按各自的设置跟随最新版。
      *
      * @return array<string,mixed>|null
      */
@@ -983,6 +991,23 @@ final class BloxComponents
         if ($latest === null || $pin <= 0 || $pin >= (int) $latest['version']) {
             return $latest;
         }
+        return self::pinnedDefinition($uuid, $pin, $latest) ?? $latest;
+    }
+
+    /** 固定的版本早于最新发布版、且它的修订快照已不在（2.1.1）。 */
+    public static function pinMissing(string $uuid, int $pin): bool
+    {
+        $latest = self::validUuid($uuid) ? self::find($uuid) : null;
+        return $latest !== null && $pin > 0 && $pin < (int) $latest['version']
+            && self::pinnedDefinition($uuid, $pin, $latest) === null;
+    }
+
+    /**
+     * @param array<string,mixed> $latest
+     * @return array<string,mixed>|null
+     */
+    private static function pinnedDefinition(string $uuid, int $pin, array $latest): ?array
+    {
         $key = $uuid . '@' . $pin;
         if (!array_key_exists($key, self::$pinned)) {
             $snapshot = self::revisionSnapshot($uuid, $pin);
@@ -993,7 +1018,7 @@ final class BloxComponents
                 'published_data' => $snapshot,
             ]);
         }
-        return self::$pinned[$key] ?? $latest;
+        return self::$pinned[$key];
     }
 
     /**
@@ -1051,7 +1076,39 @@ final class BloxComponents
     }
 
     /**
-     * 实例上去掉锁定的版本号（导出到别的站：版本号只在本站有意义）。
+     * 导出保持当前效果（2.1.1）：固定在旧版本的实例按固定的那一版展开成普通结构——目标站拿到的母版是最新发布版，
+     * 留着引用就会变样。未固定、固定在最新版、或固定的快照已不在（本站显示的就是最新版）的保持引用。
+     * 展开出来的结构里还有固定在旧版本的内层实例，照样处理。
+     */
+    public static function expandBehindPins(mixed $tree, int &$count, int $depth = 0): mixed
+    {
+        if (!is_array($tree) || $depth > self::MAX_NESTING) {
+            return $tree;
+        }
+        if (($tree['type'] ?? null) === self::TYPE && is_array($tree['data'] ?? null)) {
+            $uuid = (string) ($tree['data']['component'] ?? '');
+            $pin = (int) ($tree['data']['pin'] ?? 0);
+            $latest = self::validUuid($uuid) ? self::find($uuid) : null;
+            if ($latest === null || $pin <= 0 || $pin >= (int) $latest['version'] || self::pinMissing($uuid, $pin)) {
+                return $tree;
+            }
+            $replacement = self::detach($tree);
+            if ($replacement === null) {
+                return $tree;
+            }
+            $count++;
+            return self::expandBehindPins($replacement, $count, $depth + 1);
+        }
+        foreach ($tree as $key => $value) {
+            if (is_array($value)) {
+                $tree[$key] = self::expandBehindPins($value, $count, $depth);
+            }
+        }
+        return $tree;
+    }
+
+    /**
+     * 实例上去掉锁定的版本号（导出到别的站：版本号只在本站有意义）。先用 expandBehindPins 保住固定在旧版本的效果。
      *
      * @param array<int,mixed> $sections
      * @return array<int,mixed>
@@ -1313,14 +1370,133 @@ final class BloxComponents
                 [$meta['uuid']]
             );
             $minId = $keep === [] ? 0 : min(array_map(static fn (array $r): int => (int) $r['id'], $keep));
-            if (count($keep) >= self::KEEP_REVISIONS && $minId > 0) {
+            $older = $minId > 0 && count($keep) >= self::KEEP_REVISIONS && (int) db()->fetchColumn(
+                'SELECT COUNT(*) FROM ' . DB_PREFIX . 'blox_component_revisions WHERE component_uuid = ? AND id < ?',
+                [$meta['uuid'], $minId]
+            ) > 0;
+            if ($older) {
+                // 被页面锁定的版本不清理（2.1.1）：清掉了，锁定的页面就只能显示最新版
+                $pinned = self::pinnedVersions($meta['uuid']);
                 db()->execute(
-                    'DELETE FROM ' . DB_PREFIX . 'blox_component_revisions WHERE component_uuid = ? AND id < ?',
-                    [$meta['uuid'], $minId]
+                    'DELETE FROM ' . DB_PREFIX . 'blox_component_revisions WHERE component_uuid = ? AND id < ?'
+                    . ($pinned === [] ? '' : ' AND version NOT IN (' . implode(', ', array_fill(0, count($pinned), '?')) . ')'),
+                    array_merge([$meta['uuid'], $minId], $pinned)
                 );
             }
         }
         self::$catalog = null;
+        self::$pinned = [];
+    }
+
+    /**
+     * 存着 Blox 文档、可能有固定版本实例的地方（2.1.1）：表 => 列。按文档扫描而不建索引表（小版本不带迁移）。
+     * 页面历史版本不算——恢复旧历史时编辑器会提示固定的版本已不在。
+     *
+     * @return array<string,list<string>>
+     */
+    private static function pinStores(): array
+    {
+        return [
+            'blox_page_drafts' => ['draft_data', 'published_data'],
+            'contents' => ['blocks_data'],
+            'blox_templates' => ['draft_data', 'published_data'],   // 含组件母版：组件里的组件也能固定
+            'settings' => ['value'],
+            'blox_component_revisions' => ['snapshot'],              // 外层留下来的版本里固定的内层版本
+        ];
+    }
+
+    /**
+     * 本站文档里固定在 $uuid 某个版本的实例（2.1.1）：清修订时这些版本要留着。
+     *
+     * @return list<int>
+     */
+    public static function pinnedVersions(string $uuid): array
+    {
+        if (!self::validUuid($uuid)) {
+            return [];
+        }
+        $versions = [];
+        foreach (self::pinStores() as $table => $columns) {
+            if (!db()->tableExists($table)) {
+                continue;
+            }
+            foreach ($columns as $column) {
+                $rows = db()->fetchAll(
+                    'SELECT ' . $column . ' AS doc FROM ' . DB_PREFIX . $table
+                    . ' WHERE ' . $column . ' LIKE ? AND ' . $column . ' LIKE ?',
+                    ['%' . $uuid . '%', '%"pin"%']
+                );
+                foreach ($rows as $row) {
+                    self::walkPins(json_decode((string) ($row['doc'] ?? ''), true), static function (string $found, int $pin) use ($uuid, &$versions): void {
+                        if ($found === $uuid) {
+                            $versions[$pin] = true;
+                        }
+                    });
+                }
+            }
+        }
+        $versions = array_keys($versions);
+        sort($versions);
+        return $versions;
+    }
+
+    /**
+     * 固定的版本已不在的实例（2.1.1 站点健康）：只看在用的文档（页面草稿与发布、正文、非组件模板、首页设置、组件母版）。
+     *
+     * @return array{instances:int,documents:int}
+     */
+    public static function missingPins(): array
+    {
+        $instances = 0;
+        $documents = 0;
+        foreach (self::pinStores() as $table => $columns) {
+            if ($table === 'blox_component_revisions' || !db()->tableExists($table)) {
+                continue;
+            }
+            foreach ($columns as $column) {
+                $rows = db()->fetchAll(
+                    'SELECT ' . $column . ' AS doc FROM ' . DB_PREFIX . $table
+                    . ' WHERE ' . $column . ' LIKE ? AND ' . $column . ' LIKE ?',
+                    ['%"type":"' . self::TYPE . '"%', '%"pin"%']
+                );
+                foreach ($rows as $row) {
+                    $missing = 0;
+                    self::walkPins(json_decode((string) ($row['doc'] ?? ''), true), static function (string $uuid, int $pin) use (&$missing): void {
+                        if (self::pinMissing($uuid, $pin)) {
+                            $missing++;
+                        }
+                    });
+                    if ($missing > 0) {
+                        $instances += $missing;
+                        $documents++;
+                    }
+                }
+            }
+        }
+        return ['instances' => $instances, 'documents' => $documents];
+    }
+
+    /**
+     * 任意 JSON 树里固定了版本的实例（按节点形状识别：首页、页头页尾、快照的格式各不相同）。
+     *
+     * @param callable(string,int):void $visit uuid, 固定的版本
+     */
+    private static function walkPins(mixed $tree, callable $visit): void
+    {
+        if (!is_array($tree)) {
+            return;
+        }
+        if (($tree['type'] ?? null) === self::TYPE && self::validUuid($tree['data']['component'] ?? null)) {
+            $pin = (int) ($tree['data']['pin'] ?? 0);
+            if ($pin > 0) {
+                $visit((string) $tree['data']['component'], $pin);
+            }
+        }
+        foreach ($tree as $value) {
+            if (is_array($value)) {
+                self::walkPins($value, $visit);
+            }
+        }
     }
 
     // ── 工具 ──────────────────────────────────────────────────────────
