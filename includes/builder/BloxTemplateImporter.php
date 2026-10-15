@@ -184,13 +184,22 @@ final class BloxTemplateImporter
         $sections = BloxDocumentPipeline::extractSections($decoded);
         // 2.1.0：模板包带上用到的母版（含组件里的组件），实例保持引用；目标站有组件授权就装母版，没有就按包里的母版展开。
         // 锁定的版本号只在本站有意义，导出时去掉。母版本身导出时里面的实例也一样带母版。
-        // 2.1.1：固定在旧版本的实例先按那一版展开成普通结构——包里带的是最新母版，留着引用目标站就会变样。
-        $expandedPins = 0;
-        $sections = (array) BloxComponents::expandBehindPins($sections, $expandedPins);
+        // 2.1.1：固定在旧版本的实例改指向「那一版」的独立母版并随包带上（属性与按语言的覆盖都不丢）——
+        // 包里带的是最新母版，留着原引用目标站就会变样。
+        $frozen = [];
+        $sections = (array) BloxComponents::freezeBehindPins($sections, $frozen);
         $sections = BloxComponents::stripPins($sections);
+        $frozenDefinitions = [];
+        foreach ($frozen as $frozenUuid => $frozenRow) {
+            $definition = BloxComponents::definitionFromRow($frozenRow);
+            if ($definition !== null) {
+                $frozenDefinitions[(string) $frozenUuid] = $definition;
+            }
+        }
+        $bundle = BloxComponents::withDefinitions($frozenDefinitions, static fn (): array => BloxComponents::bundleDefinitions($sections));
         $components = [];
-        foreach (BloxComponents::bundleDefinitions($sections) as $definition) {
-            $row = bloxTemplateModel()->find((int) $definition['id']);
+        foreach ($bundle as $definition) {
+            $row = $frozen[(string) $definition['uuid']] ?? bloxTemplateModel()->find((int) $definition['id']);
             if ($row !== null && ($type !== BloxComponents::TYPE || (string) $definition['uuid'] !== (string) (self::decodeStoredMetadata($row['metadata'] ?? null)['component']['uuid'] ?? ''))) {
                 $package = self::exportPackage($row, true, $withMedia);
                 unset($package['components']);   // 外层清单已按依赖顺序收齐每一层

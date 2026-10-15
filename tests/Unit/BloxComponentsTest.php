@@ -664,27 +664,77 @@ final class BloxComponentsTest extends TestCase
         self::assertArrayNotHasKey('components', $package['components'][1], '每一层都在外层清单里，子包不再重复带');
     }
 
-    public function testExportKeepsWhatAPinnedOlderVersionShows(): void
+    /** @param array<int,mixed> $sections @return array<string,mixed> */
+    private function exportSection(array $sections): array
     {
-        $component = $this->publishComponent($this->masterJson('第一版'));
-        $this->republish($component['id'], $this->masterJson('第二版'), 1);
-        $export = static fn (array $sections): array => \BloxTemplateImporter::exportPackage([
+        return \BloxTemplateImporter::exportPackage([
             'type' => 'section', 'name' => 'Pinned',
             'draft_data' => (string) json_encode(['sections' => $sections], JSON_UNESCAPED_UNICODE),
         ]);
+    }
 
-        $old = $export($this->pageWith($component['uuid'], ['cta' => '询价'], ['pin' => 1]));
-        $json = (string) json_encode($old, JSON_UNESCAPED_UNICODE);
-        self::assertStringContainsString('第一版', $json, '按固定的那一版展开');
-        self::assertStringContainsString('询价', $json, '实例的覆盖一并带上');
-        self::assertStringNotContainsString('"type":"component"', $json);
-        self::assertSame([], $old['components'] ?? [], '展开后不再需要带母版');
+    /** 标题可按语言给值的母版（多语言共享文档里实例会带 props_i18n） */
+    private function localizedMasterJson(string $title): string
+    {
+        return $this->masterJson($title, '/contact', [
+            ['key' => 'title', 'type' => 'text', 'label' => '标题', 'default' => $title, 'localizable' => true, 'targets' => [['node' => 'e_title', 'field' => 'text']]],
+            ['key' => 'cta', 'type' => 'text', 'label' => '按钮文字', 'default' => '了解更多', 'targets' => [['node' => 'e_btn', 'field' => 'text']]],
+        ]);
+    }
 
-        $latest = $export($this->pageWith($component['uuid'], [], ['pin' => 2]));
+    public function testExportKeepsWhatAPinnedOlderVersionShowsInEveryLanguage(): void
+    {
+        $component = $this->publishComponent($this->localizedMasterJson('第一版'));
+        $this->republish($component['id'], $this->localizedMasterJson('第二版'), 1);
+        $frozenUuid = BloxComponents::frozenUuid($component['uuid'], 1);
+
+        $package = $this->exportSection($this->pageWith($component['uuid'], ['cta' => '询价'], [
+            'pin' => 1, 'props_i18n' => ['en' => ['title' => 'Old card in English']],
+        ]));
+        $instance = $package['document'][0]['columns'][0]['elements'][0]['data'];
+        self::assertSame($frozenUuid, $instance['component'], '改指向「那一版」的独立母版');
+        self::assertArrayNotHasKey('pin', $instance);
+        self::assertSame(['cta' => '询价'], $instance['props']);
+        self::assertSame(['en' => ['title' => 'Old card in English']], $instance['props_i18n'], '其他语言的覆盖不丢（展开成普通元素就会丢）');
+        self::assertSame([$frozenUuid], array_map(static fn (array $c): string => $c['component']['uuid'], $package['components']), '只带那一版，不带用不到的最新版');
+        self::assertSame('产品卡片 v1', $package['components'][0]['name']);
+        self::assertStringContainsString('第一版', (string) json_encode($package['components'][0]['document'], JSON_UNESCAPED_UNICODE));
+        self::assertSame($frozenUuid, $this->exportSection($this->pageWith($component['uuid'], [], ['pin' => 1]))['components'][0]['component']['uuid'], '同一版每次导出同一个 uuid');
+
+        // 导入有组件授权的站：装上那一版的母版，页面照旧是第一版，按语言的覆盖还在
+        $imported = \BloxFeaturePolicy::asTrustedWrite(static fn (): array => \BloxTemplateImporter::importJson((string) json_encode($package, JSON_UNESCAPED_UNICODE)));
+        BloxComponents::resetForTests();
+        $definition = BloxComponents::find($frozenUuid);
+        self::assertNotNull($definition);
+        $draft = json_decode((string) bloxTemplateModel()->find($imported['id'])['draft_data'], true);
+        $sections = BloxDocumentPipeline::extractSections($draft);
+        self::assertStringContainsString('第一版', $this->renderPage($sections));
+        $data = $sections[0]['columns'][0]['elements'][0]['data'];
+        self::assertSame('Old card in English', BloxComponents::effectiveProps($definition, $data, 'en')['title']);
+
+        $latest = $this->exportSection($this->pageWith($component['uuid'], [], ['pin' => 2]));
         $json = (string) json_encode($latest, JSON_UNESCAPED_UNICODE);
-        self::assertStringContainsString('"type":"component"', $json, '固定在最新版的仍是引用');
-        self::assertStringNotContainsString('"pin"', $json);
+        self::assertStringNotContainsString('"pin"', $json, '固定在最新版：仍是原引用，去掉版本号');
         self::assertSame([$component['uuid']], array_map(static fn (array $c): string => $c['component']['uuid'], $latest['components']));
+    }
+
+    public function testExportFreezesPinnedVersionsInsideAPinnedVersion(): void
+    {
+        $inner = $this->publishComponent($this->masterJson('内层第一版'));
+        $outerJson = json_decode($this->outerMasterJson($inner['uuid']), true);
+        $outerJson['sections'][0]['columns'][0]['elements'][0]['data']['children'][1]['data']['pin'] = 1;
+        $outer = $this->publishComponent((string) json_encode($outerJson, JSON_UNESCAPED_UNICODE));
+        $this->republish($inner['id'], $this->masterJson('内层第二版'), 1);
+        $this->republish($outer['id'], $this->outerMasterJson($inner['uuid']), 1);
+
+        $package = $this->exportSection($this->pageWith($outer['uuid'], [], ['pin' => 1]));
+        $frozenInner = BloxComponents::frozenUuid($inner['uuid'], 1);
+        $frozenOuter = BloxComponents::frozenUuid($outer['uuid'], 1);
+        self::assertSame([$frozenInner, $frozenOuter], array_map(static fn (array $c): string => $c['component']['uuid'], $package['components']), '被依赖的在前');
+        $outerDoc = (string) json_encode($package['components'][1]['document'], JSON_UNESCAPED_UNICODE);
+        self::assertStringContainsString($frozenInner, $outerDoc, '那一版外层里固定的内层也指向它那一版');
+        self::assertStringNotContainsString('"pin"', $outerDoc);
+        self::assertStringContainsString('内层第一版', (string) json_encode($package['components'][0]['document'], JSON_UNESCAPED_UNICODE));
     }
 
     public function testLicensedImportInstallsMissingMastersAndKeepsExistingOnes(): void

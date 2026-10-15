@@ -22,6 +22,7 @@ final class BloxComponents
     private static array $renderStack = [];
     /** @var array<string,array<string,mixed>|null> 固定版本的定义（uuid@版本），本请求内缓存 */
     private static array $pinned = [];
+    private static ?bool $revisionsTable = null;
 
     public const TYPE = 'component';
     public const UUID_PATTERN = '/^cmp_[a-f0-9]{16}$/';
@@ -50,6 +51,7 @@ final class BloxComponents
     {
         self::$pinned = [];
         self::$catalog = null;
+        self::$revisionsTable = null;
     }
 
     public static function newUuid(): string
@@ -1098,12 +1100,21 @@ final class BloxComponents
         }
     }
 
+    /** 固定在 $uuid 第 $version 版的实例导出时用的独立母版 uuid（2.1.1）：同一版每次导出都一样，重复导入不会多建。 */
+    public static function frozenUuid(string $uuid, int $version): string
+    {
+        return 'cmp_' . substr(hash('sha256', $uuid . '@' . $version), 0, 16);
+    }
+
     /**
-     * 导出保持当前效果（2.1.1）：固定在旧版本的实例按固定的那一版展开成普通结构——目标站拿到的母版是最新发布版，
-     * 留着引用就会变样。未固定、固定在最新版、或固定的快照已不在（本站显示的就是最新版）的保持引用。
-     * 展开出来的结构里还有固定在旧版本的内层实例，照样处理。
+     * 导出保持当前效果（2.1.1）：模板包带的是最新发布的母版，固定在旧版本的实例留着原引用，目标站就会变样。
+     * 这些实例改指向「那一版」的独立母版（frozenUuid，名称带版本号），属性覆盖、按语言的覆盖、变体原样保留——
+     * 不展开成普通结构，因为共享的多语言文档里普通元素存不下按语言的值。
+     * 未固定、固定在最新版、或快照已不在（本站显示的就是最新版）的保持原引用。那一版里固定在旧版本的内层实例照样处理。
+     *
+     * @param array<string,array<string,mixed>> $frozen frozenUuid => 要随包带的母版行（type/name/metadata/published_data）
      */
-    public static function expandBehindPins(mixed $tree, int &$count, int $depth = 0): mixed
+    public static function freezeBehindPins(mixed $tree, array &$frozen, int $depth = 0): mixed
     {
         if (!is_array($tree) || $depth > self::MAX_NESTING) {
             return $tree;
@@ -1112,26 +1123,41 @@ final class BloxComponents
             $uuid = (string) ($tree['data']['component'] ?? '');
             $pin = (int) ($tree['data']['pin'] ?? 0);
             $latest = self::validUuid($uuid) ? self::find($uuid) : null;
-            if ($latest === null || $pin <= 0 || $pin >= (int) $latest['version'] || self::pinMissing($uuid, $pin)) {
+            $snapshot = $latest !== null && $pin > 0 && $pin < (int) $latest['version'] ? self::revisionSnapshot($uuid, $pin) : null;
+            $decoded = $snapshot === null ? null : json_decode($snapshot, true);
+            if ($latest === null || !is_array($decoded)) {
                 return $tree;
             }
-            $replacement = self::detach($tree);
-            if ($replacement === null) {
-                return $tree;
+            $frozenUuid = self::frozenUuid($uuid, $pin);
+            if (!isset($frozen[$frozenUuid])) {
+                $frozen[$frozenUuid] = [];   // 先占位：同一版在包里只带一份
+                $json = json_encode(self::freezeBehindPins($decoded, $frozen, $depth + 1),
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+                $frozen[$frozenUuid] = [
+                    'id' => 0,
+                    'type' => self::TYPE,
+                    'name' => mb_substr((string) $latest['name'], 0, 140) . ' v' . $pin,
+                    'draft_data' => $json,
+                    'published_data' => $json,
+                    'metadata' => json_encode(['component' => [
+                        'uuid' => $frozenUuid, 'version' => 1, 'category' => $latest['category'], 'description' => '', 'archived' => false,
+                    ]], JSON_THROW_ON_ERROR),
+                ];
             }
-            $count++;
-            return self::expandBehindPins($replacement, $count, $depth + 1);
+            $tree['data']['component'] = $frozenUuid;
+            unset($tree['data']['pin']);
+            return $tree;
         }
         foreach ($tree as $key => $value) {
             if (is_array($value)) {
-                $tree[$key] = self::expandBehindPins($value, $count, $depth);
+                $tree[$key] = self::freezeBehindPins($value, $frozen, $depth);
             }
         }
         return $tree;
     }
 
     /**
-     * 实例上去掉锁定的版本号（导出到别的站：版本号只在本站有意义）。先用 expandBehindPins 保住固定在旧版本的效果。
+     * 实例上去掉锁定的版本号（导出到别的站：版本号只在本站有意义）。先用 freezeBehindPins 保住固定在旧版本的效果。
      *
      * @param array<int,mixed> $sections
      * @return array<int,mixed>
@@ -1348,9 +1374,15 @@ final class BloxComponents
         ));
     }
 
+    /** 修订表在不在：请求内只查一次（tableExists 每次都是一条查询，前台每个固定的版本都会问）。 */
+    private static function revisionsTable(): bool
+    {
+        return self::$revisionsTable ??= db()->tableExists('blox_component_revisions');
+    }
+
     public static function revisionSnapshot(string $uuid, int $version): ?string
     {
-        if (!self::validUuid($uuid) || $version < 1 || !db()->tableExists('blox_component_revisions')) {
+        if (!self::validUuid($uuid) || $version < 1 || !self::revisionsTable()) {
             return null;
         }
         $snapshot = db()->fetchColumn(
