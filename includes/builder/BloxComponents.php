@@ -22,6 +22,7 @@ final class BloxComponents
     private static array $renderStack = [];
     /** @var array<string,array<string,mixed>|null> 固定版本的定义（uuid@版本），本请求内缓存 */
     private static array $pinned = [];
+    private static ?bool $revisionsTable = null;
 
     public const TYPE = 'component';
     public const UUID_PATTERN = '/^cmp_[a-f0-9]{16}$/';
@@ -50,6 +51,7 @@ final class BloxComponents
     {
         self::$pinned = [];
         self::$catalog = null;
+        self::$revisionsTable = null;
     }
 
     public static function newUuid(): string
@@ -1349,9 +1351,15 @@ final class BloxComponents
         ));
     }
 
+    /** 修订表在不在：请求内只查一次（tableExists 每次都是一条查询，前台每个固定的版本都会问）。 */
+    private static function revisionsTable(): bool
+    {
+        return self::$revisionsTable ??= db()->tableExists('blox_component_revisions');
+    }
+
     public static function revisionSnapshot(string $uuid, int $version): ?string
     {
-        if (!self::validUuid($uuid) || $version < 1 || !db()->tableExists('blox_component_revisions')) {
+        if (!self::validUuid($uuid) || $version < 1 || !self::revisionsTable()) {
             return null;
         }
         $snapshot = db()->fetchColumn(
