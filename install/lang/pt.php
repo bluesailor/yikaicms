@@ -6,7 +6,7 @@
 
 return [
     'lang_name' => 'Português (Brasil)',
-    'title' => 'Assistente de instalação do Yikai CMS',
+    'title' => 'Assistente de instalação da YikaiCMS',
     'prev' => 'Etapa anterior',
     'next' => 'Próxima etapa',
     'finish' => 'Concluir instalação',
@@ -79,7 +79,7 @@ return [
     'install_success' => 'Instalação bem-sucedida',
     'install_fail' => 'A instalação falhou',
     'install_complete' => 'Instalação concluída',
-    'install_complete_desc' => 'Yikai CMS instalado com sucesso. Guarde os dados da conta do administrador em segurança.',
+    'install_complete_desc' => 'A YikaiCMS foi instalada com sucesso. Guarde com cuidado os dados da conta de administrador.',
     'goto_admin' => 'Abrir painel',
     'quick_title' => 'Instalação rápida com um clique (SQLite, sem configuração)',
     'quick_desc' => 'Não é preciso preencher dados de banco de dados. Instala em poucos segundos usando o SQLite integrado, com dados de demonstração. Ideal para experimentar rapidamente.',
