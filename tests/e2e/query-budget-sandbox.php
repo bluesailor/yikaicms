@@ -28,6 +28,8 @@ const BUDGET = [
     'case-list' => 54, 'page' => 44, 'search' => 42, 'sitemap' => 10,
     // v2.1：12 行产品循环的 Blox 单页，2026-10-07 实测普通卡片 34、组件卡片 35（母版目录整页只取一次），留约 15%
     'plain-cards' => 40, 'component-cards' => 41,
+    // 2.1.1：同一循环，每行两个实例固定在 v1、v2 / 组件套组件；2026-10-15 实测 38 / 35（24 个实例，固定的每个版本读一次快照 + 整页一次修订表检查）
+    'pinned-cards' => 43, 'nested-cards' => 41,
 ];
 const N1_SLACK = 4;
 
@@ -126,9 +128,28 @@ if ($argv[1] === "seed") {
         ["id" => "qbp-b", "type" => "button", "data" => ["text" => "More", "url" => "{{loop.url}}"]],
     ]]]);
     $components = $loopPage("qb-component-cards", ["id" => "qbk-card", "type" => "component", "data" => ["component" => $uuid, "props" => ["title" => "{{loop.title}}"]]]);
+    // 2.1.1：每行两个实例分别固定在 v1、v2（母版已到 v3）——每个固定的版本整页只多读一次快照，不按实例查
+    for ($v = 2; $v <= 3; $v++) {
+        bloxTemplateModel()->updateDraft($tpl, $master["json"], []);
+        bloxTemplateModel()->publishDraft($tpl);
+    }
+    $pinned = $loopPage("qb-pinned-cards", ["id" => "qbn-card", "type" => "container", "data" => ["children" => [
+        ["id" => "qbn-v1", "type" => "component", "data" => ["component" => $uuid, "pin" => 1, "props" => ["title" => "{{loop.title}}"]]],
+        ["id" => "qbn-v2", "type" => "component", "data" => ["component" => $uuid, "pin" => 2, "props" => ["title" => "{{loop.title}}"]]],
+    ]]]);
+    // 组件套组件：外层母版里放这张卡片，循环 12 行 = 24 个实例；母版目录仍是整页一次
+    $outer = BloxComponents::processMaster(json_encode(["schema" => 1, "settings" => [],
+        "sections" => [["id" => "qbo-s", "settings" => [], "columns" => [["id" => "qbo-c", "elements" => [["id" => "qbo-root", "type" => "container", "data" => ["children" => [
+            ["id" => "qbo-inner", "type" => "component", "data" => ["component" => $uuid, "props" => ["title" => "{{loop.title}}"]]],
+        ]]]]]]]],
+    ]), "tpl0");
+    $outerTpl = bloxTemplateModel()->createDraft("component", "QB outer", $outer["json"]);
+    bloxTemplateModel()->publishDraft($outerTpl);
+    $outerUuid = (string) json_decode((string) bloxTemplateModel()->find($outerTpl)["metadata"], true)["component"]["uuid"];
+    $nested = $loopPage("qb-nested-cards", ["id" => "qbo-card", "type" => "component", "data" => ["component" => $outerUuid]]);
     settingModel()->rotateHtmlCacheGeneration();
     echo json_encode(["article" => contentDefaultPrettyUrl($article + ["type" => "article"]), "product" => productPrettyUrl($product),
-        "plain_cards" => $plain, "component_cards" => $components], JSON_UNESCAPED_SLASHES);
+        "plain_cards" => $plain, "component_cards" => $components, "pinned_cards" => $pinned, "nested_cards" => $nested], JSON_UNESCAPED_SLASHES);
 } elseif ($argv[1] === "pagesize") {
     foreach (["product", "article", "case"] as $kind) settingModel()->set("catalog_" . $kind . "_page_size", $argv[2]);
     settingModel()->rotateHtmlCacheGeneration();
@@ -163,6 +184,7 @@ try {
         'home' => '/', 'home-en' => '/en/', 'news-list' => '/news.html', 'article' => $seed['article'], 'product-list' => '/product.html',
         'product' => $seed['product'], 'case-list' => '/cases.html', 'page' => '/about/company.html', 'search' => '/search.php?keyword=qb', 'sitemap' => '/sitemap.xml',
         'plain-cards' => $seed['plain_cards'], 'component-cards' => $seed['component_cards'],
+        'pinned-cards' => $seed['pinned_cards'], 'nested-cards' => $seed['nested_cards'],
     ];
     // 搜索每页条数不随栏目设置变，结果链接也不带别名，不参与「条目多了查询数不涨」的对比
     $listPages = ['news-list', 'product-list', 'case-list'];
@@ -204,6 +226,15 @@ try {
     $check($componentRendered >= 12, "component loop renders one instance per row ($componentRendered)");
     $check($table['component-cards'][24] <= $table['plain-cards'][24] + 1,
         "component cards cost at most one extra query ({$table['plain-cards'][24]} → {$table['component-cards'][24]})");
+    // 2.1.1：24 个固定在两个旧版本的实例——每个版本整页读一次快照；24 个外层实例套内层——目录仍只取一次
+    $pinnedRendered = substr_count(http($port, $seed['pinned_cards'])['body'], 'data-yk-component=');
+    $check($pinnedRendered >= 24, "pinned loop renders two pinned instances per row ($pinnedRendered)");
+    $check($table['pinned-cards'][24] <= $table['component-cards'][24] + 3,
+        "instances pinned to two old versions cost one snapshot read per version plus one table check ({$table['component-cards'][24]} → {$table['pinned-cards'][24]})");
+    $nestedRendered = substr_count(http($port, $seed['nested_cards'])['body'], 'data-yk-component=');
+    $check($nestedRendered >= 24, "nested loop renders outer and inner per row ($nestedRendered)");
+    $check($table['nested-cards'][24] <= $table['component-cards'][24] + 1,
+        "nested components cost no per-instance queries ({$table['component-cards'][24]} → {$table['nested-cards'][24]})");
     if (!$reportOnly) {
         foreach ($table as $name => $row) {
             $check($row[24] <= (BUDGET[$name] ?? 0), "$name stays within its budget ({$row[24]} ≤ " . (BUDGET[$name] ?? 0) . ')');
