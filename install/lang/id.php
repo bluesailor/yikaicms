@@ -6,7 +6,7 @@
 
 return [
     'lang_name' => 'Bahasa Indonesia',
-    'title' => 'Panduan Pemasangan Yikai CMS',
+    'title' => 'Panduan instalasi YikaiCMS',
     'prev' => 'Sebelumnya',
     'next' => 'Berikutnya',
     'finish' => 'Pasang',
@@ -79,7 +79,7 @@ return [
     'install_success' => 'Pemasangan berhasil',
     'install_fail' => 'Pemasangan gagal',
     'install_complete' => 'Pemasangan Selesai',
-    'install_complete_desc' => 'Yikai CMS telah berhasil dipasang. Simpan informasi akun administrator Anda dengan aman.',
+    'install_complete_desc' => 'YikaiCMS berhasil dipasang. Simpan informasi akun administrator dengan aman.',
     'goto_admin' => 'Buka panel admin',
     'quick_title' => 'Pemasangan Kilat Sekali Klik (SQLite, tanpa konfigurasi)',
     'quick_desc' => 'Tidak perlu mengisi info basis data. Memasang dengan basis data SQLite bawaan (termasuk data demo) dalam hitungan detik — cocok untuk uji coba cepat.',
