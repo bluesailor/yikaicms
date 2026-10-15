@@ -66,7 +66,11 @@ final class SecretStore
         return str_starts_with($stored, self::PREFIX);
     }
 
-    /** 明文 → 信封。环境不支持（没有 ENCRYPT_KEY / openssl）时原样返回，不让保存失败。 */
+    /**
+     * 明文 → 信封。环境不支持（没有 ENCRYPT_KEY / openssl）或加密失败时原样返回，不让保存失败——
+     * 所以「密钥一定加密保存」不成立：站点健康的 secret_store 会列出存成明文的核心密钥（2.1.1），
+     * 环境明明支持却加密失败的写一条错误日志（不带密钥内容）。
+     */
     public static function seal(string $plaintext): string
     {
         if ($plaintext === '' || self::isSealed($plaintext) || !self::available()) {
@@ -76,6 +80,7 @@ final class SecretStore
         $tag = '';
         $cipher = openssl_encrypt($plaintext, self::CIPHER, self::key(), OPENSSL_RAW_DATA, $nonce, $tag, '', self::TAG_BYTES);
         if ($cipher === false) {
+            error_log('[SecretStore] ' . self::CIPHER . ' encryption failed; the secret was stored as plain text');
             return $plaintext;
         }
         return self::PREFIX . base64_encode($nonce . $tag . $cipher);
