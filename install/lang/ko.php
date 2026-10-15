@@ -6,7 +6,7 @@
 
 return [
     'lang_name' => '한국어',
-    'title' => 'Yikai CMS 설치 마법사',
+    'title' => 'YikaiCMS 설치 마법사',
     'prev' => '이전 단계',
     'next' => '다음 단계',
     'finish' => '설치 실행',
@@ -79,7 +79,7 @@ return [
     'install_success' => '설치 성공',
     'install_fail' => '설치 실패',
     'install_complete' => '설치 완료',
-    'install_complete_desc' => 'Yikai CMS가 성공적으로 설치되었습니다. 관리자 계정 정보를 잘 보관하세요.',
+    'install_complete_desc' => 'YikaiCMS가 성공적으로 설치되었습니다. 관리자 계정 정보를 안전하게 보관하세요.',
     'goto_admin' => '관리자 페이지로 이동',
     'quick_title' => '원클릭 초고속 설치(SQLite, 설정 불필요)',
     'quick_desc' => '데이터베이스 정보를 입력할 필요 없이 내장 SQLite 데이터베이스로 빠르게 설치합니다(데모 데이터 포함). 몇 초 만에 완료되며 빠른 체험에 적합합니다.',
