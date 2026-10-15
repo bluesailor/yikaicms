@@ -6,7 +6,7 @@
 
 return [
     'lang_name' => 'Tiếng Việt',
-    'title' => 'Trình hướng dẫn cài đặt Yikai CMS',
+    'title' => 'Trình cài đặt YikaiCMS',
     'prev' => 'Quay lại',
     'next' => 'Tiếp theo',
     'finish' => 'Hoàn tất cài đặt',
@@ -79,7 +79,7 @@ return [
     'install_success' => 'Cài đặt thành công',
     'install_fail' => 'Cài đặt thất bại',
     'install_complete' => 'Cài đặt hoàn tất',
-    'install_complete_desc' => 'Yikai CMS đã được cài đặt thành công, vui lòng bảo quản cẩn thận thông tin tài khoản quản trị viên',
+    'install_complete_desc' => 'YikaiCMS đã được cài đặt thành công. Hãy bảo quản an toàn thông tin tài khoản quản trị viên.',
     'goto_admin' => 'Vào trang quản trị',
     'quick_title' => 'Cài đặt siêu nhanh một cú nhấp (SQLite, không cần cấu hình)',
     'quick_desc' => 'Không cần điền thông tin cơ sở dữ liệu, cài đặt nhanh bằng cơ sở dữ liệu SQLite tích hợp (kèm dữ liệu demo), hoàn tất trong vài giây, phù hợp để trải nghiệm nhanh.',
