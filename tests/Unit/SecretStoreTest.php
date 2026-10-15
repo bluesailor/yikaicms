@@ -16,10 +16,29 @@ final class SecretStoreTest extends TestCase
 {
     protected function setUp(): void
     {
-        if (!defined('ENCRYPT_KEY')) {
+        // 「没有 ENCRYPT_KEY」那条在单独进程里跑，不定义密钥
+        if (!defined('ENCRYPT_KEY') && $this->name() !== 'testWithoutAnEncryptKeySecretsStayPlainAndSiteHealthCanSayWhy') {
             define('ENCRYPT_KEY', 'unit-test-encrypt-key-0123456789');
         }
         parent::setUp();
+    }
+
+    /**
+     * 2.1.1：加密不可用时仍存明文（不让保存失败），但原因可查、存下的明文会被站点健康列出来。
+     *
+     * @runInSeparateProcess @preserveGlobalState disabled
+     */
+    public function testWithoutAnEncryptKeySecretsStayPlainAndSiteHealthCanSayWhy(): void
+    {
+        self::assertFalse(defined('ENCRYPT_KEY'));
+        self::assertFalse(SecretStore::available());
+        self::assertSame('key', SecretStore::unavailableReason());
+        self::assertSame('sk-plain', SecretStore::seal('sk-plain'), '保存不失败，原样存');
+
+        db()->insert('settings', ['key' => 'smtp_pass', 'value' => SecretStore::seal('mail-pass')]);
+        self::assertSame('mail-pass', SecretStore::open('mail-pass'), '明文照常读出');
+        self::assertSame(['smtp_pass'], SecretStore::plaintextCoreSecrets(), '站点健康据此列出明文');
+        self::assertSame(0, SecretStore::sealLegacyCoreSecrets(), '迁移在没有密钥时什么也不做');
     }
 
     protected function schemaSql(): array
