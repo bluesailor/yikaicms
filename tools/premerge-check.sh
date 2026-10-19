@@ -163,6 +163,14 @@ for g in check_lang_keys check_blox_i18n check_frontend_i18n; do
         php "tools/$g.php" 2>&1 | tail -6 | sed 's/^/      /'
     fi
 done
+# 下载语言的翻译缺口（2.1.1）：并分支时只报告不拦（翻译交 Codex 批量补），发版预检才要求清零
+if [ -f tools/i18n/gaps.php ]; then
+    if gaps_out=$(php tools/i18n/gaps.php 2>&1); then
+        pass "$gaps_out"
+    else
+        note "$gaps_out（只报告；发版前 release-precheck 要求清零或写明）"
+    fi
+fi
 
 # ───── 4/5. 需要跑起服务器的冒烟 ─────
 NEED_HTTP=0
