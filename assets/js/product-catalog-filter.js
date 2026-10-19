@@ -193,6 +193,9 @@
                 if (children) {
                     var expanded = toggle.dataset.expanded === "true";
                     children.classList.toggle("hidden", expanded);
+                    // 箭头跟着转：展开朝上、收起朝下（以前只开合不转，箭头一直朝上）
+                    var icon = toggle.querySelector("svg");
+                    if (icon) icon.classList.toggle("rotate-180", !expanded);
                     toggle.dataset.expanded = expanded ? "false" : "true";
                     toggle.setAttribute("aria-expanded", expanded ? "false" : "true");
                 }
