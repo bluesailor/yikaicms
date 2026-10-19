@@ -15,7 +15,7 @@ description: YikaiCMS 改完代码要并入 main 之前跑的红线预检。当�
 bash tools/premerge-check.sh          # 自动判断要不要起服务器跑冒烟
 bash tools/premerge-check.sh --full   # 强制全跑
 bash tools/premerge-check.sh --quick  # 只跑单测 + Psalm + i18n
-bash tools/premerge-check.sh --full --browser  # 另跑编辑器核心浏览器回归（约 8 分钟）
+bash tools/premerge-check.sh --full --browser  # 另跑编辑器核心与产品导入的浏览器回归（约 9 分钟）
 ```
 
 改过网页构建器（`admin/blox_editor*`、`assets/js/yikay-*`、`includes/builder/`）就加 `--browser`：
