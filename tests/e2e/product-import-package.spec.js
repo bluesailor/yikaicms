@@ -7,7 +7,7 @@ const {test, expect} = require('./site-diagnostics');
 const root = process.cwd();
 const fixture = (action) => execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'product-import-fixture.php'), action], {cwd: root, encoding: 'utf8'}).trim();
 
-test('an import package is checked, imported, synced back and undone @local', async ({page}, testInfo) => {
+test('an import package is checked, imported, synced back and undone @ci', async ({page}, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'one desktop run is enough');
   const zipPath = fixture('package');
 
