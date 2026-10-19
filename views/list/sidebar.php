@@ -102,7 +102,8 @@ $productCatalogGridClass = [
                             static $childrenSequence = 0;
                             foreach ($items as $item):
                                 $hasChildren = !empty($item['children']);
-                                $isExpanded = true;
+                                // 只展开当前分类所在的那一支；其余收起，点箭头再展开（分类多时整列不再拉得很长）
+                                $isExpanded = $hasChildren && (!empty($item['is_active']) || !empty($item['has_active_child']));
                                 $paddingLeft = 16 + ($level * 16);
                                 $childrenId = $hasChildren ? 'yk-product-category-children-' . (++$childrenSequence) : '';
                         ?>
@@ -150,7 +151,8 @@ $productCatalogGridClass = [
                             static $childrenSequence = 0;
                             foreach ($items as $item):
                                 $hasChildren = !empty($item['children']);
-                                $isExpanded = true;
+                                // 只展开当前分类所在的那一支；其余收起，点箭头再展开（分类多时整列不再拉得很长）
+                                $isExpanded = $hasChildren && (!empty($item['is_active']) || !empty($item['has_active_child']));
                                 $paddingLeft = 16 + ($level * 16);
                                 $childrenId = $hasChildren ? 'yk-channel-category-children-' . (++$childrenSequence) : '';
                         ?>
