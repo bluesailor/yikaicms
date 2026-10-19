@@ -6,7 +6,7 @@
 
 return [
     'lang_name' => 'Türkçe',
-    'title' => 'Yikai CMS Kurulum Sihirbazı',
+    'title' => 'YikaiCMS Kurulum Sihirbazı',
     'prev' => 'Geri',
     'next' => 'İleri',
     'finish' => 'Kur',
@@ -79,7 +79,7 @@ return [
     'install_success' => 'Kurulum başarılı',
     'install_fail' => 'Kurulum başarısız',
     'install_complete' => 'Kurulum Tamamlandı',
-    'install_complete_desc' => 'Yikai CMS başarıyla kuruldu. Lütfen yönetici kimlik bilgilerinizi güvenli bir yerde saklayın.',
+    'install_complete_desc' => 'YikaiCMS başarıyla kuruldu. Yönetici hesabı bilgilerini güvenli bir yerde saklayın.',
     'goto_admin' => 'Yönetim paneli sayfasına git',
     'quick_title' => 'Tek Tıkla Hızlı Kurulum (SQLite, yapılandırma gerekmez)',
     'quick_desc' => 'Veritabanı bilgisi gerekmez. Yerleşik SQLite veritabanıyla (demo verileri dahil) saniyeler içinde kurulur; hızlı deneme için idealdir.',
