@@ -188,6 +188,7 @@ async function run() {
         endpoint: "/preview",
         csrf: "token",
         delay: 1,
+        quickDelay: 1,
         getFrame: function () { return frame; },
         getHost: function () { return host; },
         getDocument: function () { return []; },
@@ -208,6 +209,65 @@ async function run() {
     assert.equal(scheduledRequests.length, 2, 'immediate refresh consumes the pending scheduled refresh');
     scheduledRequests[1].resolve(response('immediate'));
     await immediate;
+
+    // 2.1.1：同一时间只发一个请求；在途时的改动积下来，结束后发最新的一份，不中途取消；
+    // 刚整页重建过才用长延迟；还积着改动时不发 settled。
+    {
+        const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        const coalRequests = [];
+        let version = 0;
+        const coalFrame = fakeFrame();
+        const coalClient = new global.BloxPreviewClient({
+            endpoint: "/preview",
+            csrf: "token",
+            delay: 30,
+            quickDelay: 1,
+            getFrame: function () { return coalFrame; },
+            getHost: function () { return { scrollLeft: 0, scrollTop: 0 }; },
+            getDocument: function () { return [{ id: "v" + version }]; },
+            fetch: function (url, request) {
+                const item = deferred();
+                item.request = request;
+                coalRequests.push(item);
+                return item.promise;
+            },
+        });
+        const settledEvents = [];
+        const previousDispatch = global.dispatchEvent;
+        global.dispatchEvent = function (event) { settledEvents.push(event.type); return true; };
+        try {
+            coalClient.schedule();
+            await wait(8);
+            assert.equal(coalRequests.length, 1, "an edit goes out after the short delay");
+            const firstSignal = coalRequests[0].request.signal;
+            version = 1;
+            coalClient.schedule();
+            version = 2;
+            coalClient.schedule();
+            await wait(8);
+            assert.equal(coalRequests.length, 1, "edits while a request is in flight wait for it");
+            assert.equal(firstSignal.aborted, false, "the in-flight request is not cancelled");
+            assert.equal(coalClient.pending, true);
+
+            coalRequests[0].resolve(response("<p>v0</p>"));
+            await wait(1);
+            coalFrame.fireLoad();
+            assert.deepEqual(settledEvents, [], "not settled while newer edits are queued");
+            await wait(10);
+            assert.equal(coalRequests.length, 1, "right after a full reload the long delay applies");
+            await wait(50);
+            assert.equal(coalRequests.length, 2, "the queued edits go out in one request");
+            assert.equal(coalRequests[1].request.body.get("blocks_data"), '[{"id":"v2"}]', "carrying the latest document");
+
+            coalRequests[1].resolve(response("<p>v2</p>"));
+            await wait(1);
+            coalFrame.fireLoad();
+            assert.deepEqual(settledEvents, ["blox:preview-settled"]);
+            assert.equal(coalClient.pending, false);
+        } finally {
+            global.dispatchEvent = previousDispatch;
+        }
+    }
 
     const errorClient = new global.BloxPreviewClient({
         endpoint: "/preview",
