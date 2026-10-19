@@ -13,6 +13,11 @@ if (!defined('ROOT_PATH')) {
 
 $handler = $_GET['handler'] ?? '';
 
+// 2.0 导入包向导的接口
+if (preg_match('/^(pkg_|job_|jobs$)/', (string) $handler)) {
+    require __DIR__ . '/package_handler.php';
+    return;
+}
 if ($handler === 'upload') {
     require __DIR__ . '/upload_handler.php';
     return;
@@ -72,12 +77,31 @@ $productFields = [
 
 $fieldJson = json_encode($productFields, JSON_UNESCAPED_UNICODE);
 
-$GLOBALS['pageTitle'] = '产品导入';
+loadPluginLang('product-import');
+$GLOBALS['pageTitle'] = __('pimp_page_title');
 $GLOBALS['currentMenu'] = 'product';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
+$pimpTab = ($_GET['tab'] ?? '') === 'table' ? 'table' : 'package';
 ?>
 
+<div x-data="{ tab: '<?php echo $pimpTab; ?>' }">
+<div class="max-w-6xl flex gap-1 border-b mb-6" role="tablist">
+    <button type="button" role="tab" data-pimp-tab="package" :aria-selected="tab === 'package'" @click="tab = 'package'"
+            class="px-4 py-2 text-sm -mb-px border-b-2" :class="tab === 'package' ? 'border-primary text-primary font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'">
+        <i class="ti ti-package"></i> <?php echo e(__('pimp_tab_package')); ?>
+    </button>
+    <button type="button" role="tab" data-pimp-tab="table" :aria-selected="tab === 'table'" @click="tab = 'table'"
+            class="px-4 py-2 text-sm -mb-px border-b-2" :class="tab === 'table' ? 'border-primary text-primary font-medium' : 'border-transparent text-gray-500 hover:text-gray-700'">
+        <i class="ti ti-table"></i> <?php echo e(__('pimp_tab_table')); ?>
+    </button>
+</div>
+
+<div x-show="tab === 'package'">
+<?php require __DIR__ . '/views/package-wizard.php'; ?>
+</div>
+
+<div x-show="tab === 'table'" x-cloak>
 <div x-data="productImport()" class="max-w-5xl space-y-6">
 
     <?php /* 步骤指示器 */ ?>
@@ -171,20 +195,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <h3 class="font-medium text-gray-800">解析结果</h3>
             <div class="grid grid-cols-3 gap-4 text-sm">
                 <div class="bg-gray-50 rounded p-3 text-center">
-                    <div class="text-2xl font-bold text-primary" x-text="uploadResult.total_rows"></div>
+                    <div class="text-2xl font-bold text-primary" x-text="uploadResult?.total_rows"></div>
                     <div class="text-gray-500 mt-1">数据行</div>
                 </div>
                 <div class="bg-gray-50 rounded p-3 text-center">
-                    <div class="text-2xl font-bold text-primary" x-text="uploadResult.headers.length"></div>
+                    <div class="text-2xl font-bold text-primary" x-text="uploadResult?.headers.length"></div>
                     <div class="text-gray-500 mt-1">识别列</div>
                 </div>
                 <div class="bg-gray-50 rounded p-3 text-center">
-                    <div class="text-2xl font-bold text-primary" x-text="formatSize(uploadResult.file_size)"></div>
+                    <div class="text-2xl font-bold text-primary" x-text="uploadResult ? formatSize(uploadResult.file_size) : ''"></div>
                     <div class="text-gray-500 mt-1">文件大小</div>
                 </div>
             </div>
-            <div x-show="uploadResult.parse_errors && uploadResult.parse_errors.length > 0" class="bg-yellow-50 border border-yellow-200 text-yellow-700 rounded p-3 text-sm">
-                <template x-for="e in uploadResult.parse_errors" :key="e">
+            <div x-show="uploadResult?.parse_errors?.length > 0" class="bg-yellow-50 border border-yellow-200 text-yellow-700 rounded p-3 text-sm">
+                <template x-for="e in (uploadResult?.parse_errors || [])" :key="e">
                     <p x-text="e"></p>
                 </template>
             </div>
@@ -202,14 +226,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <table class="w-full text-sm">
                 <thead>
                     <tr class="border-b text-left text-gray-500">
-                        <th class="pb-3 font-medium w-1/3">文件列（<span x-text="uploadResult.headers.length"></span>列）</th>
+                        <th class="pb-3 font-medium w-1/3">文件列（<span x-text="uploadResult?.headers.length"></span>列）</th>
                         <th class="pb-3 font-medium w-8 text-center">&rarr;</th>
                         <th class="pb-3 font-medium w-1/3">映射到产品字段</th>
                         <th class="pb-3 font-medium">预览（首行）</th>
                     </tr>
                 </thead>
                 <tbody>
-                    <template x-for="(header, i) in uploadResult.headers" :key="i">
+                    <template x-for="(header, i) in (uploadResult?.headers || [])" :key="i">
                         <tr class="border-b">
                             <td class="py-3 text-gray-800 font-medium" x-text="header || '(空列名)'"></td>
                             <td class="py-3 text-center text-gray-400">&rarr;</td>
@@ -280,7 +304,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <thead>
                     <tr class="bg-gray-50 text-left text-gray-600">
                         <th class="py-2 px-3 border-r w-12 text-center">#</th>
-                        <template x-for="h in uploadResult.headers" :key="h">
+                        <template x-for="h in (uploadResult?.headers || [])" :key="h">
                             <th class="py-2 px-3 border-r font-medium text-xs max-w-[160px] truncate">
                                 <span x-text="h"></span>
                                 <span x-show="mapping[h] && mapping[h] !== '_ignore'" class="text-primary block text-[10px]" x-text="'→ ' + fieldLabel(mapping[h])"></span>
@@ -289,7 +313,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </tr>
                 </thead>
                 <tbody>
-                    <template x-for="(row, ri) in uploadResult.preview_rows" :key="ri">
+                    <template x-for="(row, ri) in (uploadResult?.preview_rows || [])" :key="ri">
                         <tr class="border-b" :class="ri % 2 === 0 ? 'bg-white' : 'bg-gray-50/50'">
                             <td class="py-2 px-3 border-r text-center text-gray-400 text-xs" x-text="ri + 1"></td>
                             <template x-for="(cell, ci) in row" :key="ci">
@@ -372,6 +396,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
 </div>
+</div><?php /* tab === 'table' */ ?>
+</div><?php /* tabs */ ?>
 
 <script>
 function productImport() {

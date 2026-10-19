@@ -8,7 +8,6 @@ declare(strict_types=1);
 
 use Yikai\Tests\TestCase;
 
-require_once ROOT_PATH . '/tests/fixtures/ext-fields-stubs.php';
 require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportPackage.php';
 require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportPlanner.php';
 require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportSiteDb.php';
@@ -131,9 +130,9 @@ final class ProductImportRunnerTest extends TestCase
         self::assertFileExists($this->tmp . '/site' . $flat['cover']);
         self::assertSame('{"Material":"Steel"}', $flat['specs']);
         self::assertStringStartsWith('<p>Zinc plated.</p>' . "\n" . '<div class="yk-product-param-images"><p><img src="/uploads/images/', $flat['content']);
-        self::assertSame('A1', getMeta('product', (int) $flat['id'], 'import_key'));
-        self::assertSame('https://example.com/a1', getMeta('product', (int) $flat['id'], 'source_url'));
-        self::assertCount(1, json_decode((string) getMeta('product', (int) $flat['id'], 'param_images'), true));
+        self::assertSame('A1', metaModel()->get('product', (int) $flat['id'], 'import_key'));
+        self::assertSame('https://example.com/a1', metaModel()->get('product', (int) $flat['id'], 'source_url'));
+        self::assertCount(1, json_decode((string) metaModel()->get('product', (int) $flat['id'], 'param_images'), true));
 
         $spring = $this->product('Spring washer');
         self::assertSame(0, (int) $spring['status']);
@@ -191,7 +190,7 @@ final class ProductImportRunnerTest extends TestCase
         self::assertSame('undone', $second['status']);
         self::assertSame('Spring washer', (string) db()->fetchColumn('SELECT title FROM products WHERE id = ?', [(int) $spring['id']]));
         self::assertSame([], db()->fetchAll('SELECT id FROM products WHERE id = ?', [(int) $new['id']]));
-        self::assertNull(getMeta('product', (int) $new['id'], 'import_key'));
+        self::assertNull(metaModel()->get('product', (int) $new['id'], 'import_key'));
         self::assertSame(2, $this->rows('product_categories'), '本批新建的 Lock Washer 删掉，第一批的分类不动');
         self::assertSame(5, $this->rows('media'), 'spec.png 第一批就用过，仍有产品引用，保留');
         self::assertFileExists($copied);

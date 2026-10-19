@@ -152,7 +152,7 @@ final class ProductImportRunner
             }
             productModel()->updateById($id, $record['before'] + ['updated_at' => time()]);
             foreach ($record['metas_before'] as $key => $value) {
-                $value === null ? delMeta('product', $id, $key) : setMeta('product', $id, $key, $value);
+                $value === null ? metaModel()->del('product', $id, $key) : metaModel()->set('product', $id, $key, $value);
             }
         }
         foreach ($job['created']['products'] as $id) {
@@ -167,7 +167,7 @@ final class ProductImportRunner
                 continue;
             }
             productModel()->forceDeleteById($id);
-            delMeta('product', $id);
+            metaModel()->del('product', $id);
             if (function_exists('productRouteModel')) {
                 productRouteModel()->remove('product', $id);
             }
@@ -190,11 +190,14 @@ final class ProductImportRunner
                 continue;
             }
             mediaModel()->deleteById((int) $id);
-            delMeta('media', (int) $id);
+            metaModel()->del('media', (int) $id);
+            // 缩略图、WebP 副本一起删；原图再按记录的路径兜底删一次
             if (class_exists('MediaOptimization')) {
                 MediaOptimization::deleteArtifacts($media);
-            } elseif (is_file((string) $media['path'])) {
-                unlink((string) $media['path']);
+            }
+            $file = $this->siteRoot . (string) $media['url'];
+            if (str_starts_with((string) $media['url'], '/uploads/') && is_file($file)) {
+                unlink($file);
             }
         }
         $job['status'] = 'undone';
@@ -358,7 +361,7 @@ final class ProductImportRunner
                 }
                 $metasBefore = [];
                 foreach (['import_key', 'source_url', 'param_images'] as $key) {
-                    $metasBefore[$key] = getMeta('product', $id, $key);
+                    $metasBefore[$key] = metaModel()->get('product', $id, $key);
                 }
                 $job['updated'][$id] = ['before' => $before, 'metas_before' => $metasBefore, 'after' => []];
             }
@@ -375,7 +378,7 @@ final class ProductImportRunner
             $job['created']['stamps'][$id] = time();
         }
         foreach ($metas as $key => $value) {
-            setMeta('product', $id, $key, $value);
+            metaModel()->set('product', $id, $key, $value);
         }
         $item['status'] = 'done';
         $item['product_id'] = $id;
@@ -504,7 +507,7 @@ final class ProductImportRunner
             'admin_id' => (int) $job['admin_id'], 'created_at' => time(),
         ]);
         if ($stored !== $md5) {
-            setMeta('media', $id, 'source_md5', $md5);
+            metaModel()->set('media', $id, 'source_md5', $md5);
         }
         $job['created']['media'][] = $id;
         return $relDir . $name;
