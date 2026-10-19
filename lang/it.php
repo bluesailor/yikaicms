@@ -8559,6 +8559,8 @@ return [
     'sc_empty' => 'La sezione non ha un corpo diretto né contenuti pubblicati direttamente collegati. Verifica se i contenuti provengono da sottopagine, dal tema o dal builder.',
     'sc_lang_untranslated' => 'Questa lingua è attiva ma non ha ancora canali: il sito mostra un menu vuoto, mentre il selettore di lingua e hreflang la presentano come versione a sé, e i motori di ricerca la considerano contenuto duplicato. Traduci i canali o disattiva per ora la lingua nelle impostazioni della lingua.',
     'sc_demo' => 'Possibile testo di esempio rilevato. Verifica che sia stato sostituito con i dati reali di questo sito.',
+    'sc_cover_category_image' => 'L’immagine principale del prodotto è quella di un’altra categoria o di una categoria superiore; potrebbe essere l’immagine sbagliata.',
+    'sc_cover_shared' => 'Più prodotti usano la stessa immagine principale. Verifica se ognuno ha bisogno di un’immagine propria.',
     'sc_failed' => 'Controllo non completato. Verifica che l\'aggiornamento del database sia concluso e controlla il log degli errori, poi riprova.',
     'sc_links' => 'Link non validi e ambiente di esecuzione',
     'sc_links_hint' => 'Il controllo completo dei link interni resta in SEO Assistant Pro e richiede il relativo plugin e la licenza. Questa pagina non attiva plugin né garantisce che tutti i link siano validi.',
