@@ -4,7 +4,12 @@
     function BloxPreviewClient(options) {
         this.endpoint = options.endpoint;
         this.csrf = options.csrf;
+        // 2.1.1：改动后 quickDelay（并一批同一下输入）就发；只有刚整页重建过的才按 delay 慢发，
+        // 免得打字时画布一次次重建。实测本机：以前 470–500 ms 里 400 ms 是这里的固定等待。
         this.delay = typeof options.delay === "number" ? options.delay : 400;
+        this.quickDelay = typeof options.quickDelay === "number" ? options.quickDelay : 40;
+        this.pending = false;
+        this.lastReloadAt = 0;
         this.getFrame = options.getFrame;
         this.getHost = options.getHost;
         this.getDocument = options.getDocument;
@@ -36,11 +41,26 @@
 
     BloxPreviewClient.prototype.schedule = function () {
         var self = this;
+        // 同一时间只有一个请求在途：在途或画布正在重建时只记下「还有新改动」，它一结束就发最新的一份。
+        // 不再中途取消——连续输入时被取消的请求永远落不了地，画布要等停手才更新。
+        if (this.controller || this.rebuilding) {
+            this.pending = true;
+            return;
+        }
         clearTimeout(this.timer);
+        var wait = Date.now() - this.lastReloadAt < 1000 ? this.delay : this.quickDelay;
         this.timer = setTimeout(function () {
             self.timer = null;
             self.refresh();
-        }, this.delay);
+        }, wait);
+    };
+
+    /** 在途的请求 / 重建结束后：有积下来的改动就接着发。 */
+    BloxPreviewClient.prototype.flushPending = function () {
+        if (this.pending && !this.controller && !this.rebuilding) {
+            this.pending = false;
+            this.schedule();
+        }
     };
 
     BloxPreviewClient.prototype.captureScroll = function (frame) {
@@ -369,6 +389,11 @@
             // 重建结束、滚动已恢复：本刻位置即新的稳定基准。
             self.rebuilding = false;
             self.lastGoodScroll = null;
+            // 还积着更新的改动：接着发，这一轮不算 settle（2.1.1 起请求不再中途取消）
+            if (self.pending) {
+                self.flushPending();
+                return;
+            }
             // r17 稳定信号（审计方案）：最新序号已应用且滚动恢复完成——e2e 据此
             // 采样滚动不变量，替代对预览往返时序的猜测等待。旧响应（序号不符）
             // 不到达 finishUpdate，故此事件即"最新 generation 已 settle"。
@@ -382,6 +407,7 @@
         var self = this;
         clearTimeout(this.timer);
         this.timer = null;
+        this.pending = false;   // 这一次读的就是最新文档，积下的改动一并带上
         var frame = this.getFrame();
         if (!frame) return Promise.resolve(false);
 
@@ -460,6 +486,7 @@
                 frame.addEventListener("load", onFrameLoad);
                 self.onDiagnostic({sequence: sequence, mode: 'reload', reason: self.patchReason, elapsed: Date.now() - started});
                 self.rebuilding = true;
+                self.lastReloadAt = Date.now();
                 frame.srcdoc = html;
                 return true;
             })
@@ -472,12 +499,14 @@
                 if (sequence !== self.sequence) return;
                 self.setLoading(false);
                 self.controller = null;
+                self.flushPending();
             });
     };
 
     BloxPreviewClient.prototype.cancel = function () {
         clearTimeout(this.timer);
         this.timer = null;
+        this.pending = false;
         this.sequence++;
         this.lastDocument = null;
         this.lastHtml = null;
