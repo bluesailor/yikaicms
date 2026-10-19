@@ -84,7 +84,8 @@ final class ProductImportPackages
                     throw new RuntimeException('zip_unreadable');
                 }
                 $out = fopen($target, 'wb');
-                $written = stream_copy_to_stream($in, $out, self::MAX_BYTES);
+                // 最多写到声明的大小 + 1：谎报大小的条目写不出比声明多的东西，下面就会拒收
+                $written = stream_copy_to_stream($in, $out, (int) ($stat['size'] ?? 0) + 1);
                 fclose($in);
                 fclose($out);
                 if ($written === false || $written > (int) ($stat['size'] ?? 0) + 1) {

@@ -198,7 +198,10 @@ try {
                 $pimpReply([], 'package_gone');
             }
             if ($handler === 'job_retry') {
-                ProductImportRunner::retryFailed($job);
+                // 没有失败的行：原样返回，不再空跑一批
+                if (ProductImportRunner::retryFailed($job) === 0) {
+                    $pimpReply(['job' => $pimpJobView($job)]);
+                }
             }
             $runner = new ProductImportRunner(ProductImportPackage::fromDirectory($job['package'], ROOT_PATH), ROOT_PATH);
             $wasDone = $job['status'] === 'done';
