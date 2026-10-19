@@ -74,7 +74,9 @@
             "file-description",
             "file-download",
             "file-text",
+            "file-zip",
             "focus-2",
+            "folder",
             "folders",
             "forms",
             "grip-vertical",
@@ -140,6 +142,7 @@
             "star",
             "stethoscope",
             "sun",
+            "table",
             "tag",
             "tags",
             "test-pipe",
@@ -661,6 +664,7 @@
             "star",
             "stethoscope",
             "sun",
+            "table",
             "tag",
             "tags",
             "target",
@@ -691,12 +695,12 @@
     },
     "outputs": {
         "assets/icons/site-icons.min.css": {
-            "bytes": 11542,
-            "sha256": "997032faef93882629debbbdb691af6ad801a0cfb89838aaf8f6816ad4b4e57a"
+            "bytes": 11575,
+            "sha256": "943ce13ff0c85ab76587236642306c80835bf94a9eae4ace2c34b5123e93282e"
         },
         "assets/icons/fonts/tabler-icons-site.woff2": {
-            "bytes": 37028,
-            "sha256": "1e454c75c03497e3511610e01715e847ed43f72bba633590d03c2ca4a2391775"
+            "bytes": 37064,
+            "sha256": "83f941bb598f8808c736f700e8ffbc67135153b50f62b41cd7d8007f205fe20d"
         }
     }
 }

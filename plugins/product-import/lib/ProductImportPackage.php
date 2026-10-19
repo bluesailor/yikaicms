@@ -20,21 +20,21 @@ final class ProductImportPackage
     private const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
     /** 表格列名（中英文都认，大小写、空格不敏感）→ 字段 */
     private const COLUMNS = [
-        'category' => ['大类', '分类', '所属分类', 'category'],
-        'subcategory' => ['小类', '子分类', 'subcategory'],
-        'title' => ['名称', '产品名称', 'title', 'name'],
-        'model' => ['型号', '产品型号', 'model'],
-        'cover' => ['主图', '封面', '封面图片', 'cover', 'mainimage'],
-        'images' => ['产品图', '产品图集', 'images', 'gallery'],
-        'param_images' => ['参数图', 'paramimages', 'parameterimages', 'specimages'],
-        'summary' => ['摘要', 'summary'],
-        'content' => ['详情', '详情内容', 'content', 'description'],
-        'specs' => ['规格', '规格参数', 'specs'],
-        'key' => ['来源编号', 'sourceid', 'key', 'id'],
-        'source_url' => ['来源链接', 'sourceurl', 'url'],
-        'slug' => ['别名', 'url别名', 'slug'],
-        'status' => ['状态', 'status'],
-        'sort_order' => ['排序', 'sort', 'sortorder'],
+        'category' => ['大类', '分类', '所属分类', '大分類', 'category'],
+        'subcategory' => ['小类', '子分类', '小分類', 'subcategory'],
+        'title' => ['名称', '产品名称', '商品名', 'title', 'name'],
+        'model' => ['型号', '产品型号', '型番', 'model'],
+        'cover' => ['主图', '封面', '封面图片', 'メイン画像', 'cover', 'mainimage'],
+        'images' => ['产品图', '产品图集', '商品画像', 'images', 'gallery'],
+        'param_images' => ['参数图', '仕様画像', 'paramimages', 'parameterimages', 'specimages'],
+        'summary' => ['摘要', '概要', 'summary'],
+        'content' => ['详情', '详情内容', '詳細', 'content', 'description'],
+        'specs' => ['规格', '规格参数', '仕様', 'specs'],
+        'key' => ['来源编号', '取得元id', 'sourceid', 'key', 'id'],
+        'source_url' => ['来源链接', '取得元url', 'sourceurl', 'url'],
+        'slug' => ['别名', 'url别名', 'スラッグ', 'slug'],
+        'status' => ['状态', '状態', 'status'],
+        'sort_order' => ['排序', '並び順', 'sort', 'sortorder'],
     ];
 
     public string $lang = '';
