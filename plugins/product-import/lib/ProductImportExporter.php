@@ -145,7 +145,7 @@ final class ProductImportExporter
         }
         $path = (string) parse_url($url, PHP_URL_PATH);
         $file = $this->siteRoot . rawurldecode($path);
-        if (str_contains($path, '..') || !is_file($file)) {
+        if (preg_match('~(^|/)\.\.(/|$)~', $path) === 1 || !is_file($file)) {
             $this->missing[] = $url;
             return $this->refs[$url] = $url;
         }

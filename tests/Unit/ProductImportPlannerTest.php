@@ -85,7 +85,7 @@ final class ProductImportPlannerTest extends TestCase
         return array_column($row[$kind], 'code');
     }
 
-    public function testACoverTakenFromAnotherOrParentCategoryIsAnError(): void
+    public function testACategoryImageUsedAsCoverBySeveralProductsIsAnError(): void
     {
         $this->image($this->tmp . '/package/images/collage.png', 0xff0000);   // 大类封面：展会拼图
         copy($this->tmp . '/package/images/collage.png', $this->tmp . '/package/images/washer-a.png');   // 同一张图换了名字当主图
@@ -100,15 +100,32 @@ final class ProductImportPlannerTest extends TestCase
                 ['key' => 'a', 'title' => 'Flat washer A', 'category' => 'washer-spring-washer', 'cover' => 'images/washer-a.png'],
                 ['key' => 'b', 'title' => 'Spring washer B', 'category' => 'washer-spring-washer', 'cover' => 'spring.png'],
                 ['key' => 'c', 'title' => 'Spring washer C', 'category' => 'washer-spring-washer', 'cover' => 'images/plain.png'],
+                ['key' => 'd', 'title' => 'Flat washer D', 'category' => 'washer-spring-washer', 'cover' => 'collage.png'],
             ],
         ]), $this->site()))->plan();
 
         self::assertSame(['cover_is_category_image'], self::codes($plan['products'][0]));
-        self::assertSame('washer', $plan['products'][0]['errors'][0]['params']['categories'], '指出是哪个分类的图');
-        self::assertSame('error', $plan['products'][0]['action'], '这一行不导入');
+        self::assertSame(['categories' => 'washer', 'count' => '2'], $plan['products'][0]['errors'][0]['params'], '指出是哪个分类的图、几款在用');
+        self::assertSame(['error', 'error'], [$plan['products'][0]['action'], $plan['products'][3]['action']], '这两行不导入');
         self::assertSame([], self::codes($plan['products'][1]), '小类图取自本产品是正常的');
         self::assertSame('create', $plan['products'][2]['action']);
         self::assertSame(2, $plan['summary']['categories_new']);
+    }
+
+    /** FHZN 实测：只有一款产品与上级 / 兄弟分类图相同时，都是分类借用了这款的照片——只提醒 */
+    public function testACategoryImageMatchingOnlyOneProductIsAWarning(): void
+    {
+        $this->image($this->tmp . '/package/images/black-washers.png', 0x111111);
+        $plan = (new ProductImportPlanner($this->package([
+            'categories' => [
+                ['key' => 'washer', 'name' => 'Washer', 'image' => 'images/black-washers.png'],
+                ['key' => 'washer-high-strength', 'name' => 'High strength washer', 'parent' => 'washer'],
+            ],
+            'products' => [['title' => 'Black flat washers', 'category' => 'washer-high-strength', 'cover' => 'black-washers.png']],
+        ]), $this->site()))->plan();
+
+        self::assertSame('create', $plan['products'][0]['action']);
+        self::assertSame(['cover_matches_category_image'], self::codes($plan['products'][0], 'warnings'));
     }
 
     public function testASiteCategoryImageReusedAsCoverIsCaughtByContent(): void
@@ -123,10 +140,12 @@ final class ProductImportPlannerTest extends TestCase
         $plan = (new ProductImportPlanner($this->package(['products' => [
             ['title' => 'Washer X', 'category' => 'washer', 'cover' => 'images/looks-new.png'],
             ['title' => 'Washer Y', 'category' => 'washer', 'cover' => 'images/ok.png'],
+            ['title' => 'Washer Z', 'category' => 'washer', 'cover' => '/uploads/images/nut.png'],
         ]]), $site))->plan();
 
         self::assertSame(['cover_is_category_image'], self::codes($plan['products'][0]));
         self::assertSame('nuts', $plan['products'][0]['errors'][0]['params']['categories']);
+        self::assertSame(['cover_is_category_image'], self::codes($plan['products'][2]), '包里的图和本站的图按内容比，算同一张');
         self::assertSame([], self::codes($plan['products'][1]));
     }
 

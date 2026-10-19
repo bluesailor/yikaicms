@@ -17,7 +17,7 @@ final class ProductImportPackage
     public const FORMAT = 'yikai-product-package';
     public const MAX_PRODUCTS = 5000;
     public const MAX_CATEGORIES = 500;
-    private const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif'];
+    private const IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
     /** 表格列名（中英文都认，大小写、空格不敏感）→ 字段 */
     private const COLUMNS = [
         'category' => ['大类', '分类', '所属分类', '大分類', 'category'],
@@ -88,7 +88,7 @@ final class ProductImportPackage
         }
         if (str_starts_with($ref, '/uploads/')) {
             $path = (string) parse_url($ref, PHP_URL_PATH);
-            if (str_contains($path, '..')) {
+            if (preg_match('~(^|/)\.\.(/|$)~', $path) === 1) {
                 return ['kind' => 'invalid', 'path' => '', 'ref' => $ref];
             }
             $file = $this->siteRoot . $path;

@@ -528,7 +528,8 @@ final class ProductImportRunner
         $info = @getimagesize($source);
         $ext = strtolower(pathinfo($source, PATHINFO_EXTENSION));
         $ext = $ext === 'jpeg' ? 'jpg' : $ext;
-        $mimes = ['jpg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp'];
+        // avif：核心上传不收，但迁移来的站里有；服务器读得出来（PHP 8.2+）才收
+        $mimes = ['jpg' => 'image/jpeg', 'png' => 'image/png', 'gif' => 'image/gif', 'webp' => 'image/webp', 'avif' => 'image/avif'];
         if (!is_array($info) || !isset($mimes[$ext]) || $info['mime'] !== $mimes[$ext]) {
             throw new RuntimeException('image_invalid');
         }
@@ -553,7 +554,7 @@ final class ProductImportRunner
             $info = @getimagesize($path);
             [$width, $height] = is_array($info) ? [(int) $info[0], (int) $info[1]] : [$width, $height];
         }
-        if (function_exists('generateThumbnails')) {
+        if ($ext !== 'avif' && function_exists('generateThumbnails')) {
             generateThumbnails($path, $ext);
         }
         if (in_array($ext, ['jpg', 'png'], true) && function_exists('generateWebpDerivatives') && function_exists('imagewebp')) {

@@ -157,7 +157,7 @@ final class SiteContentChecks
         $p = DB_PREFIX;
         $file = static function (string $url) use ($root): ?string {
             $path = rawurldecode((string) parse_url($url, PHP_URL_PATH));
-            return str_starts_with($path, '/uploads/') && !str_contains($path, '..') && is_file($root . $path) ? $root . $path : null;
+            return str_starts_with($path, '/uploads/') && preg_match('~(^|/)\.\.(/|$)~', $path) !== 1 && is_file($root . $path) ? $root . $path : null;
         };
         $byUrl = [];
         $bySize = [];

@@ -18,9 +18,9 @@ test('an import package is checked, imported, synced back and undone @local', as
 
   const preview = page.locator('[data-pimp-preview]');
   await expect(preview).toBeVisible();
-  await expect(preview.locator('[data-pimp-summary="error"] .text-2xl')).toHaveText('1');
+  await expect(preview.locator('[data-pimp-summary="error"] .text-2xl')).toHaveText('2');
   await expect(preview.locator('[data-pimp-summary="create"] .text-2xl')).toHaveText('3');
-  // 有错误时先只列出错的行：主图就是大类的展会拼图
+  // 有错误时先只列出错的行：两款的主图都是大类的展会拼图
   const bad = preview.locator('[data-pimp-row="2"]');
   await expect(bad).toBeVisible();
   await expect(bad.locator('.text-red-600').first()).toContainText('e2e-washer');
@@ -34,7 +34,7 @@ test('an import package is checked, imported, synced back and undone @local', as
 
   const job = page.locator('[data-pimp-job]');
   await expect(job.locator('[data-pimp-count="created"] .text-xl')).toHaveText('2');
-  await expect(job.locator('[data-pimp-count="error"] .text-xl')).toHaveText('1');
+  await expect(job.locator('[data-pimp-count="error"] .text-xl')).toHaveText('2');
   await expect(job.locator('[data-pimp-count="skipped"] .text-xl')).toHaveText('1');
   await expect(job.locator('[data-pimp-count="categories_created"] .text-xl')).toHaveText('2');
   await expect(job.locator('[data-pimp-verify]')).toHaveClass(/bg-green-50/);

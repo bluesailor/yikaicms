@@ -15,7 +15,7 @@ final class ProductImportPackages
     public const MAX_FILES = 20000;
     public const MAX_BYTES = 2 * 1024 * 1024 * 1024;
     public const KEEP_DAYS = 14;
-    private const EXTENSIONS = ['json', 'csv', 'xlsx', 'jpg', 'jpeg', 'png', 'webp', 'gif'];
+    private const EXTENSIONS = ['json', 'csv', 'xlsx', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'avif'];
     private const MANIFESTS = ['products.json', 'products.xlsx', 'products.csv'];
 
     public function __construct(private string $root)

@@ -49,7 +49,7 @@ final class ProductImportSiteDb implements ProductImportSite
     public function sitePath(string $url): ?string
     {
         $path = (string) parse_url($url, PHP_URL_PATH);
-        if (!str_starts_with($path, '/uploads/') || str_contains($path, '..')) {
+        if (!str_starts_with($path, '/uploads/') || preg_match('~(^|/)\.\.(/|$)~', $path) === 1) {
             return null;
         }
         $file = $this->siteRoot . rawurldecode($path);
