@@ -924,6 +924,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
     <?php // 后台自带 head 的页面也要有标签页图标：客户设过用客户的，否则回落随包的品牌图标。
           // 与 admin/includes/header.php 同一口径——不这么做，登录页和编辑器在浏览器标签里就是空白图标。 ?>
     <link rel="icon" href="<?php echo e((function_exists('siteFaviconUrl') ? siteFaviconUrl() : '') ?: '/assets/img/admin-favicon.ico'); ?>">
+    <?php $clientErrorPage = 'blox-editor'; require ROOT_PATH . '/admin/includes/client_error_report.php'; // 2.1.1：脚本错误进错误日志 ?>
     <link rel="stylesheet" href="<?php echo e(assetVer('/assets/css/tailwind.css')); ?>">
     <link rel="stylesheet" href="/assets/tabler/tabler-icons.min.css">
     <link rel="stylesheet" href="/assets/bootstrap-icons/bootstrap-icons.min.css">
