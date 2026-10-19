@@ -15,7 +15,13 @@ description: YikaiCMS 改完代码要并入 main 之前跑的红线预检。当�
 bash tools/premerge-check.sh          # 自动判断要不要起服务器跑冒烟
 bash tools/premerge-check.sh --full   # 强制全跑
 bash tools/premerge-check.sh --quick  # 只跑单测 + Psalm + i18n
+bash tools/premerge-check.sh --full --browser  # 另跑编辑器核心浏览器回归（约 8 分钟）
 ```
+
+改过网页构建器（`admin/blox_editor*`、`assets/js/yikay-*`、`includes/builder/`）就加 `--browser`：
+CI 只在发版时跑，门禁不加这一项就没有任何浏览器测试——区块面板一次报上百条脚本错误就是这样长期没人发现的。
+本机连跑浏览器测试会耗尽 Windows 套接字（`net::ERR_NO_BUFFER_SPACE`），脚本会等待并重跑一次；
+别同时开另一轮门禁或 e2e。
 
 脚本负责**可靠执行**（清端口、起服务器、保证还原）；下面这些**判断**归你，脚本代替不了。
 
