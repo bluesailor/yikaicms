@@ -49,6 +49,7 @@ final class SiteHealth
             self::checkPendingMigrations($root),
             self::checkRecentBackup($root),
             self::checkComponentPins(),
+            self::checkClientErrors(),
             self::checkCron(),
             // 性能中心：缓存 / 静态化 / 响应 / 大资源（只读诊断，操作项跳转对应管理页）
             self::checkHtmlCache(),
@@ -869,6 +870,23 @@ final class SiteHealth
         $recent = $latest > time() - 14 * 86400;
         return self::result('recent_backup', $recent ? self::GOOD : self::RECOMMENDED, 'operations',
             'health_backup_title', $recent ? 'health_backup_good' : 'health_backup_bad', '/admin/database.php?tab=backup');
+    }
+
+    /**
+     * 后台脚本错误（2.1.1）：编辑器等后台页面的前端错误由 admin-error-report.js 写进错误日志（级别 JS）。
+     * 以前只在浏览器控制台里，站长和我们都看不到（区块面板一次报上百条错误也没人发现）。
+     */
+    private static function checkClientErrors(): array
+    {
+        try {
+            $count = ErrorHandler::recentCount('JS', 7);
+        } catch (Throwable) {
+            return self::result('client_errors', self::UNKNOWN, 'operations', 'health_client_errors_title', 'health_client_errors_unknown');
+        }
+        return $count === 0
+            ? self::result('client_errors', self::GOOD, 'operations', 'health_client_errors_title', 'health_client_errors_good')
+            : self::result('client_errors', self::RECOMMENDED, 'operations', 'health_client_errors_title', 'health_client_errors_bad',
+                '/admin/system.php?tab=errorlog', ['count' => (string) $count]);
     }
 
     /**
