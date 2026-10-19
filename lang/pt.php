@@ -8559,6 +8559,8 @@ return [
     'sc_empty' => 'A seção não tem texto próprio nem conteúdo diretamente associado que esteja publicado. Confira se o conteúdo vem das subpáginas, do tema ou do construtor.',
     'sc_lang_untranslated' => 'Este idioma está ativado, mas ainda não tem canais: o site mostra um menu vazio, enquanto o seletor de idioma e o hreflang o apresentam como versão própria, e os buscadores o tratam como conteúdo duplicado. Traduza os canais ou desative o idioma nas configurações de idioma por enquanto.',
     'sc_demo' => 'Foi encontrado um texto que parece ser de exemplo. Confira se ele foi substituído pelos dados reais deste site.',
+    'sc_cover_category_image' => 'A imagem principal do produto é a de outra categoria ou de uma categoria superior; pode ser a imagem errada.',
+    'sc_cover_shared' => 'Vários produtos usam a mesma imagem principal. Verifique se cada um precisa de uma imagem própria.',
     'sc_failed' => 'A verificação não foi concluída. Confirme que a atualização do banco de dados terminou, consulte o registro de erros e tente novamente.',
     'sc_links' => 'Links inválidos e ambiente de execução',
     'sc_links_hint' => 'A verificação completa de links internos continua disponível no Assistente de SEO Pro e requer o plugin e a licença correspondentes. Esta página não ativa plugins automaticamente nem confirma a validade de todos os links.',

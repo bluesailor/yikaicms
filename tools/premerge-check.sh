@@ -5,7 +5,7 @@
 #   bash tools/premerge-check.sh            # 自动判断要不要跑后台冒烟
 #   bash tools/premerge-check.sh --full     # 强制全跑（含后台冒烟与升级 e2e）
 #   bash tools/premerge-check.sh --quick    # 只跑单测 + Psalm + i18n（不起服务器）
-#   bash tools/premerge-check.sh --full --browser  # 另跑编辑器核心浏览器回归（约 8 分钟；也可设 PREMERGE_BROWSER=1）
+#   bash tools/premerge-check.sh --full --browser  # 另跑编辑器核心与产品导入的浏览器回归（约 9 分钟；也可设 PREMERGE_BROWSER=1）
 #
 # 设计目标：把「每次手工重建命令序列」变成一行。脚本只负责**可靠地执行**，
 # 判断（Psalm 幻影、要不要人工过前台）交给人/skill。
@@ -285,10 +285,10 @@ fi
 
 # ───── 浏览器回归（可选：--browser 或 PREMERGE_BROWSER=1；2.1.1 路线图 §5.8 第 3 项）─────
 # CI 只在发版时跑，平时的门禁又不跑 Playwright——区块面板一次报上百条脚本错误就这样一直没人发现。
-# 只挑编辑器核心几个 spec（每个起一个一次性站点，desktop-1440，@ci），约 8 分钟。
+# 只挑编辑器核心几个 spec 加产品导入向导（每个起一个一次性站点，desktop-1440，@ci），约 9 分钟。
 # Windows 本机连跑会耗尽套接字（net::ERR_NO_BUFFER_SPACE，与代码无关）：每个 spec 前等 TIME_WAIT 降下来，
 # 只因这个失败的 spec 自动重跑一次。
-BROWSER_SPECS=(blox-editor blox-components blox-selection-teardown blox-instant-preview blox-layout-width blox-page)
+BROWSER_SPECS=(blox-editor blox-components blox-selection-teardown blox-instant-preview blox-layout-width blox-page product-import-package)
 wait_for_sockets() {
     case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) ;; *) return 0 ;; esac
     command -v netstat >/dev/null 2>&1 || return 0
@@ -331,7 +331,7 @@ if [ "$BROWSER" = "1" ]; then
         done
     fi
 else
-    echo "[+] 浏览器回归 —— ${D}跳过（--browser 时跑，约 8 分钟）${X}"
+    echo "[+] 浏览器回归 —— ${D}跳过（--browser 时跑，约 9 分钟）${X}"
 fi
 
 # ───── 汇总 ─────

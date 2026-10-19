@@ -8559,6 +8559,8 @@ return [
     'sc_empty' => 'Cette rubrique n’a pas de corps renseigné directement et ne contient aucune entrée publiée en propre. Vérifiez si son contenu provient de sous-pages, du thème ou du constructeur.',
     'sc_lang_untranslated' => 'Cette langue est activée mais n\'a encore aucune rubrique : le site affiche un menu vide, alors que le sélecteur de langue et hreflang la présentent comme une version à part entière, ce que les moteurs de recherche considèrent comme du contenu dupliqué. Traduisez les rubriques ou désactivez la langue dans les paramètres de langue pour l\'instant.',
     'sc_demo' => 'Un texte d’exemple potentiel a été détecté. Vérifiez qu’il a été remplacé par les informations réelles du site.',
+    'sc_cover_category_image' => 'L’image principale du produit est celle d’une autre catégorie ou d’une catégorie parente ; ce n’est peut-être pas la bonne image.',
+    'sc_cover_shared' => 'Plusieurs produits utilisent la même image principale. Vérifiez si chacun a besoin de sa propre image.',
     'sc_failed' => 'La vérification n’a pas abouti. Terminez la mise à niveau de la base de données et consultez le journal des erreurs avant de réessayer.',
     'sc_links' => 'Liens brisés et état du site',
     'sc_links_hint' => 'La vérification complète des liens internes reste réservée à SEO Assistant Pro et nécessite l’extension et une licence correspondantes. Cette page n’active aucune extension et ne garantit pas la validité de tous les liens.',

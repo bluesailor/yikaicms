@@ -8559,6 +8559,8 @@ return [
     'sc_empty' => 'Bagian tidak mengisi teks langsung dan tidak punya konten langsung yang diterbitkan. Periksa apakah konten disediakan oleh subbagian, tema, atau pembangun.',
     'sc_lang_untranslated' => 'Bahasa ini aktif tetapi belum memiliki kanal: situs menampilkan menu kosong, sementara pemilih bahasa dan hreflang tetap menampilkannya sebagai versi tersendiri, dan mesin pencari menganggapnya konten duplikat. Terjemahkan kanal atau nonaktifkan bahasa ini dulu di pengaturan bahasa.',
     'sc_demo' => 'Ditemukan teks yang diduga contoh. Pastikan sudah diganti dengan data asli situs ini.',
+    'sc_cover_category_image' => 'Gambar utama produk sama dengan gambar kategori lain atau kategori induk; mungkin gambarnya salah.',
+    'sc_cover_shared' => 'Beberapa produk memakai gambar utama yang sama. Periksa apakah masing-masing perlu gambar sendiri.',
     'sc_failed' => 'Pemeriksaan belum selesai. Pastikan peningkatan basis data sudah tuntas, dan periksa log kesalahan lalu coba lagi.',
     'sc_links' => 'Tautan rusak dan kesehatan runtime',
     'sc_links_hint' => 'Pemeriksaan tautan internal lengkap tetap ada di SEO Assistant Pro dan memerlukan plugin serta lisensinya. Halaman ini tidak mengaktifkan plugin atau memastikan semua tautan valid.',

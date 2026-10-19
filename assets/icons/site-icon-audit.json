@@ -73,8 +73,11 @@
             "eye-off",
             "file-description",
             "file-download",
+            "file-export",
             "file-text",
+            "file-zip",
             "focus-2",
+            "folder",
             "folders",
             "forms",
             "grip-vertical",
@@ -140,6 +143,7 @@
             "star",
             "stethoscope",
             "sun",
+            "table",
             "tag",
             "tags",
             "test-pipe",
@@ -554,6 +558,7 @@
             "file",
             "file-description",
             "file-download",
+            "file-export",
             "file-text",
             "file-type-doc",
             "file-type-pdf",
@@ -661,6 +666,7 @@
             "star",
             "stethoscope",
             "sun",
+            "table",
             "tag",
             "tags",
             "target",
@@ -691,12 +697,12 @@
     },
     "outputs": {
         "assets/icons/site-icons.min.css": {
-            "bytes": 11542,
-            "sha256": "997032faef93882629debbbdb691af6ad801a0cfb89838aaf8f6816ad4b4e57a"
+            "bytes": 11614,
+            "sha256": "c715a08d57cbcde9756998a8763aeef2e49859563c8d5d4ac601c728fb7e3ab0"
         },
         "assets/icons/fonts/tabler-icons-site.woff2": {
-            "bytes": 37028,
-            "sha256": "1e454c75c03497e3511610e01715e847ed43f72bba633590d03c2ca4a2391775"
+            "bytes": 37228,
+            "sha256": "6686236be68a330d9d86aeb7ba5ddfa934e902ab7fa3c1f556953c083f3af85a"
         }
     }
 }

@@ -82,4 +82,11 @@ final class SiteAuthoringChecksTest extends TestCase
         $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(ROOT_PATH . '/tests/fixtures/site-authoring-checks-probe.php'));
         self::assertSame("Site authoring checks passed\n", $output);
     }
+
+    /** FHZN 录入时 Washer 产品误用大类展会拼图：主图是别的 / 上级分类的图、多款共用主图，内容自检要列出来 */
+    public function testProductCoversTakenFromOtherCategoriesAndSharedCoversAreListed(): void
+    {
+        $output = shell_exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(ROOT_PATH . '/tests/fixtures/site-content-product-covers-probe.php'));
+        self::assertSame("Product cover checks passed\n", $output);
+    }
 }
