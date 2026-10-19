@@ -124,6 +124,8 @@
                 <file name="admin/blox_design_api.php" />
                 <file name="admin/blox_page_api.php" />
                 <file name="admin/blox_component_api.php" />
+                <!-- 2.1.1 新增独立入口（后台前端错误上报） -->
+                <file name="admin/client_error_api.php" />
                 <file name="admin/blox_preview.php" />
                 <file name="admin/site_design.php" />
                 <file name="admin/site_health.php" />

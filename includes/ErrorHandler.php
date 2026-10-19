@@ -55,6 +55,40 @@ final class ErrorHandler
         return ROOT_PATH . '/storage/logs';
     }
 
+    /**
+     * 近 $days 天某级别的条数（站点健康用，2.1.1）：读当月与上月日志，单个文件只看最后 4 MB。
+     */
+    public static function recentCount(string $level, int $days = 7): int
+    {
+        $since = time() - $days * 86400;
+        $count = 0;
+        foreach (array_unique([date('Ym'), date('Ym', strtotime('first day of last month'))]) as $month) {
+            $path = self::dir() . '/error-' . $month . '.log';
+            $size = is_file($path) ? (int) @filesize($path) : 0;
+            if ($size <= 0) {
+                continue;
+            }
+            $tail = @file_get_contents($path, false, null, max(0, $size - 4 * 1024 * 1024));
+            $count += self::countEntries(is_string($tail) ? $tail : '', $level, $since);
+        }
+        return $count;
+    }
+
+    /** 日志文本里 $since 之后、级别为 $level 的条数（每条以「[时间] [级别]」开头）。 */
+    public static function countEntries(string $content, string $level, int $since): int
+    {
+        if (preg_match_all('/^\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\] \[' . preg_quote($level, '/') . '\] /m', $content, $m) === false) {
+            return 0;
+        }
+        $count = 0;
+        foreach ($m[1] as $at) {
+            if ((int) strtotime($at) >= $since) {
+                $count++;
+            }
+        }
+        return $count;
+    }
+
     /** 现有日志文件列表（新月在前），供后台查看页选择 */
     public static function listFiles(): array
     {
