@@ -94,7 +94,7 @@ async function waitPreviewSettled(page, timeoutMs = 5000) {
     const app = window.Alpine.$data(document.body);
     const client = app._previewClient;
     const canvas = document.querySelector('[data-testid="blox-canvas"]');
-    return !app.previewLoading && (!client || (!client.timer && !client.controller && !client.rebuilding))
+    return !app.previewLoading && (!client || (!client.timer && !client.controller && !client.rebuilding && !client.pending))
       && canvas?.contentDocument?.readyState === 'complete';
   }), { timeout: timeoutMs }).toBe(true);
 }
