@@ -13,6 +13,8 @@ require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportPlanner.php';
 require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportSiteDb.php';
 require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportJobs.php';
 require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportRunner.php';
+require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportPackages.php';
+require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportExporter.php';
 
 final class ProductImportRunnerTest extends TestCase
 {
@@ -262,6 +264,61 @@ final class ProductImportRunnerTest extends TestCase
         self::assertSame(1, $this->rows('products'), '跳过的那一行没导入');
         self::assertSame($job['id'], $jobs->recent()[0]['id']);
         self::assertFileExists($this->tmp . '/site/storage/product-import/.htaccess');
+    }
+
+    public function testImagesInsideTheContentAreImportedAndRewritten(): void
+    {
+        $this->manifest([['key' => 'C1', 'title' => 'With spec table', 'cover' => 'flat.png',
+            'content' => '<p>Sizes:</p><p><img src="images/spec.png" alt="spec"><img src="https://s.alicdn.com/a.jpg"></p>']]);
+        $job = $this->job();
+        self::assertSame(['content_external_image'], array_column($this->plan()['products'][0]['warnings'], 'code'));
+        $this->runner()->run($job);
+
+        $content = (string) $this->product('With spec table')['content'];
+        self::assertMatchesRegularExpression('~<img src="/uploads/images/\d{6}/products/[^"]+\.png" alt="spec">~', $content);
+        self::assertStringContainsString('https://s.alicdn.com/a.jpg', $content, '外链不动');
+        self::assertSame(['checked' => 1, 'problems' => []], $this->runner()->verify($job));
+
+        unlink($this->tmp . '/site' . $this->product('With spec table')['cover']);
+        self::assertSame('With spec table', $this->runner()->verify($job)['problems'][0]['title']);
+    }
+
+    public function testAnExportedPackageMatchesTheSiteUntilSomethingChanges(): void
+    {
+        $this->manifest([
+            ['key' => 'A1', 'title' => 'Flat washer DIN125', 'category' => 'washer-flat', 'cover' => 'flat.png', 'images' => ['flat.png', 'flat-2.png'],
+                'param_images' => ['spec.png'], 'content' => '<p>Zinc <img src="images/spring.png"></p>', 'specs' => ['Material' => 'Steel'], 'model' => 'DIN125'],
+            ['title' => 'Spring washer', 'slug' => 'spring-washer', 'category' => 'washer', 'cover' => 'spring.png'],
+        ]);
+        $job = $this->job();
+        $this->runner()->run($job);
+
+        // 同一个站导出再比较：两款都对得上，而且什么都没变
+        $zip = $this->tmp . '/export.zip';
+        $result = (new ProductImportExporter($this->tmp . '/site'))->export([], 'en', $zip);
+        self::assertSame([2, 2, 5, []], [$result['products'], $result['categories'], $result['images'], $result['missing']]);
+        $exported = (new ProductImportPackages($this->tmp . '/store'))->extractZip($zip, 'export.zip');
+        $plan = $this->plan($exported['dir']);
+        self::assertSame([], $plan['errors']);
+        self::assertSame(['update', 'update'], array_column($plan['products'], 'action'));
+        self::assertSame(['key', 'slug'], array_column(array_column($plan['products'], 'match'), 'by'));
+        self::assertSame([[], []], array_column($plan['products'], 'changes'));
+        self::assertSame(2, $plan['summary']['unchanged']);
+
+        // 本站改了名称、换了详情里的图 → 只这两项算变化；导入后本站又编辑过 → 警告会覆盖
+        $flat = $this->product('Flat washer DIN125');
+        db()->update('products', ['title' => 'Renamed on site', 'content' => str_replace('<img src="', '<img src="/uploads/gone.png" data-x="', (string) $flat['content']),
+            'updated_at' => time() + 60], 'id = ?', [(int) $flat['id']]);
+        $row = $this->plan($exported['dir'])['products'][0];
+        self::assertSame(['title', 'content'], $row['changes']);
+        self::assertSame(['edited_on_site'], array_column($row['warnings'], 'code'));
+    }
+
+    /** @return array<string,mixed> */
+    private function plan(?string $dir = null): array
+    {
+        $package = ProductImportPackage::fromDirectory($dir ?? $this->tmp . '/package', $this->tmp . '/site');
+        return (new ProductImportPlanner($package, new ProductImportSiteDb('en', $this->tmp . '/site')))->plan();
     }
 
     public function testParamBlockIsReplacedOrRemoved(): void

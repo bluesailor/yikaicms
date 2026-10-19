@@ -65,6 +65,8 @@ final class ProductImportPlannerTest extends TestCase
             public function productBySlug(string $slug): ?array { return $this->find(fn ($p) => $p['slug'] === $slug); }
             public function productByModelTitle(string $model, string $title): ?array { return $this->find(fn ($p) => ($p['model'] ?? '') === $model && $p['title'] === $title); }
             public function sitePath(string $url): ?string { return is_file($this->root . $url) ? $this->root . $url : null; }
+            public function imageMd5(string $url): ?string { $path = $this->sitePath($url); return $path !== null ? (string) md5_file($path) : null; }
+            public function product(int $id): ?array { return null; }
             private function find(callable $test): ?array
             {
                 foreach ($this->products as $p) {
