@@ -2,11 +2,12 @@ const path = require('node:path');
 const {execFileSync} = require('node:child_process');
 const {test, expect} = require('./site-diagnostics');
 
-// 产品导入 2.0：上传导入包 → 预览查出误用大类拼图的主图 → 跳过一行 → 分批导入 → 整批撤销 → 从 FTP 目录再选一次
+// 产品导入 2.0：上传导入包 → 预览查出误用大类拼图的主图 → 跳过一行 → 分批导入 → 导入后检查
+// → 从本站导出再导入（全部无变化）→ 从历史里整批撤销 → 从 FTP 目录再选一次
 const root = process.cwd();
 const fixture = (action) => execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'product-import-fixture.php'), action], {cwd: root, encoding: 'utf8'}).trim();
 
-test('an import package is checked, imported in batches and undone @local', async ({page}, testInfo) => {
+test('an import package is checked, imported, synced back and undone @local', async ({page}, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'one desktop run is enough');
   const zipPath = fixture('package');
 
@@ -36,6 +37,7 @@ test('an import package is checked, imported in batches and undone @local', asyn
   await expect(job.locator('[data-pimp-count="error"] .text-xl')).toHaveText('1');
   await expect(job.locator('[data-pimp-count="skipped"] .text-xl')).toHaveText('1');
   await expect(job.locator('[data-pimp-count="categories_created"] .text-xl')).toHaveText('2');
+  await expect(job.locator('[data-pimp-verify]')).toHaveClass(/bg-green-50/);
 
   let state = JSON.parse(fixture('state'));
   expect(state.categories).toEqual(['e2e-washer', 'e2e-washer-flat']);
@@ -43,12 +45,26 @@ test('an import package is checked, imported in batches and undone @local', asyn
   expect(state.products.every((p) => p.cover_exists && p.param_block)).toBe(true);
   expect(state.products.map((p) => p.import_key)).toEqual(['e2e-1', 'e2e-2']);
 
+  // 从本站导出这个大类再导入：两款都与本站相同，默认全部跳过
+  await job.getByRole('button').last().click();
+  const exportBox = page.locator('[data-pimp-export]');
+  await exportBox.locator('summary').click();
+  await exportBox.locator('[data-pimp-export-category="e2e-washer"]').check();
+  const downloadPromise = page.waitForEvent('download');
+  await exportBox.locator('[data-pimp-export-link]').click();
+  const exported = await (await downloadPromise).path();
+  await page.locator('[data-pimp-file]').setInputFiles({name: 'export.zip', mimeType: 'application/zip', buffer: require('node:fs').readFileSync(exported)});
+  await expect(preview.locator('[data-pimp-summary="unchanged"] .text-2xl')).toHaveText('2');
+  await expect(preview.locator('[data-pimp-summary="update"] .text-2xl')).toHaveText('2');
+  await expect(preview.locator('[data-pimp-start]')).toBeDisabled();
+
+  // 从历史里打开第一批并撤销
+  await page.locator('[data-pimp-history] tr').last().getByRole('button').click();
   page.once('dialog', (dialog) => dialog.accept());
   await job.locator('[data-pimp-undo]').click();
   await expect(job.locator('[data-pimp-undo]')).toBeHidden();
   state = JSON.parse(fixture('state'));
   expect(state).toEqual({products: [], categories: []});
-  await expect(page.locator('[data-pimp-history] tr')).not.toHaveCount(0);
 
   // 大包走 FTP：incoming/ 里的文件夹直接选
   await job.getByRole('button').last().click();

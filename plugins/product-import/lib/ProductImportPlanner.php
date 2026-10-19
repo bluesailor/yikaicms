@@ -27,6 +27,16 @@ interface ProductImportSite
 
     /** 本站 /uploads/… 文件的绝对路径；不存在返回 null。 */
     public function sitePath(string $url): ?string;
+
+    /** 本站图片的 MD5；导入时压过尺寸的图返回原文件的 MD5（与导入包里的同一张图对得上）。 */
+    public function imageMd5(string $url): ?string;
+
+    /**
+     * 与导入包比较用的产品现值。images / param_images 是网址列表，specs 是 JSON 原文。
+     * @return array{title:string,model:string,summary:string,content:string,specs:string,cover:string,images:list<string>,
+     *   param_images:list<string>,category_id:int,updated_at:int,synced_at:int}|null
+     */
+    public function product(int $id): ?array;
 }
 
 final class ProductImportPlanner
@@ -102,8 +112,7 @@ final class ProductImportPlanner
             }
         }
         foreach ($siteCategories as $category) {
-            $path = $category['image'] !== '' ? $this->site->sitePath($category['image']) : null;
-            $md5 = $path !== null ? $this->fileMd5($path) : null;
+            $md5 = $category['image'] !== '' ? $this->site->imageMd5($category['image']) : null;
             if ($md5 !== null) {
                 $categoryImages[$md5][] = $category['slug'];
             }
@@ -147,11 +156,12 @@ final class ProductImportPlanner
             }
 
             // 图片
-            $images = ['cover' => [], 'images' => [], 'param_images' => []];
+            $images = ['cover' => [], 'images' => [], 'param_images' => [], 'content' => []];
             if ($product['cover'] === '') {
                 $errors[] = self::issue('cover_missing');
             }
-            foreach (['cover' => [$product['cover']], 'images' => $product['images'], 'param_images' => $product['param_images']] as $role => $refs) {
+            $roles = ['cover' => [$product['cover']], 'images' => $product['images'], 'param_images' => $product['param_images'], 'content' => $product['content_images']];
+            foreach ($roles as $role => $refs) {
                 foreach ($refs as $ref) {
                     if ($ref === '') {
                         continue;
@@ -183,6 +193,9 @@ final class ProductImportPlanner
             if ($usesParamImages && $product['param_images'] === []) {
                 $warnings[] = self::issue('param_image_missing');
             }
+            if ($product['content_external'] > 0) {
+                $warnings[] = self::issue('content_external_image', ['count' => (string) $product['content_external']]);
+            }
 
             // 重复：导入键 → 别名 → 型号 + 名称
             $match = null;
@@ -196,6 +209,18 @@ final class ProductImportPlanner
                 $matchedBy = 'model_title';
             }
 
+            // 与本站比较：哪些字段真的变了；全没变的更新行，预览里默认跳过
+            $changes = null;
+            if ($match !== null && $errors === []) {
+                $current = $this->site->product((int) $match['id']);
+                if ($current !== null) {
+                    $changes = $this->changes($product, $images, $current, $siteSlugForKey[$categoryKey] ?? $categoryKey, $siteCategories);
+                    if ((int) $current['synced_at'] > 0 && (int) $current['updated_at'] > (int) $current['synced_at']) {
+                        $warnings[] = self::issue('edited_on_site');
+                    }
+                }
+            }
+
             $products[] = [
                 'index' => $index,
                 'key' => $product['key'],
@@ -203,6 +228,7 @@ final class ProductImportPlanner
                 'category' => $categoryKey,
                 'action' => $errors !== [] ? 'error' : ($match !== null ? 'update' : 'create'),
                 'match' => $match === null ? null : $match + ['by' => $matchedBy],
+                'changes' => $changes,
                 'images' => $images,
                 'errors' => $errors,
                 'warnings' => $warnings,
@@ -210,13 +236,14 @@ final class ProductImportPlanner
         }
 
         $summary = ['categories' => count($categories), 'categories_new' => 0, 'products' => count($products),
-            'create' => 0, 'update' => 0, 'error' => 0, 'warnings' => 0];
+            'create' => 0, 'update' => 0, 'unchanged' => 0, 'error' => 0, 'warnings' => 0];
         foreach ($categories as $category) {
             $summary['categories_new'] += $category['action'] === 'create' ? 1 : 0;
             $summary['error'] += $category['errors'] !== [] ? 1 : 0;
         }
         foreach ($products as $product) {
             $summary[$product['action']]++;
+            $summary['unchanged'] += $product['changes'] === [] ? 1 : 0;
             $summary['warnings'] += $product['warnings'] !== [] ? 1 : 0;
         }
         return ['categories' => $categories, 'products' => $products, 'summary' => $summary, 'errors' => $this->package->errors];
@@ -237,6 +264,68 @@ final class ProductImportPlanner
             }
         }
         return null;
+    }
+
+    /**
+     * 包里给了、且与本站现值不同的字段。图片按文件 MD5 比，详情里的图也是；详情末尾的参数图区块不算详情。
+     * @param array<string,mixed> $product @param array<string,list<array<string,string>>> $images
+     * @param array<string,mixed> $current @param list<array{id:int,slug:string,name:string,parent_id:int,image:string}> $siteCategories
+     * @return list<string>
+     */
+    private function changes(array $product, array $images, array $current, string $categorySlug, array $siteCategories): array
+    {
+        $changed = [];
+        if ($product['title'] !== trim((string) $current['title'])) {
+            $changed[] = 'title';
+        }
+        foreach (['model', 'summary'] as $field) {
+            if ($product[$field] !== '' && $product[$field] !== trim((string) $current[$field])) {
+                $changed[] = $field;
+            }
+        }
+        if ($product['category'] !== '') {
+            $slug = '';
+            foreach ($siteCategories as $category) {
+                $slug = $category['id'] === (int) $current['category_id'] ? $category['slug'] : $slug;
+            }
+            if ($slug !== $categorySlug) {
+                $changed[] = 'category';
+            }
+        }
+        if ($product['specs'] !== [] && $product['specs'] !== ProductImportPackage::normalizeSpecs(json_decode((string) $current['specs'], true))) {
+            $changed[] = 'specs';
+        }
+        $site = fn (array $urls): array => array_values(array_unique(array_map(fn (string $url): string => (string) $this->site->imageMd5($url), $urls)));
+        $mine = static fn (array $list): array => array_values(array_unique(array_column($list, 'md5')));
+        if ($images['cover'] !== [] && $images['cover'][0]['md5'] !== (string) $this->site->imageMd5((string) $current['cover'])) {
+            $changed[] = 'cover';
+        }
+        foreach (['images', 'param_images'] as $role) {
+            if ($product[$role] !== [] && $mine($images[$role]) !== $site($current[$role])) {
+                $changed[] = $role;
+            }
+        }
+        if ($product['content'] !== '') {
+            $siteContent = (string) preg_replace('~\s*<div class="yk-product-param-images">.*?</div>~s', '', (string) $current['content']);
+            $packageMd5 = function (string $src): ?string {
+                $resolved = $this->package->resolveImage($src);
+                return $resolved['path'] !== '' ? $this->fileMd5($resolved['path']) : null;
+            };
+            if (self::comparableContent($product['content'], $packageMd5) !== self::comparableContent($siteContent, fn (string $src): ?string => $this->site->imageMd5($src))) {
+                $changed[] = 'content';
+            }
+        }
+        return $changed;
+    }
+
+    /** 图片地址换成文件 MD5、空白归一，两边写法不同但内容相同就算没变。 */
+    private static function comparableContent(string $html, callable $md5): string
+    {
+        $html = (string) preg_replace_callback('~(<img\b[^>]*?\ssrc\s*=\s*)(["\'])(.*?)\2~is', static function (array $m) use ($md5): string {
+            $src = trim(html_entity_decode($m[3], ENT_QUOTES | ENT_HTML5));
+            return $m[1] . '"' . ($md5($src) ?? $src) . '"';
+        }, $html);
+        return trim((string) preg_replace('/\s+/u', ' ', $html));
     }
 
     private function md5Of(string $ref): ?string

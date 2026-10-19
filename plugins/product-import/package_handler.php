@@ -22,6 +22,7 @@ require_once __DIR__ . '/lib/ProductImportSiteDb.php';
 require_once __DIR__ . '/lib/ProductImportJobs.php';
 require_once __DIR__ . '/lib/ProductImportRunner.php';
 require_once __DIR__ . '/lib/ProductImportPackages.php';
+require_once __DIR__ . '/lib/ProductImportExporter.php';
 
 loadPluginLang('product-import');
 
@@ -72,7 +73,7 @@ $handler = (string) ($_GET['handler'] ?? '');
 $isPost = ($_SERVER['REQUEST_METHOD'] ?? '') === 'POST';
 if ($isPost) {
     verifyCsrf();
-} elseif (!in_array($handler, ['pkg_incoming', 'pkg_image', 'job_get', 'jobs', 'job_errors'], true)) {
+} elseif (!in_array($handler, ['pkg_incoming', 'pkg_image', 'pkg_categories', 'pkg_export', 'job_get', 'jobs', 'job_errors'], true)) {
     $pimpReply([], 'post_required');
 }
 
@@ -118,6 +119,37 @@ try {
             header('Cache-Control: private, max-age=600');
             header('X-Content-Type-Options: nosniff');
             readfile($resolved['path']);
+            exit;
+
+        case 'pkg_categories':
+            $lang = (string) ($_GET['lang'] ?? '');
+            $lang = preg_match('/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})?$/D', $lang) ? $lang : (string) config('site_lang', 'zh-CN');
+            $pimpReply(['categories' => ProductImportExporter::categories($lang), 'lang' => $lang,
+                'uncategorized' => (int) db()->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . "products WHERE lang = ? AND category_id = 0 AND deleted_at IS NULL", [$lang])]);
+
+        case 'pkg_export':
+            // 只读导出，GET 下载；导出文件放 storage 临时目录，发完即删
+            $lang = (string) ($_GET['lang'] ?? '');
+            $lang = preg_match('/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})?$/D', $lang) ? $lang : (string) config('site_lang', 'zh-CN');
+            $ids = array_values(array_filter(array_map('intval', explode(',', (string) ($_GET['categories'] ?? ''))), static fn (int $id): bool => $id > 0));
+            @set_time_limit(0);
+            if (!is_dir(ROOT_PATH . '/storage/temp')) {
+                mkdir(ROOT_PATH . '/storage/temp', 0755, true);
+            }
+            $zipPath = ROOT_PATH . '/storage/temp/product-export-' . bin2hex(random_bytes(6)) . '.zip';
+            try {
+                $result = (new ProductImportExporter(ROOT_PATH))->export($ids, $lang, $zipPath);
+                adminLog('product', 'export', "导出产品导入包：{$result['products']} 款，{$result['images']} 张图");
+                header('Content-Type: application/zip');
+                header('Content-Disposition: attachment; filename="products-' . $lang . '-' . date('Ymd-His') . '.zip"');
+                header('Content-Length: ' . filesize($zipPath));
+                header('X-Product-Export: ' . $result['products'] . ' products; ' . count($result['missing']) . ' missing images');
+                readfile($zipPath);
+            } finally {
+                if (is_file($zipPath)) {
+                    unlink($zipPath);
+                }
+            }
             exit;
 
         case 'job_create':
@@ -171,6 +203,9 @@ try {
             $runner = new ProductImportRunner(ProductImportPackage::fromDirectory($job['package'], ROOT_PATH), ROOT_PATH);
             $wasDone = $job['status'] === 'done';
             $runner->run($job);
+            if ($job['status'] === 'done' && (!$wasDone || $handler === 'job_retry')) {
+                $job['verify'] = $runner->verify($job);
+            }
             $pimpJobs->save($job);
             if (!$wasDone && $job['status'] === 'done') {
                 $c = $job['counts'];

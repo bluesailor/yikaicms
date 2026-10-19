@@ -86,6 +86,28 @@ $pimpConfig = [
                 </template>
             </ul>
         </div>
+
+        <details class="border rounded-lg" @toggle="$event.target.open && loadCategories()" data-pimp-export>
+            <summary class="px-4 py-3 cursor-pointer font-medium text-gray-800 text-sm"><i class="ti ti-file-export"></i> <span x-text="t('pimp_export_title')"></span></summary>
+            <div class="px-4 pb-4 space-y-3">
+                <p class="text-xs text-gray-500" x-text="t('pimp_export_help')"></p>
+                <div class="max-h-72 overflow-y-auto border rounded divide-y text-sm">
+                    <template x-for="c in categoryTree()" :key="c.id">
+                        <label class="flex items-center gap-2 px-3 py-1.5" :style="{ paddingInlineStart: (12 + c.depth * 20) + 'px' }">
+                            <input type="checkbox" :value="c.id" x-model.number="exportIds" :data-pimp-export-category="c.slug">
+                            <span x-text="c.name"></span>
+                            <span class="text-xs text-gray-400" x-text="c.slug + ' · ' + c.products"></span>
+                        </label>
+                    </template>
+                </div>
+                <p class="text-xs text-gray-400" x-show="uncategorized > 0" x-text="t('pimp_uncategorized', { n: uncategorized })"></p>
+                <div class="flex items-center gap-3">
+                    <a class="bg-primary hover:bg-secondary text-white px-5 py-2 rounded text-sm" :href="exportUrl()" data-pimp-export-link
+                       x-text="t('pimp_export_button')"></a>
+                    <span class="text-xs text-gray-500" x-text="exportIds.length ? t('pimp_export_selected', { n: exportIds.length }) : t('pimp_filter_all')"></span>
+                </div>
+            </div>
+        </details>
     </section>
 
     <?php /* ② 预览与校验 */ ?>
@@ -152,7 +174,7 @@ $pimpConfig = [
             <div class="flex flex-wrap items-center justify-between gap-3">
                 <h3 class="font-medium text-gray-800"><span x-text="t('pimp_products')"></span> (<span x-text="visibleProducts().length"></span>)</h3>
                 <div class="flex gap-1 text-sm">
-                    <template x-for="f in ['all', 'error', 'warning', 'create', 'update']" :key="f">
+                    <template x-for="f in ['all', 'error', 'warning', 'create', 'update', 'unchanged']" :key="f">
                         <button type="button" class="px-3 py-1 rounded border" :class="filter === f ? 'bg-primary text-white border-primary' : 'text-gray-600'"
                                 @click="filter = f; limit = 100" :data-pimp-filter="f"
                                 x-text="t(['create', 'update'].includes(f) ? 'pimp_action_' + f : 'pimp_filter_' + f)"></button>
@@ -181,6 +203,8 @@ $pimpConfig = [
                                         <span x-show="p.match" x-text="p.match ? ' · ' + t('pimp_matched_' + p.match.by, { id: p.match.id }) : ''"></span>
                                     </div>
                                     <div class="text-xs text-gray-400" x-text="t('pimp_images_count', { n: p.images.images.length, m: p.images.param_images.length })"></div>
+                                    <div class="text-xs" x-show="p.changes" :class="p.changes && p.changes.length ? 'text-blue-600' : 'text-gray-400'" :data-pimp-changes="p.index"
+                                         x-text="p.changes ? (p.changes.length ? t('pimp_changed', { fields: p.changes.map(f => t('pimp_field_' + f)).join(t('pimp_list_sep')) }) : t('pimp_unchanged')) : ''"></div>
                                 </td>
                                 <td class="py-2 pe-3 text-xs text-gray-500" x-text="p.category"></td>
                                 <td class="py-2 pe-3 text-xs">
@@ -239,6 +263,13 @@ $pimpConfig = [
                 </div>
             </template>
         </div>
+        <div x-show="job && job.verify" class="rounded p-3 text-sm border" data-pimp-verify
+             :class="job && job.verify && job.verify.problems.length ? 'bg-red-50 border-red-200 text-red-700' : 'bg-green-50 border-green-200 text-green-700'">
+            <p x-text="job && job.verify ? (job.verify.problems.length ? t('pimp_verify_problems', { n: job.verify.problems.length }) : t('pimp_verify_ok', { n: job.verify.checked })) : ''"></p>
+            <template x-for="v in (job && job.verify ? job.verify.problems.slice(0, 50) : [])" :key="v.product_id">
+                <p class="text-xs" x-text="'#' + v.product_id + ' ' + v.title + ' · ' + t('pimp_verify_missing', { list: v.missing.join(', ') })"></p>
+            </template>
+        </div>
         <div x-show="undoConflicts.length > 0" class="bg-amber-50 border border-amber-200 rounded p-3 text-sm text-amber-800">
             <p x-text="t('pimp_undo_conflicts')"></p>
             <template x-for="c in undoConflicts" :key="c.id"><p x-text="'#' + c.id + ' ' + c.title"></p></template>
@@ -285,11 +316,13 @@ function pimpWizard(config) {
         lang: config.lang, incomingDir: 'storage/product-import/incoming/',
         step: 'choose', busy: '', error: '', dragOver: false, running: false,
         incoming: [], jobs: [], pkg: null, plan: null, decisions: {}, filter: 'all', limit: 100, job: null, undoConflicts: [],
+        categories: [], categoriesLang: '', uncategorized: 0, exportIds: [],
 
         init() {
             this.loadIncoming();
             this.loadJobs();
             if (config.job) this.openJob(config.job);
+            this.$watch('lang', () => { if (this.categoriesLang) { this.exportIds = []; this.loadCategories(); } });
         },
         t(key, params) {
             let s = this.text[key] !== undefined ? this.text[key] : key;
@@ -301,7 +334,7 @@ function pimpWizard(config) {
             return this.text[key] !== undefined ? this.t(key, e.params || {}) : e.code;
         },
         itemMessage(item) {
-            return String(item.message || '').split(',').filter(Boolean).map(code => this.issue({ code: code })).join('；');
+            return String(item.message || '').split(',').filter(Boolean).map(code => this.issue({ code: code })).join(this.t('pimp_list_sep'));
         },
         size(bytes) {
             return bytes >= 1048576 ? Math.round(bytes / 1048576) + ' MB' : Math.round(bytes / 1024) + ' KB';
@@ -364,7 +397,10 @@ function pimpWizard(config) {
             this.plan = data.plan;
             this.lang = data.lang;
             this.decisions = {};
-            this.plan.products.forEach(p => { if (p.action !== 'error') this.decisions[p.index] = p.action; });
+            // 与本站完全相同的更新行默认跳过，只同步真有变化的
+            this.plan.products.forEach(p => {
+                if (p.action !== 'error') this.decisions[p.index] = p.changes && p.changes.length === 0 ? 'skip' : p.action;
+            });
             this.filter = this.plan.summary.error > 0 ? 'error' : 'all';
             this.limit = 100;
             this.step = 'preview';
@@ -380,6 +416,7 @@ function pimpWizard(config) {
                 { key: 'update', label: 'pimp_sum_update', value: s.update || 0, filter: 'update', cls: 'text-blue-700 border-blue-200 bg-blue-50' },
                 { key: 'error', label: 'pimp_sum_error', value: s.error || 0, filter: 'error', cls: 'text-red-700 border-red-200 bg-red-50' },
                 { key: 'warnings', label: 'pimp_sum_warnings', value: s.warnings || 0, filter: 'warning', cls: 'text-amber-700 border-amber-200 bg-amber-50' },
+                { key: 'unchanged', label: 'pimp_sum_unchanged', value: s.unchanged || 0, filter: 'unchanged', cls: 'text-gray-600 border-gray-200 bg-gray-50' },
             ];
         },
         visibleProducts() {
@@ -388,7 +425,31 @@ function pimpWizard(config) {
             return this.plan.products.filter(p => f === 'all'
                 || (f === 'error' && p.errors.length > 0)
                 || (f === 'warning' && p.warnings.length > 0)
-                || ((f === 'create' || f === 'update') && p.action === f));
+                || ((f === 'create' || f === 'update') && p.action === f)
+                || (f === 'unchanged' && Array.isArray(p.changes) && p.changes.length === 0));
+        },
+        async loadCategories() {
+            if (this.categoriesLang === this.lang) return;
+            try {
+                const data = await this.api('pkg_categories&lang=' + encodeURIComponent(this.lang));
+                this.categories = data.categories;
+                this.uncategorized = data.uncategorized;
+                this.categoriesLang = data.lang;
+            } catch (e) { this.error = e.message; }
+        },
+        categoryTree() {
+            const byParent = {};
+            this.categories.forEach(c => { (byParent[c.parent_id] = byParent[c.parent_id] || []).push(c); });
+            const ids = new Set(this.categories.map(c => c.id));
+            const out = [];
+            const walk = (parent, depth) => (byParent[parent] || []).forEach(c => { out.push({ ...c, depth: depth }); walk(c.id, depth + 1); });
+            walk(0, 0);
+            // 上级不在本语言里的分类也列出来
+            this.categories.forEach(c => { if (c.parent_id && !ids.has(c.parent_id)) { out.push({ ...c, depth: 0 }); walk(c.id, 1); } });
+            return out;
+        },
+        exportUrl() {
+            return '?plugin=product-import&handler=pkg_export&lang=' + encodeURIComponent(this.lang) + '&categories=' + this.exportIds.join(',');
         },
         importCount() {
             return this.plan ? this.plan.products.filter(p => p.action !== 'error' && this.decisions[p.index] !== 'skip').length : 0;

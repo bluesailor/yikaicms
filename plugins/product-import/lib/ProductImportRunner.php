@@ -210,6 +210,45 @@ final class ProductImportRunner
         return $conflicts;
     }
 
+    /**
+     * 导入后检查：导入成功的每款产品都在，主图、产品图、参数图和详情里的本站图片文件都在。
+     * @param array<string,mixed> $job
+     * @return array{checked:int,problems:list<array{index:int,product_id:int,title:string,missing:list<string>}>}
+     */
+    public function verify(array $job): array
+    {
+        $checked = 0;
+        $problems = [];
+        foreach ($job['items'] as $item) {
+            if ($item['status'] !== 'done') {
+                continue;
+            }
+            $checked++;
+            $id = (int) $item['product_id'];
+            $row = db()->fetchOne('SELECT cover, images, content FROM ' . DB_PREFIX . 'products WHERE id = ? AND deleted_at IS NULL', [$id]);
+            $missing = [];
+            if (!is_array($row)) {
+                $missing[] = 'product';
+            } else {
+                $urls = [(string) $row['cover']];
+                foreach ([json_decode((string) $row['images'], true), json_decode((string) metaModel()->get('product', $id, 'param_images', '[]'), true)] as $list) {
+                    $urls = array_merge($urls, is_array($list) ? array_filter($list, 'is_string') : []);
+                }
+                $urls = array_merge($urls, ProductImportPackage::contentImages((string) $row['content'])[0]);
+                foreach (array_unique($urls) as $url) {
+                    $path = (string) parse_url($url, PHP_URL_PATH);
+                    if (str_starts_with($path, '/uploads/') && !is_file($this->siteRoot . rawurldecode($path))) {
+                        $missing[] = $url;
+                    }
+                }
+            }
+            if ($missing !== []) {
+                $problems[] = ['index' => (int) $item['index'], 'product_id' => $id, 'title' => (string) $item['title'], 'missing' => $missing];
+            }
+        }
+        return ['checked' => $checked, 'problems' => $problems];
+    }
+
     /** @param array<string,mixed> $job @return array<string,int> */
     public static function counts(array $job): array
     {
@@ -310,6 +349,11 @@ final class ProductImportRunner
             foreach ($product['param_images'] as $ref) {
                 $params[] = $this->image($job, (string) $ref);
             }
+            // 详情里的图（参数表常放在这里）：包里的导入媒体库，地址改成本站的
+            $contentUrls = [];
+            foreach ($product['content_images'] ?? [] as $ref) {
+                $contentUrls[(string) $ref] = $this->image($job, (string) $ref);
+            }
         } catch (RuntimeException $e) {
             $item['status'] = 'failed';
             $item['message'] = $e->getMessage();
@@ -319,6 +363,7 @@ final class ProductImportRunner
         // 分类键可以是包里的，也可以直接写本站已有分类的别名
         $categoryId = (int) ($job['category_ids'][$categoryKey] ?? $this->siteCategoryId($categoryKey, (string) $job['lang']) ?? 0);
         $paramBlock = self::paramBlock($params, (string) $product['title']);
+        $packageContent = self::rewriteImages((string) $product['content'], $contentUrls);
 
         $fields = ['title' => (string) $product['title'], 'cover' => $cover];
         if ((string) $product['category'] !== '') {
@@ -336,6 +381,8 @@ final class ProductImportRunner
             $fields['specs'] = json_encode($product['specs'], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
         }
         $metas = array_filter(['import_key' => (string) $product['key'], 'source_url' => (string) $product['source_url']], static fn ($v) => $v !== '');
+        // 下次同步时据此判断：导入后有没有人在本站改过它
+        $metas['import_synced_at'] = (string) time();
         if ($params !== []) {
             $metas['param_images'] = json_encode($params, JSON_UNESCAPED_SLASHES);
         }
@@ -349,7 +396,7 @@ final class ProductImportRunner
                 $item['message'] = 'product_gone';
                 return;
             }
-            $content = (string) $product['content'] !== '' ? (string) $product['content'] : (string) $current['content'];
+            $content = $packageContent !== '' ? $packageContent : (string) $current['content'];
             if ((string) $product['content'] !== '' || $params !== []) {
                 $fields['content'] = self::withParamBlock($content, $paramBlock);
             }
@@ -360,7 +407,7 @@ final class ProductImportRunner
                     $before[$field] = $current[$field];
                 }
                 $metasBefore = [];
-                foreach (['import_key', 'source_url', 'param_images'] as $key) {
+                foreach (['import_key', 'source_url', 'param_images', 'import_synced_at'] as $key) {
                     $metasBefore[$key] = metaModel()->get('product', $id, $key);
                 }
                 $job['updated'][$id] = ['before' => $before, 'metas_before' => $metasBefore, 'after' => []];
@@ -370,7 +417,7 @@ final class ProductImportRunner
         } else {
             $id = (int) productModel()->create($fields + [
                 'lang' => $lang, 'slug' => $this->uniqueSlug('products', (string) $product['slug'], (string) $product['title'], $lang),
-                'content' => self::withParamBlock((string) $product['content'], $paramBlock),
+                'content' => self::withParamBlock($packageContent, $paramBlock),
                 'status' => (int) $product['status'], 'sort_order' => (int) $product['sort_order'],
                 'created_at' => time(), 'updated_at' => time(), 'admin_id' => (int) $job['admin_id'],
             ]);
@@ -384,6 +431,18 @@ final class ProductImportRunner
         $item['product_id'] = $id;
         $item['message'] = '';
         unset($item);
+    }
+
+    /** @param array<string,string> $urls 包里的引用 => 本站网址 */
+    public static function rewriteImages(string $html, array $urls): string
+    {
+        if ($urls === []) {
+            return $html;
+        }
+        return (string) preg_replace_callback('~(<img\b[^>]*?\ssrc\s*=\s*)(["\'])(.*?)\2~is', static function (array $m) use ($urls): string {
+            $src = trim(html_entity_decode($m[3], ENT_QUOTES | ENT_HTML5));
+            return isset($urls[$src]) ? $m[1] . $m[2] . htmlspecialchars($urls[$src], ENT_QUOTES) . $m[2] : $m[0];
+        }, $html);
     }
 
     /** @param list<string> $urls */

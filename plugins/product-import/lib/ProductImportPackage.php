@@ -240,6 +240,8 @@ final class ProductImportPackage
     /** @param array<string,mixed> $row @return array<string,mixed> */
     private static function product(array $row): array
     {
+        $content = is_string($row['content'] ?? null) ? $row['content'] : '';
+        [$contentImages, $external] = self::contentImages($content);
         return [
             'key' => mb_substr(self::str($row['key'] ?? ''), 0, 120),
             'source_url' => mb_substr(self::str($row['source_url'] ?? ''), 0, 500),
@@ -251,11 +253,36 @@ final class ProductImportPackage
             'images' => self::list($row['images'] ?? []),
             'param_images' => self::list($row['param_images'] ?? []),
             'summary' => self::str($row['summary'] ?? ''),
-            'content' => is_string($row['content'] ?? null) ? $row['content'] : '',
-            'specs' => self::specs($row['specs'] ?? []),
+            'content' => $content,
+            'content_images' => $contentImages,
+            'content_external' => $external,
+            'specs' => self::normalizeSpecs($row['specs'] ?? []),
             'status' => isset($row['status']) ? (((int) $row['status']) === 0 ? 0 : 1) : 1,
             'sort_order' => (int) ($row['sort_order'] ?? 0),
         ];
+    }
+
+    /**
+     * 详情里 <img src> 引用的图：包内路径与本站 /uploads/ 要导入 / 校验；外部网址只计数（导入后仍是外链）。
+     * @return array{0:list<string>,1:int}
+     */
+    public static function contentImages(string $html): array
+    {
+        $refs = [];
+        $external = 0;
+        preg_match_all('~<img\b[^>]*?\ssrc\s*=\s*(["\'])(.*?)\1~is', $html, $matches);
+        foreach ($matches[2] as $src) {
+            $src = trim(html_entity_decode($src, ENT_QUOTES | ENT_HTML5));
+            if ($src === '' || str_starts_with(strtolower($src), 'data:')) {
+                continue;
+            }
+            if (preg_match('#^([a-z][a-z0-9+.-]*:)?//#i', $src) === 1) {
+                $external++;
+            } elseif (!in_array($src, $refs, true)) {
+                $refs[] = $src;
+            }
+        }
+        return [$refs, $external];
     }
 
     /** @return list<string> 列表或 | , 分隔的字符串 */
@@ -276,7 +303,7 @@ final class ProductImportPackage
     }
 
     /** @return array<string,string> 对象，或每行「名称:值」 */
-    private static function specs(mixed $value): array
+    public static function normalizeSpecs(mixed $value): array
     {
         if (is_string($value)) {
             $pairs = [];
@@ -290,6 +317,11 @@ final class ProductImportPackage
         }
         $out = [];
         foreach (is_array($value) ? $value : [] as $name => $item) {
+            // 也认 [{name, value}] / [{key, value}] 的列表写法（后台和旧版导入存的就是这种）
+            if (is_int($name) && is_array($item)) {
+                $name = self::str($item['name'] ?? $item['key'] ?? '');
+                $item = $item['value'] ?? '';
+            }
             if (is_string($name) && trim($name) !== '' && is_scalar($item)) {
                 $out[trim($name)] = trim((string) $item);
             }
