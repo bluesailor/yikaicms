@@ -368,6 +368,16 @@ for lang in zh-CN en ja; do
     fi
 done
 
+# 下载语言（签名语言包）的翻译缺口（2.1.1）：2.1.0 发出时 14 种语言每种缺 86 条、显示英文兜底没人发现。
+# 发版要求清零；确实来不及时设 YK_ALLOW_I18N_GAPS=1，并在更新日志写明哪些语言有英文兜底。
+if gaps_out=$(php tools/i18n/gaps.php 2>&1); then
+    pass "$gaps_out"
+elif [ "${YK_ALLOW_I18N_GAPS:-0}" = "1" ]; then
+    warn "$gaps_out（YK_ALLOW_I18N_GAPS=1：更新日志里要写明）"
+else
+    fail "$gaps_out——清零后再发，或设 YK_ALLOW_I18N_GAPS=1 并在更新日志写明"
+fi
+
 # ─────────────────────────────────────────────────────────────
 section "4a. 演示数据 UTF-8 完整性"
 # 安装 SQL、测试夹具和已配置的本地三语演示库统一检查 U+FFFD。
