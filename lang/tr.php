@@ -8559,6 +8559,8 @@ return [
     'sc_empty' => 'Bu sayfanın doğrudan gövdesi veya yayınlanmış doğrudan girişi yok. İçeriğinin alt sayfalardan, temadan veya oluşturucudan gelip gelmediğini kontrol edin.',
     'sc_lang_untranslated' => 'Bu dil etkin ama henüz bu dilde hiç kanal yok: sitede boş bir menü görünürken dil seçici ve hreflang onu ayrı bir sürüm olarak sunuyor; arama motorları bunu yinelenen içerik sayar. Kanalları çevirin ya da şimdilik dil ayarlarından dili devre dışı bırakın.',
     'sc_demo' => 'Olası örnek metin bulundu. Bu sitenin gerçek bilgileriyle değiştirildiğini kontrol edin.',
+    'sc_cover_category_image' => 'Ürün kapak görseli başka bir kategorinin veya üst kategorinin görseliyle aynı; yanlış görsel olabilir.',
+    'sc_cover_shared' => 'Birden fazla ürün aynı kapak görselini kullanıyor. Her birinin kendi görseline ihtiyacı olup olmadığını kontrol edin.',
     'sc_failed' => 'Kontrol tamamlanmadı. Veritabanı güncellemelerini tamamlayıp hata günlüğünü inceledikten sonra yeniden deneyin.',
     'sc_links' => 'Bozuk bağlantılar ve çalışma zamanı sağlığı',
     'sc_links_hint' => 'Tam dahili bağlantı kontrolü SEO Assistant Pro\'da kalır ve eklentisi ile lisansını gerektirir. Bu sayfa eklentileri etkinleştirmez veya her bağlantıyı doğrulamaz.',

@@ -8559,6 +8559,8 @@ return [
     'sc_empty' => 'Diese Rubrik hat keinen eigenen Text und keine direkt zugehörigen veröffentlichten Inhalte. Prüfen Sie, ob Unterseiten, Theme oder Website Builder den Inhalt liefern.',
     'sc_lang_untranslated' => 'Diese Sprache ist aktiviert, hat aber noch keine Kanäle: Die Website zeigt ein leeres Menü, während Sprachumschalter und hreflang sie als eigene Version ausgeben – Suchmaschinen werten das als doppelten Inhalt. Übersetzen Sie die Kanäle oder deaktivieren Sie die Sprache vorerst in den Spracheinstellungen.',
     'sc_demo' => 'Mögliche Beispieltexte gefunden. Prüfen Sie, ob sie durch echte Website-Informationen ersetzt wurden.',
+    'sc_cover_category_image' => 'Das Produktbild ist das Bild einer anderen oder übergeordneten Kategorie – möglicherweise das falsche Bild.',
+    'sc_cover_shared' => 'Mehrere Produkte verwenden dasselbe Hauptbild. Prüfen Sie, ob jedes ein eigenes Bild braucht.',
     'sc_failed' => 'Prüfung unvollständig. Schließen Sie die Datenbankaktualisierung ab, prüfen Sie das Fehlerprotokoll und versuchen Sie es erneut.',
     'sc_links' => 'Defekte Links und Laufzeitumgebung',
     'sc_links_hint' => 'Die vollständige Prüfung interner Links erfolgt weiterhin mit SEO Assistant Pro und benötigt das entsprechende Plugin und eine Lizenz. Diese Seite aktiviert keine Plugins und bestätigt nicht die Gültigkeit aller Links.',

@@ -8559,6 +8559,8 @@ return [
     'sc_empty' => 'Bahagian ini tiada isi langsung atau entri langsung yang diterbitkan. Semak sama ada kandungannya datang daripada halaman anak, tema atau pembina.',
     'sc_lang_untranslated' => 'Bahasa ini diaktifkan tetapi belum ada saluran dalam bahasa ini: laman memaparkan menu kosong, sedangkan pemilih bahasa dan hreflang masih menganggapnya versi tersendiri, dan enjin carian menganggapnya kandungan pendua. Terjemahkan saluran atau nyahaktifkan bahasa ini dahulu dalam tetapan bahasa.',
     'sc_demo' => 'Teks contoh mungkin ditemui. Semak bahawa ia telah diganti dengan maklumat sebenar laman ini.',
+    'sc_cover_category_image' => 'Gambar utama produk ialah gambar kategori lain atau kategori induk; mungkin gambar yang salah.',
+    'sc_cover_shared' => 'Beberapa produk menggunakan gambar utama yang sama. Semak sama ada setiap produk memerlukan gambarnya sendiri.',
     'sc_failed' => 'Semakan tidak selesai. Lengkapkan naik taraf pangkalan data dan semak log ralat sebelum mencuba semula.',
     'sc_links' => 'Pautan rosak dan kesihatan masa jalan',
     'sc_links_hint' => 'Semakan pautan dalaman penuh kekal dalam SEO Assistant Pro dan memerlukan pemalam serta lesennya. Halaman ini tidak mendayakan pemalam atau mengesahkan setiap pautan.',
