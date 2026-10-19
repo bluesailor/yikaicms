@@ -140,6 +140,20 @@ test('catalog category links use full navigation and toggles expose an accessibl
   expect(controlledId).toBeTruthy();
   await expect(page.locator(`#${controlledId}`)).toHaveCount(1);
 
+  // 没选分类时各支都收起；箭头跟着开合转（以前全展开、箭头永远朝上）
+  const children = page.locator(`#${controlledId}`);
+  const arrow = toggle.locator('svg');
+  await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+  await expect(children).toBeHidden();
+  await expect(arrow).not.toHaveClass(/rotate-180/);
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(children).toBeVisible();
+  await expect(arrow).toHaveClass(/rotate-180/);
+  await toggle.click();
+  await expect(children).toBeHidden();
+  await expect(arrow).not.toHaveClass(/rotate-180/);
+
   const category = root.locator('[data-catalog-categories] a').nth(1);
   const navigation = page.waitForNavigation();
   const request = page.waitForRequest(req => req.isNavigationRequest() && req.frame() === page.mainFrame());
@@ -148,6 +162,10 @@ test('catalog category links use full navigation and toggles expose an accessibl
   const navigationRequest = await request;
   expect(navigationRequest.headers()['x-requested-with']).toBeUndefined();
   expect(new URL(page.url()).pathname).not.toBe('/product.html');
+  // 进了这个分类：它那一支是展开的
+  const activeToggle = page.locator('[data-product-catalog] .category-toggle').first();
+  await expect(activeToggle).toHaveAttribute('aria-expanded', 'true');
+  await expect(page.locator(`#${await activeToggle.getAttribute('aria-controls')}`)).toBeVisible();
 });
 
 test('out-of-range page and oversized keyword render and canonicalize as normalized defaults @ci', async ({ page }) => {
