@@ -2,11 +2,11 @@
     "name": "产品导入",
     "name_en": "Product Import",
     "name_ja": "商品インポート",
-    "version": "1.0.2",
-    "description": "从 CSV / Excel 批量导入产品数据，支持字段映射、数据预览校验、分批写入",
-    "description_en": "Batch import products from CSV/Excel with field mapping, data preview & validation",
-    "description_ja": "CSV / Excel から商品を一括インポート。フィールドマッピング、プレビュー検証、分割書込対応",
+    "version": "2.0.0",
+    "description": "批量导入产品：导入包（表格 + 图片）预览校验、错图检查、分批写入、整批撤销；也支持 CSV / Excel 字段映射",
+    "description_en": "Batch import products: import packages (spreadsheet + images) with preview, wrong-image checks, batched writes and one-click undo; CSV/Excel column mapping too",
+    "description_ja": "商品を一括インポート：インポートパッケージ（表＋画像）のプレビュー確認、画像の誤り検出、分割書込、一括取り消し。CSV / Excel の列マッピングにも対応",
     "author": "Yikai CMS",
     "requires_php": "8.0",
-    "requires_cms": "1.18.5"
+    "requires_cms": "2.1.0"
 }

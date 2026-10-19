@@ -54,6 +54,7 @@ final class SiteContentChecks
             self::inspectValue((string) $value, $root, $key, $url, $issues);
         }
         self::inspectLanguages($issues);
+        self::inspectProductCovers($root, $issues);
         foreach (['home_blox', 'home_layout'] as $prefix) {
             $published = (string) ($settings[$prefix . '_published'] ?? '');
             $draft = (string) ($settings[$prefix . '_data'] ?? '');
@@ -143,6 +144,62 @@ final class SiteContentChecks
             $live = (int) db()->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . 'channels WHERE lang = ? AND status = 1', [$code]);
             if ($live === 0) {
                 self::add($issues, 'sc_lang_untranslated', LanguageRegistry::name($code), '', '/admin/setting_lang.php');
+            }
+        }
+    }
+
+    /**
+     * 产品主图：与别的分类或上级分类的图片是同一张（同一网址，或文件内容相同），多款产品共用一张主图。
+     * 小类图常取自它自己的产品，产品所在分类自己的图不算。文件内容只在大小相同时才算 MD5。
+     */
+    private static function inspectProductCovers(string $root, array &$issues): void
+    {
+        $p = DB_PREFIX;
+        $file = static function (string $url) use ($root): ?string {
+            $path = rawurldecode((string) parse_url($url, PHP_URL_PATH));
+            return str_starts_with($path, '/uploads/') && preg_match('~(^|/)\.\.(/|$)~', $path) !== 1 && is_file($root . $path) ? $root . $path : null;
+        };
+        $byUrl = [];
+        $bySize = [];
+        foreach (db()->fetchAll("SELECT id, name, image FROM {$p}product_categories WHERE image <> ''") as $category) {
+            $url = trim((string) $category['image']);
+            $byUrl[$url][] = $category;
+            $path = $file($url);
+            if ($path !== null) {
+                $bySize[(int) filesize($path)][] = ['path' => $path, 'category' => $category];
+            }
+        }
+        $md5 = [];
+        $hash = static function (string $path) use (&$md5): string {
+            return $md5[$path] ??= (string) md5_file($path);
+        };
+        $covers = [];
+        foreach (db()->fetchAll("SELECT id, title, cover, category_id FROM {$p}products WHERE deleted_at IS NULL AND status = 1 AND cover <> '' ORDER BY id LIMIT 5000") as $product) {
+            $url = trim((string) $product['cover']);
+            $covers[$url][] = $product;
+            $same = $byUrl[$url] ?? [];
+            $path = $file($url);
+            foreach ($path !== null ? $bySize[(int) filesize($path)] ?? [] : [] as $candidate) {
+                if ($candidate['path'] !== $path && $hash($candidate['path']) === $hash($path)) {
+                    $same[] = $candidate['category'];
+                }
+            }
+            $names = [];
+            foreach ($same as $category) {
+                if ((int) $category['id'] !== (int) $product['category_id']) {
+                    $names[(int) $category['id']] = (string) $category['name'];
+                }
+            }
+            if ($names !== []) {
+                self::add($issues, 'sc_cover_category_image', (string) $product['title'], implode(', ', $names) . ' · ' . $url,
+                    '/admin/product_edit.php?id=' . (int) $product['id']);
+            }
+        }
+        foreach ($covers as $url => $products) {
+            if (count($products) > 1) {
+                $list = array_map(static fn (array $row): string => '#' . (int) $row['id'] . ' ' . (string) $row['title'], array_slice($products, 0, 5));
+                self::add($issues, 'sc_cover_shared', (string) $products[0]['title'], '×' . count($products) . ' · ' . implode('; ', $list) . ' · ' . $url,
+                    '/admin/product_edit.php?id=' . (int) $products[0]['id']);
             }
         }
     }

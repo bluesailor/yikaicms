@@ -8559,6 +8559,8 @@ return [
     'sc_empty' => 'Chuyên mục không điền trực tiếp nội dung chính và không có nội dung trực thuộc đã xuất bản. Hãy kiểm tra xem nội dung có do trang con, chủ đề hoặc trình tạo cung cấp không.',
     'sc_lang_untranslated' => 'Ngôn ngữ này đã bật nhưng chưa có chuyên mục nào: trang chỉ hiện menu trống, trong khi bộ chọn ngôn ngữ và hreflang vẫn coi đó là một phiên bản riêng, công cụ tìm kiếm sẽ xem là nội dung trùng lặp. Hãy dịch các chuyên mục hoặc tạm tắt ngôn ngữ trong cài đặt ngôn ngữ.',
     'sc_demo' => 'Phát hiện nội dung mẫu nghi ngờ, hãy xác nhận đã thay bằng thông tin thật của trang này chưa.',
+    'sc_cover_category_image' => 'Ảnh chính của sản phẩm là ảnh của một danh mục khác hoặc danh mục cha; có thể đã dùng nhầm ảnh.',
+    'sc_cover_shared' => 'Nhiều sản phẩm dùng chung một ảnh chính. Hãy kiểm tra xem mỗi sản phẩm có cần ảnh riêng không.',
     'sc_failed' => 'Kiểm tra chưa hoàn tất. Hãy xác nhận đã hoàn tất nâng cấp cơ sở dữ liệu, xem nhật ký lỗi rồi thử lại.',
     'sc_links' => 'Liên kết hỏng và môi trường vận hành',
     'sc_links_hint' => 'Việc kiểm tra toàn bộ liên kết trong trang vẫn dùng SEO Assistant Pro, cần plugin và giấy phép tương ứng. Trang này không tự bật plugin hay xác nhận mọi liên kết đều hợp lệ thay bạn.',
