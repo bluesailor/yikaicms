@@ -3,8 +3,9 @@
  * 产品导入计划（2.0）：把导入包和本站现状对上——分类新建还是沿用、每款产品新增还是更新，
  * 以及导入前的图片校验。只读不写库，结果给预览界面，也是执行器的输入。
  *
- * 错误（这一行不导入）：没有名称、分类找不到、没有主图、图片找不到、主图是别的分类 / 上级分类的图。
- * 警告（照常导入、预览标黄）：同一张图被多个产品当主图、图片短边过小、包里用了参数图而这一款没有。
+ * 错误（这一行不导入）：没有名称、分类找不到、没有主图、图片找不到、几款产品都拿别的分类 / 上级分类的图当主图。
+ * 警告（照常导入、预览标黄）：只有这一款的主图与某个分类图相同、同一张图被多个产品当主图、图片短边过小、
+ * 包里用了参数图而这一款没有、详情里有外链图、本站导入后又改过。
  * 「主图是分类图」按文件 MD5 比，本小类自己的图除外（小类图常取自它的产品）——
  * 这条就是 FHZN Washer 三款产品显示大类展会拼图的那种错。
  */
@@ -179,8 +180,12 @@ final class ProductImportPlanner
                 // 本分类自己的图不算（包里的键与按名称对上的本站分类 slug 都算「自己」）
                 $own = array_filter([$categoryKey, $siteSlugForKey[$categoryKey] ?? '']);
                 $others = array_values(array_diff($categoryImages[$cover['md5']] ?? [], $own));
-                if ($others !== []) {
-                    $errors[] = self::issue('cover_is_category_image', ['categories' => implode(', ', $others)]);
+                // 几款产品都用某个分类的图当主图：多半是分类图（展会拼图之类）被误用了，不导入。
+                // 只有这一款用：多半是分类图取自这款产品（FHZN 实测 6 例都是），提醒确认即可。
+                if ($others !== [] && ($coverCount[$cover['md5']] ?? 0) > 1) {
+                    $errors[] = self::issue('cover_is_category_image', ['categories' => implode(', ', $others), 'count' => (string) $coverCount[$cover['md5']]]);
+                } elseif ($others !== []) {
+                    $warnings[] = self::issue('cover_matches_category_image', ['categories' => implode(', ', $others)]);
                 }
                 if (($coverCount[$cover['md5']] ?? 0) > 1) {
                     $warnings[] = self::issue('cover_shared', ['count' => (string) $coverCount[$cover['md5']]]);

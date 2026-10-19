@@ -1,7 +1,7 @@
 <?php
 /**
  * 产品导入 2.0 浏览器测试夹具（只在一次性测试站里跑）。
- *   package  启用插件；在 incoming/ 放一个仿 FHZN Washer 的导入包（第 3 款主图误用了大类展会拼图），另出一份 zip，打印 zip 路径
+ *   package  启用插件；在 incoming/ 放一个仿 FHZN Washer 的导入包（第 3、5 款主图误用了大类展会拼图），另出一份 zip，打印 zip 路径
  *   state    打印导入后的数据库状态（JSON）
  */
 declare(strict_types=1);
@@ -50,6 +50,7 @@ if ($action === 'package') {
             ['key' => 'e2e-2', 'title' => 'E2E Spring washer', 'category' => 'e2e-washer-flat', 'cover' => 'images/spring.png', 'param_images' => ['images/spec.png']],
             ['key' => 'e2e-3', 'title' => 'E2E Washer with collage cover', 'category' => 'e2e-washer-flat', 'cover' => 'images/washer-collage-copy.png'],
             ['key' => 'e2e-4', 'title' => 'E2E Lock washer', 'category' => 'e2e-washer-flat', 'cover' => 'images/lock.png', 'param_images' => ['images/spec.png']],
+            ['key' => 'e2e-5', 'title' => 'E2E Washer with collage too', 'category' => 'e2e-washer-flat', 'cover' => 'images/collage.png'],
         ],
     ], JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_PRETTY_PRINT));
     $zipPath = ROOT_PATH . '/storage/e2e-washer-package.zip';
