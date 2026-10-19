@@ -5,6 +5,7 @@
 #   bash tools/premerge-check.sh            # 自动判断要不要跑后台冒烟
 #   bash tools/premerge-check.sh --full     # 强制全跑（含后台冒烟与升级 e2e）
 #   bash tools/premerge-check.sh --quick    # 只跑单测 + Psalm + i18n（不起服务器）
+#   bash tools/premerge-check.sh --full --browser  # 另跑编辑器核心浏览器回归（约 8 分钟；也可设 PREMERGE_BROWSER=1）
 #
 # 设计目标：把「每次手工重建命令序列」变成一行。脚本只负责**可靠地执行**，
 # 判断（Psalm 幻影、要不要人工过前台）交给人/skill。
@@ -28,12 +29,15 @@ else
 fi
 
 MODE="auto"
-case "${1:-}" in
-    --full)  MODE="full" ;;
-    --quick) MODE="quick" ;;
-    "")      MODE="auto" ;;
-    *)       echo "未知参数：$1"; exit 2 ;;
-esac
+BROWSER="${PREMERGE_BROWSER:-0}"
+for arg in "$@"; do
+    case "$arg" in
+        --full)    MODE="full" ;;
+        --quick)   MODE="quick" ;;
+        --browser) BROWSER="1" ;;
+        *)         echo "未知参数：$arg"; exit 2 ;;
+    esac
+done
 
 FAILED=()
 pass() { echo "  ${G}✓${X} $1"; }
@@ -277,6 +281,57 @@ if [ "$MODE" = "full" ]; then
     fi
 else
     echo "[+] 关键页查询次数 —— ${D}跳过（--full 时跑）${X}"
+fi
+
+# ───── 浏览器回归（可选：--browser 或 PREMERGE_BROWSER=1；2.1.1 路线图 §5.8 第 3 项）─────
+# CI 只在发版时跑，平时的门禁又不跑 Playwright——区块面板一次报上百条脚本错误就这样一直没人发现。
+# 只挑编辑器核心几个 spec（每个起一个一次性站点，desktop-1440，@ci），约 8 分钟。
+# Windows 本机连跑会耗尽套接字（net::ERR_NO_BUFFER_SPACE，与代码无关）：每个 spec 前等 TIME_WAIT 降下来，
+# 只因这个失败的 spec 自动重跑一次。
+BROWSER_SPECS=(blox-editor blox-components blox-selection-teardown blox-instant-preview blox-layout-width blox-page)
+wait_for_sockets() {
+    case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) ;; *) return 0 ;; esac
+    command -v netstat >/dev/null 2>&1 || return 0
+    for _ in $(seq 1 24); do
+        [ "$(netstat -an 2>/dev/null | grep -c TIME_WAIT)" -lt 500 ] && return 0
+        sleep 10
+    done
+}
+run_browser_spec() {
+    BLOX_E2E_SPEC_FILTER="$1.spec.js" BLOX_E2E_PORT=0 BLOX_E2E_PORT_BASE="${PREMERGE_E2E_PORT_BASE:-8900}" BLOX_E2E_PORT_RANGE=8 \
+        BLOX_E2E_OUTPUT_DIR="$2/$1" BLOX_E2E_REPORT_DIR="$2/$1-report" \
+        node tests/e2e/run-local.js --grep '@ci' --project desktop-1440 >"$2/$1.log" 2>&1
+}
+echo ""
+if [ "$BROWSER" = "1" ]; then
+    echo "[+] 浏览器回归（desktop-1440，@ci：${BROWSER_SPECS[*]}）"
+    if ! command -v node >/dev/null 2>&1 || [ ! -d node_modules/@playwright/test ]; then
+        fail "浏览器回归：缺 node 或 node_modules/@playwright/test（先 npm ci）"
+    else
+        BROWSER_DIR="$ROOT_DIR/test-results/premerge-browser-$$"
+        mkdir -p "$BROWSER_DIR"
+        for spec in "${BROWSER_SPECS[@]}"; do
+            wait_for_sockets
+            if run_browser_spec "$spec" "$BROWSER_DIR"; then
+                pass "$spec（$(grep -oE '[0-9]+ passed' "$BROWSER_DIR/$spec.log" | tail -1)）"
+                continue
+            fi
+            # 失败只因套接字耗尽（没有别的错误）：等一等重跑一次
+            if grep -q 'ERR_NO_BUFFER_SPACE' "$BROWSER_DIR/$spec.log"; then
+                note "$spec 撞上 Windows 套接字耗尽，等待后重跑一次"
+                mv "$BROWSER_DIR/$spec.log" "$BROWSER_DIR/$spec.first.log"
+                wait_for_sockets
+                if run_browser_spec "$spec" "$BROWSER_DIR"; then
+                    pass "$spec（重跑通过：$(grep -oE '[0-9]+ passed' "$BROWSER_DIR/$spec.log" | tail -1)）"
+                    continue
+                fi
+            fi
+            fail "浏览器回归 $spec（日志 $BROWSER_DIR/$spec.log）"
+            grep -E '^\s+x |^\s+[0-9]+ (passed|failed|flaky)' "$BROWSER_DIR/$spec.log" | head -8 | sed 's/^/      /'
+        done
+    fi
+else
+    echo "[+] 浏览器回归 —— ${D}跳过（--browser 时跑，约 8 分钟）${X}"
 fi
 
 # ───── 汇总 ─────
