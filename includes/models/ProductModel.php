@@ -29,8 +29,10 @@ class ProductModel extends Model
         }
 
         if ((string) ($filters['keyword'] ?? '') !== '') {
-            $where[] = '(p.title LIKE ? OR p.summary LIKE ? OR p.model LIKE ?)';
+            // 标签也算：详情页的标签链到这里
+            $where[] = '(p.title LIKE ? OR p.summary LIKE ? OR p.model LIKE ? OR p.tags LIKE ?)';
             $kw = '%' . $filters['keyword'] . '%';
+            $params[] = $kw;
             $params[] = $kw;
             $params[] = $kw;
             $params[] = $kw;
@@ -88,8 +90,9 @@ class ProductModel extends Model
         }
 
         if ((string) ($filters['keyword'] ?? '') !== '') {
-            $where[] = '(title LIKE ? OR summary LIKE ? OR model LIKE ?)';
+            $where[] = '(title LIKE ? OR summary LIKE ? OR model LIKE ? OR tags LIKE ?)';
             $kw = '%' . $filters['keyword'] . '%';
+            $params[] = $kw;
             $params[] = $kw;
             $params[] = $kw;
             $params[] = $kw;
@@ -507,6 +510,7 @@ class ProductModel extends Model
         'views'      => 'sort_views',
         'price_asc'  => 'sort_price_asc',
         'price_desc' => 'sort_price_desc',
+        'recommend_first' => 'shome_sort_recommend',
     ];
 
     public function resolveSortOrder(string $sort): string

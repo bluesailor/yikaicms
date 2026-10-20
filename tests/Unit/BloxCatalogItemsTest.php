@@ -18,8 +18,17 @@ final class BloxCatalogItemsTest extends TestCase
             'CREATE TABLE channels (id INTEGER PRIMARY KEY, parent_id INTEGER DEFAULT 0, name TEXT, slug TEXT, type TEXT)',
             'CREATE TABLE product_categories (id INTEGER PRIMARY KEY, parent_id INTEGER DEFAULT 0, name TEXT, slug TEXT)',
             "CREATE TABLE contents ($records, channel_id INTEGER, type TEXT DEFAULT 'article', publish_time INTEGER DEFAULT 0)",
-            "CREATE TABLE products ($records, category_id INTEGER, model TEXT, sort_order INTEGER DEFAULT 0)",
+            "CREATE TABLE products ($records, category_id INTEGER, model TEXT, tags TEXT DEFAULT '', sort_order INTEGER DEFAULT 0)",
         ];
+    }
+
+    /** 详情页的标签链到产品搜索：搜索要能按标签找到产品 */
+    public function testProductSearchMatchesTags(): void
+    {
+        $this->insertRow('products', ['category_id' => 1, 'title' => 'Threaded rod', 'tags' => 'DIN975, Galvanized']);
+        $this->insertRow('products', ['category_id' => 1, 'title' => 'Hex bolt', 'tags' => 'DIN933']);
+        self::assertSame(['Threaded rod'], array_column(productModel()->getList(1, 20, 0, ['keyword' => 'DIN975']), 'title'));
+        self::assertSame(1, productModel()->getCount(1, ['keyword' => 'Galvanized']));
     }
 
     public function testArticlesAreBoundedScopedAndNeverReturnDraftsOrOtherContentTypes(): void
