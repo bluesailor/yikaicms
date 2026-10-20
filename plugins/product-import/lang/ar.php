@@ -6,6 +6,7 @@
 
 return [
     'pimp_page_title' => 'استيراد المنتجات',
+    'pimp_menu' => 'استيراد المنتجات',
     'pimp_tab_package' => 'حزمة الاستيراد (موصى بها)',
     'pimp_tab_table' => 'مطابقة أعمدة جدول البيانات',
     'pimp_step_choose' => 'اختر حزمة استيراد',

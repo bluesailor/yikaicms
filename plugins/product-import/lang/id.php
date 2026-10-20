@@ -6,6 +6,7 @@
 
 return [
     'pimp_page_title' => 'Impor produk',
+    'pimp_menu' => 'Impor produk',
     'pimp_tab_package' => 'Paket impor (disarankan)',
     'pimp_tab_table' => 'Pemetaan kolom spreadsheet',
     'pimp_step_choose' => 'Pilih paket impor',
