@@ -76,9 +76,9 @@ async function makeSameColumn(page, total) {
   await page.keyboard.press('Escape');
   await waitPreviewSettled(page);
   const rows = section.getByTestId('blox-tree-element');
-  if (!await rows.first().isVisible()) {
-    await section.getByTestId('blox-tree-section-label').click();
-  }
+  // Escape 取消选中后，树会收起这一区块的元素行；2.1.1 起预览约 0.1 秒就 settle，
+  // 「看一眼可见再决定点不点」会赶在收起之前看到「可见」而不点，随后行被收起。总是点区块名选中区块。
+  await section.getByTestId('blox-tree-section-label').click();
   await expect(rows).toHaveCount(total);
   await expect(rows.first()).toBeVisible();
   return section;
