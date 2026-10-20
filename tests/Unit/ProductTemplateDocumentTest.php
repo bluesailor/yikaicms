@@ -10,6 +10,19 @@ final class ProductTemplateDocumentTest extends TestCase
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';
     }
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+        // 导出模板包会读组件目录（2.1.1 起按固定版本展开）；目录是请求级静态缓存，不重置就靠前面的测试留下的状态
+        BloxComponents::resetForTests();
+    }
+
+    protected function schemaSql(): array
+    {
+        return ["CREATE TABLE blox_templates (id INTEGER PRIMARY KEY AUTOINCREMENT, type TEXT NOT NULL, name TEXT NOT NULL,
+            draft_data TEXT NOT NULL DEFAULT '', published_data TEXT, metadata TEXT, status INTEGER NOT NULL DEFAULT 0)"];
+    }
+
     /**
      * 外审 P1-3（结构借鉴另一条整改分支）：编辑器 boot 的语言回填单点。
      * 显式 lang=''=全部语言必须原样保留（v2 看 detail_template、v1 看 product_template）；
