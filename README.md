@@ -1,4 +1,4 @@
-# YikaiCMS v2.1.0
+# YikaiCMS v2.1.1
 
 > **面向企业官网与外贸网站的轻量 PHP CMS** · 源码公开，免费商用
 
@@ -34,7 +34,7 @@
 
 ## 3 分钟安装
 
-1. 下载完整包 [yikaicms-v2.1.0.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.1.0/yikaicms-v2.1.0.zip)（校验文件 [yikaicms-v2.1.0.sha256](https://github.com/bluesailor/yikaicms/releases/download/v2.1.0/yikaicms-v2.1.0.sha256)），解压上传到网站根目录（也可以放在子目录）；
+1. 下载完整包 [yikaicms-v2.1.1.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.1.1/yikaicms-v2.1.1.zip)（校验文件 [yikaicms-v2.1.1.sha256](https://github.com/bluesailor/yikaicms/releases/download/v2.1.1/yikaicms-v2.1.1.sha256)），解压上传到网站根目录（也可以放在子目录）；
 2. 确保站点根目录（安装器写入 `installed.lock`）和 `/config/`、`/uploads/`、`/storage/` 可写，浏览器访问 `http://你的域名/install/`，按向导选择 MySQL 或 SQLite 完成安装；
 3. 配置伪静态（宝塔面板：站点 → 设置 → 伪静态，写入一行 `include /www/wwwroot/<你的站点目录>/deploy/nginx-baota.conf;`）；
 4. 登录后台，在「建站向导」里从 40 多套行业整站模板（中文、日文、英文）中挑一套导入，或直接在演示内容上修改。
@@ -63,7 +63,7 @@
 
 ### 内容管理
 - **栏目管理** — 无限层级栏目树，拖拽排序，多种栏目类型（列表、单页、产品、案例、下载、招聘、相册、外链）
-- **产品中心** — 多级分类，品牌、标签、图片组、规格参数、价格；产品与产品分类支持自定义网址
+- **产品中心** — 多级分类，品牌、标签、图片组、规格参数、价格；产品与产品分类支持自定义网址；批量导入（表格 + 图片打成导入包，导入前检查缺图、错图与重复，可整批撤销），本地整理好按分类导出、线上导入时只同步有变化的产品
 - **文章系统** — 多分类管理，置顶 / 推荐 / 热门标记，HugeRTE 富文本编辑
 - **案例、招聘、下载** — 行业方案与成功案例；职位发布与筛选；文件分类、本地上传与外链、下载计数
 - **单页与发展历程** — 企业简介、服务流程等静态页面；时间线多种布局，`[timeline]` 短码可嵌入任意页面
@@ -145,7 +145,7 @@
 
 ### 1. 下载部署
 
-- 完整安装包：[yikaicms-v2.1.0.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.1.0/yikaicms-v2.1.0.zip)，发布说明见 [v2.1.0 Release](https://github.com/bluesailor/yikaicms/releases/tag/v2.1.0)；每个版本附 `.sha256` 校验文件，历史版本见 [Releases](https://github.com/bluesailor/yikaicms/releases)。
+- 完整安装包：[yikaicms-v2.1.1.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.1.1/yikaicms-v2.1.1.zip)，发布说明见 [v2.1.1 Release](https://github.com/bluesailor/yikaicms/releases/tag/v2.1.1)；每个版本附 `.sha256` 校验文件，历史版本见 [Releases](https://github.com/bluesailor/yikaicms/releases)。
 - 已安装的站点可在后台「系统维护 → 系统升级」在线升级，无需手动下载。
 - 开发者也可以直接克隆仓库：`git clone https://github.com/bluesailor/yikaicms.git`
 
