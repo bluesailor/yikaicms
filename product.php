@@ -233,13 +233,32 @@ if (trim($productTemplateHtml) !== '') {
                     </div>
                     <?php endif; ?>
 
-                    <?php /* 标签 */ ?>
+                    <?php /* 标签：有同名筛选标签的链到那个标签的产品列表，否则链到产品搜索（搜索也查标签） */ ?>
                     <?php if ($product['tags']): ?>
+                    <?php
+                    $tagNames = array_values(array_unique(array_filter(array_map('trim', explode(',', (string) $product['tags'])), 'strlen')));
+                    $tagIdsByName = [];
+                    if ($tagNames !== [] && $productChannel && db()->tableExists('product_tags')) {
+                        $tagRows = db()->fetchAll(
+                            'SELECT id, name FROM ' . DB_PREFIX . 'product_tags WHERE status = 1 AND lang = ? AND name IN (' . implode(',', array_fill(0, count($tagNames), '?')) . ')',
+                            array_merge([(string) ($product['lang'] ?? siteLang())], $tagNames)
+                        );
+                        foreach ($tagRows as $tagRow) {
+                            $tagIdsByName[(string) $tagRow['name']] ??= (int) $tagRow['id'];
+                        }
+                    }
+                    $tagListUrl = $productChannel ? channelUrl($productChannel) : '';
+                    ?>
                     <div class="flex flex-wrap gap-2 mb-6">
-                        <?php foreach (explode(',', $product['tags']) as $tag): ?>
-                        <span class="px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded-full">
-                            <?php echo e(trim($tag)); ?>
-                        </span>
+                        <?php foreach ($tagNames as $tag): ?>
+                        <?php if ($tagListUrl !== ''): ?>
+                        <a href="<?php echo e($tagListUrl . (str_contains($tagListUrl, '?') ? '&' : '?') . (isset($tagIdsByName[$tag]) ? 'tag=' . $tagIdsByName[$tag] : 'keyword=' . rawurlencode($tag))); ?>"
+                           class="px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded-full hover:bg-primary hover:text-white transition" data-product-tag>
+                            <?php echo e($tag); ?>
+                        </a>
+                        <?php else: ?>
+                        <span class="px-3 py-1 bg-gray-100 text-gray-600 text-sm rounded-full"><?php echo e($tag); ?></span>
+                        <?php endif; ?>
                         <?php endforeach; ?>
                     </div>
                     <?php endif; ?>
