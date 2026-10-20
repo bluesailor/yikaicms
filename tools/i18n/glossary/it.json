@@ -61,5 +61,11 @@
     "组件": "Componente",
     "母版": "Master",
     "实例": "Istanza",
-    "脱离": "Scollega"
+    "脱离": "Scollega",
+    "导入包": "pacchetto di importazione",
+    "主图": "immagine di copertina",
+    "产品图": "immagini prodotto",
+    "参数图": "immagini dei parametri",
+    "来源编号": "ID origine",
+    "撤销这一批": "Annulla questa importazione"
 }
