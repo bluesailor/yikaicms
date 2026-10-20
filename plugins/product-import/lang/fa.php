@@ -6,6 +6,7 @@
 
 return [
     'pimp_page_title' => 'وارد کردن محصولات',
+    'pimp_menu' => 'درون‌ریزی محصولات',
     'pimp_tab_package' => 'بسته واردسازی (پیشنهادشده)',
     'pimp_tab_table' => 'نگاشت ستون‌های صفحه‌گسترده',
     'pimp_step_choose' => 'انتخاب بسته واردسازی',

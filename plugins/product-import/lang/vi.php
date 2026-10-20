@@ -6,6 +6,7 @@
 
 return [
     'pimp_page_title' => 'Nhập sản phẩm',
+    'pimp_menu' => 'Nhập sản phẩm',
     'pimp_tab_package' => 'Gói nhập (khuyên dùng)',
     'pimp_tab_table' => 'Ánh xạ cột bảng tính',
     'pimp_step_choose' => 'Chọn gói nhập',

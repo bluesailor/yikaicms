@@ -6,6 +6,7 @@
 
 return [
     'pimp_page_title' => 'Ürün içe aktarma',
+    'pimp_menu' => 'Ürünleri içe aktar',
     'pimp_tab_package' => 'İçe aktarma paketi (önerilen)',
     'pimp_tab_table' => 'E-tablo sütun eşlemesi',
     'pimp_step_choose' => 'İçe aktarma paketi seçin',
