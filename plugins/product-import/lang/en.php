@@ -1,6 +1,7 @@
 <?php
 return [
     'pimp_page_title' => 'Product import',
+    'pimp_menu' => 'Import products',
     'pimp_tab_package' => 'Import package (recommended)',
     'pimp_tab_table' => 'Spreadsheet column mapping',
     'pimp_step_choose' => 'Choose a package',

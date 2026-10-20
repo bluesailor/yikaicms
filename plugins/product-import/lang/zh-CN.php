@@ -2,6 +2,7 @@
 // 产品导入插件（2.0 导入包向导）。键统一 pimp_ 前缀，核心同名键优先，避免冲突。
 return [
     'pimp_page_title' => '产品导入',
+    'pimp_menu' => '导入产品',
     'pimp_tab_package' => '导入包（推荐）',
     'pimp_tab_table' => '表格字段映射',
     'pimp_step_choose' => '选择导入包',

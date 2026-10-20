@@ -7,6 +7,7 @@
 
 return [
     'pimp_page_title' => '產品匯入',
+    'pimp_menu' => '匯入產品',
     'pimp_tab_package' => '匯入包（推薦）',
     'pimp_tab_table' => '表格欄位對映',
     'pimp_step_choose' => '選擇匯入包',

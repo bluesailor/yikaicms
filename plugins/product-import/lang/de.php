@@ -6,6 +6,7 @@
 
 return [
     'pimp_page_title' => 'Produktimport',
+    'pimp_menu' => 'Produkte importieren',
     'pimp_tab_package' => 'Importpaket (empfohlen)',
     'pimp_tab_table' => 'Tabellenspalten zuordnen',
     'pimp_step_choose' => 'Importpaket auswählen',

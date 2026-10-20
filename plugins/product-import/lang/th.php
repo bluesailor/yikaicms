@@ -6,6 +6,7 @@
 
 return [
     'pimp_page_title' => 'นำเข้าสินค้า',
+    'pimp_menu' => 'นำเข้าสินค้า',
     'pimp_tab_package' => 'แพ็กเกจนำเข้า (แนะนำ)',
     'pimp_tab_table' => 'การแมปคอลัมน์ของสเปรดชีต',
     'pimp_step_choose' => 'เลือกแพ็กเกจนำเข้า',

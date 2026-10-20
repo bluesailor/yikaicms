@@ -6,6 +6,7 @@
 
 return [
     'pimp_page_title' => '제품 가져오기',
+    'pimp_menu' => '제품 가져오기',
     'pimp_tab_package' => '가져오기 패키지 (추천)',
     'pimp_tab_table' => '스프레드시트 열 매핑',
     'pimp_step_choose' => '가져오기 패키지 선택',
