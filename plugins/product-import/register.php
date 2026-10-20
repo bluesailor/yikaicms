@@ -10,7 +10,7 @@ add_action('admin_init', function (): void {
 
     register_admin_menu('product', [
         'key'      => 'product_import',
-        'label'    => '导入产品',
+        'label'    => __('pimp_menu'),
         'url'      => '/admin/plugin_page.php?plugin=product-import',
         'perm'     => '*',
         'priority' => 95,

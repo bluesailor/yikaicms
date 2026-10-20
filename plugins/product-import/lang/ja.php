@@ -1,6 +1,7 @@
 <?php
 return [
     'pimp_page_title' => '商品インポート',
+    'pimp_menu' => '商品インポート',
     'pimp_tab_package' => 'インポートパッケージ（推奨）',
     'pimp_tab_table' => '表の列マッピング',
     'pimp_step_choose' => 'パッケージを選ぶ',
