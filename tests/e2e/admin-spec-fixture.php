@@ -15,6 +15,17 @@ require ROOT_PATH . '/includes/models/autoload.php';
 if (DB_DRIVER !== 'sqlite' || parse_url(SITE_URL, PHP_URL_HOST) !== '127.0.0.1') {
     throw new RuntimeException('Local SQLite required');
 }
+if (($argv[1] ?? '') === 'tags') {
+    // 详情页标签：一个有同名筛选标签（链到标签筛选），一个没有（链到搜索）
+    $tagId = (int) db()->insert('product_tags', ['group_name' => 'E2E', 'name' => 'E2E-Filter-Tag', 'lang' => siteLang(), 'status' => 1]);
+    $id = (int) productModel()->create([
+        'title' => 'E2E tagged product', 'slug' => 'e2e-tagged-' . uniqid(), 'lang' => siteLang(), 'status' => 1,
+        'category_id' => 1, 'tags' => 'E2E-Filter-Tag, E2E-Free-Tag',
+    ]);
+    db()->insert('product_tag_map', ['product_id' => $id, 'tag_id' => $tagId]);
+    echo $id;
+    exit;
+}
 if (($argv[1] ?? '') === 'list') {
     echo productModel()->create([
         'title' => 'E2E list specs', 'slug' => 'e2e-list-specs-' . uniqid(),
