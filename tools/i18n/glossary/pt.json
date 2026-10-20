@@ -61,5 +61,11 @@
   "组件": "Componente",
   "母版": "Mestre",
   "实例": "Instância",
-  "脱离": "Separar"
+  "脱离": "Separar",
+  "导入包": "pacote de importação",
+  "主图": "imagem de capa",
+  "产品图": "imagens de produto",
+  "参数图": "imagens de parâmetros",
+  "来源编号": "ID de origem",
+  "撤销这一批": "Desfazer esta importação"
 }
