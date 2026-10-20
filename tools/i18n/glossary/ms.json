@@ -2,5 +2,11 @@
     "组件": "Komponen",
     "母版": "Induk",
     "实例": "Instans",
-    "脱离": "Pisahkan"
+    "脱离": "Pisahkan",
+    "导入包": "pakej import",
+    "主图": "imej utama",
+    "产品图": "imej produk",
+    "参数图": "imej spesifikasi",
+    "来源编号": "ID sumber",
+    "撤销这一批": "buat asal import ini"
 }

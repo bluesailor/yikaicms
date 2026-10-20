@@ -61,5 +61,11 @@
     "组件": "Thành phần",
     "母版": "Bản gốc",
     "实例": "Bản sao",
-    "脱离": "Tách"
+    "脱离": "Tách",
+    "导入包": "gói nhập",
+    "主图": "ảnh bìa",
+    "产品图": "ảnh sản phẩm",
+    "参数图": "ảnh thông số",
+    "来源编号": "ID nguồn",
+    "撤销这一批": "Hoàn tác lần nhập này"
 }

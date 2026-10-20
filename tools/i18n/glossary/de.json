@@ -61,5 +61,11 @@
   "组件": "Komponente",
   "母版": "Master",
   "实例": "Instanz",
-  "脱离": "Trennen"
+  "脱离": "Trennen",
+  "导入包": "Importpaket",
+  "主图": "Titelbild",
+  "产品图": "Produktbilder",
+  "参数图": "Parameterbild",
+  "来源编号": "Quell-ID",
+  "撤销这一批": "Diesen Import rückgängig machen"
 }

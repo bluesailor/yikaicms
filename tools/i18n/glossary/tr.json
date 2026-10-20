@@ -61,5 +61,11 @@
     "组件": "Bileşen",
     "母版": "Ana",
     "实例": "Örnek",
-    "脱离": "Ayır"
+    "脱离": "Ayır",
+    "导入包": "İçe aktarma paketi",
+    "主图": "kapak görseli",
+    "产品图": "ürün görselleri",
+    "参数图": "özellik görselleri",
+    "来源编号": "kaynak kimliği",
+    "撤销这一批": "Bu içe aktarmayı geri al"
 }

@@ -61,5 +61,11 @@
     "组件": "Komponen",
     "母版": "Induk",
     "实例": "Instans",
-    "脱离": "Lepaskan"
+    "脱离": "Lepaskan",
+    "导入包": "paket impor",
+    "主图": "gambar sampul",
+    "产品图": "gambar produk",
+    "参数图": "gambar parameter",
+    "来源编号": "ID sumber",
+    "撤销这一批": "Batalkan impor ini"
 }
