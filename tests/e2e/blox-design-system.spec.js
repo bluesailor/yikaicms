@@ -92,6 +92,9 @@ test('token catalog and named preset apply through stable references @ci', async
   await expect(page.getByTestId('blox-editor-color-picker')).toBeHidden();
 
   await performPreviewUpdate(page, () => page.getByTestId('blox-global-style-select').selectOption('s_card'));
+  // 撤销历史把 0.7 秒内的属性修改并成一步；2.1.1 起画布约 0.1 秒就更新，下面的「移除」会落进同一步。
+  // 这里要测的是两个独立操作，先把这一步记下（等同用户停顿一下）。
+  await page.evaluate(() => window.Alpine.$data(document.body).flushHistory(false));
   const styled = canvas.locator('[data-yk-global-style="s_card"]');
   await expect(styled).toHaveCount(1);
   await expect(styled).toHaveAttribute('style', /background-color:var\(--yk-color-primary\)!important/);
