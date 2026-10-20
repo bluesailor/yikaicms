@@ -171,3 +171,19 @@ for (const query of ['yk_route=product_list&cat=smart-device', 'yk_route=list&sl
     }
   });
 }
+
+test('product tags link to their products @ci @admin-crud', async ({ page }) => {
+  const id = execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'admin-spec-fixture.php'), 'tags'], { cwd: root, encoding: 'utf8' }).trim();
+  expect(id).toMatch(/^\d+$/);
+  await page.goto(`/product.php?id=${id}`);
+  const tags = page.locator('a[data-product-tag]');
+  await expect(tags).toHaveCount(2);
+  // 有同名筛选标签的走标签筛选，没有的走搜索（搜索也查标签）
+  expect(await tags.nth(0).getAttribute('href')).toMatch(/[?&]tag=\d+$/);
+  expect(await tags.nth(1).getAttribute('href')).toMatch(/[?&]keyword=E2E-Free-Tag$/);
+  for (const index of [0, 1]) {
+    await page.goto(`/product.php?id=${id}`);
+    await tags.nth(index).click();
+    await expect(page.getByRole('link', { name: 'E2E tagged product' }).first()).toBeVisible();
+  }
+});

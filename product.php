@@ -70,7 +70,7 @@ $productImageVariants = array_map(
 $productSeoId = (int) $product['id'];
 $pageTitle = trim((string) getMeta('product', $productSeoId, 'seo_title', '')) ?: $product['title'];
 $pageKeywords = trim((string) getMeta('product', $productSeoId, 'seo_keywords', '')) ?: ($product['tags'] ?: configJsonLang('site_keywords'));
-$pageDescription = trim((string) getMeta('product', $productSeoId, 'seo_description', '')) ?: ($product['summary'] ?: cutStr(strip_tags($product['content']), 150));
+$pageDescription = trim((string) getMeta('product', $productSeoId, 'seo_description', '')) ?: ($product['summary'] ?: cutStr(strip_tags((string) $product['content']), 150));
 
 // 获取导航
 $navChannels = getNavChannels();
