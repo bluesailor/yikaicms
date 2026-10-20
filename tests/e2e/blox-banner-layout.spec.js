@@ -23,6 +23,9 @@ test('slide overrides are independent and undo restores the inherited layout @ci
     const layers = canvas.locator('[data-blox-banner-content]');
     await expect(layers.nth(0)).toHaveCSS('align-items', 'flex-end');
     await expect(layers.nth(1)).toHaveCSS('align-items', 'flex-start');
+    // 撤销历史把 0.7 秒内的属性修改并成一步；2.1.1 起预览约 0.1 秒就 settle，下面的「关掉」会并进上一步。
+    // 这里要撤销的只是「关掉」，先把上一步记下（等同用户停顿一下）。
+    await page.evaluate(() => window.Alpine.$data(document.body).flushHistory(false));
     await field(page, 'banner_layout_desktop_enabled').locator('input').uncheck();
     await waitPreviewSettled(page);
     await expect(layers.nth(0)).toHaveCSS('align-items', 'flex-start');
