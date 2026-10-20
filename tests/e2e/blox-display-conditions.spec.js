@@ -50,9 +50,11 @@ test('element conditions create OR groups, AND rules and a canvas marker @ci', a
     const request = page.waitForRequest((candidate) => {
       const url = new URL(candidate.url());
       const body = new URLSearchParams(candidate.postData() || '');
+      // 2.1.1 起改动约 40 ms 就发：上一步（选运算符）的请求可能在这之后才发出，要认准带新值的那一个
       return candidate.method() === 'POST'
         && url.pathname === '/admin/blox_preview.php'
-        && body.get('action') === 'preview';
+        && body.get('action') === 'preview'
+        && (body.get('blocks_data') || '').includes('/campaign');
     });
     await secondRule.getByTestId('blox-condition-value-url').fill('/campaign');
     previewRequest = await request;

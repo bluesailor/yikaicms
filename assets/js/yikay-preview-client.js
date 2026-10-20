@@ -41,9 +41,11 @@
 
     BloxPreviewClient.prototype.schedule = function () {
         var self = this;
-        // 同一时间只有一个请求在途：在途或画布正在重建时只记下「还有新改动」，它一结束就发最新的一份。
+        // 同一时间只有一个请求在途：在途时只记下「还有新改动」，它一结束就发最新的一份。
         // 不再中途取消——连续输入时被取消的请求永远落不了地，画布要等停手才更新。
-        if (this.controller || this.rebuilding) {
+        // 不等画布重建结束：cancel() 或重建中途出错时「重建结束」不会来，等它会让之后的改动全卡住
+        // （2.1.1 候选的 CI 测出：改了字段画布再也不更新）。刚重建过由下面的长延迟防止追着按键重建。
+        if (this.controller) {
             this.pending = true;
             return;
         }
@@ -57,7 +59,7 @@
 
     /** 在途的请求 / 重建结束后：有积下来的改动就接着发。 */
     BloxPreviewClient.prototype.flushPending = function () {
-        if (this.pending && !this.controller && !this.rebuilding) {
+        if (this.pending && !this.controller) {
             this.pending = false;
             this.schedule();
         }
@@ -389,8 +391,8 @@
             // 重建结束、滚动已恢复：本刻位置即新的稳定基准。
             self.rebuilding = false;
             self.lastGoodScroll = null;
-            // 还积着更新的改动：接着发，这一轮不算 settle（2.1.1 起请求不再中途取消）
-            if (self.pending) {
+            // 还积着更新的改动或已排好下一次发送：接着发，这一轮不算 settle（2.1.1 起请求不再中途取消）
+            if (self.pending || self.timer) {
                 self.flushPending();
                 return;
             }

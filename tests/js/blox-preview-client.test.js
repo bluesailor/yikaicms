@@ -269,6 +269,36 @@ async function run() {
         }
     }
 
+    // 2.1.1 候选 CI 测出：重建中途被 cancel()，「重建结束」不会再来；之后的改动不能卡住不发。
+    {
+        const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+        const stuckRequests = [];
+        const stuckFrame = fakeFrame();
+        const stuckClient = new global.BloxPreviewClient({
+            endpoint: "/preview",
+            csrf: "token",
+            delay: 5,
+            quickDelay: 1,
+            getFrame: function () { return stuckFrame; },
+            getHost: function () { return { scrollLeft: 0, scrollTop: 0 }; },
+            getDocument: function () { return [{ id: "s" + stuckRequests.length }]; },
+            fetch: function () {
+                const item = deferred();
+                stuckRequests.push(item);
+                return item.promise;
+            },
+        });
+        stuckClient.schedule();
+        await wait(5);
+        stuckRequests[0].resolve(response("<p>reload</p>"));
+        await wait(1);
+        assert.equal(stuckClient.rebuilding, true, "a full reload is in progress");
+        stuckClient.cancel();   // 重建的 load 监听被移除，rebuilding 不会再被清掉
+        stuckClient.schedule();
+        await wait(20);
+        assert.equal(stuckRequests.length, 2, "an edit after a cancelled rebuild is still sent");
+    }
+
     const errorClient = new global.BloxPreviewClient({
         endpoint: "/preview",
         csrf: "token",
