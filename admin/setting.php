@@ -11,6 +11,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/SiteTimezone.php';
+require_once ROOT_PATH . '/includes/DeclaredSettingRows.php';
 require_once ROOT_PATH . '/includes/builder/BloxMotion.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
@@ -68,7 +69,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $defaultValue = getDefault($restoreKey, null);
             if ($defaultValue !== null) {
                 if ($restoreKey === 'url_mode') checkUrlModeChange($defaultValue);
-                settingModel()->set($restoreKey, $defaultValue);
+                // saveBatch：缺行时按 defaults.php 的分组建行（set() 会一律落进 basic）
+                settingModel()->saveBatch([$restoreKey => $defaultValue]);
                 adminLog('setting', 'restore', '恢复默认值: ' . $restoreKey);
                 success(['value' => $defaultValue]);
             }
@@ -201,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
         $settings = $remapped;
     }
-    settingModel()->saveBatch($settings);
+    settingModel()->saveBatch(DeclaredSettingRows::withoutUntouched($settings, getDefaults(), settingModel()->getAll()));
 
     adminLog('setting', 'update', '更新站点设置 (' . ($_langAware ? $_viewLang : 'global') . ')');
     success();
@@ -222,8 +224,8 @@ $paginationChannel = $tab === 'pagination' && getInt('channel_id') > 0
     ? channelModel()->find(getInt('channel_id')) : null;
 if ($paginationChannel && !in_array($paginationChannel['type'], ['list', 'product', 'case', 'download', 'job'], true)) $paginationChannel = null;
 
-// lang tab 不读 settings 行
-$items = $tab === 'lang' ? [] : settingModel()->getByGroup($group);
+// lang tab 不读 settings 行；缺行的声明键（整站模板导入后常见）补合成行，见 DeclaredSettingRows
+$items = $tab === 'lang' ? [] : DeclaredSettingRows::complete(settingModel()->getByGroup($group), $group, getDefaults($group), settingModel()->getAll());
 if ($group === 'pagination') {
     $items = [];
     foreach (getDefaults('pagination') as $key => $definition) {
