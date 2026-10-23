@@ -3,7 +3,7 @@
  * 通用翻译创建器 —— 各编辑页 require_once 这个文件，
  * 拦截 action=create_translation 的 POST 请求，做：
  *   1. 读源行（zh-CN 或当前 lang）
- *   2. AI 翻译标题/摘要 / 名字/描述（短字段；长 content 保留原文）
+ *   2. AI 翻译标题、摘要、正文及 SEO 文本，保留布局与资源地址
  *   3. 在目标 lang 创建新行（slug 加后缀避免 uk_slug 冲突）
  *   4. 维护 translation_group_id 串起所有翻译版本
  *   5. 对带 channel_id 的内容 (contents/products)，自动重映射到目标语言频道
@@ -69,7 +69,25 @@ if ($existing) {
 // AI 翻译短字段
 $srcTitle = (string) ($src[$titleKey] ?? '');
 $srcSumm  = (string) ($src[$summKey]  ?? '');
-$translated = aiTranslateFields($srcTitle, $srcSumm, $toLang);
+$pageContent = null;
+if ($table === 'channels' && ($src['type'] ?? '') === 'page') {
+    $pageContent = contentModel()->queryOne('SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? ORDER BY is_top DESC, id DESC LIMIT 1', [$srcId]);
+}
+$bodySource = $pageContent ?: $src;
+$bodyField = (($bodySource['content_type'] ?? '') === 'blox' && !empty($bodySource['blocks_data'])) ? 'blocks_data' : 'content';
+{
+    require_once ROOT_PATH . '/includes/AiService.php';
+    require_once ROOT_PATH . '/includes/content_translation.php';
+    try {
+        $translationSource = $src;
+        $translationSource['title'] = $srcTitle;
+        $translationSource['summary'] = $srcSumm;
+        $translationSource['content'] = (string) ($bodySource[$bodyField] ?? '');
+        $translated = translateContentFields($translationSource, $toLang, [aiService(), 'chat']);
+    } catch (Throwable $exception) {
+        error(__('lse_failed') . ': ' . $exception->getMessage());
+    }
+}
 
 // 拷贝源行所有列
 $newData = $src;
@@ -78,8 +96,12 @@ $newData['lang']                 = $toLang;
 $newData['translation_group_id'] = $groupId;
 $newData[$titleKey]              = $translated['title'];
 $newData[$summKey]               = $translated['summary'];
+foreach ($translated as $field => $value) {
+    if ($field !== 'title' && $field !== 'summary' && $field !== 'content' && array_key_exists($field, $src)) $newData[$field] = $value;
+}
+if (array_key_exists($bodyField, $src)) $newData[$bodyField] = $translated['content'];
 $newData['created_at']           = time();
-$newData['updated_at']           = time();
+if (array_key_exists('updated_at', $src)) $newData['updated_at'] = time();
 
 // 机器翻译先落草稿：整行拷贝会连 status 一起继承，源是已发布时译文就直接上线了，
 // 没有任何人看过那段 AI 译文。发布必须是明确的下一步动作（复审 R01）。
@@ -104,14 +126,31 @@ if (isset($newData['channel_id']) && (int) $newData['channel_id'] > 0) {
 }
 
 // SEO 字段同步翻译（如存在）
-if (array_key_exists('seo_title', $newData) && $newData['seo_title']) {
+if (!isset($translated['seo_title']) && array_key_exists('seo_title', $newData) && $newData['seo_title']) {
     $newData['seo_title'] = $translated['title'];
 }
-if (array_key_exists('seo_description', $newData) && $newData['seo_description']) {
+if (!isset($translated['seo_description']) && array_key_exists('seo_description', $newData) && $newData['seo_description']) {
     $newData['seo_description'] = $translated['summary'];
 }
 
+db()->beginTransaction();
+try {
 $newId = (int) $model->create($newData);
+if ($pageContent) {
+    $translatedPage = $pageContent;
+    unset($translatedPage['id']);
+    $translatedPage['channel_id'] = $newId;
+    $translatedPage['lang'] = $toLang;
+    $translatedPage['translation_group_id'] = (int) ($pageContent['translation_group_id'] ?: $pageContent['id']);
+    $translatedPage['title'] = $translated['title'];
+    $translatedPage['summary'] = $translated['summary'];
+    $translatedPage[$bodyField] = $translated['content'];
+    $translatedPage['status'] = 0;
+    $translatedPage['slug'] = resolveSlug('', (string) $translated['title'], 'contents');
+    $translatedPage['created_at'] = time();
+    $translatedPage['updated_at'] = time();
+    contentModel()->create($translatedPage);
+}
 // 扩展字段值随新语言版本带过去（2.0.4；之后各语言各自维护）
 $extOwner = match ($table) {
     'products' => 'product',
@@ -122,4 +161,9 @@ $extOwner = match ($table) {
 };
 if ($extOwner !== '') ExtFields::copyValues($extOwner, $srcId, $newId);
 adminLog('translate', 'create', "为 {$table}#{$srcId} 创建 {$toLang} 翻译 → #{$newId}");
+db()->commit();
+} catch (Throwable $exception) {
+    db()->rollback();
+    error(__('lse_failed') . ': ' . $exception->getMessage());
+}
 success(['id' => $newId], '翻译已创建');

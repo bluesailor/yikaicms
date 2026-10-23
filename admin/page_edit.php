@@ -57,7 +57,7 @@ $children = channelModel()->getByParent($id, true);
 
 // 从 contents 表获取该栏目的内容（与前端一致）
 $contentRecord = contentModel()->queryOne(
-    'SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? AND status = 1 ORDER BY is_top DESC, id DESC LIMIT 1',
+    'SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? ORDER BY is_top DESC, id DESC LIMIT 1',
     [$id]
 );
 

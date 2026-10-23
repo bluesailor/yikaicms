@@ -17,6 +17,8 @@ checkLogin();
 // （见 includes/permissions.php:allPermissionKeys）——迁移把各角色的 content 展开掉了，
 // 于是这页退化成只有超管能进，列表进得去、点编辑就撞「没有操作权限」。
 requirePermission('edit_job');
+$langSwitcher = ['table' => 'jobs', 'model' => jobModel(), 'summary_field' => 'requirements'];
+require_once ROOT_PATH . '/admin/includes/translate_action.php';
 
 $id = getInt('id');
 $isEdit = $id > 0;
@@ -80,6 +82,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </a>
 </div>
 
+<?php
+$langSwitcher['item'] = $job;
+$langSwitcher['edit_url'] = '/admin/job_edit.php';
+require ROOT_PATH . '/admin/includes/lang_switcher_edit.php';
+?>
 <form id="editForm" class="space-y-6">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <?php /* 左侧：基本信息 */ ?>
