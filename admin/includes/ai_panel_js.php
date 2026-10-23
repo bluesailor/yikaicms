@@ -84,7 +84,7 @@ function submitAiPanel() {
         if (action === 'generate_all' && data.fields) {
             var f = data.fields;
             if (document.getElementById('aiGenTitle').checked && f.title) { var el = document.querySelector('input[name=title]'); if(el) el.value = f.title; }
-            if (document.getElementById('aiGenSummary').checked && f.summary) { var el = document.querySelector('textarea[name=summary]'); if(el) el.value = f.summary; }
+            if (document.getElementById('aiGenSummary').checked && f.summary) { var el = document.querySelector('textarea[name=summary]'); if(el) { el.value = f.summary; el.dispatchEvent(new Event('input', { bubbles: true })); } }
             if (document.getElementById('aiGenTags').checked && f.tags) { var el = document.querySelector('input[name=tags]'); if(el) el.value = f.tags; }
             if (document.getElementById('aiGenSlug').checked && f.slug) { var el = document.querySelector('input[name=slug]'); if(el) el.value = f.slug; }
             if (document.getElementById('aiGenContent').checked && f.content) { setEditorContent(f.content); }
