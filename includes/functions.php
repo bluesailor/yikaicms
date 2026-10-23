@@ -2064,7 +2064,8 @@ function getBlockBg(array $block, string $defaultClass = ''): array
                 continue;
             }
             if (class_exists('AbstractElement')) {
-                $hasPaint = AbstractElement::backgroundDeclarations($parentBackground) !== '';
+                $hasPaint = AbstractElement::backgroundDeclarations($parentBackground) !== ''
+                    || preg_match('/^(linear|radial)-gradient\([a-zA-Z0-9#%.,()\s-]+\)$/', (string) ($parentBackground['bg_gradient'] ?? '')) === 1;
                 $hasVideo = AbstractElement::backgroundVideoUrl($parentBackground) !== '';
             } else {
                 $hasPaint = trim((string) ($parentBackground['bg_color'] ?? '')) !== ''
