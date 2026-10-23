@@ -9545,4 +9545,5 @@ voltage|电压|220V',
     'ch_lang_empty_btn' => '生成:lang栏目',
     'a11y_select_row' => '选择：:name',
     'a11y_show_password' => '显示密码',
+    'lse_retranslate' => '重新 AI 翻译',
 ];

@@ -84,6 +84,9 @@ if ($_ls_item) {
            class="px-3 py-1 rounded-full text-xs bg-green-100 text-green-700 hover:bg-green-200 transition" title="<?php echo e(__('lse_last_edited')); ?>: <?php echo date('Y-m-d H:i', (int)($transItem['updated_at'] ?? 0)); ?>">
             <?php echo e($ll); ?> ✓
         </a>
+        <?php if ($lc !== $_ls_defaultLang): ?>
+        <button type="button" class="border rounded px-2 py-1 text-xs" onclick="createTranslation('<?php echo e($lc); ?>', '<?php echo e($ll); ?>', this, true)" aria-label="<?php echo e(__('lse_retranslate') . ' ' . $ll); ?>"><?php echo e(__('lse_retranslate')); ?></button>
+        <?php endif; ?>
         <?php else: ?>
         <button type="button" onclick="createTranslation('<?php echo e($lc); ?>', '<?php echo e($ll); ?>', this)"
                 class="px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600 transition cursor-pointer" title="<?php echo e(__('lse_create_version')); ?>">
@@ -93,12 +96,13 @@ if ($_ls_item) {
     <?php endforeach; ?>
 
     <?php if ($_ls_currentLang !== $_ls_defaultLang): ?>
+    <button type="button" class="border rounded px-2 py-1 text-xs" onclick="createTranslation('<?php echo e($_ls_currentLang); ?>', '<?php echo e($_ls_allLangs[$_ls_currentLang]); ?>', this, true)"><?php echo e(__('lse_retranslate')); ?></button>
     <span class="text-xs text-amber-500 ml-1"><?php echo str_replace(':lang', e($_ls_allLangs[$_ls_defaultLang]), e(__('lse_translated_from'))); ?><span class="hidden"></span>
     <?php endif; ?>
 </div>
 
 <script>
-async function createTranslation(toLang, langName, btn) {
+async function createTranslation(toLang, langName, btn, retranslate = false) {
     if (!btn || btn.disabled) return;
     btn.disabled = true;
     btn.textContent = <?php echo json_encode(__('lse_translating'), JSON_UNESCAPED_UNICODE); ?>;
@@ -108,6 +112,7 @@ async function createTranslation(toLang, langName, btn) {
     fd.append('action', 'create_translation');
     fd.append('src_id', <?php echo (int)$_ls_item['id']; ?>);
     fd.append('to_lang', toLang);
+    if (retranslate) fd.append('retranslate', '1');
     try {
         var resp = await fetch(location.pathname, { method: 'POST', body: fd });
         var data = await safeJson(resp);

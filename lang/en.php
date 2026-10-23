@@ -9477,4 +9477,5 @@ e.g. steel|Stainless steel',
     'ch_lang_empty_btn' => 'Generate :lang channels',
     'a11y_select_row' => 'Select: :name',
     'a11y_show_password' => 'Show password',
+    'lse_retranslate' => 'Retranslate with AI',
 ];

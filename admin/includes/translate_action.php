@@ -32,6 +32,7 @@ verifyCsrf();
 
 $srcId  = (int) ($_POST['src_id'] ?? 0);
 $toLang = (string) ($_POST['to_lang'] ?? '');
+$retranslate = (int) ($_POST['retranslate'] ?? 0) === 1;
 
 $supported = array_keys(availableLanguages());
 if ($srcId <= 0 || !in_array($toLang, $supported, true)) {
@@ -50,6 +51,14 @@ if (!$src) error('源记录不存在');
 
 // 任何写库、AI 调用之前先判权：按源记录的真实类型，而不是按当前页面的模块权限。
 requireTranslationPermission($table, $src, (string) ($langSwitcher['content_type'] ?? ''));
+if ($retranslate && ($src['lang'] ?? '') !== config('site_lang', 'zh-CN')) {
+    $original = $model->find((int) ($src['translation_group_id'] ?: $src['id']));
+    if (!$original || ($original['lang'] ?? '') === $toLang) error(__('lse_failed'));
+    requireTranslationPermission($table, $original, (string) ($langSwitcher['content_type'] ?? ''));
+    $src = $original;
+    $srcId = (int) $src['id'];
+}
+if (($src['lang'] ?? '') === $toLang) error(__('lse_failed'));
 
 // translation group
 $groupId = (int) ($src['translation_group_id'] ?: $src['id']);
@@ -62,9 +71,11 @@ $existing = db()->fetchOne(
     "SELECT id FROM {$tName} WHERE translation_group_id = ? AND lang = ? LIMIT 1",
     [$groupId, $toLang]
 );
-if ($existing) {
+if ($existing && !$retranslate) {
     success(['id' => (int) $existing['id']], '已有该语言版本');
 }
+$target = $existing ? $model->find((int) $existing['id']) : null;
+if ($target) requireTranslationPermission($table, $target, (string) ($langSwitcher['content_type'] ?? ''));
 
 // AI 翻译短字段
 $srcTitle = (string) ($src[$titleKey] ?? '');
@@ -135,7 +146,26 @@ if (!isset($translated['seo_description']) && array_key_exists('seo_description'
 
 db()->beginTransaction();
 try {
-$newId = (int) $model->create($newData);
+if ($target) {
+    $changes = [$titleKey => $translated['title'], $summKey => $translated['summary']];
+    foreach ($translated as $field => $value) {
+        if (!in_array($field, ['title', 'summary', 'content'], true) && array_key_exists($field, $target)) $changes[$field] = $value;
+    }
+    if (array_key_exists($bodyField, $target)) $changes[$bodyField] = $translated['content'];
+    if (array_key_exists('status', $target)) $changes['status'] = 0;
+    if (array_key_exists('updated_at', $target)) $changes['updated_at'] = time();
+    $revisionType = match ($table) {
+        'contents' => (string) ($src['type'] ?? 'article'),
+        'products' => 'product',
+        'channels' => 'page',
+        'jobs' => 'job',
+        'downloads' => 'download',
+        default => $table,
+    };
+    recordContentRevision($revisionType, (int) $target['id'], $toLang, [['table' => $table, 'id' => (int) $target['id'], 'fields' => array_intersect_key($target, $changes)]], (string) ($target[$titleKey] ?? ''));
+    $model->updateById((int) $target['id'], $changes);
+    $newId = (int) $target['id'];
+} else $newId = (int) $model->create($newData);
 if ($pageContent) {
     $translatedPage = $pageContent;
     unset($translatedPage['id']);
@@ -149,7 +179,12 @@ if ($pageContent) {
     $translatedPage['slug'] = resolveSlug('', (string) $translated['title'], 'contents');
     $translatedPage['created_at'] = time();
     $translatedPage['updated_at'] = time();
-    contentModel()->create($translatedPage);
+    $existingPage = $target ? contentModel()->queryOne('SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? ORDER BY id DESC LIMIT 1', [$newId]) : null;
+    if ($existingPage) {
+        $pageChanges = ['title' => $translated['title'], 'summary' => $translated['summary'], $bodyField => $translated['content'], 'status' => 0, 'updated_at' => time()];
+        recordContentRevision('page', $newId, $toLang, [['table' => 'contents', 'id' => (int) $existingPage['id'], 'fields' => array_intersect_key($existingPage, $pageChanges)]], (string) $existingPage['title']);
+        contentModel()->updateById((int) $existingPage['id'], $pageChanges);
+    } else contentModel()->create($translatedPage);
 }
 // 扩展字段值随新语言版本带过去（2.0.4；之后各语言各自维护）
 $extOwner = match ($table) {
@@ -159,7 +194,7 @@ $extOwner = match ($table) {
     'product_categories' => 'product_category',
     default => '',
 };
-if ($extOwner !== '') ExtFields::copyValues($extOwner, $srcId, $newId);
+if ($extOwner !== '' && !$target) ExtFields::copyValues($extOwner, $srcId, $newId);
 adminLog('translate', 'create', "为 {$table}#{$srcId} 创建 {$toLang} 翻译 → #{$newId}");
 db()->commit();
 } catch (Throwable $exception) {
