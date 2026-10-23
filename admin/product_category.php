@@ -409,6 +409,7 @@ async function translateCategory(select) {
     body.append('action', 'create_translation');
     body.append('src_id', select.dataset.source);
     body.append('to_lang', language);
+    body.append('retranslate', '1');
     try {
         const response = await fetch(location.pathname, { method: 'POST', body });
         const result = await safeJson(response);
