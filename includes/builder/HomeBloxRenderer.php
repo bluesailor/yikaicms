@@ -179,6 +179,14 @@ final class HomeBloxRenderer
                         continue;
                     }
 
+                    // 旧首页导入的默认页面底色不能遮住作者设置的通栏渐变；显式颜色和图片仍保留。
+                    $sectionSettings = is_array($section['settings'] ?? null) ? $section['settings'] : [];
+                    if (preg_match('/^(linear|radial)-gradient\([a-zA-Z0-9#%.,()\s-]+\)$/', (string) ($sectionSettings['bg_gradient'] ?? '')) === 1
+                        && ($sectionSettings['container_bg'] ?? '') === 'var(--yk-color-surface)'
+                        && empty($sectionSettings['container_bg_image'])) {
+                        unset($renderSection['settings']['container_bg']);
+                    }
+
                     // Theme surfaces must not cover backgrounds chosen on the surrounding boxes.
                     $settings = is_array($section['settings'] ?? null) ? $section['settings'] : [];
                     $renderElement['data']['_blox_parent_backgrounds'] = [
