@@ -93,6 +93,7 @@ $bodyField = (($bodySource['content_type'] ?? '') === 'blox' && !empty($bodySour
         $translationSource = $src;
         $translationSource['title'] = $srcTitle;
         $translationSource['summary'] = $srcSumm;
+        if ($summKey !== 'summary' && array_key_exists('summary', $src)) $translationSource['secondary_summary'] = (string) $src['summary'];
         $translationSource['content'] = (string) ($bodySource[$bodyField] ?? '');
         $translated = translateContentFields($translationSource, $toLang, [aiService(), 'chat']);
     } catch (Throwable $exception) {
@@ -107,6 +108,7 @@ $newData['lang']                 = $toLang;
 $newData['translation_group_id'] = $groupId;
 $newData[$titleKey]              = $translated['title'];
 $newData[$summKey]               = $translated['summary'];
+if (isset($translated['secondary_summary'])) $newData['summary'] = $translated['secondary_summary'];
 foreach ($translated as $field => $value) {
     if ($field !== 'title' && $field !== 'summary' && $field !== 'content' && array_key_exists($field, $src)) $newData[$field] = $value;
 }
@@ -148,6 +150,7 @@ db()->beginTransaction();
 try {
 if ($target) {
     $changes = [$titleKey => $translated['title'], $summKey => $translated['summary']];
+    if (isset($translated['secondary_summary'])) $changes['summary'] = $translated['secondary_summary'];
     foreach ($translated as $field => $value) {
         if (!in_array($field, ['title', 'summary', 'content'], true) && array_key_exists($field, $target)) $changes[$field] = $value;
     }

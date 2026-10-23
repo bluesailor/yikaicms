@@ -55,7 +55,7 @@ function translateContentFields(array $source, string $language, callable $chat)
     if (!$root) throw new RuntimeException('Cannot parse article HTML.');
     $nodes = (new DOMXPath($document))->query('.//text()[not(ancestor::script) and not(ancestor::style)]', $root);
     $texts = ['title' => (string) ($source['title'] ?? ''), 'summary' => (string) ($source['summary'] ?? '')];
-    foreach (['requirements', 'seo_title', 'seo_keywords', 'seo_description', 'subtitle', 'tags', 'department', 'location'] as $field) {
+    foreach (['requirements', 'seo_title', 'seo_keywords', 'seo_description', 'subtitle', 'tags', 'department', 'location', 'secondary_summary'] as $field) {
         if (!empty($source[$field])) $texts[$field] = (string) $source[$field];
     }
     $textNodes = [];

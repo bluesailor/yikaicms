@@ -80,4 +80,15 @@ final class ContentTranslationTest extends TestCase
         self::assertSame(2, $calls);
         self::assertSame('Intelligentes Gateway', $result['title']);
     }
+
+    public function testJobSummaryAndRequirementsAreIndependentFields(): void
+    {
+        $result = translateContentFields(['title' => '岗位', 'summary' => '任职要求', 'requirements' => '任职要求', 'secondary_summary' => '负责开发'], 'en', static function (string $prompt): array {
+            $input = json_decode(explode('Input: ', $prompt, 2)[1], true);
+            $dictionary = ['岗位' => 'Engineer', '任职要求' => 'Requirements', '负责开发' => 'Responsible for development'];
+            return ['success' => true, 'content' => json_encode(array_map(static fn(string $value): string => $dictionary[$value] ?? $value, $input))];
+        });
+        self::assertSame('Requirements', $result['requirements']);
+        self::assertSame('Responsible for development', $result['secondary_summary']);
+    }
 }
