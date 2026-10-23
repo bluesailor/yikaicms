@@ -85,7 +85,7 @@ if ($_ls_item) {
             <?php echo e($ll); ?> ✓
         </a>
         <?php else: ?>
-        <button type="button" onclick="createTranslation('<?php echo e($lc); ?>', '<?php echo e($ll); ?>')"
+        <button type="button" onclick="createTranslation('<?php echo e($lc); ?>', '<?php echo e($ll); ?>', this)"
                 class="px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600 transition cursor-pointer" title="<?php echo e(__('lse_create_version')); ?>">
             <?php echo e($ll); ?>
         </button>
@@ -98,10 +98,8 @@ if ($_ls_item) {
 </div>
 
 <script>
-async function createTranslation(toLang, langName) {
-    if (!confirm(<?php echo json_encode(__('lse_create_confirm'), JSON_UNESCAPED_UNICODE); ?>.replace(':lang', langName))) return;
-
-    var btn = event.target;
+async function createTranslation(toLang, langName, btn) {
+    if (!btn || btn.disabled) return;
     btn.disabled = true;
     btn.textContent = <?php echo json_encode(__('lse_translating'), JSON_UNESCAPED_UNICODE); ?>;
     btn.className = 'px-3 py-1 rounded-full text-xs bg-amber-100 text-amber-600 animate-pulse';
