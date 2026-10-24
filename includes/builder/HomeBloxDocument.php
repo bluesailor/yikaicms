@@ -26,7 +26,7 @@ final class HomeBloxDocument
             if (is_array($decoded)) {
                 $migrated = BloxDocumentPipeline::decode($raw);
                 $hasDocumentSections = isset($decoded['sections']) && is_array($decoded['sections']);
-                if ($hasDocumentSections || BloxDocumentPipeline::isList($decoded)) {
+                if ($hasDocumentSections || array_is_list($decoded)) {
                     return [
                         'schema'     => $migrated['schema'],
                         'settings'   => $migrated['settings'],
@@ -337,7 +337,7 @@ public static function isActive(): bool
         if (!is_array($decoded)) {
             return $json;
         }
-        if (BloxDocumentPipeline::isList($decoded)) {
+        if (array_is_list($decoded)) {
             $decoded = HomeBannerItemElement::markEditorChanges($decoded);
         } elseif (is_array($decoded['sections'] ?? null)) {
             $decoded['sections'] = HomeBannerItemElement::markEditorChanges($decoded['sections']);
@@ -379,7 +379,7 @@ public static function isActive(): bool
             return null;
         }
         $migrated = BloxDocumentPipeline::decode($raw);
-        if (!isset($decoded['sections']) && !BloxDocumentPipeline::isList($decoded)) {
+        if (!isset($decoded['sections']) && !array_is_list($decoded)) {
             return null;
         }
 

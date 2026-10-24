@@ -24,12 +24,9 @@ require_once __DIR__ . '/LanguageRegistry.php';
 
 final class LanguagePackException extends RuntimeException
 {
-    /** 机器可读原因，后台据此给出对应语言的提示（PHP 8.0 无 readonly，用私有属性 + 读取方法） */
-    private string $reason;
-
-    public function __construct(string $reason, string $detail = '')
+    /** @param string $reason 机器可读原因，后台据此给出对应语言的提示 */
+    public function __construct(private readonly string $reason, string $detail = '')
     {
-        $this->reason = $reason;
         parent::__construct($detail !== '' ? $reason . ': ' . $detail : $reason);
     }
 

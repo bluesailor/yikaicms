@@ -58,7 +58,7 @@ final class BloxTemplateMedia
     public static function validate(mixed $raw): array
     {
         if ($raw === null) return [];
-        if (!is_array($raw) || !self::isList($raw) || count($raw) > self::MAX_FILES) {
+        if (!is_array($raw) || !array_is_list($raw) || count($raw) > self::MAX_FILES) {
             throw new RuntimeException(__('blox_tpl_media_invalid'));
         }
         $out = [];
@@ -166,12 +166,6 @@ final class BloxTemplateMedia
         return strlen($path) <= 200
             && preg_match('#^[A-Za-z0-9_-][A-Za-z0-9_.-]*(?:/[A-Za-z0-9_-][A-Za-z0-9_.-]*)*$#D', $path) === 1
             && !str_contains($path, '..');
-    }
-
-    /** PHP 8.0 没有 array_is_list()。 */
-    private static function isList(array $value): bool
-    {
-        return $value === [] || array_keys($value) === range(0, count($value) - 1);
     }
 
     private static function imageMime(string $bytes): ?string
