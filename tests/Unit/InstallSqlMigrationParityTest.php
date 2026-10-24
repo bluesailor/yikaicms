@@ -128,7 +128,8 @@ final class InstallSqlMigrationParityTest extends TestCase
         require_once $validation;
         self::assertFalse(installerAdminPasswordValid(''));
         self::assertFalse(installerAdminPasswordValid('12345'));
-        self::assertTrue(installerAdminPasswordValid('123456'));
+        self::assertFalse(installerAdminPasswordValid('123456'));
+        self::assertTrue(installerAdminPasswordValid('admin888'));
 
         $installer = (string) file_get_contents(ROOT_PATH . '/install/index.php');
         $validationCall = strpos($installer, 'installerAdminPasswordValid((string) $adminPass)');

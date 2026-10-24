@@ -2,7 +2,10 @@
 
 declare(strict_types=1);
 
-// Compile distributed source with the actual minimum runtime, without loading site config.
+// Compile the bundled extensions with PHP 8.0, without loading site config.
+// Core requires PHP 8.2 since 2.1.3, but plugins and themes still declare requires_php >=8.0
+// and reach sites on 2.1.2 and older through the market, so they must keep compiling on 8.0
+// until a release raises its own requires_php.
 if (PHP_SAPI !== 'cli') {
     http_response_code(404);
     exit;
@@ -18,8 +21,9 @@ $override = getenv('YIKAI_PHP80_CHECK_ROOT');
 if (is_string($override) && $override !== '' && is_dir($override)) {
     $root = rtrim(str_replace('\\', '/', $override), '/');
 }
-$paths = glob($root . '/*.php') ?: [];
-foreach (['admin', 'api', 'bin', 'config', 'controllers', 'deploy', 'includes', 'install', 'lang', 'migrations', 'plugins', 'themes', 'marketplace/themes', 'views'] as $directory) {
+// php_guard.php is the one core file that must still load on old PHP (it prints the upgrade notice).
+$paths = is_file($root . '/includes/php_guard.php') ? [$root . '/includes/php_guard.php'] : [];
+foreach (['plugins', 'themes', 'marketplace/themes'] as $directory) {
     if (!is_dir($root . '/' . $directory)) {
         continue;
     }

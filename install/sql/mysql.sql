@@ -250,7 +250,7 @@ CREATE TABLE `yikai_blocks_library` (
   `created_at` int(11) unsigned NOT NULL DEFAULT 0,
   `updated_at` int(11) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
 DROP TABLE IF EXISTS `yikai_blox_templates`;
@@ -451,7 +451,7 @@ CREATE TABLE `yikai_content_revisions` (
   `created_at` int(11) unsigned NOT NULL DEFAULT 0,
   PRIMARY KEY (`id`),
   KEY `idx_target` (`target_type`,`target_id`,`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 DROP TABLE IF EXISTS `yikai_brands`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;

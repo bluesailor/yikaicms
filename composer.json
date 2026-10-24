@@ -1,6 +1,6 @@
 {
     "name": "yikai/yikaicms",
-    "description": "A lightweight enterprise CMS built with PHP 8.0+, no framework dependency.",
+    "description": "A lightweight enterprise CMS built with PHP 8.2+, no framework dependency.",
     "type": "project",
     "keywords": ["cms", "content-management", "php", "enterprise", "lightweight"],
     "homepage": "https://www.yikaicms.com",
@@ -12,7 +12,7 @@
         }
     ],
     "require": {
-        "php": ">=8.0",
+        "php": ">=8.2",
         "ext-dom": "*",
         "ext-fileinfo": "*",
         "ext-json": "*",

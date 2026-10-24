@@ -77,7 +77,7 @@ return [
     'install_demo_label' => '安装演示数据',
     'install_demo_tip' => '包含示例文章、产品、页面（可后续删除）',
     'admin_user_tip' => '4-20位字母数字',
-    'admin_pass_tip' => '至少6位',
+    'admin_pass_tip' => '至少 8 位，含字母和数字',
     'password_mismatch' => '两次密码不一致',
 
     // 安装中
@@ -127,8 +127,8 @@ return [
 
     // 错误
     'error_already_installed' => '系统已安装，如需重新安装请删除 config/installed.lock 文件',
-    'error_php_version' => 'PHP 版本过低，需要 8.0 或更高版本',
-    'error_admin_pass_length' => '管理员密码至少需要 6 个字符。',
+    'error_php_version' => 'PHP 版本过低，需要 8.2 或更高版本',
+    'error_admin_pass_length' => '管理员密码至少 8 位，并且同时包含字母和数字。',
     'error_admin_user_invalid' => '管理员账号不能为空、不能是「0」，也不要带首尾空格。',
     'error_db_name_invalid' => '数据库名只允许字母、数字、下划线和连字符。',
     'error_table_prefix_invalid' => '表前缀只允许字母、数字和下划线。',

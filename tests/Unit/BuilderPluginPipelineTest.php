@@ -338,17 +338,9 @@ final class BuilderPluginPipelineTest extends TestCase
         $this->assertSame($bareHtml, $envelopeHtml);
     }
 
-    public function testDocumentListDetectionSupportsPhp80(): void
+    /** 2.1.3 起核心要求 PHP 8.2、直接用 array_is_list()；isList() 只为仍调用它的插件保留，行为不能变。 */
+    public function testDeprecatedListDetectionKeepsItsBehaviourForPlugins(): void
     {
-        $builderPath = ROOT_PATH . '/includes/builder/';
-        $forbiddenCall = 'array_' . 'is_list(';
-
-        foreach (['BloxDocumentPipeline.php', 'HomeBloxDocument.php', 'HomeLayoutDocument.php'] as $file) {
-            $source = file_get_contents($builderPath . $file);
-            $this->assertIsString($source);
-            $this->assertStringNotContainsString($forbiddenCall, $source, $file);
-        }
-
         $this->assertTrue(BloxDocumentPipeline::isList([]));
         $this->assertTrue(BloxDocumentPipeline::isList([['columns' => []]]));
         $this->assertFalse(BloxDocumentPipeline::isList(['sections' => []]));
