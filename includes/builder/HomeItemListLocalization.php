@@ -110,7 +110,7 @@ abstract class HomeItemListLocalization
         if (!is_array($decoded)) {
             return $json;
         }
-        $isList = BloxDocumentPipeline::isList($decoded);
+        $isList = array_is_list($decoded);
         $sections = $isList ? $decoded : ($decoded['sections'] ?? null);
         if (!is_array($sections)) {
             return $json;

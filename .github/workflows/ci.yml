@@ -15,6 +15,8 @@ concurrency:
 
 jobs:
   # ─── Lint: php -l on every PHP file. Catches parse errors immediately. ───
+  # Core requires PHP 8.2 since 2.1.3. On 8.0/8.1 only the bundled plugins and themes are
+  # linted: they still declare requires_php >=8.0 and reach older sites through the market.
   lint:
     name: PHP Lint (${{ matrix.php }})
     runs-on: ubuntu-latest
@@ -34,7 +36,12 @@ jobs:
         run: |
           set -e
           # find every PHP file outside vendor/node_modules and lint it.
-          find . -path ./vendor -prune -o -path ./node_modules -prune \
+          if php -r 'exit(PHP_VERSION_ID >= 80200 ? 0 : 1);'; then
+            set -- .
+          else
+            set -- plugins themes marketplace/themes includes/php_guard.php
+          fi
+          find "$@" -path ./vendor -prune -o -path ./node_modules -prune \
                  -o -type f -name '*.php' -print0 \
             | xargs -0 -n1 php -l > /tmp/lint.log 2>&1 \
             || (cat /tmp/lint.log && exit 1)
@@ -43,14 +50,15 @@ jobs:
             cat /tmp/lint.log
             exit 1
           fi
+      - name: Bundled extensions compile on PHP 8.0
+        if: ${{ matrix.php == '8.0' }}
+        run: php tools/check-php80-runtime.php
 
   # ─── PHPUnit: model + controller + admin suites. SQLite in-memory. ───
-  # Matrix is 8.2–8.4: the dev toolchain (psalm 6.x → symfony 7.4 /
-  # webmozart-assert) pins the committed lock to that range, so `composer
-  # install` can't resolve on 8.0/8.1 (too old) or 8.5 (lock has no
-  # 8.5-compatible set yet). Product runtime support for 8.0–8.5 is verified
-  # by the Lint job (php -l on 8.0–8.5); raise the ceiling here once the dev
-  # toolchain lock declares 8.5.
+  # Matrix is 8.2–8.4: 8.2 is the product floor, and `composer install`
+  # can't resolve on 8.5 yet (lock has no 8.5-compatible dev toolchain).
+  # Product runtime support for 8.2–8.5 is verified by the Lint job;
+  # raise the ceiling here once the dev toolchain lock declares 8.5.
   phpunit:
     name: PHPUnit (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
@@ -92,10 +100,10 @@ jobs:
   # ─── 登录后逐类 POST「新建」（栏目/内容/产品及分类标签/下载/招聘/友链/时间线），
   # ─── 并回归栏目图保留，断言无 Fatal/undefined-function 且保存成功。专抓 job_edit 的 getAdminId()
   # ─── 那类「控制器层 Fatal」回归——单元测试与 Psalm baseline 都漏掉的类型。
-  # ─── 矩阵覆盖 8.0（产品承诺的最低版）与 8.2：用 --no-dev 安装（= 发行包
-  # ─── 真实形态，且不受 dev 工具链要求 8.2+ 的限制）。v1.13.0 的 pinyin 事故
-  # ─── （生产依赖要求 PHP 8.1、8.0 主机保存文章 ParseError 500）由本矩阵
-  # ─── 的 8.0 腿拦截：composer 平台约束、vendor 语法、真实保存 三层全覆盖。
+  # ─── 矩阵覆盖 8.2（2.1.3 起产品承诺的最低版）与 8.4：用 --no-dev 安装（= 发行包
+  # ─── 真实形态）。v1.13.0 的 pinyin 事故（生产依赖要求的 PHP 高于产品承诺、
+  # ─── 低版本主机保存文章 ParseError 500）由本矩阵的最低版腿拦截：
+  # ─── composer 平台约束、vendor 语法、真实保存 三层全覆盖。
   # ─── extensions 里的 simplexml 是给 product-import 插件的 XlsxReader 测试用的；
   # ─── 它不是核心必需项（见 RuntimeRequirements），CI 装它只为让那条插件测试能跑。
   smoke:
@@ -108,9 +116,9 @@ jobs:
         # 落错桶、列表查不到」这类 bug 在中文站上根本不成立（默认值恰好对）。
         # en 腿只挂在 8.2 上，避免矩阵翻倍。
         include:
-          - php: '8.0'
-            lang: 'zh-CN'
           - php: '8.2'
+            lang: 'zh-CN'
+          - php: '8.4'
             lang: 'zh-CN'
           - php: '8.2'
             lang: 'en'
@@ -138,7 +146,7 @@ jobs:
           restore-keys: |
             composer-nodev-${{ matrix.php }}-
 
-      - name: composer install（仅生产依赖；8.0 上失败 = 依赖的 PHP 约束与产品承诺冲突）
+      - name: composer install（仅生产依赖；8.2 上失败 = 依赖的 PHP 约束与产品承诺冲突）
         run: composer install --no-dev --no-interaction --prefer-dist --no-progress
 
       - name: Lint vendor（生产依赖在本 PHP 版本下的语法兼容性）
@@ -146,16 +154,6 @@ jobs:
           find vendor -type f -name '*.php' -print0 \
             | xargs -0 -n50 php -l > /tmp/vendor-lint.log 2>&1 \
             || { grep -B1 -E 'Errors parsing|Parse error' /tmp/vendor-lint.log; exit 1; }
-
-      - name: PHP 8.0 upgrade entry ordering smoke
-        if: ${{ matrix.php == '8.0' }}
-        run: php tests/smoke/php80_upgrade_entry_order.php
-
-      - name: PHP 8.0 runtime source and display conditions
-        if: ${{ matrix.php == '8.0' }}
-        run: |
-          php tools/check-php80-runtime.php
-          php tests/smoke/php80_display_conditions.php
 
       # 全新安装 ≡ 老站跑完全部迁移。install SQL 与 migrations 是两条独立演进的
       # 路径，两个方向都漏过（v1.11.0 新装缺列 500 / 某站升级缺 9 列），单向
@@ -369,7 +367,7 @@ jobs:
 
   # ─── 真实 N-1 包升级：从已发布的 v1.20.1 完整包安装旧站，再通过
   # ─── prepare/batch/finalize 管道覆盖当前候选完整包并跑完迁移。
-  # ─── PHP 8.0 与 8.2 各跑一次，守住旧共享主机与推荐运行环境两条路径。
+  # ─── PHP 8.2（2.1.3 起的最低版）与 8.4 各跑一次。
   # ─── 这条专门覆盖源码树、全新安装和两文件回滚沙箱都看不到的客户升级路径。
   n-minus-one-upgrade:
     name: PHP ${{ matrix.php }} N-1 Package Upgrade
@@ -378,7 +376,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.0', '8.2']
+        php: ['8.2', '8.4']
     services:
       mysql:
         image: mysql:5.7

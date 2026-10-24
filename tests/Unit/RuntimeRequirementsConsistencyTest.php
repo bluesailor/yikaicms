@@ -29,9 +29,20 @@ final class RuntimeRequirementsConsistencyTest extends TestCase
         );
     }
 
+    /** 2.1.3 起核心要求 8.2（所有者 2026-10-25 定）；改版本线要连同下面几条一起改 */
+    public function testCoreRequiresPhp82(): void
+    {
+        self::assertSame('8.2.0', RuntimeRequirements::PHP_MINIMUM);
+        self::assertSame('8.3.0', RuntimeRequirements::PHP_RECOMMENDED);
+        self::assertStringContainsString('PHP_VERSION_ID < 80200', (string) file_get_contents(ROOT_PATH . '/includes/php_guard.php'));
+    }
+
+    /**
+     * 随包插件与主题仍声明 requires_php >=8.0：它们经市场装到 2.1.2 及更早、还在 8.0 上的站，
+     * 必须继续能在 8.0 上加载（CI 用 tools/check-php80-runtime.php 编译检查）。
+     */
     public function testOfficialExtensionsAcceptPhp80(): void
     {
-        self::assertSame('8.0.0', RuntimeRequirements::PHP_MINIMUM);
         $manifests = array_merge(
             glob(ROOT_PATH . '/plugins/*/plugin.json') ?: [],
             glob(ROOT_PATH . '/marketplace/themes/*/theme.json') ?: [],
@@ -54,8 +65,8 @@ final class RuntimeRequirementsConsistencyTest extends TestCase
             '恰好等于硬地板的版本必须判为可安装。'
         );
         self::assertFalse(
-            RuntimeRequirements::phpMeetsRecommended('8.0.0'),
-            'PHP 8.0 应落在「可运行但建议升级」这一档，而不是与 8.2 同级。'
+            RuntimeRequirements::phpMeetsRecommended('8.2.0'),
+            'PHP 8.2 应落在「可运行但建议升级」这一档（8.2 安全更新 2026 年底结束），而不是与 8.3 同级。'
         );
     }
 
@@ -84,7 +95,7 @@ final class RuntimeRequirementsConsistencyTest extends TestCase
     }
 
     /**
-     * 安装界面显示的版本号必须是 "8.0+"。
+     * 安装界面显示的版本号必须是 "8.2+"。
      *
      * 这条是被 codex 复核抓出来的真 bug 的回归锁：原实现写 rtrim(PHP_MINIMUM, '.0')，
      * 而 rtrim 第二参是**字符集合**不是后缀——rtrim('8.0.0', '.0') 会一路剥到只剩 '8'，
@@ -92,7 +103,7 @@ final class RuntimeRequirementsConsistencyTest extends TestCase
      */
     public function testInstallerLabelShowsTheFullMinimumVersion(): void
     {
-        self::assertSame('8.0+', RuntimeRequirements::phpMinimumLabel());
+        self::assertSame('8.2+', RuntimeRequirements::phpMinimumLabel());
 
         // 与硬地板联动：改了 PHP_MINIMUM 而忘了 label，这条会红
         $expected = implode('.', array_slice(explode('.', RuntimeRequirements::PHP_MINIMUM), 0, 2)) . '+';
@@ -110,11 +121,11 @@ final class RuntimeRequirementsConsistencyTest extends TestCase
     public function testDocumentationAndToolingStateTheSameContract(): void
     {
         $readme = (string) file_get_contents(ROOT_PATH . '/README.md');
-        self::assertStringContainsString('| PHP | >= 8.0', $readme);
-        self::assertStringNotContainsString('| PHP | >= 8.2', $readme);
+        self::assertStringContainsString('| PHP | >= 8.2', $readme);
+        self::assertStringNotContainsString('| PHP | >= 8.0', $readme);
 
         $composer = json_decode((string) file_get_contents(ROOT_PATH . '/composer.json'), true, 512, JSON_THROW_ON_ERROR);
-        self::assertSame('>=8.0', $composer['require']['php']);
+        self::assertSame('>=8.2', $composer['require']['php']);
         foreach (RuntimeRequirements::requiredNames() as $ext) {
             self::assertArrayHasKey('ext-' . $ext, $composer['require'], "必需扩展 {$ext} 应在 composer 平台约束里。");
         }
@@ -126,9 +137,10 @@ final class RuntimeRequirementsConsistencyTest extends TestCase
             );
         }
 
-        // 8.0 是产品承诺的最低版，CI 必须真的在 8.0 上跑
+        // 8.2 是产品承诺的最低版，后台冒烟必须真的在 8.2 上跑；8.0 只留给随包扩展的编译检查
         $ci = (string) file_get_contents(ROOT_PATH . '/.github/workflows/ci.yml');
-        self::assertStringContainsString("- php: '8.0'", $ci);
+        self::assertStringContainsString("- php: '8.2'", $ci);
+        self::assertStringNotContainsString("- php: '8.0'", $ci);
     }
 
     /**
@@ -159,9 +171,10 @@ final class RuntimeRequirementsConsistencyTest extends TestCase
         }
     }
 
-    public function testPackagedRuntimeSourceDoesNotUsePhp81NeverReturnTypes(): void
+    /** 核心已要求 8.2，可以用 never；随包扩展仍要能在 8.0 上解析 */
+    public function testBundledExtensionsDoNotUsePhp81NeverReturnTypes(): void
     {
-        $roots = ['admin', 'api', 'bin', 'config', 'controllers', 'includes', 'install', 'migrations', 'plugins', 'themes', 'marketplace/themes'];
+        $roots = ['plugins', 'themes', 'marketplace/themes'];
         $violations = [];
         foreach ($roots as $relativeRoot) {
             $absoluteRoot = ROOT_PATH . '/' . $relativeRoot;

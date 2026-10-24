@@ -127,7 +127,7 @@
 
 | 项目 | 要求 |
 |------|------|
-| PHP | >= 8.0（建议 8.2+） |
+| PHP | >= 8.2（建议 8.3+） |
 | 数据库 | MySQL 5.7+ / MySQL 8.0+（utf8mb4）或 SQLite 3 |
 | Web 服务器 | Apache（启用 `mod_rewrite`）或 Nginx |
 | PHP 扩展（必需） | pdo、json、mbstring、fileinfo、dom |
@@ -298,7 +298,7 @@ Nginx 下一个 server 块服务多个一级子目录站点的写法见源码 `d
 
 | 层面 | 技术 |
 |------|------|
-| 后端 | PHP 8.0+，纯原生，无框架 |
+| 后端 | PHP 8.2+，纯原生，无框架 |
 | 数据库 | MySQL 5.7+ / 8.0+ / SQLite 3，PDO |
 | 前端样式 | Tailwind CSS v4 |
 | 前端交互 | Alpine.js v3 |

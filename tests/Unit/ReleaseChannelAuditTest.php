@@ -589,6 +589,11 @@ final class ReleaseChannelAuditTest extends TestCase
         foreach (self::PROBE_ASSETS as $asset) {
             $zip->addFromString("yikaicms-v{$packageVersion}/{$asset}", self::probeAsset($asset, $assetVersion));
         }
+        // 上传闸要读包里声明的 PHP 版本线，不能低于发布条目的 min_php
+        $zip->addFromString(
+            "yikaicms-v{$packageVersion}/includes/RuntimeRequirements.php",
+            "<?php\nfinal class RuntimeRequirements\n{\n    public const PHP_MINIMUM = '8.0.0';\n}\n"
+        );
         $zip->close();
     }
 
