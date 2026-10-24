@@ -157,4 +157,111 @@ final class ContentTranslationTest extends TestCase
         self::assertSame('Requirements', $result['requirements']);
         self::assertSame('Responsible for development', $result['secondary_summary']);
     }
+
+    public function testMissingSeoAndEmptyTitleAreRepairedWithoutReplacingValidFields(): void
+    {
+        $calls = 0;
+        $result = translateContentFields(['title' => '标题', 'summary' => '摘要', 'seo_description' => '完整描述'], 'es', static function (string $prompt) use (&$calls): array {
+            $calls++;
+            if ($calls === 1) return ['success' => true, 'content' => '{"title":"","summary":"Resumen completo"}'];
+            $input = json_decode(explode('Input: ', $prompt, 2)[1], true);
+            self::assertSame(['title', 'seo_description'], array_keys($input));
+            return ['success' => true, 'content' => '{"title":"Título completo","seo_description":"Descripción completa"}'];
+        });
+        self::assertSame(2, $calls);
+        self::assertSame('Título completo', $result['title']);
+        self::assertSame('Resumen completo', $result['summary']);
+        self::assertSame('Descripción completa', $result['seo_description']);
+    }
+
+    public function testReviewedTerminologyCannotBeReplacedWithPreciousComponents(): void
+    {
+        $calls = 0;
+        $result = translateContentFields(['title' => '精密零部件', 'content' => '<p><a href="/parts.html">精密零部件</a></p>'], 'es', static function (string $prompt) use (&$calls): array {
+            $calls++;
+            $input = json_decode(explode('Input: ', $prompt, 2)[1], true);
+            if ($calls === 1) return ['success' => true, 'content' => json_encode(array_map(static fn(string $value): string => $value === '' ? '' : 'componentes preciosos', $input))];
+            return ['success' => true, 'content' => json_encode(array_map(static fn(string $value): string => str_replace('精密零部件', 'componentes de precisión', $value), $input))];
+        });
+        self::assertSame(2, $calls);
+        self::assertSame('componentes de precisión', $result['title']);
+        self::assertStringContainsString('href="/parts.html"', $result['content']);
+        self::assertStringContainsString('componentes de precisión</a>', $result['content']);
+        self::assertStringNotContainsString('preciosos', $result['content']);
+    }
+
+    public function testLosingReviewedTerminologyIsRejectedEvenWithoutChineseCharacters(): void
+    {
+        $this->expectException(RuntimeException::class);
+        translateContentFields(['title' => '精密零部件'], 'es', static fn(): array => ['success' => true, 'content' => '{"title":"componentes preciosos","summary":""}']);
+    }
+
+    public function testMalformedInitialResponseIsRepairedBeforeReturningAnyFields(): void
+    {
+        $calls = 0;
+        $result = translateContentFields(['title' => '标题', 'seo_description' => '描述'], 'es', static function () use (&$calls): array {
+            $calls++;
+            return ['success' => true, 'content' => $calls === 1 ? '{broken JSON' : 'Translation: {"title":"Título completo","seo_description":"Descripción completa"}'];
+        });
+        self::assertSame(2, $calls);
+        self::assertSame('Título completo', $result['title']);
+        self::assertSame('Descripción completa', $result['seo_description']);
+    }
+
+    public function testLiteralTokenInSourceIsNotReplacedWithAnUnrelatedGlossaryTerm(): void
+    {
+        $result = translateContentFields(['title' => 'YKTERM0X 精密零部件'], 'es', static function (string $prompt): array {
+            $input = json_decode(explode('Input: ', $prompt, 2)[1], true);
+            return ['success' => true, 'content' => json_encode(array_map(static fn(string $value): string => str_replace('精密零部件', 'componentes de precisión', $value), $input))];
+        });
+        self::assertSame('YKTERM0X componentes de precisión', $result['title']);
+    }
+
+    public function testTerminologyAcceptsCorrectSpanishVariantsButRejectsWrongMeaning(): void
+    {
+        self::assertFalse(translationNeedsRepair('华东地区的精密零部件，询盘量提升', 'Piezas de precisión de China oriental; aumentó el número de solicitudes de cotización.', 'es'));
+        self::assertTrue(translationNeedsRepair('精密零部件', 'componentes preciosos', 'es'));
+        self::assertTrue(translationNeedsRepair('华东地区', 'noreste de China', 'es'));
+    }
+
+    public function testStructuredTranslationRequestsJsonModeFromTheProvider(): void
+    {
+        $result = translateContentFields(['title' => '标题'], 'es', static function (string $prompt, string $system, float $temperature, bool $jsonObject): array {
+            self::assertTrue($jsonObject);
+            return ['success' => true, 'content' => '{"title":"Título completo","summary":""}'];
+        });
+        self::assertSame('Título completo', $result['title']);
+    }
+
+    public function testSourceReviewCorrectsRolesBeforeReturningTranslation(): void
+    {
+        $calls = 0;
+        $result = translateContentFields(['title' => '销售人员收到询价后整理报价单'], 'es', static function () use (&$calls): array {
+            $calls++;
+            return ['success' => true, 'content' => $calls === 1 ? '{"title":"Los vendedores solicitaban presupuestos.","summary":""}' : '{"title":"Los vendedores preparaban presupuestos tras recibir las consultas.","summary":""}'];
+        }, true);
+        self::assertSame(2, $calls);
+        self::assertSame('Los vendedores preparaban presupuestos tras recibir las consultas.', $result['title']);
+    }
+
+    public function testIncompleteReviewCannotReplaceTheValidatedTranslation(): void
+    {
+        $calls = 0;
+        $this->expectException(RuntimeException::class);
+        translateContentFields(['title' => '标题', 'seo_description' => '描述'], 'es', static function () use (&$calls): array {
+            $calls++;
+            return ['success' => true, 'content' => $calls === 1 ? '{"title":"Título","summary":"","seo_description":"Descripción"}' : '{"title":"Título"}'];
+        }, true);
+    }
+
+    public function testReviewWrapperIsUnwrappedWithoutMixingSourceAndTranslation(): void
+    {
+        $calls = 0;
+        $result = translateContentFields(['title' => '标题'], 'es', static function () use (&$calls): array {
+            $calls++;
+            return ['success' => true, 'content' => $calls === 1 ? '{"title":"Título","summary":""}' : '{"source":{"title":"标题"},"translation":{"title":"Título revisado","summary":""}}'];
+        }, true);
+        self::assertSame('Título revisado', $result['title']);
+        self::assertArrayNotHasKey('source', $result);
+    }
 }

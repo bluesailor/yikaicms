@@ -9549,4 +9549,6 @@ voltage|电压|220V',
     'admin_draft_preview' => '草稿预览',
     'job_exp_years_plus' => ':years年以上',
     'admin_draft_preview_private' => '草稿预览：仅有编辑权限的后台登录用户可见，内容尚未发布。',
+    'ai_translation_model_label' => '翻译专用模型',
+    'ai_translation_model_hint' => '留空使用默认模型。与默认模型共用 API 地址和密钥，用于翻译及原文复核；费用以所选模型为准。',
 ];

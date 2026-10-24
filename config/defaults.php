@@ -272,6 +272,7 @@ return [
 
     // 系统内部项（不挂常规设置页，由 admin/license.php 等专用页维护）
     'system' => [
+        'ai_translation_model' => ['value' => '', 'type' => 'text', 'name' => 'Translation model', 'tip' => '', 'sort_order' => 20],
         'html_cache_generation' => ['value' => '', 'type' => 'text', 'name' => 'HTML 缓存版本', 'tip' => '系统内部缓存失效标记，请勿手动修改', 'sort_order' => 14],
         'license_key'   => ['value' => '', 'type' => 'text', 'name' => '授权码', 'tip' => '在「授权管理」页填写', 'sort_order' => 1],
         'license_state' => ['value' => '', 'type' => 'text', 'name' => '授权缓存', 'tip' => '系统自动维护，请勿手动修改', 'sort_order' => 2],

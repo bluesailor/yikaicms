@@ -9623,4 +9623,6 @@ voltage|電圧|220V',
     'admin_draft_preview' => '下書きプレビュー',
     'job_exp_years_plus' => ':years年以上',
     'admin_draft_preview_private' => '下書きプレビュー：編集権限を持つログイン済み管理者のみ閲覧できます。未公開です。',
+    'ai_translation_model_label' => '翻訳専用モデル',
+    'ai_translation_model_hint' => '空欄の場合は既定のモデルを使用します。翻訳と原文との照合には同じ API URL とキーを使用します。料金は選択したモデルに準じます。',
 ];

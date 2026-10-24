@@ -96,7 +96,16 @@ $bodyField = translationBodyField($bodySource);
         $translationSource['summary'] = $srcSumm;
         if ($summKey !== 'summary' && array_key_exists('summary', $src)) $translationSource['secondary_summary'] = (string) $src['summary'];
         $translationSource['content'] = (string) ($bodySource[$bodyField] ?? '');
-        $translated = translateContentFields($translationSource, $toLang, [aiService(), 'chat']);
+        if (function_exists('set_time_limit')) @set_time_limit(180);
+        $translationDeadline = microtime(true) + 120;
+        $translationModel = trim((string) config('ai_translation_model', ''));
+        $translationAi = $translationModel !== '' ? new AiService(null, null, $translationModel) : aiService();
+        $translationChat = static function (string $prompt, string $system = '', float $temperature = 0.7, bool $jsonObject = false) use ($translationDeadline, $translationAi): array {
+            // Each provider request may take up to 60 seconds; leave room to return a JSON error.
+            if (microtime(true) + 61 >= $translationDeadline) throw new RuntimeException('Translation time budget exceeded. The existing draft has not been changed.');
+            return $translationAi->chat($prompt, $system, $temperature, $jsonObject);
+        };
+        $translated = translateContentFields($translationSource, $toLang, $translationChat, true);
     } catch (Throwable $exception) {
         error(__('lse_failed') . ': ' . $exception->getMessage());
     }
