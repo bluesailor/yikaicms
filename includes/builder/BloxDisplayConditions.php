@@ -210,7 +210,7 @@ final class BloxDisplayConditions
     }
 
     /**
-     * @return list<array{rules:list<array{type:string,operator:string,value:string|int}>}>|null
+     * @return list<array{rules:list<array{type:string,operator:string,value:string|int,name?:string}>}>|null
      */
     public static function parse(mixed $raw): ?array
     {
