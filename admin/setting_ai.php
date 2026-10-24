@@ -38,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     };
 
+
     if ($action === 'save') {
         $profileAction(static fn(): int => AiProfiles::save($profileId, [
             'name' => (string) ($_POST['profile_name'] ?? ''),
@@ -97,16 +98,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'test') {
-        // 测试的是表单当前内容，不保存、不改主 API。密钥留空或是脱敏值时用「正在编辑的这套」已存密钥，
-        // 新建配置没有已存密钥，不会借用主 API 的密钥。
-        $testKey = (string) ($_POST['ai_api_key'] ?? '');
-        if ($testKey === '' || str_contains($testKey, '***')) {
-            $testKey = $profileId > 0 ? AiProfiles::plainKey($profileId) : '';
-        }
+        // 测试的是表单当前内容，不保存、不改主 API。密钥留空或是脱敏值时用「正在编辑的这套」已存密钥——
+        // 只限服务商没换：把这套的密钥发给另一家服务商是泄露。新建配置没有已存密钥，也不会借用主 API 的。
         $testProvider = (string) ($_POST['ai_provider'] ?? '');
         if (!array_key_exists($testProvider, $providers)) {
             echo json_encode(['success' => false, 'content' => '', 'error' => __('ai_profile_bad_provider')], JSON_UNESCAPED_UNICODE);
             exit;
+        }
+        $testKey = (string) ($_POST['ai_api_key'] ?? '');
+        if ($testKey === '' || str_contains($testKey, '***')) {
+            $stored = $profileId > 0 ? AiProfiles::find($profileId) : null;
+            $sameProvider = $stored !== null && $stored['provider'] === $testProvider;
+            if ($stored !== null && !$sameProvider && $testProvider !== 'yikai') {
+                echo json_encode(['success' => false, 'content' => '', 'error' => __('ai_provider_key_required')], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            // 官方接口不带密钥（AiService 会改用授权码）
+            $testKey = $sameProvider ? AiProfiles::plainKey($profileId) : '';
         }
         if ($testKey === '' && $testProvider !== 'yikai') {
             echo json_encode(['success' => false, 'content' => '', 'error' => __('ai_profile_test_no_key')], JSON_UNESCAPED_UNICODE);
@@ -345,6 +353,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <p><strong>DeepSeek：</strong><a href="https://platform.deepseek.com/api_keys" target="_blank" class="text-primary hover:underline">platform.deepseek.com</a></p>
             <p><strong><?php echo e(__('ai_provider_qwen')); ?></strong><a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" class="text-primary hover:underline">dashscope.console.aliyun.com</a></p>
             <p><strong><?php echo e(__('ai_provider_zhipu')); ?></strong><a href="https://open.bigmodel.cn/usercenter/apikeys" target="_blank" class="text-primary hover:underline">open.bigmodel.cn</a></p>
+            <?php foreach (['siliconflow' => 'https://cloud.siliconflow.cn/account/ak', 'kimi' => 'https://platform.kimi.com/console/api-keys', 'mimo' => 'https://platform.xiaomimimo.com/', 'hunyuan' => 'https://console.cloud.tencent.com/tokenhub'] as $providerId => $keyUrl): ?>
+            <p><strong><?= e(__('ai_provider_' . $providerId . '_name')) ?>：</strong><a href="<?= e($keyUrl) ?>" target="_blank" rel="noopener" class="text-primary hover:underline"><?= e((string) parse_url($keyUrl, PHP_URL_HOST)) ?></a></p>
+            <?php endforeach; ?>
         </div>
     </div>
 </div>
@@ -354,6 +365,7 @@ var providers = <?php echo json_encode($providers, JSON_UNESCAPED_UNICODE); ?>;
 var currentModel = <?php echo json_encode($currentModel); ?>;
 var previousProvider = null;
 var modelDrafts = Object.create(null);
+var baseUrlDrafts = Object.create(null);
 
 function getProvider() { return document.querySelector('input[name="ai_provider"]:checked')?.value || 'openai'; }
 
@@ -377,7 +389,12 @@ function selectModel(m) {
 function onProviderChange() {
     var p = getProvider(), cfg = providers[p];
     if (!cfg) return;
-    if (previousProvider !== null) modelDrafts[previousProvider] = document.getElementById('aiModelInput').value;
+    var baseInput = document.getElementById('aiBaseUrl');
+    if (previousProvider !== null) {
+        modelDrafts[previousProvider] = document.getElementById('aiModelInput').value;
+        baseUrlDrafts[previousProvider] = baseInput.value;
+        baseInput.value = baseUrlDrafts[p] || '';
+    }
     var selectedModel = previousProvider === null ? currentModel : (modelDrafts[p] || '');
     previousProvider = p;
     var grid = document.getElementById('aiModelGrid'); grid.innerHTML = '';
@@ -428,7 +445,7 @@ function testAiConn() {
     fetch('', { method: 'POST', body: fd }).then(function(r){ return r.json(); }).then(function(d){
         result.className = 'mt-4 px-4 py-3 rounded-lg text-sm ' + (d.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200');
         result.textContent = d.success ? <?php echo json_encode(__('ai_conn_ok'), JSON_UNESCAPED_UNICODE); ?>.replace(':reply', d.content) : <?php echo json_encode(__('ai_conn_fail'), JSON_UNESCAPED_UNICODE); ?>.replace(':err', d.error);
-    }).catch(function(){ result.textContent = <?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>; }).finally(function(){ btn.disabled = false; btn.textContent = '<?php echo __('ai_test_connection'); ?>'; });
+    }).catch(function(){ result.textContent = <?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>; }).finally(function(){ btn.disabled = false; btn.textContent = <?php echo json_encode(__('ai_test_connection'), JSON_UNESCAPED_UNICODE); ?>; });
 }
 
 // 从 update.yikaicms 同步最新模型清单
