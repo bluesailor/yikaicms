@@ -1,6 +1,6 @@
 # YikaiCMS 扩展开发：AI 阅读入口
 
-更新：2026-10-20，按 v2.1.1 核对；上一轮基线为 v2.1.0（`e98d2cf6`）。适用于不同 AI 编程助手和人工开发者，不依赖特定工具、账号或本机路径。
+更新：2026-10-24，按 v2.1.2 核对；上一轮基线为 v2.1.1（`37a01c71`）。适用于不同 AI 编程助手和人工开发者，不依赖特定工具、账号或本机路径。
 
 ## 阅读顺序
 
@@ -12,6 +12,7 @@
 
 2.0.4 起常用的现成能力，先查它们再决定要不要自己写：扩展字段（`includes/ExtFields.php`，插件指南 8.1、模板指南 8.5）、自定义网址与 301 跳转（`ProductRouteModel`、`includes/Redirects.php`，支持 `/旧目录/*` 前缀规则）、从 WordPress 迁移（命令行 `tools/wp-import.php`，含 Contact Form 7 表单、菜单、ACF 字段与旧地址兜底；2.0.5 起支持 Betheme / Muffin 页面、`--type-map` 自定义类型映射与迁移程度报告）。
 2.1.0 起：网页构建器组件（母版 + 引用实例，可嵌套、锁定版本、变体，模板包带母版，模板指南 9.5）与预置组件；插件密钥统一存 `SecretStore`（插件指南 8.2）；AI 能力注册必须声明权限键与确认档位（插件指南 6.2）；`AiService::describeImage($bytes, $mime, $instruction)` 让模型看一张图（OpenAI 兼容与 Anthropic 两种格式，媒体库的 AI 替代文字用它，`includes/media/MediaAltAi.php`）；界面语言包按需下载（[多语言部署](./LANGUAGES.md) 第五节）；客户评价独立成表（`testimonialModel()`，模板指南 9.6）。2.1.1：组件固定的版本不再清理、导出时带上固定的那一版（模板指南 9.5）；后台脚本错误记进错误日志（级别 JS）与站点健康，排查编辑器问题先看这里；改了前台模板或插件后台页，提交前跑 `bash tools/premerge-check.sh --full --browser` 的浏览器阶段。
+2.1.2：AI 设置可保存多套 API 配置、选一套为主 API（`includes/AiProfiles.php`，存在设置 `ai_profiles` / `ai_active_profile`）。主 API 照旧写回 `ai_provider` / `ai_base_url` / `ai_api_key` / `ai_model` / `ai_translation_model`，扩展用 `aiService()` 或读这几个键就跟随主 API；**不要自己写这几个键**（与配置列表脱节，下次切换主 API 时被覆盖），也不要导出、打印它们（已列入敏感设置，不随配方与整站模板走）。`new AiService($provider, $key, $model, $baseUrl)`：参数传 `null` 读当前设置（模型与地址只在服务商与当前设置相同时沿用），传 `''` 用该服务商的默认值；指定另一家服务商时必须同时传它自己的 Key，不要拿当前 Key 去调别家。`chat($prompt, $system, $temperature, $jsonObject)` 第 4 个参数要求 JSON 输出（接口不支持时自动退回普通请求，返回内容仍要自己解析、校验）。翻译专用模型在 `ai_translation_model`，为空时用默认模型（传 `null`，不要传 `''`）。内容的 AI 翻译与 AI重译一律存为草稿（`status = 0`），站长在后台私有预览（`admin/draft_preview.php`）检查后发布；前台模板里的栏目列表、分类、站内链接要用 `contentListUrl()`、`draftPreviewEntityUrl()`、`adminPreviewContentHref()`，GET 表单加 `adminDraftPreviewHiddenInputs()`（`includes/frontend_preview.php`，模板指南 8.3），否则预览里点链接会跳出预览、落到公开页或 404。
 2.0.6（热修复）：控制台「检查更新」恢复（升级接口只认 POST + CSRF），控制台顶部提醒收进后台右上角铃铛（`includes/AdminNotices.php`，已知最新版本由 `includes/UpdateNotice.php` 记录）；扩展接口不变。
 2.0.5 起：多语言网址统一走 `LocalizedUrl`（内容、产品、栏目的各语言网址、hreflang、语言切换与 canonical，插件指南 5.5），设计变量扩到间距 / 容器宽度 / 排版（`BloxDesignScale`、`BloxDesignType`，模板指南 9.x），后台文章分类可由插件接管（`admin_article_categories` 过滤器）。
 

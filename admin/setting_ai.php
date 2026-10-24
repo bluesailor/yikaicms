@@ -38,6 +38,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         exit;
     };
 
+
     if ($action === 'save') {
         $profileAction(static fn(): int => AiProfiles::save($profileId, [
             'name' => (string) ($_POST['profile_name'] ?? ''),
@@ -45,7 +46,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             'base_url' => (string) ($_POST['ai_base_url'] ?? ''),
             'model' => (string) ($_POST['ai_model'] ?? ''),
             'translation_model' => (string) ($_POST['ai_translation_model'] ?? ''),
-        ], (string) ($_POST['ai_api_key'] ?? '')), 'ai_profile_saved', '保存 AI 配置');
+        ], (string) ($_POST['ai_api_key'] ?? ''), ($_POST['ai_api_key_clear'] ?? '') === '1'), 'ai_profile_saved', '保存 AI 配置');
     }
     if ($action === 'set_primary') {
         $profileAction(static fn() => AiProfiles::setActive($profileId), 'ai_profile_primary_set', '设为主 API');
@@ -97,16 +98,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'test') {
-        // 测试的是表单当前内容，不保存、不改主 API。密钥留空或是脱敏值时用「正在编辑的这套」已存密钥，
-        // 新建配置没有已存密钥，不会借用主 API 的密钥。
-        $testKey = (string) ($_POST['ai_api_key'] ?? '');
-        if ($testKey === '' || str_contains($testKey, '***')) {
-            $testKey = $profileId > 0 ? AiProfiles::plainKey($profileId) : '';
-        }
+        // 测试的是表单当前内容，不保存、不改主 API。密钥留空或是脱敏值时用「正在编辑的这套」已存密钥——
+        // 只限服务商没换：把这套的密钥发给另一家服务商是泄露。新建配置没有已存密钥，也不会借用主 API 的。
         $testProvider = (string) ($_POST['ai_provider'] ?? '');
         if (!array_key_exists($testProvider, $providers)) {
             echo json_encode(['success' => false, 'content' => '', 'error' => __('ai_profile_bad_provider')], JSON_UNESCAPED_UNICODE);
             exit;
+        }
+        $testKey = (string) ($_POST['ai_api_key'] ?? '');
+        $keyCleared = ($_POST['ai_api_key_clear'] ?? '') === '1' && $testKey === '';
+        if (!$keyCleared && ($testKey === '' || str_contains($testKey, '***'))) {
+            $stored = $profileId > 0 ? AiProfiles::find($profileId) : null;
+            $sameProvider = $stored !== null && $stored['provider'] === $testProvider;
+            if ($stored !== null && !$sameProvider && $testProvider !== 'yikai') {
+                echo json_encode(['success' => false, 'content' => '', 'error' => __('ai_provider_key_required')], JSON_UNESCAPED_UNICODE);
+                exit;
+            }
+            // 官方接口不带密钥（AiService 会改用授权码）
+            $testKey = $sameProvider ? AiProfiles::plainKey($profileId) : '';
         }
         if ($testKey === '' && $testProvider !== 'yikai') {
             echo json_encode(['success' => false, 'content' => '', 'error' => __('ai_profile_test_no_key')], JSON_UNESCAPED_UNICODE);
@@ -245,10 +254,17 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
                 <div id="apiKeyField">
                     <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('ai_api_key'); ?></label>
-                    <input type="text" name="ai_api_key" id="aiApiKey" value="<?php echo e($maskedApiKey); ?>"
-                           class="w-full border rounded-lg px-4 py-2.5 text-sm font-mono tracking-wide" placeholder="sk-..."
-                           onfocus="if(this.value.indexOf('***')!==-1){this.value='';this.style.color=''}">
-                    <p class="text-xs text-gray-400 mt-1"><?php echo $maskedApiKey ? __('ai_key_saved') : __('ai_api_key_hint'); ?></p>
+                    <?php // 已存密钥只显示脱敏值：聚焦时清空以便直接输入新密钥，没输入就离开则恢复原样；清空按钮表示保存时删除密钥 ?>
+                    <input type="hidden" name="ai_api_key_clear" id="aiApiKeyClear" value="0">
+                    <div class="relative">
+                        <input type="text" name="ai_api_key" id="aiApiKey" value="<?php echo e($maskedApiKey); ?>" data-masked="<?php echo e($maskedApiKey); ?>"
+                               class="w-full border rounded-lg pl-4 pr-9 py-2.5 text-sm font-mono tracking-wide" placeholder="sk-..." autocomplete="off"
+                               onfocus="if(this.value.indexOf('***')!==-1){this.value='';}" onblur="restoreMaskedKey(this)" oninput="keyEdited(this)">
+                        <?php $clearBtn = static fn(string $for): string => '<button type="button" data-clear-for="' . $for . '" data-testid="ai-clear-' . $for . '" onclick="clearAiField(\'' . $for . '\')" class="absolute right-2 top-1/2 -translate-y-1/2 w-6 h-6 inline-flex items-center justify-center rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100" title="' . e(__('ai_field_clear')) . '" aria-label="' . e(__('ai_field_clear')) . '"><i class="ti ti-x" aria-hidden="true"></i></button>'; ?>
+                        <?php echo $clearBtn('aiApiKey'); ?>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-1" id="aiApiKeyHint"><?php echo $maskedApiKey ? __('ai_key_saved') : __('ai_api_key_hint'); ?></p>
+                    <p class="text-xs text-amber-700 mt-1 hidden" id="aiApiKeyClearNotice" data-testid="ai-key-clear-notice"><?php echo e(__('ai_key_clear_pending')); ?> <button type="button" class="underline" onclick="undoClearKey()"><?php echo e(__('ai_key_clear_undo')); ?></button></p>
                     <?php if (!SecretStore::available()): // 2.1.1：加密不可用时明说会存明文，原因在站点健康里 ?>
                     <p class="text-xs text-amber-700 mt-1" data-testid="secret-store-plaintext-notice"><i class="ti ti-alert-triangle" aria-hidden="true"></i> <?php echo e(__('secret_store_plaintext_notice')); ?></p>
                     <?php endif; ?>
@@ -281,18 +297,27 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             </button>
                         </div>
                     </div>
-                    <input type="text" name="ai_model" id="aiModelInput" value="<?php echo e($currentModel); ?>" aria-label="<?php echo e(__('ai_model_label')); ?>" class="w-full border rounded-lg px-4 py-2.5 text-sm" oninput="selectModel(this.value)">
-                    <div id="aiModelGrid" class="flex flex-wrap gap-2"></div>
+                    <div class="relative">
+                        <input type="text" name="ai_model" id="aiModelInput" value="<?php echo e($currentModel); ?>" aria-label="<?php echo e(__('ai_model_label')); ?>" class="w-full border rounded-lg pl-4 pr-9 py-2.5 text-sm" oninput="selectModel(this.value)">
+                        <?php echo $clearBtn('aiModelInput'); ?>
+                    </div>
+                    <div id="aiModelGrid" class="flex flex-wrap gap-2 mt-2"></div>
                 </div>
                 <div>
                     <label for="aiTranslationModel" class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('ai_translation_model_label')); ?></label>
-                    <input type="text" name="ai_translation_model" id="aiTranslationModel" value="<?php echo e($currentTranslationModel); ?>" class="w-full border rounded-lg px-4 py-2.5 text-sm">
+                    <div class="relative">
+                        <input type="text" name="ai_translation_model" id="aiTranslationModel" value="<?php echo e($currentTranslationModel); ?>" class="w-full border rounded-lg pl-4 pr-9 py-2.5 text-sm" oninput="toggleClearBtn(this)">
+                        <?php echo $clearBtn('aiTranslationModel'); ?>
+                    </div>
                     <p class="text-xs text-gray-400 mt-1"><?php echo e(__('ai_translation_model_hint')); ?></p>
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('ai_custom_base_url')); ?> <span class="font-normal text-gray-400"><?php echo e(__('admin_optional_paren')); ?></span></label>
-                    <input type="text" name="ai_base_url" id="aiBaseUrl" value="<?php echo e($currentBaseUrl); ?>"
-                           class="w-full border rounded-lg px-4 py-2.5 text-sm" placeholder="<?php echo e(__('ai_base_url_ph')); ?>">
+                    <div class="relative">
+                        <input type="text" name="ai_base_url" id="aiBaseUrl" value="<?php echo e($currentBaseUrl); ?>" oninput="toggleClearBtn(this)"
+                               class="w-full border rounded-lg pl-4 pr-9 py-2.5 text-sm" placeholder="<?php echo e(__('ai_base_url_ph')); ?>">
+                        <?php echo $clearBtn('aiBaseUrl'); ?>
+                    </div>
                 </div>
             </div>
         </div>
@@ -345,6 +370,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <p><strong>DeepSeek：</strong><a href="https://platform.deepseek.com/api_keys" target="_blank" class="text-primary hover:underline">platform.deepseek.com</a></p>
             <p><strong><?php echo e(__('ai_provider_qwen')); ?></strong><a href="https://dashscope.console.aliyun.com/apiKey" target="_blank" class="text-primary hover:underline">dashscope.console.aliyun.com</a></p>
             <p><strong><?php echo e(__('ai_provider_zhipu')); ?></strong><a href="https://open.bigmodel.cn/usercenter/apikeys" target="_blank" class="text-primary hover:underline">open.bigmodel.cn</a></p>
+            <?php foreach (['siliconflow' => 'https://cloud.siliconflow.cn/account/ak', 'kimi' => 'https://platform.kimi.com/console/api-keys', 'mimo' => 'https://platform.xiaomimimo.com/', 'hunyuan' => 'https://console.cloud.tencent.com/tokenhub'] as $providerId => $keyUrl): ?>
+            <p><strong><?= e(__('ai_provider_' . $providerId . '_name')) ?>：</strong><a href="<?= e($keyUrl) ?>" target="_blank" rel="noopener" class="text-primary hover:underline"><?= e((string) parse_url($keyUrl, PHP_URL_HOST)) ?></a></p>
+            <?php endforeach; ?>
         </div>
     </div>
 </div>
@@ -354,6 +382,7 @@ var providers = <?php echo json_encode($providers, JSON_UNESCAPED_UNICODE); ?>;
 var currentModel = <?php echo json_encode($currentModel); ?>;
 var previousProvider = null;
 var modelDrafts = Object.create(null);
+var baseUrlDrafts = Object.create(null);
 
 function getProvider() { return document.querySelector('input[name="ai_provider"]:checked')?.value || 'openai'; }
 
@@ -372,12 +401,64 @@ function selectModel(m) {
         b.className = 'model-btn px-3 py-1.5 rounded-lg text-sm font-medium cursor-pointer transition border-2 ' +
             (b.dataset.model === m ? 'border-primary bg-blue-50 text-primary' : 'border-gray-200 bg-white text-gray-600 hover:border-gray-300');
     });
+    toggleClearBtn(document.getElementById('aiModelInput'));
+}
+
+// 输入框右侧的清空按钮：有内容才显示
+function toggleClearBtn(input) {
+    var btn = document.querySelector('[data-clear-for="' + input.id + '"]');
+    if (!btn) return;
+    btn.classList.toggle('hidden', input.value === '');
+    btn.classList.toggle('inline-flex', input.value !== ''); // inline-flex 会盖过 hidden，两个一起切
+}
+function refreshClearBtns() {
+    ['aiApiKey', 'aiModelInput', 'aiTranslationModel', 'aiBaseUrl'].forEach(function(id){ toggleClearBtn(document.getElementById(id)); });
+}
+function clearAiField(id) {
+    var input = document.getElementById(id);
+    if (id === 'aiModelInput') { selectModel(''); input.focus(); return; }
+    if (id === 'aiApiKey' && input.dataset.masked) {
+        // 已存密钥：清空 = 保存时删除，给出提示并可撤销
+        document.getElementById('aiApiKeyClear').value = '1';
+        document.getElementById('aiApiKeyClearNotice').classList.remove('hidden');
+        document.getElementById('aiApiKeyHint').classList.add('hidden');
+    }
+    input.value = '';
+    toggleClearBtn(input);
+    if (id !== 'aiApiKey') input.focus();
+}
+function undoClearKey() {
+    var input = document.getElementById('aiApiKey');
+    document.getElementById('aiApiKeyClear').value = '0';
+    document.getElementById('aiApiKeyClearNotice').classList.add('hidden');
+    document.getElementById('aiApiKeyHint').classList.remove('hidden');
+    input.value = input.dataset.masked;
+    toggleClearBtn(input);
+}
+// 聚焦已存密钥会清空以便输入；没输入新值就离开时恢复脱敏值（除非已点清空）
+function restoreMaskedKey(input) {
+    if (input.value === '' && input.dataset.masked && document.getElementById('aiApiKeyClear').value !== '1') input.value = input.dataset.masked;
+    toggleClearBtn(input);
+}
+function keyEdited(input) {
+    // 输入了新密钥就是替换，不再是删除
+    if (input.value !== '' && document.getElementById('aiApiKeyClear').value === '1') {
+        document.getElementById('aiApiKeyClear').value = '0';
+        document.getElementById('aiApiKeyClearNotice').classList.add('hidden');
+        document.getElementById('aiApiKeyHint').classList.remove('hidden');
+    }
+    toggleClearBtn(input);
 }
 
 function onProviderChange() {
     var p = getProvider(), cfg = providers[p];
     if (!cfg) return;
-    if (previousProvider !== null) modelDrafts[previousProvider] = document.getElementById('aiModelInput').value;
+    var baseInput = document.getElementById('aiBaseUrl');
+    if (previousProvider !== null) {
+        modelDrafts[previousProvider] = document.getElementById('aiModelInput').value;
+        baseUrlDrafts[previousProvider] = baseInput.value;
+        baseInput.value = baseUrlDrafts[p] || '';
+    }
     var selectedModel = previousProvider === null ? currentModel : (modelDrafts[p] || '');
     previousProvider = p;
     var grid = document.getElementById('aiModelGrid'); grid.innerHTML = '';
@@ -390,6 +471,7 @@ function onProviderChange() {
     grid.querySelectorAll('button').forEach(function(b){ b.className = 'model-btn'; });
     selectModel(selectedModel); updateProviderStyle();
     document.getElementById('aiBaseUrl').placeholder = <?php echo json_encode(__('ai_base_url_default'), JSON_UNESCAPED_UNICODE); ?>.replace(':url', cfg.base_url);
+    refreshClearBtns();
 }
 onProviderChange();
 
@@ -428,7 +510,7 @@ function testAiConn() {
     fetch('', { method: 'POST', body: fd }).then(function(r){ return r.json(); }).then(function(d){
         result.className = 'mt-4 px-4 py-3 rounded-lg text-sm ' + (d.success ? 'bg-green-50 text-green-700 border border-green-200' : 'bg-red-50 text-red-700 border border-red-200');
         result.textContent = d.success ? <?php echo json_encode(__('ai_conn_ok'), JSON_UNESCAPED_UNICODE); ?>.replace(':reply', d.content) : <?php echo json_encode(__('ai_conn_fail'), JSON_UNESCAPED_UNICODE); ?>.replace(':err', d.error);
-    }).catch(function(){ result.textContent = <?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>; }).finally(function(){ btn.disabled = false; btn.textContent = '<?php echo __('ai_test_connection'); ?>'; });
+    }).catch(function(){ result.textContent = <?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>; }).finally(function(){ btn.disabled = false; btn.textContent = <?php echo json_encode(__('ai_test_connection'), JSON_UNESCAPED_UNICODE); ?>; });
 }
 
 // 从 update.yikaicms 同步最新模型清单

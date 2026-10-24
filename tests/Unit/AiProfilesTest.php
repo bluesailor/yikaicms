@@ -85,11 +85,14 @@ final class AiProfilesTest extends TestCase
         return (string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', [$key]);
     }
 
-    /** 生产的 config() 读 settings 表；测试启动文件的 config() 读 $GLOBALS['_test_config']，构造 AiService 前对齐 */
+    /**
+     * 生产的 config() 读 settings 表；测试启动文件的 config() 读 $GLOBALS['_test_config']，构造 AiService 前对齐。
+     * 与 translate_action 一致：翻译模型为空时传 null（沿用主 API 的模型），空串表示服务商默认。
+     */
     private function ai(?string $model = null): AiService
     {
         $GLOBALS['_test_config'] = array_column(db()->fetchAll('SELECT "key", value FROM settings'), 'value', 'key');
-        return new AiService(null, null, $model ?? null);
+        return new AiService(null, null, $model);
     }
 
     protected function tearDown(): void
@@ -150,14 +153,14 @@ final class AiProfilesTest extends TestCase
 
         $reply = $this->ai()->chat('ping');
         self::assertTrue($reply['success'], (string) $reply['error']);
-        $translation = $this->ai($this->setting('ai_translation_model'))->chat('ping');
+        $translation = $this->ai($this->setting('ai_translation_model') ?: null)->chat('ping');
         self::assertTrue($translation['success']);
 
         AiProfiles::setActive($b);
         self::assertSame('', $this->setting('ai_translation_model'), '新主 API 没设翻译模型：不残留旧服务商的模型名');
         $afterSwitch = $this->ai()->chat('ping');
         self::assertTrue($afterSwitch['success'], (string) $afterSwitch['error']);
-        $translationAfter = $this->ai($this->setting('ai_translation_model'))->chat('ping');
+        $translationAfter = $this->ai($this->setting('ai_translation_model') ?: null)->chat('ping');
         self::assertTrue($translationAfter['success']);
 
         $req = $this->requests();
@@ -218,6 +221,42 @@ final class AiProfilesTest extends TestCase
         $expectError(static fn() => AiProfiles::save(99, ['provider' => 'openai'], ''), 'ai_profile_not_found');
         $expectError(static fn() => AiProfiles::save(0, ['provider' => 'no-such-provider'], ''), 'ai_profile_bad_provider');
         self::assertSame($b, AiProfiles::activeId(), '失败的操作不改原配置');
+    }
+
+    /** 改了服务商却没填新密钥：拒绝保存且原配置不变，旧密钥不会发给新服务商；改成官方接口时清掉旧密钥 */
+    public function testChangingProviderNeverReusesTheOldKey(): void
+    {
+        $id = AiProfiles::save(0, ['name' => 'SF', 'provider' => 'siliconflow', 'model' => 'm-sf'], 'sk-sf-0001');
+        try {
+            AiProfiles::save($id, ['provider' => 'kimi', 'model' => ''], '');
+            self::fail('expected ai_provider_key_required');
+        } catch (InvalidArgumentException $e) {
+            self::assertSame('ai_provider_key_required', $e->getMessage());
+        }
+        self::assertSame('siliconflow', AiProfiles::find($id)['provider'], '拒绝时不写入');
+        self::assertSame('siliconflow', $this->setting('ai_provider'));
+        self::assertSame('sk-sf-0001', AiProfiles::plainKey($id));
+
+        AiProfiles::save($id, ['provider' => 'siliconflow', 'model' => 'm-sf2'], '');
+        self::assertSame('sk-sf-0001', AiProfiles::plainKey($id), '同一服务商不填密钥 = 保留原密钥');
+
+        AiProfiles::save($id, ['provider' => 'kimi', 'model' => ''], 'sk-kimi-0002');
+        self::assertSame('sk-kimi-0002', AiProfiles::plainKey($id), '换服务商并给了新密钥：正常保存');
+        self::assertSame('kimi', $this->setting('ai_provider'));
+
+        // 后台点了清空：删除已存密钥；清空的同时换服务商也不算复用旧密钥
+        AiProfiles::save($id, ['provider' => 'kimi', 'model' => ''], '', true);
+        self::assertSame('', AiProfiles::plainKey($id));
+        self::assertSame('', $this->setting('ai_api_key'), '主 API 的旧键同步清空');
+        AiProfiles::save($id, ['provider' => 'siliconflow', 'model' => ''], '', true);
+        self::assertSame('siliconflow', AiProfiles::find($id)['provider']);
+        AiProfiles::save($id, ['provider' => 'siliconflow', 'model' => ''], 'sk-sf-0003', true);
+        self::assertSame('sk-sf-0003', AiProfiles::plainKey($id), '清空后又输入了新密钥：以新密钥为准');
+
+        $GLOBALS['_test_config'] = ['ai_official_enabled' => '1']; // 官方接口默认隐藏，开启后才可选
+        AiProfiles::save($id, ['provider' => 'yikai', 'model' => ''], '');
+        self::assertSame('', AiProfiles::plainKey($id), '官方接口凭授权码调用，旧服务商的密钥不留');
+        self::assertSame('', $this->setting('ai_api_key'));
     }
 
     public function testFreshSiteHasNoProfilesAndFirstSaveBecomesPrimary(): void
