@@ -77,7 +77,7 @@ return [
     'install_demo_label' => 'デモデータをインポート',
     'install_demo_tip' => '初期記事・サンプル製品などを含む（後から削除可能）',
     'admin_user_tip' => '半角英数4〜20文字',
-    'admin_pass_tip' => '6文字以上',
+    'admin_pass_tip' => '8文字以上、英字と数字を含む',
     'password_mismatch' => 'パスワードが一致しません',
 
     // インストール中
@@ -130,7 +130,7 @@ return [
     // エラー
     'error_already_installed' => 'インストール済みです。再インストールするには installed.lock を削除してください。',
     'error_php_version' => 'PHP バージョンが古いです。8.0以上が必要です。',
-    'error_admin_pass_length' => '管理者パスワードは6文字以上にしてください。',
+    'error_admin_pass_length' => '管理者パスワードは8文字以上で、英字と数字の両方を含めてください。',
     'error_admin_user_invalid' => '管理者アカウントは空や「0」にできません。前後に空白も入れないでください。',
     'error_db_name_invalid' => 'データベース名に使えるのは英数字、アンダースコア、ハイフンのみです。',
     'error_table_prefix_invalid' => 'テーブル接頭辞に使えるのは英数字とアンダースコアのみです。',

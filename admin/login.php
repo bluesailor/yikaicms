@@ -158,8 +158,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 <?php echo csrfField(); ?>
                 <input type="hidden" name="action" value="totp">
                 <div>
-                    <label class="block text-gray-700 mb-2"><?php echo __('login_2fa_code'); ?></label>
-                    <input type="text" name="totp_code" required autofocus
+                    <label for="login_totp_code" class="block text-gray-700 mb-2"><?php echo __('login_2fa_code'); ?></label>
+                    <input type="text" name="totp_code" id="login_totp_code" required autofocus
                            inputmode="numeric" autocomplete="one-time-code" maxlength="7"
                            class="w-full border border-gray-300 rounded-lg px-4 py-3 text-center text-2xl tracking-[0.5em] focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                            placeholder="000000">
@@ -174,16 +174,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <form method="post" class="space-y-6">
                 <?php echo csrfField(); ?>
                 <div>
-                    <label class="block text-gray-700 mb-2"><?php echo __('login_username'); ?></label>
-                    <input type="text" name="username" required autofocus
+                    <label for="login_username" class="block text-gray-700 mb-2"><?php echo __('login_username'); ?></label>
+                    <input type="text" name="username" id="login_username" required autofocus autocomplete="username"
                            class="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                            placeholder="<?php echo __('login_username_placeholder'); ?>">
                 </div>
 
                 <div>
-                    <label class="block text-gray-700 mb-2"><?php echo __('login_password'); ?></label>
+                    <label for="login_password" class="block text-gray-700 mb-2"><?php echo __('login_password'); ?></label>
                     <div class="relative pwd-toggle">
-                        <input type="password" name="password" required
+                        <input type="password" name="password" id="login_password" required autocomplete="current-password"
                                class="w-full border border-gray-300 rounded-lg px-4 py-3 pr-11 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                                placeholder="<?php echo __('login_password_placeholder'); ?>">
                         <button type="button" onclick="togglePassword(this)" aria-label="<?php echo e(__('a11y_show_password')); ?>" aria-pressed="false" class="absolute right-2 top-1/2 -translate-y-1/2 p-1 text-gray-500 hover:text-gray-700 cursor-pointer">
