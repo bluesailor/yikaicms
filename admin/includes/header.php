@@ -163,7 +163,8 @@ if ($_sbCompactPage) $_sbCollapsed = true;
             this.collapsed = !this.collapsed;
             if (!this.compactPage) {
                 try { localStorage.setItem('sidebarCollapsed', this.collapsed ? '1' : '0'); } catch (e) {}
-                document.cookie = 'sidebarCollapsed=' + (this.collapsed ? '1' : '0') + ';path=/;max-age=' + (365 * 86400) + ';samesite=Lax';
+                // path 限在本站目录：同一域名下多个子目录站点各记各的（服务端读同名 cookie，浏览器只发本目录的）
+                document.cookie = 'sidebarCollapsed=' + (this.collapsed ? '1' : '0') + ';path=' + (window.YK_BASE || '') + '/;max-age=' + (365 * 86400) + ';samesite=Lax';
             }
             if (!this.collapsed) { this.fly = { key: '', label: '', items: [], top: 0 }; }
         },
@@ -405,9 +406,10 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                 $_its = [];
                 foreach ((array) ($_gv['items'] ?? []) as $_it) {
                     if (!adminMenuItemVisible($_gv, (array) $_it)) continue;
+                    // 进脚本的地址输出改写够不着，子目录部署要在这里补前缀（Alpine 绑到 :href）
                     $_its[] = [
                         'label' => trim(strip_tags((string) ($_it['label'] ?? ''))),
-                        'url' => (string) ($_it['url'] ?? ''),
+                        'url' => BasePath::url((string) ($_it['url'] ?? '')),
                         'active' => in_array($currentMenu, (array) ($_it['active_keys'] ?? [$_it['key'] ?? '']), true),
                     ];
                 }
@@ -434,7 +436,7 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                     $__item = adminMenuUsageFindItem($sidebarMenu, (string) ($__r['url'] ?? ''));
                     if ($__item === null) continue;
                     // 标题按当前语言重取（库存的是使用当刻的语言快照，切语言会串）
-                    $__sbRecent[] = ['url' => (string) $__r['url'], 'title' => (string) ($__item['title'] ?: ($__r['title'] ?: $__r['url']))];
+                    $__sbRecent[] = ['url' => BasePath::url((string) $__r['url']), 'title' => (string) ($__item['title'] ?: ($__r['title'] ?: $__r['url']))];
                 }
                 echo json_encode($__sbRecent, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP);
             ?>;
