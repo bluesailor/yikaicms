@@ -8,10 +8,10 @@
 #
 # 用法：
 #   bash tools/package-install-test.sh --php=8.2 --db=sqlite
-#   bash tools/package-install-test.sh --php=8.0 --db=mysql --host=127.0.0.1
+#   bash tools/package-install-test.sh --php=8.2 --db=mysql --host=127.0.0.1
 #   bash tools/package-install-test.sh --matrix            # 跑预设三腿
 #   bash tools/package-install-test.sh --php=8.5 --db=mysql --keep   # 失败后保留现场
-#   bash tools/package-install-test.sh --php=8.0 --db=mysql --base=http://ykpkg80.yikai
+#   bash tools/package-install-test.sh --php=8.2 --db=mysql --base=http://ykpkg82.yikai
 #       ↑ vhost 模式：不起 php -S，改用 phpStudy 的 Apache（能顺带测 .htaccess 伪静态）
 #
 # 约定：
@@ -68,7 +68,6 @@ fi
 
 php_dir_for() {
     case "$1" in
-        8.0) echo "$PHP_ROOT/php8.0.2nts" ;;
         8.2) echo "$PHP_ROOT/php8.2.9nts" ;;
         8.4) echo "$PHP_ROOT/php8.4.24nts" ;;
         8.5) echo "$PHP_ROOT/php8.5.9nts" ;;
@@ -79,8 +78,8 @@ php_dir_for() {
 # ───── 预设矩阵：一次跑完三腿 ─────
 if [ "$MATRIX" = "1" ]; then
     rc=0
-    # P0=8.2/sqlite（最小闭环）  P1=8.0/mysql（客户真实组合）  P2=8.5/mysql（已有真实用户）
-    for leg in "8.2:sqlite" "8.0:mysql" "8.5:mysql"; do
+    # P0=8.2/sqlite（最小闭环）  P1=8.2/mysql（2.1.3 起的最低版 + 客户常用库）  P2=8.5/mysql（已有真实用户）
+    for leg in "8.2:sqlite" "8.2:mysql" "8.5:mysql"; do
         echo
         echo "${B}════════ 矩阵腿：PHP ${leg%%:*} / ${leg##*:} ════════${X}"
         bash "$0" --php="${leg%%:*}" --db="${leg##*:}" ${ZIP:+--zip="$ZIP"} --port="$PORT" || rc=1
@@ -90,7 +89,7 @@ if [ "$MATRIX" = "1" ]; then
     exit $rc
 fi
 
-[ -n "$PHP_LEG" ] || { echo "${R}必须指定 --php=8.0|8.2|8.4|8.5（或 --matrix）${X}"; exit 2; }
+[ -n "$PHP_LEG" ] || { echo "${R}必须指定 --php=8.2|8.4|8.5（或 --matrix）${X}"; exit 2; }
 PHP_DIR="$(php_dir_for "$PHP_LEG")"
 [ -n "$PHP_DIR" ] && [ -x "$PHP_DIR/php.exe" ] || { echo "${R}找不到 PHP $PHP_LEG：$PHP_DIR/php.exe${X}"; exit 2; }
 case "$DB_KIND" in sqlite|mysql) ;; *) echo "${R}--db 只能是 sqlite 或 mysql${X}"; exit 2 ;; esac
@@ -192,7 +191,7 @@ INNER="$(find "$UNPACK_WSL" -maxdepth 1 -mindepth 1 -type d | head -1)"
 mv "$INNER"/* "$INNER"/.[!.]* "$UNPACK_WSL"/ 2>/dev/null; rmdir "$INNER" 2>/dev/null
 ok "已解包到 docroot（$(find "$UNPACK_WSL" -type f | wc -l) 个文件）"
 
-# 用目标 PHP 逐个解析最终包，而不是用构建机 PHP。用于锁住 PHP 8.0 承诺，
+# 用目标 PHP 逐个解析最终包，而不是用构建机 PHP。用于锁住最低 PHP 承诺，
 # 可直接抓到 never/enum 等高版本语法混入运行包。
 PHP_LINTED=0
 PHP_LINT_FAILURE=""

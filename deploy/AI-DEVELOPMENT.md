@@ -34,7 +34,7 @@
 
 - **命名约定（2.0.4 起）**：可视化构建器的英文及所有外语名称是 **Yikay Builder**，中文仍叫「易开网页构建器」，界面文案里不再出现「Blox」。核心的构建器前台 / 编辑器静态资源由 `assets/js/blox-*.js`、`assets/css/blox-*.css` 改名为 `assets/js/yikay-*.js`、`assets/css/yikay-*.css`；新增资源用 `yikay-` 前缀。老主题经 `BloxAssetCollector::addScript()` / `addStyle()` 登记的旧文件名会自动换成新文件，模板里直接写死的旧地址需要自己改。源码类名（`Blox*`）、数据表与设置键（`blox_*`）、钩子名（`blox_icon_sets` 等）、前台 CSS 类名（`blox-*`）、模板包格式（`yikaicms-blox-template`）、后台地址（`admin/blox_*.php`）**保持不变**，不要自行改名。
 
-- **运行下限 PHP 8.0**（`RuntimeRequirements::PHP_MINIMUM`、composer `php >=8.0`），推荐 8.2 或更高。扩展代码必须能在 PHP 8.0 上加载运行：不要使用 enum、readonly 属性、`never` 返回类型、纯交集类型、first-class callable 语法等 8.1+ 特性，除非在 plugin.json / theme.json 声明更高的 `requires_php`，并在运行时受控检查。
+- **运行下限 PHP 8.2（2.1.3 起；此前是 8.0）**（`RuntimeRequirements::PHP_MINIMUM`、composer `php >=8.2`），推荐 8.3 或更高。核心代码可以使用 8.1 / 8.2 的特性（enum、readonly 属性与类、`never` 返回类型、first-class callable、`array_is_list()` 等），改到旧代码时顺手换成新写法即可，不做全仓批量改写。扩展（插件 / 主题）要看面向谁：还要装到 2.1.2 及更早站点的，仍须能在 PHP 8.0 上加载——`requires_php` 写 8.0，不用上述 8.1+ 特性（CI 用 `tools/check-php80-runtime.php` 在 8.0 上编译随包插件与主题）；只面向 2.1.3+ 的，在 plugin.json / theme.json 写 `requires_cms` >= 2.1.3、`requires_php` >= 8.2 后可以用新特性。
 - 原生 PHP，不引入框架。SQL 兼容 MySQL 5.7 / MariaDB 10.x；需要支持 SQLite 的路径使用现有数据库分支。
 - 不使用 CTE、窗口函数、JSON_TABLE 或 MySQL 8 专属排序规则。表名使用 DB_PREFIX，值使用参数绑定。
 - 新 PHP 文件声明 strict_types；复用模型、db()、配置、权限、CSRF、多语言和缓存接口，不另造一套用户或数据库连接。
@@ -63,10 +63,10 @@
 是否允许安装到开发站：……
 
 先核对真实接口，不涉及易开网页构建器（Yikay Builder）编辑器插件开发。
-代码须兼容 PHP 8.0；完成代码、必要的本地资源、README 和 CHANGELOG；
+代码须兼容扩展声明的最低 PHP（要支持 2.1.2 及更早站点时为 8.0）；完成代码、必要的本地资源、README 和 CHANGELOG；
 报告修改清单、最低兼容版本（CMS/PHP）、简单验证结果及未验证项，不自动发布。
 ```
 
 ## 交付要求
 
-交付完整插件/主题目录，说明安装入口、配置项、依赖、数据存储和升级行为。日常只做相关 PHP 语法与功能冒烟（至少在 PHP 8.0 下做一次 `php -l`）；正式合并或发布时遵守仓库完整门禁。未执行的测试不能标为通过，参考截图不能当作实际成品截图。
+交付完整插件/主题目录，说明安装入口、配置项、依赖、数据存储和升级行为。日常只做相关 PHP 语法与功能冒烟（至少在扩展声明的最低 PHP 版本下做一次 `php -l`）；正式合并或发布时遵守仓库完整门禁。未执行的测试不能标为通过，参考截图不能当作实际成品截图。

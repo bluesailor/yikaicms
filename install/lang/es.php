@@ -112,7 +112,7 @@ return [
     'rewrite_nginx_advanced' => 'Para opciones avanzadas (entrega directa de HTML estático y bloqueo de seguridad en el servidor), consulte deploy/nginx-server.conf en el repositorio del programa.',
     'rewrite_nginx_reload' => 'Después de configurar, ejecute nginx -t para comprobar la sintaxis y después nginx -s reload para aplicar los cambios. Abra /storage/database.sqlite; debe devolver 403 o 404.',
     'error_already_installed' => 'El sistema ya está instalado. Para reinstalarlo, elimine primero config/installed.lock.',
-    'error_php_version' => 'La versión de PHP es demasiado antigua. Se requiere PHP 8.0 o posterior.',
+    'error_php_version' => 'La versión de PHP es demasiado antigua. Se requiere PHP 8.2 o posterior.',
     'error_admin_pass_length' => 'La contraseña del administrador debe tener al menos 8 caracteres e incluir letras y números.',
     'error_admin_user_invalid' => 'El usuario del administrador no puede estar vacío, ser «0» ni tener espacios al principio o al final.',
     'error_db_name_invalid' => 'El nombre de la base de datos solo admite letras, números, guiones bajos y guiones.',

@@ -21,6 +21,10 @@
  *
  * 加新扩展要求时，请连同「缺了会怎样」一起写进下面的注释——
  * 分级的依据是后果，不是习惯。
+ *
+ * 2.1.3 起硬地板从 8.0 提到 8.2（所有者 2026-10-25 定；8.0、8.1 已停止安全更新）。改这里的
+ * 版本线时要一起改：includes/php_guard.php 的 PHP_VERSION_ID、更新服务器该版本的 min_php
+ * （tools/ReleaseUploadGuard.php 会拦下低于本值的发布条目）、composer.json、README。
  */
 declare(strict_types=1);
 
@@ -32,10 +36,10 @@ if (!defined('ROOT_PATH')) {
 final class RuntimeRequirements
 {
     /** 硬地板：低于此版本安装器拒绝安装 */
-    public const PHP_MINIMUM = '8.0.0';
+    public const PHP_MINIMUM = '8.2.0';
 
-    /** 建议线：低于此版本仍可运行，健康检查给出建议 */
-    public const PHP_RECOMMENDED = '8.2.0';
+    /** 建议线：低于此版本仍可运行，健康检查给出建议（8.2 的安全更新到 2026-12-31 为止） */
+    public const PHP_RECOMMENDED = '8.3.0';
 
     /** 缺了核心功能就坏 */
     private const REQUIRED = [

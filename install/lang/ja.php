@@ -129,7 +129,7 @@ return [
 
     // エラー
     'error_already_installed' => 'インストール済みです。再インストールするには installed.lock を削除してください。',
-    'error_php_version' => 'PHP バージョンが古いです。8.0以上が必要です。',
+    'error_php_version' => 'PHP バージョンが古いです。8.2以上が必要です。',
     'error_admin_pass_length' => '管理者パスワードは8文字以上で、英字と数字の両方を含めてください。',
     'error_admin_user_invalid' => '管理者アカウントは空や「0」にできません。前後に空白も入れないでください。',
     'error_db_name_invalid' => 'データベース名に使えるのは英数字、アンダースコア、ハイフンのみです。',

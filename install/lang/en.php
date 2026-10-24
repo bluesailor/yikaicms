@@ -129,7 +129,7 @@ return [
 
     // Errors
     'error_already_installed' => 'Already installed. To reinstall, delete the installed.lock file first.',
-    'error_php_version' => 'PHP version is too low. PHP 8.0 or newer is required.',
+    'error_php_version' => 'PHP version is too low. PHP 8.2 or newer is required.',
     'error_admin_pass_length' => 'The administrator password must be at least 8 characters and contain both letters and numbers.',
     'error_admin_user_invalid' => 'The administrator username cannot be empty or "0", and must not start or end with a space.',
     'error_db_name_invalid' => 'The database name may only contain letters, digits, underscores and hyphens.',

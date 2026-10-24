@@ -192,9 +192,65 @@ final class ReleaseUploadGuardTest extends TestCase
         );
     }
 
+    public function testCatalogMinimumPhpBelowThePackageFloorBlocksUpload(): void
+    {
+        $this->rewriteFullPackage('8.2.0', '8.0');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('min_php 8.0 is below the package minimum 8.2.0');
+        $this->inspect();
+    }
+
+    public function testTwoPartCatalogMinimumMatchesThreePartPackageFloor(): void
+    {
+        $this->rewriteFullPackage('8.2.0', '8.2');
+
+        self::assertSame('stable', $this->inspect()['channel']);
+    }
+
+    public function testPackageWithoutAPhpFloorBlocksUpload(): void
+    {
+        $this->rewriteFullPackage(null, '8.2');
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('does not declare RuntimeRequirements::PHP_MINIMUM');
+        $this->inspect();
+    }
+
+    /** 完整包按真实结构打成 zip：包里的 RuntimeRequirements 声明 PHP 版本线 */
+    private function fullPackageBytes(?string $phpMinimum): string
+    {
+        $path = $this->tempRoot . '/full-package-build.zip';
+        $zip = new ZipArchive();
+        self::assertTrue($zip->open($path, ZipArchive::CREATE | ZipArchive::OVERWRITE));
+        $zip->addFromString('yikaicms-v1.18.4/index.php', '<?php');
+        if ($phpMinimum !== null) {
+            $zip->addFromString(
+                'yikaicms-v1.18.4/includes/RuntimeRequirements.php',
+                "<?php\nfinal class RuntimeRequirements\n{\n    public const PHP_MINIMUM = '{$phpMinimum}';\n}\n"
+            );
+        }
+        $zip->close();
+        $bytes = (string) file_get_contents($path);
+        unlink($path);
+        return $bytes;
+    }
+
+    private function rewriteFullPackage(?string $phpMinimum, string $catalogMinimum): void
+    {
+        $bytes = $this->fullPackageBytes($phpMinimum);
+        $local = $this->releaseDir . '/yikaicms-v1.18.4.zip';
+        file_put_contents($local, $bytes);
+        file_put_contents($this->updateRoot . '/packages/yikaicms-v1.18.4.zip', $bytes);
+        touch($local, time() - 60);
+        $this->catalog['releases'][0]['hash'] = 'sha256:' . hash('sha256', $bytes);
+        $this->catalog['releases'][0]['min_php'] = $catalogMinimum;
+        $this->writeJson($this->updateRoot . '/data/releases.json', $this->catalog);
+    }
+
     private function writeValidFixture(): void
     {
-        $fullBytes = 'full-package-1.18.4';
+        $fullBytes = $this->fullPackageBytes('8.0.0');
         $deltaBytes = 'delta-package-1.18.3-to-1.18.4';
         $fullHash = 'sha256:' . hash('sha256', $fullBytes);
         $deltaHash = 'sha256:' . hash('sha256', $deltaBytes);

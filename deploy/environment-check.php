@@ -53,7 +53,7 @@ $copy = [
     'enabled' => ['已启用', 'Enabled', '有効'],
     'missing' => ['未启用', 'Unavailable', '利用不可'],
     'enable' => ['在主机面板启用此 PHP 扩展，然后重启 PHP 服务。', 'Enable this PHP extension in the hosting panel and restart PHP.', '管理パネルで PHP 拡張を有効にし、PHP を再起動してください。'],
-    'version' => ['最低 %s；%s 及以上仅为建议，不阻止 PHP 8.0 安装。', 'Minimum %s; %s+ is recommended, not a blocker for PHP 8.0 installation.', '最低 %s。%s 以上は推奨であり、PHP 8.0 のインストールを妨げません。'],
+    'version' => ['最低 %s；%s 及以上仅为建议，低于建议版本仍可安装。', 'Minimum %s; %s+ is recommended, not a blocker for installation.', '最低 %s。%s 以上は推奨であり、それ未満でもインストールできます。'],
     'snapshot' => ['独立检测清单（安装器基线快照）', 'Standalone checklist (installer baseline snapshot)', '単独チェックリスト（インストーラー要件のスナップショット）'],
     'project' => ['来自当前项目 RuntimeRequirements', 'From this project\'s RuntimeRequirements', '現在の RuntimeRequirements に基づく'],
     'driver' => ['数据库驱动', 'Database driver', 'DB ドライバー'],
@@ -95,8 +95,8 @@ if (basename(__DIR__) === 'deploy' && is_file(dirname(__DIR__) . '/includes/Runt
     $root = dirname(__DIR__);
 }
 $inProject = is_file($root . '/includes/RuntimeRequirements.php');
-$minimum = '8.0.0';
-$recommended = '8.2.0';
+$minimum = '8.2.0';
+$recommended = '8.3.0';
 $required = ['pdo', 'json', 'mbstring', 'fileinfo', 'dom'];
 $optional = ['curl', 'openssl', 'gd', 'zip', 'simplexml'];
 $drivers = ['pdo_mysql', 'pdo_sqlite'];

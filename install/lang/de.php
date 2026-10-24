@@ -112,7 +112,7 @@ return [
     'rewrite_nginx_advanced' => 'Erweiterte Konfiguration mit direkter statischer HTML-Ausgabe und Serversicherheit finden Sie unter deploy/nginx-server.conf im Repository.',
     'rewrite_nginx_reload' => 'Führen Sie nach der Konfiguration nginx -t zur Syntaxprüfung und anschließend nginx -s reload aus. Der Aufruf von /storage/database.sqlite muss danach 403 oder 404 zurückgeben.',
     'error_already_installed' => 'Das System ist bereits installiert. Löschen Sie zur Neuinstallation config/installed.lock.',
-    'error_php_version' => 'PHP-Version zu niedrig. PHP 8.0 oder höher ist erforderlich.',
+    'error_php_version' => 'PHP-Version zu niedrig. PHP 8.2 oder höher ist erforderlich.',
     'error_admin_pass_length' => 'Das Administrator-Passwort muss mindestens 8 Zeichen lang sein und Buchstaben sowie Ziffern enthalten.',
     'error_admin_user_invalid' => 'Der Administrator-Benutzername darf weder leer noch „0“ sein und keine führenden oder abschließenden Leerzeichen enthalten.',
     'error_db_name_invalid' => 'Der Datenbankname darf nur Buchstaben, Ziffern, Unterstriche und Bindestriche enthalten.',

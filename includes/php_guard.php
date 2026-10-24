@@ -1,6 +1,7 @@
 <?php
 /**
- * 运行环境底线：PHP 低于 8.0 时给出看得懂的提示，而不是白屏或一行 Fatal。
+ * 运行环境底线：PHP 低于 8.2 时给出看得懂的提示，而不是白屏或一行 Fatal。
+ * （2.1.3 起从 8.0 提到 8.2；在线升级由更新服务器按 min_php 拦在升级之前，这里拦的是手动覆盖文件。）
  *
  * 入口（index.php、install/index.php、includes/init.php）在其它任何 require 之前引入本文件——
  * 后面的代码会调用 str_starts_with() 等 PHP 8 函数，老主机上会直接致命错误。
@@ -12,7 +13,7 @@
  */
 
 /** @psalm-suppress ParadoxicalCondition Psalm 按 PHP 8 分析，这里恰恰是给更老的 PHP 看的。 */
-if (PHP_VERSION_ID < 80000) {
+if (PHP_VERSION_ID < 80200) {
     if (!headers_sent()) {
         // 状态码走 header() 第三参：专门的设状态码函数要 PHP 5.4+，这里连 5.x 都要能跑
         header('Content-Type: text/html; charset=utf-8', true, 500);
@@ -20,14 +21,14 @@ if (PHP_VERSION_ID < 80000) {
     $ykPhpVersion = htmlspecialchars(PHP_VERSION, ENT_QUOTES, 'UTF-8');
     echo '<!DOCTYPE html><html lang="zh-CN"><head><meta charset="utf-8">'
         . '<meta name="viewport" content="width=device-width, initial-scale=1">'
-        . '<title>需要 PHP 8.0 或更高版本</title></head>'
+        . '<title>需要 PHP 8.2 或更高版本</title></head>'
         . '<body style="font-family:system-ui,sans-serif;max-width:640px;margin:10vh auto;padding:0 20px;line-height:1.7;color:#1f2937">'
-        . '<h1 style="font-size:22px">需要 PHP 8.0 或更高版本</h1>'
-        . '<p>YikaiCMS 需要 PHP 8.0 或更高版本，当前服务器是 PHP ' . $ykPhpVersion . '。</p>'
-        . '<p>请在主机控制面板（宝塔、小皮、易开面板等）把本站的 PHP 版本切换到 8.0 或更高（推荐 8.2），然后刷新本页。</p>'
+        . '<h1 style="font-size:22px">需要 PHP 8.2 或更高版本</h1>'
+        . '<p>YikaiCMS 需要 PHP 8.2 或更高版本，当前服务器是 PHP ' . $ykPhpVersion . '（PHP 8.0、8.1 已停止安全更新）。</p>'
+        . '<p>请在主机控制面板（宝塔、小皮、易开面板等）把本站的 PHP 版本切换到 8.2 或更高（推荐 8.3），然后刷新本页。</p>'
         . '<hr style="border:0;border-top:1px solid #e5e7eb;margin:24px 0">'
-        . '<p style="color:#6b7280;font-size:14px">YikaiCMS requires PHP 8.0 or newer (8.2 recommended). This server runs PHP '
-        . $ykPhpVersion . '. Switch the site to PHP 8.0+ in your hosting control panel, then reload this page.</p>'
+        . '<p style="color:#6b7280;font-size:14px">YikaiCMS requires PHP 8.2 or newer (8.3 recommended). This server runs PHP '
+        . $ykPhpVersion . '. Switch the site to PHP 8.2+ in your hosting control panel, then reload this page.</p>'
         . '</body></html>';
     exit(1);
 }
