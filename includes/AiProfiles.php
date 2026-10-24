@@ -72,11 +72,12 @@ final class AiProfiles
     /**
      * 新建（id = 0）或更新一套配置，返回编号。
      * $plainKey：空串或带 *** 的脱敏值表示「不修改已存密钥」；新建时为空则不存密钥。
+     * $clearKey：删除已存密钥（后台点了清空）；同时给了新密钥时以新密钥为准。
      * 第一套配置自动成为主 API；保存的是主 API 时同步写回旧键。
      *
      * @param array{name?:string,provider?:string,base_url?:string,model?:string,translation_model?:string} $fields
      */
-    public static function save(int $id, array $fields, string $plainKey): int
+    public static function save(int $id, array $fields, string $plainKey, bool $clearKey = false): int
     {
         $state = self::state();
         $provider = trim((string) ($fields['provider'] ?? ''));
@@ -99,6 +100,14 @@ final class AiProfiles
         if ($id > 0) {
             $index = self::indexOf($state['items'], $id);
             if ($index === null) throw new InvalidArgumentException('ai_profile_not_found');
+            // 换了服务商却没给新密钥：旧密钥属于原服务商，不能跟着发给新服务商。
+            // 官方接口（yikai）凭授权码调用、不用密钥，改成它时直接清掉旧密钥（AiService 只在密钥为空时用授权码）。
+            $old = $state['items'][$index];
+            if ($clearKey && !$keyChanged) $values['api_key'] = '';
+            if ($old['provider'] !== $provider && !$keyChanged && !$clearKey && $old['api_key'] !== '') {
+                if ($provider !== 'yikai') throw new InvalidArgumentException('ai_provider_key_required');
+                $values['api_key'] = '';
+            }
             $state['items'][$index] = array_merge($state['items'][$index], $values);
             if ($keyChanged) $state['items'][$index]['api_key'] = AiService::encryptKey($plainKey);
         } else {

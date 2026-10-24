@@ -9468,4 +9468,7 @@ return [
     'ai_provider_mimo_name' => '小米 MiMo',
     'ai_provider_hunyuan_name' => '騰訊混元（TokenHub）',
     'ai_provider_key_required' => '請填寫所選供應商的 API Key；當前已儲存的金鑰不會用於其他供應商。',
+    'ai_field_clear' => '清空',
+    'ai_key_clear_pending' => '儲存後將刪除已儲存的 API Key。',
+    'ai_key_clear_undo' => '撤銷',
 ];

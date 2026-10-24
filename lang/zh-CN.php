@@ -9590,4 +9590,7 @@ voltage|电压|220V',
     'ai_provider_mimo_name' => '小米 MiMo',
     'ai_provider_hunyuan_name' => '腾讯混元（TokenHub）',
     'ai_provider_key_required' => '请填写所选供应商的 API Key；当前已保存的密钥不会用于其他供应商。',
+    'ai_field_clear' => '清空',
+    'ai_key_clear_pending' => '保存后将删除已保存的 API Key。',
+    'ai_key_clear_undo' => '撤销',
 ];

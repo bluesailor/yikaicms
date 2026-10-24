@@ -9664,4 +9664,7 @@ voltage|電圧|220V',
     'ai_provider_mimo_name' => 'Xiaomi MiMo',
     'ai_provider_hunyuan_name' => 'Tencent Hunyuan（TokenHub）',
     'ai_provider_key_required' => '選択したプロバイダーの API キーを入力してください。保存済みのキーは別のプロバイダーには送信されません。',
+    'ai_field_clear' => 'クリア',
+    'ai_key_clear_pending' => '保存すると、保存済みの API キーが削除されます。',
+    'ai_key_clear_undo' => '元に戻す',
 ];
