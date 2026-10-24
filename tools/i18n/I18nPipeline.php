@@ -287,7 +287,7 @@ final class I18nPipeline
             if (self::tags($source) !== self::tags($text)) {
                 $errors[] = "{$where}: HTML tags differ (source " . implode(' ', self::tags($source)) . ' / translation ' . implode(' ', self::tags($text)) . ')';
             }
-            if (!in_array($code, self::HAN_ALLOWED, true) && preg_match('/\p{Han}/u', $text) === 1 && !self::hanIsData($in)) {
+            if (!in_array($code, self::HAN_ALLOWED, true) && preg_match('/(?!\p{P})\p{Han}/u', $text) === 1 && !self::hanIsData($in)) {
                 $errors[] = "{$where}: Chinese characters left in translation";
             }
             if (substr_count($source, "\n") !== substr_count($text, "\n")) {
@@ -367,7 +367,7 @@ final class I18nPipeline
      */
     private static function hanIsData(array $row): bool
     {
-        return preg_match('/\p{Han}/u', (string) ($row['en'] ?? '')) === 1;
+        return preg_match('/(?!\p{P})\p{Han}/u', (string) ($row['en'] ?? '')) === 1;
     }
 
     /** @return array{0:?string,1:?string} [错误, 警告] */
@@ -463,7 +463,7 @@ final class I18nPipeline
             if (self::placeholders((string) $row['zh']) !== self::placeholders($text) || self::tags((string) $row['zh']) !== self::tags($text)) {
                 $errors[] = "{$where}: placeholders or HTML tags differ";
             }
-            if (!in_array($code, self::HAN_ALLOWED, true) && preg_match('/\p{Han}/u', $text) === 1 && !self::hanIsData($row)) {
+            if (!in_array($code, self::HAN_ALLOWED, true) && preg_match('/(?!\p{P})\p{Han}/u', $text) === 1 && !self::hanIsData($row)) {
                 $errors[] = "{$where}: Chinese characters left in translation";
             }
             $english = (string) ($row['en'] ?? '');

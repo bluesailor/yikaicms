@@ -79,7 +79,8 @@ final class DeclaredSettingRows
     public static function syntheticValue(array $definition): string
     {
         $value = (string) ($definition['value'] ?? '');
-        if (preg_match('/\p{Han}/u', $value) !== 1) {
+        // 排除标点：较新的 PCRE2 按文字扩展匹配 \p{Han}，会把间隔号「·」等也算作汉字
+        if (preg_match('/(?!\p{P})\p{Han}/u', $value) !== 1) {
             return $value;
         }
         // 页脚栏目、联系卡片这类 JSON 列表：空列表；其余文案：空串
