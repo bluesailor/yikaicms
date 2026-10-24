@@ -25,7 +25,7 @@ final class SiteDictionaryTest extends TestCase
             foreach ($dict as $zh => $value) {
                 self::assertNotSame('', trim((string) $value), "{$code}: {$zh} 没有译名");
                 if (!LanguageRegistry::readsHan($code)) {   // 日文本来就用汉字
-                    self::assertDoesNotMatchRegularExpression('/\p{Han}/u', (string) $value, "{$code}: {$zh} 的译名里还有中文");
+                    self::assertDoesNotMatchRegularExpression('/(?!\p{P})\p{Han}/u', (string) $value, "{$code}: {$zh} 的译名里还有中文");
                 }
             }
         }

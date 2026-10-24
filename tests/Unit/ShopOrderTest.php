@@ -79,7 +79,9 @@ final class ShopOrderTest extends TestCase
         $no = shopOrderNo();
         $this->assertMatchesRegularExpression('/^\d{18}$/', $no, '14 位时间戳 + 4 位随机');
         $this->assertStringStartsWith(date('Ymd'), $no);
-        $this->assertNotSame($no, shopOrderNo(), '随机段保证同秒内大概率不同');
+        // 随机段只有 4 位，两次相同的概率约万分之一（CI 撞上过）；连取 20 个不该全部相同
+        $many = array_map(static fn(): string => shopOrderNo(), range(1, 20));
+        $this->assertGreaterThan(1, count(array_unique($many)), '随机段保证同秒内大概率不同');
     }
 
     public function testStatusAndPaymentVocabulariesAreClosed(): void

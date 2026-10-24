@@ -62,8 +62,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // 恢复默认值
     if ($action === 'restore_defaults') {
         verifyCsrf();
+        // 只收字符串：key[]= 这类数组参数直接当成没传
         $restoreGroup = $_POST['group'] ?? '';
         $restoreKey = $_POST['key'] ?? '';
+        if (!is_string($restoreGroup)) $restoreGroup = '';
+        if (!is_string($restoreKey)) $restoreKey = '';
         if ($restoreKey) {
             // 恢复单个设置
             $defaultValue = getDefault($restoreKey, null);
