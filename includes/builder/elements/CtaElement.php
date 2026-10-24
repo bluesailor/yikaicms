@@ -44,7 +44,7 @@ final class CtaElement extends AbstractElement
             ? configLang('home_cta_button', 'detail_consult')
             : (string) ($data['btn_text'] ?? '');
         $rawBtnUrl = $followHome
-            ? ((string) (config('home_cta_link_' . siteLang(), '') ?: config('home_cta_link', '')) ?: '/contact.html')
+            ? ((function_exists('configRawLang') ? configRawLang('home_cta_link', '') : (string) config('home_cta_link', '')) ?: '/contact.html')
             : (string) ($data['btn_url'] ?? '#');
 
         if (function_exists('adminPreviewContentHref')) $rawBtnUrl = adminPreviewContentHref($rawBtnUrl);
