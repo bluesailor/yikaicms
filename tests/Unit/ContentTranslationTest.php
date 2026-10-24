@@ -80,6 +80,27 @@ final class ContentTranslationTest extends TestCase
         translateContentFields(['title' => '标题'], 'en', static fn(): array => ['success' => true, 'content' => '{"title":"标题","summary":""}']);
     }
 
+    public function testIndividualRetryRepairsSourceLanguageLeftInStructuredReplies(): void
+    {
+        $calls = 0;
+        $result = translateContentFields(['title' => 'PHP高级工程师'], 'es', static function () use (&$calls): array {
+            $calls++;
+            return ['success' => true, 'content' => $calls < 3 ? '{"title":"PHP高级工程师","summary":""}' : 'Ingeniero sénior de PHP'];
+        });
+        self::assertSame('Ingeniero sénior de PHP', $result['title']);
+        self::assertSame('', $result['summary']);
+    }
+
+    public function testEnglishBridgeRepairsRepeatedSourceLanguageReplies(): void
+    {
+        $replies = ['{"title":"PHP高级工程师","summary":""}', '{"title":"PHP高级工程师"}', 'PHP高级工程师', 'Senior PHP engineer', 'Ingeniero sénior de PHP'];
+        $result = translateContentFields(['title' => 'PHP高级工程师'], 'es', static function () use (&$replies): array {
+            return ['success' => true, 'content' => array_shift($replies)];
+        });
+        self::assertSame('Ingeniero sénior de PHP', $result['title']);
+        self::assertSame('', $result['summary']);
+    }
+
     public function testProviderFailureIsNotHidden(): void
     {
         $this->expectExceptionMessage('Provider unavailable');
