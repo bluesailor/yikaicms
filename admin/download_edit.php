@@ -14,6 +14,8 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('edit_download');
+$langSwitcher = ['table' => 'downloads', 'model' => downloadModel(), 'summary_field' => 'description'];
+require_once ROOT_PATH . '/admin/includes/translate_action.php';
 
 $id = getInt('id');
 $isEdit = $id > 0;
@@ -78,6 +80,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </a>
 </div>
 
+<?php
+$langSwitcher['item'] = $download;
+$langSwitcher['edit_url'] = '/admin/download_edit.php';
+require ROOT_PATH . '/admin/includes/lang_switcher_edit.php';
+?>
 <form id="editForm" class="space-y-6">
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <?php /* 左侧：基本信息 */ ?>

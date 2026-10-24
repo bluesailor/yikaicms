@@ -289,6 +289,13 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
                                 class="text-primary hover:underline text-sm mr-2 inline-flex items-center gap-1">
                             <i class="ti ti-pencil text-sm"></i>
                             <?php echo __('admin_edit'); ?></button>
+                        <a href="<?php echo e('/admin/draft_preview.php?type=product_categories&id=' . (int) $item['id']); ?>" target="_blank" rel="noopener" class="text-primary hover:underline text-sm"><?php echo e(__('admin_draft_preview')); ?></a>
+                        <select aria-label="<?php echo e(__('admin_ai_assistant')); ?>" data-source="<?php echo (int) $item['id']; ?>" onchange="translateCategory(this)" class="border rounded px-2 py-1 text-sm">
+                            <option value=""><?php echo e(__('admin_ai_assistant')); ?></option>
+                            <?php foreach (availableLanguages() as $code => $label): if ($code === config('site_lang', 'zh-CN')) continue; ?>
+                            <option value="<?php echo e($code); ?>"><?php echo e(($code === ($item['lang'] ?? 'zh-CN') ? __('lse_retranslate') . ' · ' : '') . $label); ?></option>
+                            <?php endforeach; ?>
+                        </select>
                         <button onclick="deleteCategory(<?php echo $item['id']; ?>)"
                                 class="text-red-600 hover:underline text-sm inline-flex items-center gap-1">
                             <i class="ti ti-trash text-sm"></i>
@@ -395,6 +402,27 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
 
 <?php echo adminRowSortScript('pcatRows'); ?>
 <script>
+async function translateCategory(select) {
+    const language = select.value;
+    if (!language) return;
+    select.disabled = true;
+    const body = new FormData();
+    body.append('action', 'create_translation');
+    body.append('src_id', select.dataset.source);
+    body.append('to_lang', language);
+    body.append('retranslate', '1');
+    try {
+        const response = await fetch(location.pathname, { method: 'POST', body });
+        const result = await safeJson(response);
+        if (result.code !== 0) throw new Error(result.msg || 'Translation failed');
+        location.href = '?lang=' + encodeURIComponent(language);
+    } catch (exception) {
+        showMessage(exception.message, 'error');
+        select.disabled = false;
+        select.value = '';
+    }
+}
+
 function openEditModal(item = null) {
     document.getElementById('modalTitle').textContent = item ? '<?php echo __('admin_edit'); ?>' : '<?php echo __('admin_category_add'); ?>';
     document.getElementById('editId').value = item?.id || 0;

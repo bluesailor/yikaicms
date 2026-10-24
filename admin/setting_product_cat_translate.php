@@ -125,7 +125,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         $langName = $allLangs[$targetLang] ?? $targetLang;
         $prompt = "Translate the following Chinese product category names to {$langName}. Return ONLY a JSON object mapping Chinese to translation. No explanation.\n\n" . json_encode($toTranslate, JSON_UNESCAPED_UNICODE);
-        $ai = new AiService(config('ai_provider', 'openai'), $aiKey, config('ai_model', 'gpt-4o-mini'));
+        $ai = new AiService(config('ai_provider', 'openai'), $aiKey, null);   // 模型跟随主 API，未填用该服务商默认（不再硬塞 gpt-4o-mini）
         $result = $ai->chat($prompt, 'You are a professional translator. Return only valid JSON.', 0.3);
         if (!$result['success']) error(str_replace(':error', (string) ($result['error'] ?? __('atr_unknown_error')), __('atr_ai_failed')));
 

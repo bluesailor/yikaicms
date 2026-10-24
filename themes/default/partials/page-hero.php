@@ -64,9 +64,10 @@ if ($heroLegacyGradient) {
         <?php $style = $heroTone === 'light' ? 'light' : 'dark'; require theme_path('partials/breadcrumb.php'); ?>
         <?php endif; ?>
         <div class="<?php echo $heroCentered ? 'text-center' : 'text-left'; ?>">
-            <h1 class="text-4xl md:text-5xl font-bold mb-4 <?php echo $heroTone === 'light' ? 'text-white' : 'text-gray-900'; ?>"><?php echo e($channel['name']); ?></h1>
-            <?php if ($channel['description']): ?>
-            <p class="text-lg max-w-2xl <?php echo $heroCentered ? 'mx-auto' : ''; ?> <?php echo $heroTone === 'light' ? ($heroBg !== '' ? 'text-gray-200' : 'text-gray-300') : 'text-gray-600'; ?>"><?php echo e($channel['description']); ?></p>
+            <h1 class="text-4xl md:text-5xl font-bold mb-4 <?php echo $heroTone === 'light' ? 'text-white' : 'text-gray-900'; ?>"><?php echo e($productCategory['name'] ?? $channel['name']); ?></h1>
+            <?php $heroDescription = isset($productCategory) ? (string) ($productCategory['description'] ?? '') : (string) $channel['description']; ?>
+            <?php if ($heroDescription !== ''): ?>
+            <p class="text-lg max-w-2xl <?php echo $heroCentered ? 'mx-auto' : ''; ?> <?php echo $heroTone === 'light' ? ($heroBg !== '' ? 'text-gray-200' : 'text-gray-300') : 'text-gray-600'; ?>"><?php echo e($heroDescription); ?></p>
             <?php endif; ?>
         </div>
     </div>

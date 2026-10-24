@@ -54,6 +54,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'author' => post('author'),
         'source' => post('source'),
         'tags' => post('tags'),
+        'seo_title' => post('seo_title', (string) ($article['seo_title'] ?? '')),
+        'seo_keywords' => post('seo_keywords', (string) ($article['seo_keywords'] ?? '')),
+        'seo_description' => post('seo_description', (string) ($article['seo_description'] ?? '')),
         'is_top' => postInt('is_top'),
         'is_recommend' => postInt('is_recommend'),
         'is_hot' => postInt('is_hot'),
@@ -238,6 +241,26 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             <span id="summaryCount" class="text-xs text-gray-400 ml-auto"><?php echo $__sumLen; ?> <?php echo __('sum_chars'); ?></span>
                         </div>
                     </div>
+
+                    <details class="bg-gray-50 border border-gray-200 rounded px-4 py-3">
+                        <summary class="font-bold text-gray-700 cursor-pointer"><?php echo e(__('admin_seo_settings')); ?></summary>
+                        <div class="space-y-4 mt-4">
+                            <div>
+                                <label for="articleSeoTitle" class="block text-gray-700 mb-1"><?php echo e(__('admin_seo_title')); ?></label>
+                                <input type="text" name="seo_title" id="articleSeoTitle" value="<?php echo e($article['seo_title'] ?? ''); ?>"
+                                       class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('admin_blank_use_title')); ?>">
+                            </div>
+                            <div>
+                                <label for="articleSeoKeywords" class="block text-gray-700 mb-1"><?php echo e(__('admin_seo_keywords')); ?></label>
+                                <input type="text" name="seo_keywords" id="articleSeoKeywords" value="<?php echo e($article['seo_keywords'] ?? ''); ?>"
+                                       class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('pe_seo_keywords_ph')); ?>">
+                            </div>
+                            <div>
+                                <label for="articleSeoDescription" class="block text-gray-700 mb-1"><?php echo e(__('admin_seo_description')); ?></label>
+                                <textarea name="seo_description" id="articleSeoDescription" rows="2" class="w-full border rounded px-4 py-2"><?php echo e($article['seo_description'] ?? ''); ?></textarea>
+                            </div>
+                        </div>
+                    </details>
 
                     <?php /* AI 助手面板由 admin/includes/footer.php 自动注入 */ ?>
 

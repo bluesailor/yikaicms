@@ -12,13 +12,13 @@
             <h2 class="text-lg font-bold text-dark group-hover:text-primary transition"><?php echo e($item['title']); ?></h2>
             <div class="flex flex-wrap gap-2 mt-2">
                 <?php if ($item['job_type']): ?>
-                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded"><?php echo e($item['job_type']); ?></span>
+                <span class="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs rounded"><?php echo e(JobModel::fieldLabel('job_type', (string) $item['job_type'])); ?></span>
                 <?php endif; ?>
                 <?php if ($item['education']): ?>
-                <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded"><?php echo e($item['education']); ?></span>
+                <span class="px-2 py-0.5 bg-green-100 text-green-700 text-xs rounded"><?php echo e(JobModel::fieldLabel('education', (string) $item['education'])); ?></span>
                 <?php endif; ?>
                 <?php if ($item['experience']): ?>
-                <span class="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded"><?php echo e($item['experience']); ?></span>
+                <span class="px-2 py-0.5 bg-orange-100 text-orange-700 text-xs rounded"><?php echo e(JobModel::fieldLabel('experience', (string) $item['experience'])); ?></span>
                 <?php endif; ?>
                 <?php if ($item['headcount']): ?>
                 <span class="px-2 py-0.5 bg-purple-100 text-purple-700 text-xs rounded"><?php echo __('job_hire_prefix'); ?><?php echo e($item['headcount']); ?></span>

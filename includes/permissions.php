@@ -702,6 +702,10 @@ function isSensitiveSettingKey(string $key): bool
     if (in_array($key, ['site_keywords', 'site_keywords_en', 'site_keywords_ja'], true)) {
         return false;
     }
+    // 明确敏感：键名不含 key/secret 等字样、值里却装着密钥的存储键（多套 AI API 配置，2.1.2）
+    if (in_array($key, ['ai_profiles'], true)) {
+        return true;
+    }
     return preg_match('/(^|_)(key|secret|token|pass|passwd|password|credential|authorization|auth|appid|appkey|access_id)($|_)/', $key) === 1;
 }
 

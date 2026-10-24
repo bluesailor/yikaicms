@@ -3,7 +3,7 @@
  * 产品目录——分类导航区域（结构树「分类导航」节点对应）。
  *
  * 三种位置：sidebar（纵向树，沿用经典样式）/ top（横向换行）/ toolbar（工具栏筛选条）。
- * 分类项一律走现有 productCategoryUrl()/channelUrl()，当前项带可访问的选中态。
+ * 分类项一律走现有 productCategoryUrl()/contentListUrl()，当前项带可访问的选中态。
  */
 
 declare(strict_types=1);
@@ -24,7 +24,7 @@ if (!function_exists('pcCatalogCategoryTree')) {
         foreach ($items as $item) {
             $hasChildren = !empty($item['children']);
             $active = !empty($item['is_active']);
-            $url = $isProductType ? productCategoryUrl($item) : channelUrl($item);
+            $url = $isProductType ? productCategoryUrl($item) : contentListUrl($item);
             if ($horizontal) {
                 $cls = 'inline-flex items-center rounded-full border px-3 py-1 text-sm transition '
                     . ($active ? 'border-primary bg-primary text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-primary hover:text-primary');
@@ -69,7 +69,7 @@ if (!function_exists('pcCatalogCategoryTree')) {
 
 if ($pcNavVariant !== 'sidebar'): ?>
 <div class="flex flex-wrap items-center gap-2" data-catalog-categories>
-    <a href="<?php echo channelUrl($rootChannel); ?>"
+    <a href="<?php echo contentListUrl($rootChannel); ?>"
        class="inline-flex items-center rounded-full border px-3 py-1 text-sm transition <?php echo ($productCategoryId === 0 && $keyword === '') ? 'border-primary bg-primary text-white' : 'border-gray-200 bg-white text-gray-600 hover:border-primary hover:text-primary'; ?>">
         <?php echo __('all'); ?><?php echo $isProductType ? __('list_product') : e((string) $rootChannel['name']); ?>
     </a>
@@ -82,19 +82,19 @@ if ($pcNavVariant !== 'sidebar'): ?>
     </div>
     <div class="divide-y">
         <?php if ($isProductType): ?>
-        <a href="<?php echo channelUrl($rootChannel); ?>"
+        <a href="<?php echo contentListUrl($rootChannel); ?>"
            class="block px-4 py-3 hover:bg-gray-50 transition <?php echo ($productCategoryId === 0 && $keyword === '') ? 'text-primary font-medium bg-blue-50' : 'text-gray-700'; ?>">
             <?php echo __('all_products'); ?>
         </a>
         <?php if ($channel['parent_id'] > 0): ?>
-        <a href="<?php echo ($channel['parent_id'] == (int) $rootChannel['id']) ? channelUrl($rootChannel) : productCategoryUrl(getChannel((int) $channel['parent_id'])); ?>"
+        <a href="<?php echo ($channel['parent_id'] == (int) $rootChannel['id']) ? contentListUrl($rootChannel) : productCategoryUrl(getChannel((int) $channel['parent_id'])); ?>"
            class="block px-4 py-2 text-sm text-gray-500 hover:text-primary hover:bg-gray-50 transition">
             ← <?php echo __('back'); ?>
         </a>
         <?php endif; ?>
         <?php pcCatalogCategoryTree($categoryTree, 0, true, false); ?>
         <?php else: ?>
-        <a href="<?php echo channelUrl($rootChannel); ?>"
+        <a href="<?php echo contentListUrl($rootChannel); ?>"
            class="block px-4 py-3 hover:bg-gray-50 transition <?php echo $channelId === (int) $rootChannel['id'] ? 'text-primary font-medium bg-blue-50' : 'text-gray-700'; ?>">
             <?php echo __('all'); ?><?php echo e((string) $rootChannel['name']); ?>
         </a>

@@ -42,10 +42,7 @@ if ($currentChannelId > 0) {
     $contactDraftPreview = BloxPublicationStatus::pageDraftPreview($currentChannelId);
     $__cRow = $contactDraftPreview !== null
         ? ['content_type' => 'blocks', 'blocks_data' => $contactDraftPreview, 'content' => '']
-        : contentModel()->queryOne(
-            'SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? AND status = 1 AND deleted_at IS NULL ORDER BY is_top DESC, id DESC LIMIT 1',
-            [$currentChannelId]
-        );
+        : contentModel()->getFirstByChannel($currentChannelId, siteLang(), adminDraftPreviewRow('channels', $currentChannelId) === null);
     if ($__cRow && ($__cRow['content_type'] ?? '') === 'blocks' && !empty($__cRow['blocks_data'])) {
         $contactDocument = BloxDocumentPipeline::decode((string) $__cRow['blocks_data']);
         $GLOBALS['ykBloxPageFrame'] = BloxPageLayout::activate($contactDocument['settings'], ['id' => $currentChannelId, 'lang' => siteLang()]);

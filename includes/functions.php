@@ -600,6 +600,7 @@ function htmlDirAttr(?string $lang = null): string
 
 function getLang(): string
 {
+    if (defined('YK_ADMIN_DRAFT_PREVIEW') && defined('SITE_LANG')) return SITE_LANG;
     if (defined('YK_PRODUCT_NATIVE_PREVIEW') && YK_PRODUCT_NATIVE_PREVIEW === true && defined('SITE_LANG')) {
         return SITE_LANG;
     }
@@ -985,7 +986,7 @@ function aiTranslateFields(string $title, string $summary, string $toLang): arra
     $encryptedKey = config('ai_api_key', '');
     $aiKey = $encryptedKey ? AiService::decryptKey($encryptedKey) : '';
     if ($aiKey && ($title || $summary)) {
-        $ai = new AiService(config('ai_provider', 'openai'), $aiKey, config('ai_model', 'gpt-4o-mini'));
+        $ai = new AiService(config('ai_provider', 'openai'), $aiKey, null);   // 模型跟随主 API，未填用该服务商默认（不再硬塞 gpt-4o-mini）
         $prompt = "Translate to {$langName}. Return JSON: {\"title\":\"...\",\"summary\":\"...\"}. No explanation.\n\nTitle: {$title}\nSummary: {$summary}";
         $result = $ai->chat($prompt, 'Return only valid JSON.', 0.3);
         if ($result['success']) {
@@ -1268,6 +1269,7 @@ function getChannelTree(int $parentId = 0): array
  */
 function getChannel(int $id): ?array
 {
+    if (defined('YK_ADMIN_DRAFT_PREVIEW') && !empty($_SESSION['admin_id'])) return adminPreviewLocalizedChannel(channelModel()->find($id));
     // 同一页里同一栏目会被反复取（面包屑、侧栏、菜单里每个单页子栏目的父级别名）：只读的网页请求（GET）内记住结果。
     // 会写栏目的请求（POST）与命令行（测试、导入工具）照旧每次查，免得读到改之前的值
     static $memo = [];
@@ -1290,7 +1292,7 @@ function readOnlyWebRequest(): bool
 function getChannelBySlug(string $slug, bool $langAware = false): ?array
 {
     if ($langAware) {
-        return channelModel()->findBySlugLang($slug);
+        return adminPreviewLocalizedChannel(channelModel()->findBySlugLang($slug));
     }
     return channelModel()->findBySlug($slug);
 }
@@ -2064,7 +2066,8 @@ function getBlockBg(array $block, string $defaultClass = ''): array
                 continue;
             }
             if (class_exists('AbstractElement')) {
-                $hasPaint = AbstractElement::backgroundDeclarations($parentBackground) !== '';
+                $hasPaint = AbstractElement::backgroundDeclarations($parentBackground) !== ''
+                    || preg_match('/^(linear|radial)-gradient\([a-zA-Z0-9#%.,()\s-]+\)$/', (string) ($parentBackground['bg_gradient'] ?? '')) === 1;
                 $hasVideo = AbstractElement::backgroundVideoUrl($parentBackground) !== '';
             } else {
                 $hasPaint = trim((string) ($parentBackground['bg_color'] ?? '')) !== ''
@@ -4001,6 +4004,9 @@ function renderStoredFormFields(array $template, array $defaults = [], ?string $
     $rendered = preg_replace_callback('/\[submit(?:\s+"([^"]*)")?\]/', static function (array $match) use ($captcha, $submitLabel): string {
         return $captcha . renderFormTagHtml(['type' => 'submit', 'text' => $match[1] ?? ($submitLabel ?? __('form_submit'))]);
     }, $rendered);
+    if (is_string($rendered) && defined('YK_ADMIN_DRAFT_PREVIEW') && !empty($_SESSION['admin_id'])) {
+        return '<fieldset disabled data-yk-draft-preview-form="1">' . $rendered . '</fieldset>';
+    }
     return is_string($rendered) ? $rendered : '';
 }
 

@@ -29,8 +29,11 @@
         <directory name="install" />
         <directory name="lang" />
         <directory name="plugins" />
-        <ignoreFiles>
+        <ignoreFiles allowMissingFiles="true">
             <directory name="vendor" />
+            <!-- 各站本地的 admin-local.php 被 gitignore，仓库、门禁树和 CI 里都没有；在这里列出只为本机不扫它，
+                 不能写进 issueHandlers——那里引用不存在的文件会让 Psalm 读配置就失败（2.1.2 门禁发现） -->
+            <file name="plugins/logo-maker/admin-local.php" />
             <!-- Blox 编辑器视图/模板类入口（并回主仓 2026-08-21）：大量内联 HTML/JS
                  heredoc，变量在模板中消费 Psalm 看不见；并回前从不被扫描，保持不扫。 -->
             <file name="admin/blox_editor.php" />
@@ -45,6 +48,8 @@
         <UnusedVariable>
             <errorLevel type="suppress">
                 <file name="admin/article_edit.php" />
+                  <file name="admin/job_edit.php" />
+                  <file name="admin/download_edit.php" />
                 <file name="admin/nav_menu.php" />
                 <file name="admin/extfield_api.php" />
                 <file name="admin/site_fields.php" />
@@ -150,6 +155,7 @@
                 <!-- 整站模板工作流新增独立入口 -->
                 <file name="admin/site_setup.php" />
                 <file name="admin/redirects.php" />
+                <file name="admin/draft_preview.php" />
                 <file name="admin/article_category.php" />
                 <file name="admin/testimonial.php" />
                 <file name="admin/site_templates.php" />

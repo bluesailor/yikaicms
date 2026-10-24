@@ -117,7 +117,7 @@ if (trim($detailTemplateHtml) !== '') {
 <div class="bg-gray-100 py-4">
     <div class="container mx-auto px-4">
         <div class="flex items-center gap-2 text-sm text-gray-600">
-            <a href="/" class="hover:text-primary"><?php echo __('breadcrumb_home'); ?></a>
+            <a href="<?php echo e(langUrl('/')); ?>" class="hover:text-primary"><?php echo __('breadcrumb_home'); ?></a>
             <?php
             // 获取栏目面包屑路径
             if ($channel) {
@@ -134,7 +134,7 @@ if (trim($detailTemplateHtml) !== '') {
                 foreach ($breadcrumbs as $bc):
             ?>
             <span>/</span>
-            <a href="<?php echo channelUrl($bc); ?>" class="hover:text-primary">
+            <a href="<?php echo e(contentListUrl($bc)); ?>" class="hover:text-primary">
                 <?php echo e($bc['name']); ?>
             </a>
             <?php

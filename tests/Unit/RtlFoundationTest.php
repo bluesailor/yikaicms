@@ -40,6 +40,12 @@ final class RtlFoundationTest extends TestCase
         foreach (['aurora', 'business', 'minimal', 'trade'] as $theme) {
             self::assertStringContainsString("function_exists('htmlDirAttr') ? htmlDirAttr() : ''", $read("marketplace/themes/$theme/layouts/header.php"), $theme);
         }
+        foreach (['business', 'minimal'] as $theme) {
+            $installedHeader = "themes/$theme/layouts/header.php";
+            if (is_file(ROOT_PATH . '/' . $installedHeader)) {
+                self::assertStringContainsString("function_exists('htmlDirAttr') ? htmlDirAttr() : ''", $read($installedHeader), $installedHeader);
+            }
+        }
         // 编辑器外壳跟后台语言，画布跟页面语言
         self::assertStringContainsString('htmlDirAttr(getLang())', $read('admin/blox_editor.php'));
         self::assertStringContainsString("htmlDirAttr(siteLang())", $read('includes/builder/BloxCanvasPreview.php'));

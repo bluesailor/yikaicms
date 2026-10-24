@@ -11,7 +11,7 @@ function toggleAiBox() {
     var arrow = document.getElementById('aiBoxArrow');
     if (!body) return;
     body.classList.toggle('hidden');
-    arrow.style.transform = body.classList.contains('hidden') ? '' : 'rotate(180deg)';
+    if (arrow) arrow.style.transform = body.classList.contains('hidden') ? '' : 'rotate(180deg)';
 }
 
 // 模式按钮
@@ -84,7 +84,7 @@ function submitAiPanel() {
         if (action === 'generate_all' && data.fields) {
             var f = data.fields;
             if (document.getElementById('aiGenTitle').checked && f.title) { var el = document.querySelector('input[name=title]'); if(el) el.value = f.title; }
-            if (document.getElementById('aiGenSummary').checked && f.summary) { var el = document.querySelector('textarea[name=summary]'); if(el) el.value = f.summary; }
+            if (document.getElementById('aiGenSummary').checked && f.summary) { var el = document.querySelector('textarea[name=summary]'); if(el) { el.value = f.summary; el.dispatchEvent(new Event('input', { bubbles: true })); } }
             if (document.getElementById('aiGenTags').checked && f.tags) { var el = document.querySelector('input[name=tags]'); if(el) el.value = f.tags; }
             if (document.getElementById('aiGenSlug').checked && f.slug) { var el = document.querySelector('input[name=slug]'); if(el) el.value = f.slug; }
             if (document.getElementById('aiGenContent').checked && f.content) { setEditorContent(f.content); }
@@ -120,7 +120,7 @@ function aiQuick(action) {
     .then(function(r) { return r.json(); })
     .then(function(data) {
         if (!data.success) { showMessage(<?php echo json_encode(__('aip_ai_error'), JSON_UNESCAPED_UNICODE); ?> + ': ' + data.error, 'error'); return; }
-        if (action === 'generate_summary' && summary) { summary.value = data.content; showMessage(<?php echo json_encode(__('aip_summary_done'), JSON_UNESCAPED_UNICODE); ?>); //成'); }
+        if (action === 'generate_summary' && summary) { summary.value = data.content; summary.dispatchEvent(new Event('input', { bubbles: true })); showMessage(<?php echo json_encode(__('aip_summary_done'), JSON_UNESCAPED_UNICODE); ?>); }
         else if (action === 'generate_seo' && data.seo) {
             ['seo_title','seo_keywords','seo_description'].forEach(function(k) {
                 var el = document.querySelector('[name='+k+']'); if (el && data.seo[k]) el.value = data.seo[k];
