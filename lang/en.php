@@ -9481,4 +9481,6 @@ e.g. steel|Stainless steel',
     'admin_draft_preview' => 'Draft preview',
     'job_exp_years_plus' => ':years+ years',
     'admin_draft_preview_private' => 'Draft preview: visible only to signed-in administrators with editing permission. Content is unpublished.',
+    'ai_translation_model_label' => 'Translation model',
+    'ai_translation_model_hint' => 'Leave blank to use the default model. Uses the same API URL and key for translation and source review. Pricing depends on the selected model.',
 ];

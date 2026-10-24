@@ -1,0 +1,15 @@
+{
+    "es": {
+        "华东地区": ["este de China", "China oriental", "región oriental de China"],
+        "精密零部件": ["componentes de precisión", "piezas de precisión", "componentes de alta precisión"],
+        "官网改版": ["rediseño del sitio web", "renovación del sitio web", "rediseño web"],
+        "产品资料": ["documentación de productos", "documentación del producto", "documentación de los productos", "información de productos", "información sobre los productos"],
+        "规格参数": ["especificaciones técnicas", "parámetros técnicos", "especificaciones y parámetros"],
+        "询盘转化": ["conversión de consultas comerciales", "conversión de consultas", "conversión de solicitudes de cotización"],
+        "询盘": ["consultas comerciales", "consulta comercial", "consultas", "solicitudes de cotización", "solicitud de cotización", "solicitudes de presupuesto"],
+        "线索池": ["registro de clientes potenciales", "base de datos de clientes potenciales", "sistema de gestión de clientes potenciales"],
+        "留资": ["datos de clientes potenciales", "datos de contacto", "información de contacto"],
+        "工艺": ["proceso de fabricación", "procesos de fabricación", "técnica de fabricación", "técnicas de fabricación"],
+        "案例": ["caso", "casos"]
+    }
+}

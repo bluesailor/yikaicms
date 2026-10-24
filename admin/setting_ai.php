@@ -32,6 +32,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             settingModel()->set('ai_api_key', AiService::encryptKey($newKey));
         }
         settingModel()->set('ai_model', $_POST['ai_model'] ?? '');
+        if (array_key_exists('ai_translation_model', $_POST)) settingModel()->saveBatch(['ai_translation_model' => trim((string) $_POST['ai_translation_model'])]);
         settingModel()->set('ai_base_url', $_POST['ai_base_url'] ?? '');
         adminLog('setting', 'ai', '更新 AI 设置');
         echo json_encode(['code' => 0, 'msg' => __('admin_saved')]);
@@ -166,6 +167,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <div id="aiModelGrid" class="flex flex-wrap gap-2"></div>
                 </div>
                 <div>
+                    <label for="aiTranslationModel" class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('ai_translation_model_label')); ?></label>
+                    <input type="text" name="ai_translation_model" id="aiTranslationModel" value="<?php echo e((string) config('ai_translation_model', '')); ?>" class="w-full border rounded-lg px-4 py-2.5 text-sm">
+                    <p class="text-xs text-gray-400 mt-1"><?php echo e(__('ai_translation_model_hint')); ?></p>
+                </div>
+                <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('ai_custom_base_url')); ?> <span class="font-normal text-gray-400"><?php echo e(__('admin_optional_paren')); ?></span></label>
                     <input type="text" name="ai_base_url" id="aiBaseUrl" value="<?php echo e($currentBaseUrl); ?>"
                            class="w-full border rounded-lg px-4 py-2.5 text-sm" placeholder="<?php echo e(__('ai_base_url_ph')); ?>">
@@ -271,7 +277,7 @@ onProviderChange();
 
 function saveAiSettings() {
     var fd = new FormData(document.getElementById('aiForm')); fd.append('action', 'save');
-    fetch('', { method: 'POST', body: fd }).then(function(r){ return r.json(); }).then(function(d){ alert(d.msg || <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?>); });
+    fetch('', { method: 'POST', body: fd }).then(safeJson).then(function(d){ showMessage(d.msg || <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?>, d.code === 0 ? 'success' : 'error'); }).catch(function(){ showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error'); });
 }
 
 function testAiConn() {

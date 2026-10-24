@@ -9427,4 +9427,6 @@ return [
     'admin_draft_preview' => '草稿預覽',
     'job_exp_years_plus' => ':years年以上',
     'admin_draft_preview_private' => '草稿預覽：僅有編輯權限的後台登入使用者可見，內容尚未發佈。',
+    'ai_translation_model_label' => '翻譯專用模型',
+    'ai_translation_model_hint' => '留空使用預設模型。與預設模型共用 API 地址和金鑰，用於翻譯及原文複核；費用以所選模型為準。',
 ];
