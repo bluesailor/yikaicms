@@ -40,7 +40,7 @@ final class FrontendOutputHygieneTest extends TestCase
         foreach ($patterns as $pattern) {
             if (preg_match_all($pattern, $output, $m) > 0) {
                 foreach ($m[1] as $comment) {
-                    if (preg_match('/\p{Han}/u', $comment) === 1) {
+                    if (preg_match('/(?!\p{P})\p{Han}/u', $comment) === 1) {
                         $found[] = mb_substr(trim($comment), 0, 40);
                     }
                 }
