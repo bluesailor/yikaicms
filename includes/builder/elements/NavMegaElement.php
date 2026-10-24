@@ -66,8 +66,7 @@ final class NavMegaElement extends AbstractElement
      * 尾部 CTA 按钮配置（nav / nav-mega / nav-drawer 共用）。
      * 文字或链接留空 = 不显示，存量文档零变化。
      *
-     * @return list<array<string,mixed>> 纯数字键——调用方以 ... 展开进 controls()，
-     *                                   string key 展开要 PHP 8.1，产品下限是 8.0
+     * @return list<array<string,mixed>> 调用方以 ... 展开进 controls()
      */
     public static function ctaControls(): array
     {

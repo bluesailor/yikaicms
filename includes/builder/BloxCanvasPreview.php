@@ -228,8 +228,7 @@ function bloxPreviewTrustedJson(bool $isHomeLayout, int $id): ?string
 }
 
 /**
- * 不写 `: never`——那是 PHP 8.1 才有的类型，而本项目承诺支持 8.0
- * （8.0 会把它当成一个不存在的类名，Psalm 也会如实报 UndefinedClass）。
+ * $terminate=false 时输出后返回（测试与嵌入用），所以返回类型是 void 而不是 never。
  */
 function outputBloxCanvasPreview(bool $isHomeLayout, int $id, bool $terminate = true): void
 {

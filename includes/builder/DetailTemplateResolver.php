@@ -12,8 +12,8 @@
  *   不得随机返回。旧规则（v1）经 legacyScope() 只读适配，并保留其历史并列语义。
  * - 与「样式继承」「元素交互」无关：本类只回答「哪套布局」。
  *
- * PHP 8.0 兼容（composer.json 要求 php >=8.0）：不使用 enum/readonly/never 等新语法，
- * 用类常量表达枚举，与相邻契约类（BloxDisplayConditions 等）写法一致。
+ * 用类常量表达枚举（而不是 enum）：值要原样存进规则与模板包、在 JSON 里往返，
+ * 与相邻契约类（BloxDisplayConditions 等）写法一致。
  */
 
 declare(strict_types=1);
