@@ -46,6 +46,14 @@ final class SensitiveSettings
     /** 仅「导出到站外」时额外视为敏感的具名键 */
     private const EXPORT_EXTRA_KEYS = [
         'recipe_applied',     // 本站装过哪些配方，属于本站历史
+        // 本站的 AI 接入（主 API 编号与它同步写回的旧单配置键）：接口地址可能是内网，
+        // 导到别的站也只会和那边的密钥拼成错配。导出敏感的键同样不可导入（见 isImportable），
+        // 服务商、地址、密钥、模型只由 AiProfiles 成套写入
+        'ai_active_profile',
+        'ai_provider',
+        'ai_base_url',
+        'ai_model',
+        'ai_translation_model',
     ];
 
     /** 配方永远不能写：描述本机身份与运行方式，而非配方内容 */
