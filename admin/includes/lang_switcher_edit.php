@@ -109,6 +109,8 @@ if ($_ls_item) {
 <script>
 async function createTranslation(toLang, langName, btn, retranslate = false) {
     if (!btn || btn.disabled) return;
+    var originalText = btn.textContent;
+    var originalClass = btn.className;
     btn.disabled = true;
     btn.textContent = <?php echo json_encode(__('lse_translating'), JSON_UNESCAPED_UNICODE); ?>;
     btn.className = 'px-3 py-1 rounded-full text-xs bg-amber-100 text-amber-600 animate-pulse';
@@ -129,14 +131,16 @@ async function createTranslation(toLang, langName, btn, retranslate = false) {
             }, 800);
         } else {
             btn.disabled = false;
-            btn.textContent = langName;
-            btn.className = 'px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600 transition cursor-pointer';
+            btn.textContent = originalText;
+            btn.className = originalClass;
+            btn.title = data.msg || <?php echo json_encode(__('lse_failed'), JSON_UNESCAPED_UNICODE); ?>;
             showMessage(data.msg || <?php echo json_encode(__('lse_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         }
     } catch(e) {
         btn.disabled = false;
-        btn.textContent = langName;
-        btn.className = 'px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600 transition cursor-pointer';
+        btn.textContent = originalText;
+        btn.className = originalClass;
+        btn.title = <?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>;
         showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }
