@@ -32,7 +32,7 @@ class AiService
             'default'  => '',
             'format'   => 'openai',
         ],
-        // 内置推荐清单核对于 2026-09-11；旧型号仍可手工输入。
+        // 内置推荐清单核对于 2026-10-24；旧型号仍可手工输入。
         'custom_openai' => [
             'name' => 'OpenAI Compatible',
             'base_url' => '',
@@ -57,16 +57,48 @@ class AiService
         'openai' => [
             'name'     => 'OpenAI',
             'base_url' => 'https://api.openai.com/v1',
-            'models'   => ['gpt-5.6-sol', 'gpt-5.6-terra', 'gpt-5.6-luna', 'gpt-4.1'],
-            'default'  => 'gpt-5.6-sol',
+            'models'   => ['gpt-6.1-sol', 'gpt-6-astra', 'gpt-6-luna', 'gpt-6-sol'],
+            'default'  => 'gpt-6.1-sol',
             'format'   => 'openai',
         ],
         'claude' => [
             'name'     => 'Claude (Anthropic)',
             'base_url' => 'https://api.anthropic.com/v1',
-            'models'   => ['claude-sonnet-5', 'claude-haiku-4-5-20251001', 'claude-opus-5', 'claude-fable-5-1'],
-            'default'  => 'claude-sonnet-5',
+            'models'   => ['claude-sonnet-5-5', 'claude-haiku-5-5', 'claude-opus-5-5', 'claude-fable-5-1'],
+            'default'  => 'claude-sonnet-5-5',
             'format'   => 'anthropic',
+        ],
+        'siliconflow' => [
+            'name_key' => 'ai_provider_siliconflow_name',
+            'name' => 'SiliconFlow',
+            'base_url' => 'https://api.siliconflow.cn/v1',
+            'models' => ['deepseek-ai/DeepSeek-V4.1-Flash', 'zai-org/GLM-5.3', 'Qwen/Qwen3.8-27B', 'moonshotai/Kimi-K2.7-Code'],
+            'default' => 'deepseek-ai/DeepSeek-V4.1-Flash',
+            'format' => 'openai',
+        ],
+        'kimi' => [
+            'name_key' => 'ai_provider_kimi_name',
+            'name' => 'Kimi',
+            'base_url' => 'https://api.moonshot.cn/v1',
+            'models' => ['kimi-k3.1-pro', 'kimi-k3.1-pro-highspeed', 'kimi-k3'],
+            'default' => 'kimi-k3.1-pro',
+            'format' => 'openai',
+        ],
+        'mimo' => [
+            'name_key' => 'ai_provider_mimo_name',
+            'name' => 'Xiaomi MiMo',
+            'base_url' => 'https://api.xiaomimimo.com/v1',
+            'models' => ['mimo-v2.6-pro', 'mimo-v2.6-flash'],
+            'default' => 'mimo-v2.6-pro',
+            'format' => 'openai',
+        ],
+        'hunyuan' => [
+            'name_key' => 'ai_provider_hunyuan_name',
+            'name' => 'Tencent Hunyuan (TokenHub)',
+            'base_url' => 'https://tokenhub.tencentmaas.com/v1',
+            'models' => ['hy4-preview', 'hy3'],
+            'default' => 'hy4-preview',
+            'format' => 'openai',
         ],
         'qwen' => [
             'name_key' => 'ai_provider_qwen_name',
@@ -96,8 +128,9 @@ class AiService
         if ($this->provider === 'yikai' && $this->apiKey === '') {
             $this->apiKey = function_exists('license_key') ? license_key() : '';
         }
-        $this->model    = $model ?: config('ai_model', '');
-        $this->baseUrl  = $baseUrl ?? config('ai_base_url', '');
+        $isCurrent = $this->provider === config('ai_provider', 'deepseek');
+        $this->model    = $model ?? ($isCurrent ? config('ai_model', '') : '');
+        $this->baseUrl  = $baseUrl ?? ($isCurrent ? config('ai_base_url', '') : '');
 
         // 使用供应商默认值
         $cfg = self::PROVIDERS[$this->provider] ?? self::PROVIDERS['openai'];
@@ -301,11 +334,7 @@ class AiService
                 'max_tokens'  => 4096,
             ];
 
-            $resp = $this->httpPost(
-                rtrim($this->baseUrl, '/') . '/chat/completions',
-                $payload,
-                ['Authorization: Bearer ' . $this->apiKey, 'Content-Type: application/json']
-            );
+            $resp = $this->requestOpenAI($payload);
             if (!$resp['success']) {
                 return [
                     'success'         => false,
@@ -433,14 +462,7 @@ class AiService
         ];
         if ($jsonObject) $payload['response_format'] = ['type' => 'json_object'];
 
-        $response = $this->httpPost(
-            rtrim($this->baseUrl, '/') . '/chat/completions',
-            $payload,
-            [
-                'Authorization: Bearer ' . $this->apiKey,
-                'Content-Type: application/json',
-            ]
-        );
+        $response = $this->requestOpenAI($payload);
 
         if (!$response['success']) {
             return $response;
@@ -463,6 +485,104 @@ class AiService
         ];
     }
 
+    /** 新模型的参数约束同时应用于普通对话和工具调用。 */
+    private function openAIPayload(array $payload): array
+    {
+        if ($this->provider === 'openai' && str_starts_with($this->model, 'gpt-6')) {
+            unset($payload['max_tokens']);
+            $payload['max_completion_tokens'] = 16384;
+            $noThinking = in_array($this->model, ['gpt-6-sol', 'gpt-6-luna'], true);
+            $payload['reasoning_effort'] = $noThinking ? 'none' : 'low';
+            if (!$noThinking) unset($payload['temperature']);
+        }
+        if ($this->provider === 'kimi' && str_starts_with($this->model, 'kimi-k3')) {
+            unset($payload['temperature'], $payload['max_tokens']);
+            $payload['max_completion_tokens'] = 16384;
+            $payload['reasoning_effort'] = 'low';
+        }
+        if ($this->provider === 'mimo' && str_starts_with($this->model, 'mimo-v2.6')) {
+            unset($payload['max_tokens']);
+            $payload['max_completion_tokens'] = 4096;
+            // CMS 文本任务使用非思考模式，避免输出预算被思考占满。
+            $payload['thinking'] = ['type' => 'disabled'];
+        }
+        return $payload;
+    }
+
+    private function openAIHeaders(): array
+    {
+        return [
+            ($this->provider === 'mimo' ? 'api-key: ' : 'Authorization: Bearer ') . $this->apiKey,
+            'Content-Type: application/json',
+        ];
+    }
+
+    private function requestOpenAI(array $payload): array
+    {
+        $payload = $this->openAIPayload($payload);
+        // Sol 6.1 / Astra 的工具调用仅支持 Responses；其他兼容商继续走原协议。
+        $responses = $this->provider === 'openai' && isset($payload['tools'])
+            && preg_match('/^gpt-6(?:\.1-sol|-astra)(?:-|$)/', $this->model);
+        if (!$responses) {
+            return $this->httpPost(rtrim($this->baseUrl, '/') . '/chat/completions', $payload, $this->openAIHeaders());
+        }
+        $response = $this->httpPost(rtrim($this->baseUrl, '/') . '/responses', $this->responsesPayload($payload), $this->openAIHeaders());
+        if (!$response['success']) return $response;
+        $data = json_decode($response['body'], true);
+        if (!is_array($data) || !empty($data['error']) || ($data['status'] ?? '') !== 'completed') {
+            return ['success' => false, 'error' => (string) ($data['error']['message'] ?? 'Incomplete AI response')];
+        }
+        $response['body'] = json_encode($this->responsesCompletion($data), JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR);
+        return $response;
+    }
+
+    /** 回传完整原生输出（含加密 reasoning），保留多轮工具调用的上下文。 */
+    private function responsesPayload(array $payload): array
+    {
+        $input = [];
+        foreach ($payload['messages'] as $message) {
+            if (isset($message['_responses_output'])) {
+                foreach ($message['_responses_output'] as $item) $input[] = $item;
+            } elseif ($message['role'] === 'tool') {
+                $input[] = ['type' => 'function_call_output', 'call_id' => $message['tool_call_id'], 'output' => $message['content']];
+            } else {
+                $input[] = $message;
+            }
+        }
+        $tools = [];
+        foreach ($payload['tools'] as $tool) {
+            // 现有能力 schema 含可选字段，不隐式启用 Responses 默认的 strict。
+            $tools[] = array_merge($tool['function'], ['type' => 'function', 'strict' => false]);
+        }
+        return [
+            'model' => $this->model, 'input' => $input, 'tools' => $tools,
+            'tool_choice' => 'auto', 'max_output_tokens' => 16384,
+            'reasoning' => ['effort' => 'low'], 'store' => false,
+            'include' => ['reasoning.encrypted_content'],
+        ];
+    }
+
+    private function responsesCompletion(array $data): array
+    {
+        $message = ['role' => 'assistant', 'content' => '', 'tool_calls' => [], '_responses_output' => $data['output'] ?? []];
+        foreach (($data['output'] ?? []) as $item) {
+            if (($item['type'] ?? '') === 'function_call') {
+                $message['tool_calls'][] = ['id' => $item['call_id'], 'type' => 'function',
+                    'function' => ['name' => $item['name'], 'arguments' => $item['arguments']]];
+            } elseif (($item['type'] ?? '') === 'message') {
+                foreach (($item['content'] ?? []) as $part) {
+                    if (($part['type'] ?? '') === 'output_text') $message['content'] .= $part['text'];
+                }
+            }
+        }
+        $usage = $data['usage'] ?? [];
+        return ['choices' => [['message' => $message]], 'usage' => [
+            'prompt_tokens' => (int) ($usage['input_tokens'] ?? 0),
+            'completion_tokens' => (int) ($usage['output_tokens'] ?? 0),
+            'total_tokens' => (int) ($usage['total_tokens'] ?? 0),
+        ]];
+    }
+
     /**
      * Anthropic Claude API 调用
      */
@@ -477,6 +597,11 @@ class AiService
                 ['role' => 'user', 'content' => self::messageContent($prompt, 'anthropic')],
             ],
         ];
+        // Claude 5.5 已移除采样参数，思考与最终文字共享输出预算。
+        if (preg_match('/^claude-(?:sonnet|opus|haiku)-5-5(?:-|$)|^claude-fable-5-1(?:-|$)/', $this->model)) {
+            unset($payload['temperature']);
+            $payload['max_tokens'] = 16384;
+        }
         if ($system) {
             $payload['system'] = $system;
         }

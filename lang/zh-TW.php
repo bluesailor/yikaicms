@@ -9463,4 +9463,12 @@ return [
     'ai_profile_archived_cannot_be_primary' => '已歸檔的配置不能設為主 API，請先恢復。',
     'ai_profile_primary_locked' => '主 API 不能歸檔或刪除，請先把另一套設為主 API。',
     'ai_profile_archive_first' => '請先歸檔，再刪除。',
+    'ai_provider_siliconflow_name' => '矽基流動',
+    'ai_provider_kimi_name' => 'Kimi（月之暗面）',
+    'ai_provider_mimo_name' => '小米 MiMo',
+    'ai_provider_hunyuan_name' => '騰訊混元（TokenHub）',
+    'ai_provider_key_required' => '請填寫所選供應商的 API Key；當前已儲存的金鑰不會用於其他供應商。',
+    'ai_field_clear' => '清空',
+    'ai_key_clear_pending' => '儲存後將刪除已儲存的 API Key。',
+    'ai_key_clear_undo' => '撤銷',
 ];
