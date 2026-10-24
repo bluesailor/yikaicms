@@ -6,7 +6,7 @@
 //
 // 用法（与门禁同款的子目录夹具）：
 //   1. 站点工作树放在 <父目录>/sub，SMOKE_SITE_URL=http://127.0.0.1:8791/sub php tests/smoke/setup.php
-//   2. 在父目录放 _subdir_test/router.php 的副本，php -S 127.0.0.1:8791 router.php
+//   2. php -S 127.0.0.1:8791 tests/smoke/subdir-router.php（文档根是放站点目录的那一层）
 //   3. node tests/smoke/subdir-link-audit.js [http://127.0.0.1:8791] [/sub] [报告.json]
 //   用完 php tests/smoke/setup.php --restore
 const { chromium } = require('playwright');
