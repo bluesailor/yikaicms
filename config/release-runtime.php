@@ -24,6 +24,7 @@ return [
         'includes/php_guard.php',           // index.php / install/index.php / init.php 最先 require：PHP 版本底线
         'includes/BasePath.php',            // index.php / init.php / functions.php 无条件 require：子目录部署的挂载点
         'includes/SessionStorage.php',      // functions.php 无条件 require：默认会话目录不可写时的兜底
+        'includes/SecurityHeaders.php',     // functions.php 无条件 require：每个入口的安全响应头（2.1.3）
         'includes/RewriteProbe.php',
         'includes/CompatibleLinks.php',
         'includes/Dispatcher.php',
