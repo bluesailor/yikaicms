@@ -77,7 +77,7 @@ return [
     'install_demo_label' => 'Install demo data',
     'install_demo_tip' => 'Includes sample articles, products and pages (removable later)',
     'admin_user_tip' => '4–20 alphanumeric characters',
-    'admin_pass_tip' => 'At least 6 characters',
+    'admin_pass_tip' => 'At least 8 characters, with letters and numbers',
     'password_mismatch' => 'Passwords do not match',
 
     // Installing
@@ -130,7 +130,7 @@ return [
     // Errors
     'error_already_installed' => 'Already installed. To reinstall, delete the installed.lock file first.',
     'error_php_version' => 'PHP version is too low. PHP 8.0 or newer is required.',
-    'error_admin_pass_length' => 'The administrator password must contain at least 6 characters.',
+    'error_admin_pass_length' => 'The administrator password must be at least 8 characters and contain both letters and numbers.',
     'error_admin_user_invalid' => 'The administrator username cannot be empty or "0", and must not start or end with a space.',
     'error_db_name_invalid' => 'The database name may only contain letters, digits, underscores and hyphens.',
     'error_table_prefix_invalid' => 'The table prefix may only contain letters, digits and underscores.',

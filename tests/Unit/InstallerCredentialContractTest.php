@@ -70,6 +70,10 @@ final class InstallerCredentialContractTest extends TestCase
     {
         return [
             '太短'       => ['12345'],
+            '七位'       => ['abcd123'],
+            '只有字母'   => ['passwordonly'],
+            '只有数字'   => ['1234567890'],
+            '纯中文'     => ['密码密码强度够了'],
             '六个空格'   => ['      '],
             '首部空格'   => [' secret123'],
             '尾部空格'   => ['secret123 '],
@@ -92,9 +96,9 @@ final class InstallerCredentialContractTest extends TestCase
         return [
             '普通'         => ['secret123'],
             '含空格但不在首尾' => ['pass word 123'],
-            '中文'         => ['密码密码强度够'],
+            '中文加字母数字' => ['站长密码abc123'],
             '引号反斜杠'   => ['a"b\'c\\d1'],
-            '正好六位'     => ['abc123'],
+            '正好八位'     => ['abcd1234'],
         ];
     }
 
