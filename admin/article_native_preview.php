@@ -12,7 +12,7 @@ require_once ROOT_PATH . '/includes/builder/BloxTemplateEditPolicy.php';
 if (!bloxPageEditorEnabled() || !BloxTemplateEditPolicy::allows('article-detail', bloxAdvancedFeaturesEnabled())) error(__('blox_feature_disabled'));
 
 // 只读预览：与前台同一渲染路径，但显式禁用模板套用与整页缓存，避免"预览成功其实走了模板"
-$previewArticle = contentModel()->getPublished(getInt('id'));
+$previewArticle = contentModel()->find(getInt('id'));
 if (!$previewArticle
     || (string) ($previewArticle['type'] ?? '') !== 'article'
     || !isset(availableLanguages()[(string) ($previewArticle['lang'] ?? '')])) {
@@ -20,6 +20,7 @@ if (!$previewArticle
     exit(e(__('error_article_not_found')));
 }
 define('SITE_LANG', (string) $previewArticle['lang']);
+define('YK_ADMIN_DRAFT_PREVIEW', ['table' => 'contents', 'row' => $previewArticle]);
 define('YK_ARTICLE_NATIVE_PREVIEW', true);
 $GLOBALS['_LANG_DATA'] = null;
 header('Cache-Control: private, no-store');

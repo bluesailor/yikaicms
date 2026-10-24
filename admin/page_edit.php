@@ -172,7 +172,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <?php echo __('admin_back'); ?>
     </a>
     <div class="flex items-center gap-2">
-        <a href="<?php echo channelUrl($page); ?>" target="_blank" rel="noopener" class="border border-gray-300 text-gray-700 hover:border-primary hover:text-primary px-4 py-2 rounded text-sm inline-flex items-center gap-1 transition">
+        <a href="<?php echo e('/admin/draft_preview.php?type=channels&id=' . (int) $page['id']); ?>" target="_blank" rel="noopener" class="border border-gray-300 text-gray-700 hover:border-primary hover:text-primary px-4 py-2 rounded text-sm inline-flex items-center gap-1 transition">
             <i class="ti ti-eye text-base"></i>
             <?php echo __('page_preview'); ?>
         </a>

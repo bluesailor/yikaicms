@@ -21,13 +21,14 @@ final class JobDetailController extends DetailController
             return null;
         }
 
-        $job = jobModel()->find($id);
-        if (!$job || (int) $job['status'] !== 1) {
+        $preview = adminDraftPreviewRow('jobs', $id);
+        $job = $preview ?? jobModel()->find($id);
+        if (!$job || (!$preview && (int) $job['status'] !== 1)) {
             return null;
         }
 
         // 副作用：每次渲染自增一次浏览量。
-        jobModel()->incrementViews($id);
+        if (!$preview) jobModel()->incrementViews($id);
 
         // 多语言站每种语言各有一个招聘栏目，优先跟随职位语言。
         $channel = null;
@@ -43,6 +44,7 @@ final class JobDetailController extends DetailController
         if (!empty($channels)) {
             $channel = $channels[0];
         }
+        if ($preview) $channel = adminPreviewLocalizedChannel($channel);
 
         return [
             'job'     => $job,

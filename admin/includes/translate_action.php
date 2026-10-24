@@ -85,7 +85,8 @@ if ($table === 'channels' && ($src['type'] ?? '') === 'page') {
     $pageContent = contentModel()->queryOne('SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? ORDER BY is_top DESC, id DESC LIMIT 1', [$srcId]);
 }
 $bodySource = $pageContent ?: $src;
-$bodyField = (($bodySource['content_type'] ?? '') === 'blox' && !empty($bodySource['blocks_data'])) ? 'blocks_data' : 'content';
+require_once ROOT_PATH . '/includes/content_translation.php';
+$bodyField = translationBodyField($bodySource);
 {
     require_once ROOT_PATH . '/includes/AiService.php';
     require_once ROOT_PATH . '/includes/content_translation.php';
@@ -136,6 +137,10 @@ if (!empty($newData['slug'])) {
 if (isset($newData['channel_id']) && (int) $newData['channel_id'] > 0) {
     $mapped = findTranslatedChannelId((int) $newData['channel_id'], $toLang);
     if ($mapped > 0) $newData['channel_id'] = $mapped;
+}
+if ($table === 'channels' && (int) ($newData['parent_id'] ?? 0) > 0) {
+    $mappedParent = findTranslatedChannelId((int) $newData['parent_id'], $toLang);
+    if ($mappedParent > 0) $newData['parent_id'] = $mappedParent;
 }
 
 // SEO 字段同步翻译（如存在）

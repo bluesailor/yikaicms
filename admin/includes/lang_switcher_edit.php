@@ -15,6 +15,11 @@
 // 后台编辑页可见 ≠ 前台切换器开关。只要 enabled_languages 启用了 ≥2 种语言，
 // 就允许后台填翻译；不依赖 show_lang_switcher（后者只管前台是否露切换器）。
 if (empty($langSwitcher)) return;
+if (!empty($langSwitcher['item']['id']) && in_array($langSwitcher['table'], ['contents', 'products', 'channels', 'product_categories', 'jobs', 'downloads'], true)) {
+    echo '<a class="inline-flex items-center gap-2 mb-4 text-primary hover:underline" target="_blank" rel="noopener" href="'
+        . e('/admin/draft_preview.php?type=' . rawurlencode($langSwitcher['table']) . '&id=' . (int) $langSwitcher['item']['id'])
+        . '">' . e(__('admin_draft_preview')) . '</a>';
+}
 $_ls_enabledRaw = trim((string) config('enabled_languages', ''));
 $_ls_enabled = $_ls_enabledRaw !== '' ? json_decode($_ls_enabledRaw, true) : null;
 if (!is_array($_ls_enabled) || count($_ls_enabled) < 2) return;

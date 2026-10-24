@@ -11,7 +11,7 @@
 $productCatalogLayout = isset($productCatalogLayout) && in_array($productCatalogLayout, ['sidebar', 'grid'], true)
     ? $productCatalogLayout
     : 'sidebar';
-$sidebarListUrl = $isProductType && $productCategory ? productCategoryUrl($productCategory) : channelUrl($channel);
+$sidebarListUrl = $isProductType && $productCategory ? draftPreviewEntityUrl('product_categories', $productCategory, productCategoryUrl($productCategory)) : contentListUrl($channel);
 $sidebarUsesDynamicRoute = str_contains($sidebarListUrl, 'yk_route=');
 $sidebarRoute = $isProductType ? 'product_list' : 'list';
 $productCatalogShowSearch = $productCatalogShowSearch ?? true;
@@ -37,6 +37,7 @@ $productCatalogGridClass = [
                 <?php /* 搜索框 */ ?>
                 <div class="bg-white rounded-lg shadow p-4" data-catalog-search>
                     <form method="get" action="<?php echo e($sidebarUsesDynamicRoute ? '/index.php' : $sidebarListUrl); ?>" role="search">
+<?php echo adminDraftPreviewHiddenInputs(); ?>
                         <?php if ($sidebarUsesDynamicRoute): ?>
                         <input type="hidden" name="yk_route" value="<?php echo e($sidebarRoute); ?>">
                         <?php if (!$isProductType): ?>
@@ -64,7 +65,7 @@ $productCatalogGridClass = [
                     <?php if ($keyword !== ''): ?>
                     <div class="mt-2 flex items-center justify-between text-sm">
                         <span class="text-gray-500"><?php echo __('search_result'); ?>: <span class="text-primary"><?php echo e($keyword); ?></span></span>
-                        <a href="<?php echo channelUrl($channel); ?>" class="text-gray-400 hover:text-red-500">
+                        <a href="<?php echo e($sidebarListUrl); ?>" class="text-gray-400 hover:text-red-500">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                             </svg>
@@ -85,12 +86,12 @@ $productCatalogGridClass = [
                     <div class="divide-y">
                         <?php if ($isProductType): ?>
                         <?php /* 产品分类 */ ?>
-                        <a href="<?php echo channelUrl($rootChannel); ?>"
+                        <a href="<?php echo contentListUrl($rootChannel); ?>"
                            class="block px-4 py-3 hover:bg-gray-50 transition <?php echo ($productCategoryId === 0 && $keyword === '') ? 'text-primary font-medium bg-blue-50' : 'text-gray-700'; ?>">
                             <?php echo __('all_products'); ?>
                         </a>
                         <?php if ($channel['parent_id'] > 0): ?>
-                        <a href="<?php echo ($channel['parent_id'] == (int)$rootChannel['id']) ? channelUrl($rootChannel) : productCategoryUrl(getChannel((int)$channel['parent_id'])); ?>"
+                        <a href="<?php echo ($channel['parent_id'] == (int)$rootChannel['id']) ? contentListUrl($rootChannel) : productCategoryUrl(getChannel((int)$channel['parent_id'])); ?>"
                            class="block px-4 py-2 text-sm text-gray-500 hover:text-primary hover:bg-gray-50 transition">
                             ← <?php echo __('back'); ?>
                         </a>
@@ -140,7 +141,7 @@ $productCatalogGridClass = [
                         ?>
                         <?php else: ?>
                         <?php /* 栏目分类（案例等） */ ?>
-                        <a href="<?php echo channelUrl($rootChannel); ?>"
+                        <a href="<?php echo contentListUrl($rootChannel); ?>"
                            class="block px-4 py-3 hover:bg-gray-50 transition <?php echo $channelId === (int)$rootChannel['id'] ? 'text-primary font-medium bg-blue-50' : 'text-gray-700'; ?>">
                             <?php echo __('all'); ?><?php echo e($rootChannel['name']); ?>
                         </a>
@@ -158,7 +159,7 @@ $productCatalogGridClass = [
                         ?>
                         <div class="category-item">
                             <div class="flex items-center justify-between hover:bg-gray-50 transition <?php echo $item['is_active'] ? 'text-primary font-medium bg-blue-50' : 'text-gray-700'; ?>">
-                                <a href="<?php echo channelUrl($item); ?>"
+                                <a href="<?php echo contentListUrl($item); ?>"
                                    class="flex-1 py-3 block"
                                    style="padding-left: <?php echo $paddingLeft; ?>px;">
                                     <?php echo e($item['name']); ?>
@@ -202,6 +203,7 @@ $productCatalogGridClass = [
             <div class="flex-1 min-w-0">
                 <?php if (!$productCatalogHasSidebar && $productCatalogShowSearch): ?>
                 <form method="get" action="<?php echo e($sidebarUsesDynamicRoute ? '/index.php' : $sidebarListUrl); ?>" role="search" class="mb-6 flex items-center gap-2 max-w-md">
+<?php echo adminDraftPreviewHiddenInputs(); ?>
                     <?php if ($sidebarUsesDynamicRoute): ?>
                     <input type="hidden" name="yk_route" value="<?php echo e($sidebarRoute); ?>">
                     <?php if (!$isProductType): ?>
@@ -224,7 +226,7 @@ $productCatalogGridClass = [
                         </button>
                     </div>
                     <?php if ($keyword !== ''): ?>
-                    <a href="<?php echo channelUrl($channel); ?>" class="text-gray-400 hover:text-red-500" title="<?php echo e(__('search_clear')); ?>">
+                    <a href="<?php echo e($sidebarListUrl); ?>" class="text-gray-400 hover:text-red-500" title="<?php echo e(__('search_clear')); ?>">
                         <i class="ti ti-x text-lg"></i>
                     </a>
                     <?php endif; ?>

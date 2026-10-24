@@ -49,10 +49,10 @@ require_once theme_path('layouts/header.php');
 <div class="bg-gray-100 py-4">
     <div class="container mx-auto px-4">
         <div class="flex items-center gap-2 text-sm text-gray-600">
-            <a href="/" class="hover:text-primary"><?php echo __('breadcrumb_home'); ?></a>
+            <a href="<?php echo e(langUrl('/')); ?>" class="hover:text-primary"><?php echo __('breadcrumb_home'); ?></a>
             <?php if ($channel): ?>
             <span>/</span>
-            <a href="<?php echo channelUrl($channel); ?>" class="hover:text-primary"><?php echo e($channel['name']); ?></a>
+            <a href="<?php echo e(contentListUrl($channel)); ?>" class="hover:text-primary"><?php echo e($channel['name']); ?></a>
             <?php endif; ?>
             <span>/</span>
             <span class="text-gray-400 truncate max-w-xs"><?php echo e($job['title']); ?></span>
@@ -103,7 +103,7 @@ require_once theme_path('layouts/header.php');
                         <?php if ($job['job_type']): ?>
                         <div>
                             <div class="text-xs text-gray-500 mb-1"><?php echo __('job_type'); ?></div>
-                            <div class="font-medium"><?php echo e($job['job_type']); ?></div>
+                            <div class="font-medium"><?php echo e(JobModel::fieldLabel('job_type', (string) $job['job_type'])); ?></div>
                         </div>
                         <?php endif; ?>
                         <?php if ($job['headcount']): ?>
@@ -115,13 +115,13 @@ require_once theme_path('layouts/header.php');
                         <?php if ($job['education']): ?>
                         <div>
                             <div class="text-xs text-gray-500 mb-1"><?php echo __('job_education'); ?></div>
-                            <div class="font-medium"><?php echo e($job['education']); ?></div>
+                            <div class="font-medium"><?php echo e(JobModel::fieldLabel('education', (string) $job['education'])); ?></div>
                         </div>
                         <?php endif; ?>
                         <?php if ($job['experience']): ?>
                         <div>
                             <div class="text-xs text-gray-500 mb-1"><?php echo __('job_experience'); ?></div>
-                            <div class="font-medium"><?php echo e($job['experience']); ?></div>
+                            <div class="font-medium"><?php echo e(JobModel::fieldLabel('experience', (string) $job['experience'])); ?></div>
                         </div>
                         <?php endif; ?>
                         <div>
@@ -150,7 +150,7 @@ require_once theme_path('layouts/header.php');
                 <?php /* 返回列表 */ ?>
                 <div class="p-6 md:p-8 border-t bg-gray-50 text-center">
                     <?php if ($channel): ?>
-                    <a href="<?php echo channelUrl($channel); ?>" class="inline-flex items-center gap-2 text-primary hover:underline">
+                    <a href="<?php echo e(contentListUrl($channel)); ?>" class="inline-flex items-center gap-2 text-primary hover:underline">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                         </svg>

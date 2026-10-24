@@ -9620,4 +9620,7 @@ voltage|電圧|220V',
     'a11y_select_row' => '選択：:name',
     'a11y_show_password' => 'パスワードを表示',
     'lse_retranslate' => 'AIで再翻訳',
+    'admin_draft_preview' => '下書きプレビュー',
+    'job_exp_years_plus' => ':years年以上',
+    'admin_draft_preview_private' => '下書きプレビュー：編集権限を持つログイン済み管理者のみ閲覧できます。未公開です。',
 ];

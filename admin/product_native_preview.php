@@ -11,12 +11,13 @@ requireBloxTemplateTypePermission('product-detail');
 require_once ROOT_PATH . '/includes/builder/BloxTemplateEditPolicy.php';
 if (!bloxPageEditorEnabled() || !BloxTemplateEditPolicy::allows('product-detail', bloxAdvancedFeaturesEnabled())) error(__('blox_feature_disabled'));
 
-$previewProduct = productModel()->getPublished(getInt('id'));
+$previewProduct = productModel()->find(getInt('id'));
 if (!$previewProduct || !isset(availableLanguages()[(string) $previewProduct['lang']])) {
     http_response_code(404);
     exit(e(__('error_product_not_found')));
 }
 define('SITE_LANG', (string) $previewProduct['lang']);
+define('YK_ADMIN_DRAFT_PREVIEW', ['table' => 'products', 'row' => $previewProduct]);
 define('YK_PRODUCT_NATIVE_PREVIEW', true);
 $GLOBALS['_LANG_DATA'] = null;
 header('Cache-Control: private, no-store');

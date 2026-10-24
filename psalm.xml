@@ -45,6 +45,8 @@
         <UnusedVariable>
             <errorLevel type="suppress">
                 <file name="admin/article_edit.php" />
+                  <file name="admin/job_edit.php" />
+                  <file name="admin/download_edit.php" />
                 <file name="admin/nav_menu.php" />
                 <file name="admin/extfield_api.php" />
                 <file name="admin/site_fields.php" />

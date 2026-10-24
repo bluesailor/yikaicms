@@ -423,8 +423,8 @@ class ProductModel extends Model
             "SELECT p.id, p.title, p.slug, p.cover, pc.slug as category_slug
              FROM {$this->tableName()} p
              LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-             WHERE p.category_id = ? AND p.status = 1 AND p.deleted_at IS NULL AND p.id < ? ORDER BY p.id DESC LIMIT 1",
-            [$categoryId, $currentId]
+             WHERE p.category_id = ? AND p.status = 1 AND p.deleted_at IS NULL AND p.id < ? AND p.lang = ? ORDER BY p.id DESC LIMIT 1",
+            [$categoryId, $currentId, siteLang()]
         );
     }
 
@@ -437,8 +437,8 @@ class ProductModel extends Model
             "SELECT p.id, p.title, p.slug, p.cover, pc.slug as category_slug
              FROM {$this->tableName()} p
              LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-             WHERE p.category_id = ? AND p.status = 1 AND p.deleted_at IS NULL AND p.id > ? ORDER BY p.id ASC LIMIT 1",
-            [$categoryId, $currentId]
+             WHERE p.category_id = ? AND p.status = 1 AND p.deleted_at IS NULL AND p.id > ? AND p.lang = ? ORDER BY p.id ASC LIMIT 1",
+            [$categoryId, $currentId, siteLang()]
         );
     }
 

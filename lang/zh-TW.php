@@ -9423,4 +9423,8 @@ return [
     'ch_lang_empty_btn' => '生成:lang單元',
     'a11y_select_row' => '選擇：:name',
     'a11y_show_password' => '顯示密碼',
+    'lse_retranslate' => '重新 AI 翻譯',
+    'admin_draft_preview' => '草稿預覽',
+    'job_exp_years_plus' => ':years年以上',
+    'admin_draft_preview_private' => '草稿預覽：僅有編輯權限的後台登入使用者可見，內容尚未發佈。',
 ];

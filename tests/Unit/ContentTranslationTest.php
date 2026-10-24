@@ -8,6 +8,51 @@ require_once dirname(__DIR__, 2) . '/includes/content_translation.php';
 
 final class ContentTranslationTest extends TestCase
 {
+    public function testBuilderPlainTextKeepsLiteralSymbols(): void
+    {
+        $result = translateContentFields(['title' => '标题', 'content' => json_encode(['sections' => [['data' => ['text' => '研发与创新']]]])], 'en', static function (string $prompt): array {
+            $input = json_decode(explode('Input: ', $prompt, 2)[1], true);
+            return ['success' => true, 'content' => json_encode(array_map(static fn(string $text): string => $text === '' ? '' : 'Research & Development <2026>', $input))];
+        });
+        $layout = json_decode($result['content'], true);
+        self::assertSame('Research & Development <2026>', $layout['sections'][0]['data']['text']);
+    }
+    public function testBlocksBodyIsSelectedInsteadOfStaleHtmlFallback(): void
+    {
+        self::assertSame('blocks_data', translationBodyField(['content_type' => 'blocks', 'blocks_data' => '{"sections":[]}', 'content' => '<p>Old fallback</p>']));
+        self::assertSame('blocks_data', translationBodyField(['content_type' => 'blox', 'blocks_data' => '{}']));
+        self::assertSame('content', translationBodyField(['content_type' => 'html', 'blocks_data' => '{}']));
+    }
+
+    public function testBuilderButtonsAndImageDescriptionsAreTranslatedWithoutChangingResources(): void
+    {
+        $source = ['title' => '标题', 'content' => json_encode(['sections' => [['id' => 's1', 'elements' => [
+            ['type' => 'cta', 'data' => ['btn_text' => '咨询', 'btn_url' => '/contact.html']],
+            ['type' => 'image', 'data' => ['alt' => '团队', 'src' => '/team.webp']],
+        ]]]])];
+        $result = translateContentFields($source, 'fr', static function (string $prompt): array {
+            $input = json_decode(explode('Input: ', $prompt, 2)[1], true);
+            return ['success' => true, 'content' => json_encode(array_map(static fn(string $text): string => $text === '' ? '' : 'Texte traduit', $input))];
+        });
+        $layout = json_decode($result['content'], true);
+        self::assertSame('s1', $layout['sections'][0]['id']);
+        self::assertSame('Texte traduit', $layout['sections'][0]['elements'][0]['data']['btn_text']);
+        self::assertSame('/contact.html', $layout['sections'][0]['elements'][0]['data']['btn_url']);
+        self::assertSame('Texte traduit', $layout['sections'][0]['elements'][1]['data']['alt']);
+        self::assertSame('/team.webp', $layout['sections'][0]['elements'][1]['data']['src']);
+    }
+
+    public function testHtmlAlternativeTextAndLinkTitlesAreTranslated(): void
+    {
+        $result = translateContentFields(['title' => '标题', 'content' => '<a href="/about.html" title="介绍"><img src="/team.webp" alt="团队"></a>'], 'en', static function (string $prompt): array {
+            $input = json_decode(explode('Input: ', $prompt, 2)[1], true);
+            return ['success' => true, 'content' => json_encode(array_map(static fn(string $text): string => $text === '' ? '' : 'Translated', $input))];
+        });
+        self::assertStringContainsString('alt="Translated"', $result['content']);
+        self::assertStringContainsString('title="Translated"', $result['content']);
+        self::assertStringContainsString('href="/about.html"', $result['content']);
+    }
+
     public function testHtmlAndExtraFieldsArePreserved(): void
     {
         $source = ['title' => '标题', 'summary' => '摘要', 'seo_keywords' => '关键词', 'content' => '<h2>标题</h2><p><a href="/about">正文 &amp; 内容</a><img src="/image.png"></p>'];

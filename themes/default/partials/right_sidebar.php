@@ -25,7 +25,7 @@ $sidebarItems = $rightSidebarItems ?? null;
                 <?php endforeach; ?>
             <?php else: ?>
                 <?php foreach ($rightSidebarChannels as $sub): ?>
-                <a href="<?php echo channelUrl($sub); ?>"
+                <a href="<?php echo contentListUrl($sub); ?>"
                    class="block px-4 py-3 hover:bg-gray-50 transition <?php echo (int)$sub['id'] === $activeId ? 'text-primary bg-blue-50 font-medium' : 'text-gray-700 hover:text-primary'; ?>">
                     <?php echo e($sub['name']); ?>
                 </a>
