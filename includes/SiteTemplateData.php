@@ -38,6 +38,8 @@ final class SiteTemplateData
         // （shop_*、seo_* 等）放宽。插件公开数据另走版本化适配器；密钥和交易数据永不入包。
         // 社媒入口（social-links 元素的唯一数据源）：精确键放行，值在导出/导入时归一（portableValue）
         // product_layout：商品目录元素未设布局时的兜底（元素设置依赖声明为 portable，2.0.3）
+        // site_(name|…|logo) 故意不锚定结尾：要带上 site_name_en 等语言行和 site_logo_max_height / site_logo_alt。
+        // replace() 会删掉包里没带的这类行；后台设置页不靠行存在显示字段，见 DeclaredSettingRows。
         if (in_array($key, ['site_lang', 'enabled_languages', 'social_links', 'product_layout'], true)) return true;
         if (!SensitiveSettings::isImportable($key)) return false;
         return (bool) preg_match('/^(?:site_(?:name|keywords|description|logo|favicon)|primary_color$|secondary_color$|current_theme$|theme_(?:style|color|content)|home_|header_|footer_|contact_|banner_|nav_|page_hero_|blox_(?:design_system$|design_theme(?:_draft)?$|widescreen_enabled$|custom_header_enabled$|custom_footer_enabled$))/', $key);

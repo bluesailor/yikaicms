@@ -11,6 +11,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
+require_once ROOT_PATH . '/includes/DeclaredSettingRows.php';
 
 checkLogin();
 requirePermission('*');
@@ -39,13 +40,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
     $settings = adminRemapLangKeys($_POST['settings'] ?? [], $LANG_KEYS);
-    settingModel()->saveBatch($settings);
+    settingModel()->saveBatch(DeclaredSettingRows::withoutUntouched($settings, getDefaults(), settingModel()->getAll()));
     adminLog('setting', 'update', '更新联系设置 (' . $_viewLang . ')');
     success();
 }
 
-// 获取 contact 分组设置，过滤掉 per-lang 种子行（contact_phone_en 等）
-$allSettings = adminFilterLangSuffixes(settingModel()->getByGroup('contact'));
+// 获取 contact 分组设置，过滤掉 per-lang 种子行（contact_phone_en 等）；缺行的声明键补合成行
+$allSettings = adminFilterLangSuffixes(DeclaredSettingRows::complete(
+    settingModel()->getByGroup('contact'), 'contact', getDefaults('contact'), settingModel()->getAll()
+));
 
 // 把 lang-able key 的 value 替换成视图 lang 对应的存储值
 if (!$_lang['isSource']) {
