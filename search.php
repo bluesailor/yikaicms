@@ -35,14 +35,14 @@ if ($keyword !== '') {
     if ($type === 'product') {
         // 产品搜索
         $total = (int)db()->fetchColumn(
-            "SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE status = 1 AND lang = ? AND (title LIKE ? OR summary LIKE ? OR model LIKE ?)",
+            "SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE status = 1 AND deleted_at IS NULL AND lang = ? AND (title LIKE ? OR summary LIKE ? OR model LIKE ?)",
             [$searchLang, $kw, $kw, $kw]
         );
         $results = db()->fetchAll(
             "SELECT p.*, pc.name as category_name, pc.slug as category_slug, 'product' as _type
              FROM " . DB_PREFIX . "products p
              LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-             WHERE p.status = 1 AND p.lang = ? AND (p.title LIKE ? OR p.summary LIKE ? OR p.model LIKE ?)
+             WHERE p.status = 1 AND p.deleted_at IS NULL AND p.lang = ? AND (p.title LIKE ? OR p.summary LIKE ? OR p.model LIKE ?)
              ORDER BY p.updated_at DESC LIMIT ? OFFSET ?",
             [$searchLang, $kw, $kw, $kw, $perPage, $offset]
         );
@@ -50,7 +50,7 @@ if ($keyword !== '') {
     } elseif ($type === 'download') {
         // 下载搜索
         $total = (int)db()->fetchColumn(
-            "SELECT COUNT(*) FROM " . DB_PREFIX . "downloads WHERE status = 1 AND lang = ? AND (title LIKE ? OR description LIKE ?)",
+            "SELECT COUNT(*) FROM " . DB_PREFIX . "downloads WHERE status = 1 AND deleted_at IS NULL AND lang = ? AND (title LIKE ? OR description LIKE ?)",
             [$searchLang, $kw, $kw]
         );
         $results = db()->fetchAll(
@@ -61,14 +61,14 @@ if ($keyword !== '') {
     } elseif ($type === 'case') {
         // 案例搜索
         $total = (int)db()->fetchColumn(
-            "SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND lang = ? AND type = 'case' AND (title LIKE ? OR summary LIKE ?)",
+            "SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND deleted_at IS NULL AND lang = ? AND type = 'case' AND (title LIKE ? OR summary LIKE ?)",
             [$searchLang, $kw, $kw]
         );
         $results = db()->fetchAll(
             "SELECT c.*, ch.name as channel_name, ch.slug as channel_slug, 'case' as _type
              FROM " . DB_PREFIX . "contents c
              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
-             WHERE c.status = 1 AND c.lang = ? AND c.type = 'case' AND (c.title LIKE ? OR c.summary LIKE ?)
+             WHERE c.status = 1 AND c.deleted_at IS NULL AND c.lang = ? AND c.type = 'case' AND (c.title LIKE ? OR c.summary LIKE ?)
              ORDER BY c.publish_time DESC LIMIT ? OFFSET ?",
             [$searchLang, $kw, $kw, $perPage, $offset]
         );
@@ -76,14 +76,14 @@ if ($keyword !== '') {
     } elseif ($type === 'article') {
         // 文章搜索（排除案例）
         $total = (int)db()->fetchColumn(
-            "SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND lang = ? AND type != 'case' AND (title LIKE ? OR summary LIKE ?)",
+            "SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND deleted_at IS NULL AND lang = ? AND type != 'case' AND (title LIKE ? OR summary LIKE ?)",
             [$searchLang, $kw, $kw]
         );
         $results = db()->fetchAll(
             "SELECT c.*, ch.name as channel_name, ch.slug as channel_slug, 'article' as _type
              FROM " . DB_PREFIX . "contents c
              LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
-             WHERE c.status = 1 AND c.lang = ? AND c.type != 'case' AND (c.title LIKE ? OR c.summary LIKE ?)
+             WHERE c.status = 1 AND c.deleted_at IS NULL AND c.lang = ? AND c.type != 'case' AND (c.title LIKE ? OR c.summary LIKE ?)
              ORDER BY c.publish_time DESC LIMIT ? OFFSET ?",
             [$searchLang, $kw, $kw, $perPage, $offset]
         );
@@ -92,13 +92,13 @@ if ($keyword !== '') {
         // 全部搜索：合并内容 + 产品 + 下载
         // 内容（文章+案例）
         $contentTotal = (int)db()->fetchColumn(
-            "SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND lang = ? AND (title LIKE ? OR summary LIKE ?)", [$searchLang, $kw, $kw]
+            "SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND deleted_at IS NULL AND lang = ? AND (title LIKE ? OR summary LIKE ?)", [$searchLang, $kw, $kw]
         );
         $productTotal = (int)db()->fetchColumn(
-            "SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE status = 1 AND lang = ? AND (title LIKE ? OR summary LIKE ?)", [$searchLang, $kw, $kw]
+            "SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE status = 1 AND deleted_at IS NULL AND lang = ? AND (title LIKE ? OR summary LIKE ?)", [$searchLang, $kw, $kw]
         );
         $downloadTotal = (int)db()->fetchColumn(
-            "SELECT COUNT(*) FROM " . DB_PREFIX . "downloads WHERE status = 1 AND lang = ? AND (title LIKE ? OR description LIKE ?)", [$searchLang, $kw, $kw]
+            "SELECT COUNT(*) FROM " . DB_PREFIX . "downloads WHERE status = 1 AND deleted_at IS NULL AND lang = ? AND (title LIKE ? OR description LIKE ?)", [$searchLang, $kw, $kw]
         );
         $total = $contentTotal + $productTotal + $downloadTotal;
 
@@ -116,10 +116,10 @@ if ($keyword !== '') {
 $typeCounts = [];
 if ($keyword !== '') {
     $kw = '%' . $keyword . '%';
-    $typeCounts['article'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND lang = ? AND type != 'case' AND (title LIKE ? OR summary LIKE ?)", [$searchLang, $kw, $kw]);
-    $typeCounts['product'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE status = 1 AND lang = ? AND (title LIKE ? OR summary LIKE ?)", [$searchLang, $kw, $kw]);
-    $typeCounts['case'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND lang = ? AND type = 'case' AND (title LIKE ? OR summary LIKE ?)", [$searchLang, $kw, $kw]);
-    $typeCounts['download'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "downloads WHERE status = 1 AND lang = ? AND (title LIKE ? OR description LIKE ?)", [$searchLang, $kw, $kw]);
+    $typeCounts['article'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND deleted_at IS NULL AND lang = ? AND type != 'case' AND (title LIKE ? OR summary LIKE ?)", [$searchLang, $kw, $kw]);
+    $typeCounts['product'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "products WHERE status = 1 AND deleted_at IS NULL AND lang = ? AND (title LIKE ? OR summary LIKE ?)", [$searchLang, $kw, $kw]);
+    $typeCounts['case'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "contents WHERE status = 1 AND deleted_at IS NULL AND lang = ? AND type = 'case' AND (title LIKE ? OR summary LIKE ?)", [$searchLang, $kw, $kw]);
+    $typeCounts['download'] = (int)db()->fetchColumn("SELECT COUNT(*) FROM " . DB_PREFIX . "downloads WHERE status = 1 AND deleted_at IS NULL AND lang = ? AND (title LIKE ? OR description LIKE ?)", [$searchLang, $kw, $kw]);
     $typeCounts['all'] = array_sum($typeCounts);
 }
 
