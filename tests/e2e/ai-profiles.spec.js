@@ -101,6 +101,55 @@ test('several AI API profiles: save, test without saving, switch primary, archiv
   expect(html).not.toContain('key-aaaa-1111');
   expect(html).not.toContain('key-bbbb-2222');
 
+  // B 改选另一家服务商却不填新密钥：测试与保存都被拒、不发请求，存下的 B 不变
+  const keyRefused = /已保存的密钥不会用于其他供应商|will not be sent to another provider/;
+  const before = requests().length;
+  await page.locator('input[name="ai_provider"][value="kimi"]').check({ force: true });
+  await expect(page.locator('#aiBaseUrl')).toHaveValue('');
+  await page.locator('#testBtn').click();
+  await expect(page.locator('#testResult')).toContainText(keyRefused);
+  await page.getByTestId('ai-profile-save').click();
+  await expect(page.getByText(keyRefused).last()).toBeVisible();
+  expect(requests().length).toBe(before);
+  // 切回原服务商：未保存的地址草稿恢复
+  await page.locator('input[name="ai_provider"][value="custom_openai"]').check({ force: true });
+  await expect(page.locator('#aiBaseUrl')).toHaveValue(`${mockBase}/b/v1`);
+  await page.reload();
+  await expect(page.locator('input[name="ai_provider"][value="custom_openai"]')).toBeChecked();
+  await expect(page.locator('#aiBaseUrl')).toHaveValue(`${mockBase}/b/v1`);
+
+  // 填过的值可一键清空：地址、模型直接清空；已存密钥清空要保存才生效，可撤销
+  await page.getByTestId('ai-clear-aiBaseUrl').click();
+  await expect(page.locator('#aiBaseUrl')).toHaveValue('');
+  await expect(page.getByTestId('ai-clear-aiBaseUrl')).toBeHidden();
+  await page.getByTestId('ai-clear-aiModelInput').click();
+  await expect(page.locator('#aiModelInput')).toHaveValue('');
+  await page.reload();
+  await expect(page.locator('#aiBaseUrl')).toHaveValue(`${mockBase}/b/v1`);
+  await expect(page.locator('#aiModelInput')).toHaveValue('model-b');
+  await page.locator('#aiApiKey').focus();
+  await expect(page.locator('#aiApiKey')).toHaveValue('');
+  await page.locator('#aiModelInput').focus();
+  await expect(page.locator('#aiApiKey')).toHaveValue(/\*\*\*/);
+  await page.getByTestId('ai-clear-aiApiKey').click();
+  await expect(page.getByTestId('ai-key-clear-notice')).toBeVisible();
+  await page.getByTestId('ai-key-clear-notice').getByRole('button').click();
+  await expect(page.locator('#aiApiKey')).toHaveValue(/\*\*\*/);
+  await page.getByTestId('ai-clear-aiApiKey').click();
+  await page.locator('#testBtn').click();
+  await expect(page.locator('#testResult')).not.toContainText('OK');
+  expect(requests().length).toBe(before);
+  await page.getByTestId('ai-profile-save').click();
+  await page.waitForURL(new RegExp(`profile=${idB}`));
+  await page.reload();
+  await expect(page.locator('#aiApiKey')).toHaveValue('');
+  await expect(row(page, 'Mock B')).not.toContainText('2222');
+  // 重新填入密钥
+  await page.locator('#aiApiKey').fill('key-bbbb-3333');
+  await page.getByTestId('ai-profile-save').click();
+  await page.waitForURL(new RegExp(`profile=${idB}`));
+  await expect(row(page, 'Mock B')).toContainText('3333');
+
   // 切换主 API 到 B，刷新后保持
   await row(page, 'Mock B').getByTestId('ai-profile-set-primary').click();
   await expect(row(page, 'Mock B').getByTestId('ai-profile-primary-badge')).toBeVisible();

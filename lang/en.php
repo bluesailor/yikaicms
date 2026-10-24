@@ -9522,4 +9522,7 @@ e.g. steel|Stainless steel',
     'ai_provider_mimo_name' => 'Xiaomi MiMo',
     'ai_provider_hunyuan_name' => 'Tencent Hunyuan (TokenHub)',
     'ai_provider_key_required' => 'Enter an API key for the selected provider. The saved key will not be sent to another provider.',
+    'ai_field_clear' => 'Clear',
+    'ai_key_clear_pending' => 'The saved API key will be removed when you save.',
+    'ai_key_clear_undo' => 'Undo',
 ];
