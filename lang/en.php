@@ -9478,4 +9478,7 @@ e.g. steel|Stainless steel',
     'a11y_select_row' => 'Select: :name',
     'a11y_show_password' => 'Show password',
     'lse_retranslate' => 'Retranslate with AI',
+    'admin_draft_preview' => 'Draft preview',
+    'job_exp_years_plus' => ':years+ years',
+    'admin_draft_preview_private' => 'Draft preview: visible only to signed-in administrators with editing permission. Content is unpublished.',
 ];

@@ -41,12 +41,17 @@ final class CtaElement extends AbstractElement
         $rawTitle = $followHome ? configLang('home_cta_title', 'home_cta_title') : (string) ($data['title'] ?? '');
         $rawText = $followHome ? configLang('home_cta_desc', 'home_cta_desc') : (string) ($data['text'] ?? '');
         $rawBtnText = $followHome
-            ? ((string) config('home_cta_button', '') ?: __('detail_consult'))
+            ? configLang('home_cta_button', 'detail_consult')
             : (string) ($data['btn_text'] ?? '');
         $rawBtnUrl = $followHome
-            ? ((string) config('home_cta_link', '') ?: '/contact.html')
+            ? ((string) (config('home_cta_link_' . siteLang(), '') ?: config('home_cta_link', '')) ?: '/contact.html')
             : (string) ($data['btn_url'] ?? '#');
 
+        if (function_exists('adminPreviewContentHref')) $rawBtnUrl = adminPreviewContentHref($rawBtnUrl);
+        if (str_starts_with($rawBtnUrl, '/') && !str_starts_with($rawBtnUrl, '//') && !str_starts_with($rawBtnUrl, '/admin/')
+            && function_exists('langUrl') && !LanguageRegistry::has(explode('/', ltrim($rawBtnUrl, '/'))[0])) {
+            $rawBtnUrl = langUrl($rawBtnUrl);
+        }
         $title = htmlspecialchars($rawTitle);
         $text = htmlspecialchars($rawText);
         $btnText = htmlspecialchars($rawBtnText);

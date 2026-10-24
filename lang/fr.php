@@ -9422,4 +9422,8 @@ return [
     'ch_lang_empty_btn' => 'Générer les rubriques en :lang',
     'a11y_select_row' => 'Sélectionner : :name',
     'a11y_show_password' => 'Afficher le mot de passe',
+    'lse_retranslate' => 'Retraduire avec l’IA',
+    'admin_draft_preview' => 'Aperçu du brouillon',
+    'admin_draft_preview_private' => 'Aperçu privé du brouillon : réservé aux administrateurs connectés disposant des droits de modification. Contenu non publié.',
+    'job_exp_years_plus' => ':years ans ou plus',
 ];

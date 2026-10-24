@@ -107,6 +107,7 @@ function dispatchCustomProductRoute(?array $hit): void
  */
 function redirectToRegisteredUrl(string $kind, int $id): void
 {
+    if (defined('YK_ADMIN_DRAFT_PREVIEW')) return;
     if ($id <= 0 || defined('YK_CUSTOM_PRODUCT_ROUTE') || PHP_SAPI === 'cli' || headers_sent()) return;
     if (!in_array($_SERVER['REQUEST_METHOD'] ?? 'GET', ['GET', 'HEAD'], true) || isDynamicUrlMode()) return;
     $params = customRouteQuery();

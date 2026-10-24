@@ -10,7 +10,7 @@
  * already mounts theme partials via `require theme_path(...)`.
  */
 $hasDlSidebar = !empty($rightSidebarChannels) || !empty($rightSidebarItems);
-$downloadListUrl = channelUrl($channel);
+$downloadListUrl = contentListUrl($channel);
 $downloadUsesDynamicRoute = str_contains($downloadListUrl, 'yk_route=');
 $downloadClearUrl = $downloadUsesDynamicRoute
     ? dynamicUrl('download_list', $dlCatId > 0 ? ['cat' => (int) $dlCatId] : [])
@@ -96,7 +96,7 @@ $downloadClearUrl = $downloadUsesDynamicRoute
                                     <?php echo number_format((int)$item['download_count']); ?>
                                 </td>
                                 <td class="px-6 py-4 text-center">
-                                    <?php if ($item['file_url']): ?>
+                                    <?php if ($item['file_url'] && (int) $item['status'] === 1): ?>
                                     <a href="/download.php?fid=<?php echo $item['id']; ?>"
                                        class="inline-flex items-center gap-1 text-primary hover:underline text-sm">
                                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -126,7 +126,7 @@ $downloadClearUrl = $downloadUsesDynamicRoute
                         return dynamicUrl('list', array_merge($params, ['id' => (int) $channel['id'], 'page' => $number]));
                     }
                     $params['page'] = $number;
-                    return channelUrl($channel) . '?' . http_build_query($params);
+                    return contentListUrl($channel) . '?' . http_build_query($params);
                 };
                 require theme_path('partials/pagination.php');
                 ?>

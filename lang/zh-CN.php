@@ -9546,4 +9546,7 @@ voltage|电压|220V',
     'a11y_select_row' => '选择：:name',
     'a11y_show_password' => '显示密码',
     'lse_retranslate' => '重新 AI 翻译',
+    'admin_draft_preview' => '草稿预览',
+    'job_exp_years_plus' => ':years年以上',
+    'admin_draft_preview_private' => '草稿预览：仅有编辑权限的后台登录用户可见，内容尚未发布。',
 ];

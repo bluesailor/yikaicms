@@ -1,11 +1,33 @@
 <?php
 declare(strict_types=1);
 
+function translationBodyField(array $source): string
+{
+    return in_array(($source['content_type'] ?? ''), ['blocks', 'blox'], true)
+        && !empty($source['blocks_data']) ? 'blocks_data' : 'content';
+}
+
 /** Translate text nodes in batches so HTML structure and long articles survive intact. */
 function translateContentFields(array $source, string $language, callable $chat): array
 {
     $layout = json_decode((string) ($source['content'] ?? ''), true);
     if (is_array($layout)) {
+        // Shared CTA copy must become editable target-language copy in this document.
+        $expandSharedCopy = static function (array &$node) use (&$expandSharedCopy, $source): void {
+            if (($node['type'] ?? '') === 'cta' && !empty($node['data']['use_home_text']) && function_exists('config')) {
+                $sourceLang = (string) ($source['lang'] ?? config('site_lang', 'zh-CN'));
+                foreach (['title' => 'home_cta_title', 'text' => 'home_cta_desc', 'btn_text' => 'home_cta_button', 'btn_url' => 'home_cta_link'] as $field => $key) {
+                    $node['data'][$field] = (string) (config($key . '_' . $sourceLang, '') ?: config($key, ''));
+                }
+                $copy = function_exists('langDataFor') ? langDataFor($sourceLang) : [];
+                $node['data']['btn_text'] = $node['data']['btn_text'] ?: (string) ($copy['detail_consult'] ?? 'Contact us');
+                $node['data']['btn_url'] = $node['data']['btn_url'] ?: '/contact.html';
+                $node['data']['use_home_text'] = false;
+            }
+            foreach ($node as &$child) if (is_array($child)) $expandSharedCopy($child);
+            unset($child);
+        };
+        $expandSharedCopy($layout);
         // Builder documents contain URLs, IDs and styles alongside user-facing copy.
         $fragments = [];
         $paths = [];
@@ -13,10 +35,10 @@ function translateContentFields(array $source, string $language, callable $chat)
             foreach ($value as $key => $child) {
                 $next = array_merge($path, [$key]);
                 if (is_array($child)) $collect($child, $next);
-                elseif (is_string($child) && trim($child) !== '' && in_array((string) $key, ['text', 'html', 'title', 'subtitle', 'description', 'label', 'alt', 'button_text', 'question', 'answer'], true)) {
+                elseif (is_string($child) && trim($child) !== '' && in_array((string) $key, ['text', 'html', 'title', 'subtitle', 'description', 'label', 'alt', 'button_text', 'btn_text', 'caption', 'placeholder', 'question', 'answer', 'link_title', 'link_aria_label'], true)) {
                     $index = count($paths);
                     $paths[$index] = $next;
-                    $fragments[] = '<div data-translation-part="' . $index . '">' . $child . '</div>';
+                    $fragments[] = '<div data-translation-part="' . $index . '">' . ($key === 'html' ? $child : htmlspecialchars($child, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8')) . '</div>';
                 }
             }
         };
@@ -32,9 +54,11 @@ function translateContentFields(array $source, string $language, callable $chat)
             libxml_use_internal_errors($old);
         }
         foreach ((new DOMXPath($translatedDocument))->query('//*[@data-translation-part]') as $fragment) {
+            if (!$fragment instanceof DOMElement) continue;
             $path = $paths[(int) $fragment->getAttribute('data-translation-part')];
             $value = '';
             foreach ($fragment->childNodes as $child) $value .= $translatedDocument->saveHTML($child);
+            if (end($path) !== 'html') $value = $fragment->textContent;
             $target =& $layout;
             foreach ($path as $key) $target =& $target[$key];
             $target = $value;
@@ -53,11 +77,12 @@ function translateContentFields(array $source, string $language, callable $chat)
     }
     $root = $document->getElementById('translation-root');
     if (!$root) throw new RuntimeException('Cannot parse article HTML.');
-    $nodes = (new DOMXPath($document))->query('.//text()[not(ancestor::script) and not(ancestor::style)]', $root);
+    $nodes = (new DOMXPath($document))->query('.//text()[not(ancestor::script) and not(ancestor::style)] | .//@alt | .//@title | .//@placeholder', $root);
     $texts = ['title' => (string) ($source['title'] ?? ''), 'summary' => (string) ($source['summary'] ?? '')];
-    foreach (['requirements', 'seo_title', 'seo_keywords', 'seo_description', 'subtitle', 'tags', 'department', 'location', 'secondary_summary'] as $field) {
+    foreach (['requirements', 'seo_title', 'seo_keywords', 'seo_description', 'subtitle', 'tags', 'department', 'location', 'secondary_summary', 'client_name', 'industry', 'duration', 'result_metric'] as $field) {
         if (!empty($source[$field])) $texts[$field] = (string) $source[$field];
     }
+    /** @var array<string, DOMText|DOMAttr> $textNodes */
     $textNodes = [];
     $segments = [];
     $specs = json_decode((string) ($source['specs'] ?? ''), true);
@@ -83,6 +108,7 @@ function translateContentFields(array $source, string $language, callable $chat)
     };
     if (is_array($specs)) $specWalk($specs);
     foreach ($nodes as $node) {
+        if (!$node instanceof DOMText && !$node instanceof DOMAttr) continue;
         if (trim($node->nodeValue) === '') continue;
         $key = 'text_' . count($textNodes);
         $textNodes[$key] = $node;
@@ -114,7 +140,7 @@ function translateContentFields(array $source, string $language, callable $chat)
             $retry = $chat('Translate ALL Chinese words, including product names and specification labels, into ' . LanguageRegistry::englishName($language) . '. Keep numbers, model codes and units unchanged. Return the same JSON keys with translated values only. Input: ' . json_encode($untranslated, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR), 'You are a translator. Do not return Chinese text. Return valid JSON only.', 0.1);
             if (!empty($retry['success'])) {
                 $retryValues = json_decode(preg_replace('/^```(?:json)?\s*|\s*```$/i', '', trim((string) ($retry['content'] ?? ''))), true);
-                if (is_array($retryValues)) foreach ($untranslated as $key => $original) {
+                if (is_array($retryValues)) foreach (array_keys($untranslated) as $key) {
                     if (isset($retryValues[$key])) $values[$key] = $retryValues[$key];
                 }
             }
@@ -157,7 +183,7 @@ function translateContentFields(array $source, string $language, callable $chat)
         return $output;
     };
     if (is_array($specs)) $specs = $rewriteSpecs($specs);
-    foreach ($specBindings as $token => $binding) unset($translated[$token]);
+    foreach (array_keys($specBindings) as $token) unset($translated[$token]);
     if (is_array($specs)) $translated['specs'] = json_encode($specs, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
     foreach ($textNodes as $key => $node) {
         $node->nodeValue = implode(in_array($language, ['zh-CN', 'zh-TW', 'ja'], true) ? '' : ' ', array_map(static fn(string $part): string => $translated[$part], $segments[$key]));

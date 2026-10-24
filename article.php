@@ -44,6 +44,7 @@ LocalizedUrl::enter('content', $_vars['content'], $isNativeArticlePreview || iss
 
 // 模板沿用 $article / $prevArticle / $nextArticle / $relatedArticles 命名
 $article         = $_vars['content'];
+$articleListUrl  = contentListUrl($_vars['channel']);
 $prevArticle     = $_vars['prevContent'];
 $nextArticle     = $_vars['nextContent'];
 $relatedArticles = $_vars['relatedContents'];
@@ -111,9 +112,9 @@ if (trim($articleTemplateHtml) !== '') {
 
 <?php /* 页面头部 */ ?>
 <?php
-$breadcrumbItems = [['name' => __('news_title'), 'url' => newsChannelUrl(null)]];
+$breadcrumbItems = [['name' => __('news_title'), 'url' => contentListUrl(getChannelBySlug('news', true))]];
 if ($article['channel_name'] ?? '') {
-    $breadcrumbItems[] = ['name' => $article['channel_name'], 'url' => newsChannelUrl(['id' => (int) ($article['channel_id'] ?? 0), 'slug' => (string) ($article['channel_slug'] ?? '')])];
+    $breadcrumbItems[] = ['name' => $article['channel_name'], 'url' => $articleListUrl];
 }
 $breadcrumbItems[] = ['name' => cutStr($article['title'], 30), 'url' => ''];
 // image 维持历史行为（详情页不拿栏目图当横幅）；hero_bg/show_hero 透传所属栏目行，
@@ -149,7 +150,7 @@ require theme_path('partials/page-hero.php');
                         <?php endif; ?>
                         <div class="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-500">
                             <?php if (($article['channel_name'] ?? '')): ?>
-                            <a href="/news/<?php echo e(($article['channel_slug'] ?? '')); ?>.html" class="text-primary hover:underline">
+                            <a href="<?php echo e($articleListUrl); ?>" class="text-primary hover:underline">
                                 <?php echo e(($article['channel_name'] ?? '')); ?>
                             </a>
                             <?php endif; ?>
@@ -310,7 +311,7 @@ require theme_path('partials/page-hero.php');
 
                 <?php /* 返回列表 */ ?>
                 <div class="bg-white rounded-lg shadow p-4">
-                    <a href="/news.html" class="flex items-center justify-center gap-2 text-primary hover:underline">
+                    <a href="<?php echo e($articleListUrl); ?>" class="flex items-center justify-center gap-2 text-primary hover:underline">
                         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
                         </svg>

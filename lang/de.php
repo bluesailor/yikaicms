@@ -9422,4 +9422,8 @@ return [
     'ch_lang_empty_btn' => 'Rubriken auf :lang erzeugen',
     'a11y_select_row' => 'Auswählen: :name',
     'a11y_show_password' => 'Passwort anzeigen',
+    'lse_retranslate' => 'Mit KI erneut übersetzen',
+    'admin_draft_preview' => 'Entwurfsvorschau',
+    'admin_draft_preview_private' => 'Private Entwurfsvorschau: nur für angemeldete Administratoren mit Bearbeitungsrechten. Inhalt nicht veröffentlicht.',
+    'job_exp_years_plus' => ':years Jahre oder mehr',
 ];

@@ -29,7 +29,9 @@ if ($slug) {
     $channel = null;
 }
 
-if (!$channel || $channel['status'] != 1) {
+$previewChannel = adminDraftPreviewRow('channels', $channelId) ?? adminDraftPreviewLayoutChannel($channelId);
+if ($previewChannel) $channel = $previewChannel;
+if (!$channel || (!$previewChannel && $channel['status'] != 1)) {
     header('HTTP/1.1 404 Not Found');
     render404(__('error_channel_not_found'));
 }
@@ -89,6 +91,10 @@ $_request = [
     'sort'      => is_scalar($_GET['sort'] ?? '') ? trim((string) ($_GET['sort'] ?? '')) : '',
 ];
 $_vars = ListRouter::dispatch($channel['type'])->prepare($channel, $_request);
+if (($previewDownload = adminDraftPreviewRow('downloads')) !== null) {
+    $_vars['downloads'] = [$previewDownload];
+    $_vars['total'] = 1;
+}
 // 把 controller 的视图变量解构进当前作用域。
 // 'subChannels' / 'parentChannel' / 'rightSidebar*' 由下方原有逻辑覆写，
 // 但 'contents' / 'total' / 'downloads' / 'jobs' / 产品相关变量由 controller 决定。
@@ -159,7 +165,7 @@ if ($channel['type'] === 'download') {
         $rightSidebarTitle = __('label_category');
         $rightSidebarItems = [[
             'label'  => __('all'),
-            'url'    => channelUrl($channel),
+            'url'    => contentListUrl($channel),
             'active' => $dlCatId === 0,
         ]];
         foreach ($dlCategories as $dcat) {
@@ -447,7 +453,7 @@ if (!$hasPublishedContentListBlox && $contentListPageChannel
 $breadcrumbItems = [];
 if ($isProductType) {
     // 产品分类面包屑
-    $breadcrumbItems[] = ['name' => $channel['name'], 'url' => channelUrl($channel)];
+    $breadcrumbItems[] = ['name' => $channel['name'], 'url' => contentListUrl($channel)];
     if ($productCategory) {
         $tempCat = $productCategory;
         $catPath = [];
@@ -463,7 +469,7 @@ if ($isProductType) {
     // 栏目面包屑
     $tempChannel = $channel;
     while ($tempChannel) {
-        array_unshift($breadcrumbItems, ['name' => $tempChannel['name'], 'url' => channelUrl($tempChannel)]);
+        array_unshift($breadcrumbItems, ['name' => $tempChannel['name'], 'url' => contentListUrl($tempChannel)]);
         $tempChannel = $tempChannel['parent_id'] > 0 ? getChannel((int)$tempChannel['parent_id']) : null;
     }
 }
@@ -492,7 +498,7 @@ $horizRootChannel = $channel;
                 ，<?php echo e(__('search')); ?> "<span class="text-primary"><?php echo e($keyword); ?></span>"
                 <?php endif; ?>
             </div>
-            <form method="get" action="<?php /** @psalm-suppress NoValue $productCategory 由 $$_k 动态赋值，Psalm 追不到 */ echo e(($isProductType && isDynamicUrlMode()) ? '/index.php' : ($productCategory ? productCategoryUrl($productCategory) : channelUrl($channel))); ?>" role="search" class="flex items-center gap-2">
+            <form method="get" action="<?php /** @psalm-suppress NoValue $productCategory 由 $$_k 动态赋值，Psalm 追不到 */ echo e(($isProductType && isDynamicUrlMode()) ? '/index.php' : ($productCategory ? productCategoryUrl($productCategory) : contentListUrl($channel))); ?>" role="search" class="flex items-center gap-2">
                 <?php if ($isProductType && isDynamicUrlMode()): ?>
                 <input type="hidden" name="yk_route" value="product_list">
                 <?php endif; ?>
@@ -514,7 +520,7 @@ $horizRootChannel = $channel;
                     </button>
                 </div>
                 <?php if ($keyword !== ''): ?>
-                <a href="<?php echo channelUrl($channel); ?>" class="text-gray-400 hover:text-red-500" title="<?php echo __('search_clear'); ?>">
+                <a href="<?php echo contentListUrl($channel); ?>" class="text-gray-400 hover:text-red-500" title="<?php echo __('search_clear'); ?>">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>
@@ -526,7 +532,7 @@ $horizRootChannel = $channel;
         <div class="border rounded-lg text-sm">
             <div class="px-4 py-2 bg-gray-50 border-b flex items-center gap-2">
                 <span class="text-gray-600 font-medium"><?php echo __('list_product_category'); ?>:</span>
-                <a href="<?php echo channelUrl($rootChannel); ?>" class="<?php echo $productCategoryId === 0 && $keyword === '' ? 'text-primary font-medium' : 'text-gray-500 hover:text-primary'; ?>"><?php echo __('list_all_products'); ?></a>
+                <a href="<?php echo contentListUrl($rootChannel); ?>" class="<?php echo $productCategoryId === 0 && $keyword === '' ? 'text-primary font-medium' : 'text-gray-500 hover:text-primary'; ?>"><?php echo __('list_all_products'); ?></a>
             </div>
             <div class="divide-y">
             <?php foreach ($topCategories as $tc):
@@ -557,12 +563,12 @@ $horizRootChannel = $channel;
         <div class="flex flex-wrap items-center justify-between gap-4 py-4">
             <?php if (!empty($horizNav)): ?>
             <div class="flex flex-wrap gap-3">
-                <a href="<?php echo channelUrl($horizRootChannel); ?>"
+                <a href="<?php echo contentListUrl($horizRootChannel); ?>"
                    class="px-4 py-2 rounded-full text-sm <?php echo $channelId === (int)$horizRootChannel['id'] && $keyword === '' ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'; ?>">
                     <?php echo __('all'); ?>
                 </a>
                 <?php foreach ($horizNav as $sub): ?>
-                <a href="<?php echo channelUrl($sub); ?>"
+                <a href="<?php echo contentListUrl($sub); ?>"
                    class="px-4 py-2 rounded-full text-sm <?php echo (int)$sub['id'] === $channelId ? 'bg-primary text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'; ?>">
                     <?php echo e($sub['name']); ?>
                 </a>
@@ -571,7 +577,7 @@ $horizRootChannel = $channel;
             <?php else: ?>
             <div></div>
             <?php endif; ?>
-            <?php $listUrl = channelUrl($channel); ?>
+            <?php $listUrl = contentListUrl($channel); ?>
             <?php $listUsesDynamicRoute = str_contains($listUrl, 'yk_route='); ?>
             <form method="get" action="<?php echo $listUsesDynamicRoute ? '/index.php' : $listUrl; ?>" class="flex items-center gap-2">
                 <?php if ($listUsesDynamicRoute): ?>
@@ -589,7 +595,7 @@ $horizRootChannel = $channel;
                     </button>
                 </div>
                 <?php if ($keyword !== ''): ?>
-                <a href="<?php echo channelUrl($channel); ?>" class="text-gray-400 hover:text-red-500" title="<?php echo __('search_clear'); ?>">
+                <a href="<?php echo contentListUrl($channel); ?>" class="text-gray-400 hover:text-red-500" title="<?php echo __('search_clear'); ?>">
                     <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
                     </svg>

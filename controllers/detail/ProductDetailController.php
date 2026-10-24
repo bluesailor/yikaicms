@@ -24,18 +24,28 @@ final class ProductDetailController extends DetailController
             return null;
         }
 
-        $product = productModel()->getPublishedForLanguage($id);
+        $preview = adminDraftPreviewRow('products', $id);
+        $product = $preview ? productModel()->getDetail($id) : productModel()->getPublishedForLanguage($id);
         if (!$product) {
             return null;
         }
         $id = (int) $product['id'];
 
         // 副作用：每次渲染自增一次浏览量。
-        if ($countView) addProductViews($id);
+        if ($countView && !$preview) addProductViews($id);
 
         $categoryId = (int) $product['category_id'];
 
         $productCategory = $categoryId > 0 ? getProductCategory($categoryId) : null;
+        if ($preview && $categoryId > 0) {
+            $categorySource = productCategoryModel()->find($categoryId);
+            if ($categorySource) {
+                $productCategory = productCategoryModel()->findWhere([
+                    'translation_group_id' => (int) ($categorySource['translation_group_id'] ?: $categorySource['id']),
+                    'lang' => siteLang(),
+                ]) ?: $productCategory;
+            }
+        }
         $relatedProducts = $categoryId > 0 ? productModel()->getRelated($categoryId, $id) : [];
         $prevProduct     = productModel()->getPrev($categoryId, $id);
         $nextProduct     = productModel()->getNext($categoryId, $id);
