@@ -986,7 +986,7 @@ function aiTranslateFields(string $title, string $summary, string $toLang): arra
     $encryptedKey = config('ai_api_key', '');
     $aiKey = $encryptedKey ? AiService::decryptKey($encryptedKey) : '';
     if ($aiKey && ($title || $summary)) {
-        $ai = new AiService(config('ai_provider', 'openai'), $aiKey, config('ai_model', 'gpt-4o-mini'));
+        $ai = new AiService(config('ai_provider', 'openai'), $aiKey, null);   // 模型跟随主 API，未填用该服务商默认（不再硬塞 gpt-4o-mini）
         $prompt = "Translate to {$langName}. Return JSON: {\"title\":\"...\",\"summary\":\"...\"}. No explanation.\n\nTitle: {$title}\nSummary: {$summary}";
         $result = $ai->chat($prompt, 'Return only valid JSON.', 0.3);
         if ($result['success']) {

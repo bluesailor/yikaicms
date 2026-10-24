@@ -12,6 +12,7 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 if (!class_exists('AiService')) {
     require_once ROOT_PATH . '/includes/AiService.php';
 }
+require_once ROOT_PATH . '/includes/AiProfiles.php';
 
 checkLogin();
 requirePermission('*');
@@ -20,23 +21,43 @@ $currentMenu = 'setting_ai';
 $pageTitle = __('ai_setting_title');
 $providers = AiService::getProviders();
 
-// 保存 / 测试
+// 保存 / 测试 / 多套配置管理（2.1.2）
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     header('Content-Type: application/json; charset=utf-8');
     $action = $_POST['action'] ?? 'save';
+    $profileId = (int) ($_POST['profile_id'] ?? 0);
+    // 配置操作的错误以语言键抛出，这里统一转成提示（不弹原生对话框，页面用 showMessage 显示）
+    $profileAction = static function (callable $run, string $okKey, string $log) use ($profileId): void {
+        try {
+            $id = $run();
+            adminLog('setting', 'ai_profile', $log . '#' . (is_int($id) && $id > 0 ? $id : $profileId));
+            echo json_encode(['code' => 0, 'msg' => __($okKey), 'id' => is_int($id) && $id > 0 ? $id : $profileId]);
+        } catch (InvalidArgumentException $e) {
+            echo json_encode(['code' => 1, 'msg' => __($e->getMessage())]);
+        }
+        exit;
+    };
 
     if ($action === 'save') {
-        settingModel()->set('ai_provider', $_POST['ai_provider'] ?? 'openai');
-        $newKey = $_POST['ai_api_key'] ?? '';
-        if ($newKey && strpos($newKey, '***') === false) {
-            settingModel()->set('ai_api_key', AiService::encryptKey($newKey));
-        }
-        settingModel()->set('ai_model', $_POST['ai_model'] ?? '');
-        if (array_key_exists('ai_translation_model', $_POST)) settingModel()->saveBatch(['ai_translation_model' => trim((string) $_POST['ai_translation_model'])]);
-        settingModel()->set('ai_base_url', $_POST['ai_base_url'] ?? '');
-        adminLog('setting', 'ai', '更新 AI 设置');
-        echo json_encode(['code' => 0, 'msg' => __('admin_saved')]);
-        exit;
+        $profileAction(static fn(): int => AiProfiles::save($profileId, [
+            'name' => (string) ($_POST['profile_name'] ?? ''),
+            'provider' => (string) ($_POST['ai_provider'] ?? ''),
+            'base_url' => (string) ($_POST['ai_base_url'] ?? ''),
+            'model' => (string) ($_POST['ai_model'] ?? ''),
+            'translation_model' => (string) ($_POST['ai_translation_model'] ?? ''),
+        ], (string) ($_POST['ai_api_key'] ?? '')), 'ai_profile_saved', '保存 AI 配置');
+    }
+    if ($action === 'set_primary') {
+        $profileAction(static fn() => AiProfiles::setActive($profileId), 'ai_profile_primary_set', '设为主 API');
+    }
+    if ($action === 'archive') {
+        $profileAction(static fn() => AiProfiles::archive($profileId), 'ai_profile_archived_done', '归档 AI 配置');
+    }
+    if ($action === 'restore') {
+        $profileAction(static fn() => AiProfiles::restore($profileId), 'ai_profile_restored', '恢复 AI 配置');
+    }
+    if ($action === 'delete') {
+        $profileAction(static fn() => AiProfiles::delete($profileId), 'ai_profile_deleted', '删除 AI 配置');
     }
 
     if ($action === 'sync_models') {
@@ -76,41 +97,138 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if ($action === 'test') {
-        $testKey = $_POST['ai_api_key'] ?? '';
-        if (!$testKey || strpos($testKey, '***') !== false) {
-            $testKey = AiService::decryptKey(config('ai_api_key', ''));
+        // 测试的是表单当前内容，不保存、不改主 API。密钥留空或是脱敏值时用「正在编辑的这套」已存密钥，
+        // 新建配置没有已存密钥，不会借用主 API 的密钥。
+        $testKey = (string) ($_POST['ai_api_key'] ?? '');
+        if ($testKey === '' || str_contains($testKey, '***')) {
+            $testKey = $profileId > 0 ? AiProfiles::plainKey($profileId) : '';
         }
-        $testAi = new AiService($_POST['ai_provider'] ?? 'openai', $testKey, $_POST['ai_model'] ?? '', trim((string) ($_POST['ai_base_url'] ?? '')));
+        $testProvider = (string) ($_POST['ai_provider'] ?? '');
+        if (!array_key_exists($testProvider, $providers)) {
+            echo json_encode(['success' => false, 'content' => '', 'error' => __('ai_profile_bad_provider')], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        if ($testKey === '' && $testProvider !== 'yikai') {
+            echo json_encode(['success' => false, 'content' => '', 'error' => __('ai_profile_test_no_key')], JSON_UNESCAPED_UNICODE);
+            exit;
+        }
+        $testAi = new AiService($testProvider, $testKey, (string) ($_POST['ai_model'] ?? ''), trim((string) ($_POST['ai_base_url'] ?? '')));
         $result = $testAi->chat('Reply "OK".', 'You are a test assistant. Just reply with what the user asks.', 0.1);
-        echo json_encode($result, JSON_UNESCAPED_UNICODE);
+        echo json_encode(['success' => (bool) $result['success'], 'content' => (string) $result['content'], 'error' => (string) $result['error']], JSON_UNESCAPED_UNICODE);
         exit;
     }
 }
 
-$currentProvider = config('ai_provider', 'deepseek');
-$rawApiKey = AiService::decryptKey(config('ai_api_key', ''));
+// 配置列表（只给页面脱敏视图，密文不进浏览器）与正在编辑的那一套
+$profiles = array_map([AiProfiles::class, 'publicView'], AiProfiles::all());
+$primaryId = AiProfiles::activeId();
+$editParam = (string) ($_GET['profile'] ?? '');
+$editing = null;
+if ($editParam !== 'new') {
+    $wantId = $editParam !== '' ? (int) $editParam : $primaryId;
+    foreach ($profiles as $p) {
+        if ($p['id'] === $wantId) $editing = $p;
+    }
+}
+$editingId = $editing['id'] ?? 0;
+$editingIsPrimary = $editingId > 0 && $editingId === $primaryId;
+$currentProvider = (string) ($editing['provider'] ?? '');
+if (!array_key_exists($currentProvider, $providers)) $currentProvider = $editing === null ? 'deepseek' : $currentProvider;
 // 只露末四位（统一密钥存储约定）；含 *** 的值提交时视为「不修改」
-$maskedApiKey = SecretStore::masked($rawApiKey);
-$currentModel = config('ai_model', '');
-$currentBaseUrl = config('ai_base_url', '');
+$maskedApiKey = (string) ($editing['key_masked'] ?? '');
+$currentModel = (string) ($editing['model'] ?? '');
+$currentBaseUrl = (string) ($editing['base_url'] ?? '');
+$currentTranslationModel = (string) ($editing['translation_model'] ?? '');
+$activeProfiles = array_values(array_filter($profiles, static fn(array $p): bool => $p['status'] === AiProfiles::STATUS_ACTIVE));
+$archivedProfiles = array_values(array_filter($profiles, static fn(array $p): bool => $p['status'] === AiProfiles::STATUS_ARCHIVED));
+$profileMeta = static function (array $p) use ($providers): string {
+    $parts = [(string) ($providers[$p['provider']]['name'] ?? $p['provider'])];
+    $parts[] = $p['model'] !== '' ? $p['model'] : __('ai_profile_default_model');
+    if ($p['translation_model'] !== '') $parts[] = str_replace(':model', $p['translation_model'], __('ai_profile_translation_model'));
+    if ($p['base_url'] !== '') $parts[] = (string) (parse_url($p['base_url'], PHP_URL_HOST) ?: $p['base_url']);
+    return implode(' · ', $parts);
+};
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
 <div>
+    <?php /* 多套 API 配置：列表 + 主 API（2.1.2） */ ?>
+    <div class="bg-white rounded-lg shadow mb-6" data-testid="ai-profiles">
+        <div class="px-6 py-4 border-b flex items-start justify-between gap-4">
+            <div>
+                <h2 class="font-bold text-gray-800"><?php echo e(__('ai_profiles_title')); ?></h2>
+                <p class="text-sm text-gray-500 mt-1"><?php echo e(__('ai_profiles_desc')); ?></p>
+            </div>
+            <a href="?profile=new" class="shrink-0 border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded transition text-sm inline-flex items-center gap-1" data-testid="ai-profile-add">
+                <i class="ti ti-plus text-base" aria-hidden="true"></i><?php echo e(__('ai_profile_add')); ?></a>
+        </div>
+        <?php if ($profiles === []): ?>
+        <p class="px-6 py-5 text-sm text-gray-500"><?php echo e(__('ai_profile_empty')); ?></p>
+        <?php else: ?>
+        <ul class="divide-y" data-testid="ai-profile-list">
+            <?php foreach ($activeProfiles as $p): $isPrimary = $p['id'] === $primaryId; $isEditing = $p['id'] === $editingId; ?>
+            <li class="px-6 py-4 flex flex-wrap items-center gap-x-4 gap-y-2 <?php echo $isEditing ? 'bg-blue-50/60' : ''; ?>" data-profile-id="<?php echo $p['id']; ?>" data-testid="ai-profile-row">
+                <div class="min-w-0 flex-1">
+                    <div class="flex items-center gap-2 flex-wrap">
+                        <span class="font-medium text-gray-800"><?php echo e($p['name']); ?></span>
+                        <?php if ($isPrimary): ?><span class="text-xs px-2 py-0.5 rounded-full bg-primary text-white" data-testid="ai-profile-primary-badge"><?php echo e(__('ai_profile_primary')); ?></span><?php endif; ?>
+                        <?php if ($isEditing): ?><span class="text-xs text-primary"><?php echo e(__('ai_profile_editing')); ?></span><?php endif; ?>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-1 break-all"><?php echo e($profileMeta($p)); ?></p>
+                    <p class="text-xs mt-0.5 <?php echo $p['key_masked'] !== '' ? 'text-gray-400 font-mono' : 'text-amber-600'; ?>"><?php echo e($p['key_masked'] !== '' ? $p['key_masked'] : __('ai_profile_no_key')); ?></p>
+                </div>
+                <div class="flex items-center gap-2 text-sm">
+                    <a href="?profile=<?php echo $p['id']; ?>" class="text-primary hover:underline"><?php echo e(__('ai_profile_edit')); ?></a>
+                    <?php if (!$isPrimary): ?>
+                    <button type="button" class="border border-primary text-primary hover:bg-blue-50 px-3 py-1 rounded cursor-pointer" onclick="profileAction('set_primary', <?php echo $p['id']; ?>, this)" data-testid="ai-profile-set-primary"><?php echo e(__('ai_profile_set_primary')); ?></button>
+                    <button type="button" class="text-gray-500 hover:text-gray-700 px-2 py-1 cursor-pointer" onclick="profileAction('archive', <?php echo $p['id']; ?>, this)"><?php echo e(__('ai_profile_archive')); ?></button>
+                    <?php endif; ?>
+                </div>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+        <?php if ($archivedProfiles !== []): ?>
+        <details class="border-t" data-testid="ai-profile-archived">
+            <summary class="px-6 py-3 text-sm text-gray-500 cursor-pointer select-none"><?php echo e(str_replace(':n', (string) count($archivedProfiles), __('ai_profile_archived_group'))); ?></summary>
+            <ul class="divide-y bg-gray-50">
+                <?php foreach ($archivedProfiles as $p): ?>
+                <li class="px-6 py-3 flex flex-wrap items-center gap-x-4 gap-y-2" data-profile-id="<?php echo $p['id']; ?>">
+                    <div class="min-w-0 flex-1">
+                        <span class="text-gray-600"><?php echo e($p['name']); ?></span>
+                        <p class="text-xs text-gray-400 mt-1 break-all"><?php echo e($profileMeta($p)); ?></p>
+                    </div>
+                    <div class="flex items-center gap-2 text-sm">
+                        <button type="button" class="text-primary hover:underline cursor-pointer" onclick="profileAction('restore', <?php echo $p['id']; ?>, this)"><?php echo e(__('ai_profile_restore')); ?></button>
+                        <button type="button" class="text-red-600 hover:underline cursor-pointer" data-confirm-label="<?php echo e(__('ai_profile_delete_confirm')); ?>" onclick="profileDelete(<?php echo $p['id']; ?>, this)"><?php echo e(__('ai_profile_delete')); ?></button>
+                    </div>
+                </li>
+                <?php endforeach; ?>
+            </ul>
+        </details>
+        <?php endif; ?>
+        <?php endif; ?>
+    </div>
+
     <form id="aiForm">
+        <input type="hidden" name="profile_id" value="<?php echo $editingId; ?>">
         <div class="bg-white rounded-lg shadow">
             <div class="px-6 py-4 border-b flex items-center justify-between">
                 <div>
-                    <h2 class="font-bold text-gray-800"><?php echo __('ai_config_title'); ?></h2>
-                    <p class="text-sm text-gray-500 mt-1"><?php echo __('ai_config_desc'); ?></p>
+                    <h2 class="font-bold text-gray-800" data-testid="ai-profile-form-title"><?php echo e($editing === null ? __('ai_profile_new_title') : str_replace(':name', (string) $editing['name'], __('ai_profile_edit_title'))); ?></h2>
+                    <p class="text-sm text-gray-500 mt-1"><?php echo e($editing === null ? ($profiles === [] ? __('ai_config_desc') : __('ai_profile_other_note')) : ($editingIsPrimary ? __('ai_profile_primary_note') : __('ai_profile_other_note'))); ?></p>
                 </div>
                 <div class="flex gap-2">
-                    <button type="button" id="testBtn" onclick="testAiConn()" class="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded transition text-sm cursor-pointer"><?php echo __('ai_test_connection'); ?></button>
-                    <button type="button" onclick="saveAiSettings()" class="bg-primary hover:bg-secondary text-white px-5 py-2 rounded transition text-sm cursor-pointer"><?php echo __('btn_save_settings'); ?></button>
+                    <button type="button" id="testBtn" onclick="testAiConn()" class="border border-gray-300 hover:bg-gray-50 text-gray-700 px-4 py-2 rounded transition text-sm cursor-pointer" title="<?php echo e(__('ai_profile_test_hint')); ?>"><?php echo __('ai_test_connection'); ?></button>
+                    <button type="button" onclick="saveAiSettings()" class="bg-primary hover:bg-secondary text-white px-5 py-2 rounded transition text-sm cursor-pointer" data-testid="ai-profile-save"><?php echo __('btn_save_settings'); ?></button>
                 </div>
             </div>
             <div class="p-6 space-y-6">
+                <div>
+                    <label for="aiProfileName" class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('ai_profile_name')); ?></label>
+                    <input type="text" name="profile_name" id="aiProfileName" maxlength="60" value="<?php echo e((string) ($editing['name'] ?? '')); ?>"
+                           class="w-full border rounded-lg px-4 py-2.5 text-sm" placeholder="<?php echo e(__('ai_profile_name_ph')); ?>">
+                </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-2"><?php echo __('ai_provider_label'); ?></label>
                     <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
@@ -168,7 +286,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 </div>
                 <div>
                     <label for="aiTranslationModel" class="block text-sm font-medium text-gray-700 mb-2"><?php echo e(__('ai_translation_model_label')); ?></label>
-                    <input type="text" name="ai_translation_model" id="aiTranslationModel" value="<?php echo e((string) config('ai_translation_model', '')); ?>" class="w-full border rounded-lg px-4 py-2.5 text-sm">
+                    <input type="text" name="ai_translation_model" id="aiTranslationModel" value="<?php echo e($currentTranslationModel); ?>" class="w-full border rounded-lg px-4 py-2.5 text-sm">
                     <p class="text-xs text-gray-400 mt-1"><?php echo e(__('ai_translation_model_hint')); ?></p>
                 </div>
                 <div>
@@ -277,7 +395,28 @@ onProviderChange();
 
 function saveAiSettings() {
     var fd = new FormData(document.getElementById('aiForm')); fd.append('action', 'save');
-    fetch('', { method: 'POST', body: fd }).then(safeJson).then(function(d){ showMessage(d.msg || <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?>, d.code === 0 ? 'success' : 'error'); }).catch(function(){ showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error'); });
+    fetch(location.pathname, { method: 'POST', body: fd }).then(safeJson).then(function(d){
+        showMessage(d.msg || <?php echo json_encode(__('admin_saved'), JSON_UNESCAPED_UNICODE); ?>, d.code === 0 ? 'success' : 'error');
+        // 保存后回到这套配置，列表里的模型、密钥状态随之刷新
+        if (d.code === 0 && d.id) setTimeout(function(){ location.href = location.pathname + '?profile=' + d.id; }, 600);
+    }).catch(function(){ showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error'); });
+}
+
+// 设为主 API / 归档 / 恢复 / 删除：结果用页内提示，不弹原生确认框
+function profileAction(action, id, btn) {
+    if (btn) btn.disabled = true;
+    var fd = new FormData(); fd.append('action', action); fd.append('profile_id', id);
+    fetch(location.pathname, { method: 'POST', body: fd }).then(safeJson).then(function(d){
+        showMessage(d.msg, d.code === 0 ? 'success' : 'error');
+        if (d.code === 0) setTimeout(function(){ location.reload(); }, 600);
+        else if (btn) btn.disabled = false;
+    }).catch(function(){ showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error'); if (btn) btn.disabled = false; });
+}
+// 删除只对已归档的配置开放，按钮第一次点击只换成「再点一次删除」，4 秒内再点才提交
+function profileDelete(id, btn) {
+    if (btn.dataset.armed === '1') { profileAction('delete', id, btn); return; }
+    btn.dataset.armed = '1'; btn.dataset.label = btn.textContent; btn.textContent = btn.dataset.confirmLabel; btn.classList.add('font-semibold');
+    setTimeout(function(){ if (!btn.disabled) { btn.dataset.armed = ''; btn.textContent = btn.dataset.label; btn.classList.remove('font-semibold'); } }, 4000);
 }
 
 function testAiConn() {
