@@ -127,7 +127,7 @@ return [
 
     // 错误
     'error_already_installed' => '系统已安装，如需重新安装请删除 config/installed.lock 文件',
-    'error_php_version' => 'PHP 版本过低，需要 8.0 或更高版本',
+    'error_php_version' => 'PHP 版本过低，需要 8.2 或更高版本',
     'error_admin_pass_length' => '管理员密码至少 8 位，并且同时包含字母和数字。',
     'error_admin_user_invalid' => '管理员账号不能为空、不能是「0」，也不要带首尾空格。',
     'error_db_name_invalid' => '数据库名只允许字母、数字、下划线和连字符。',

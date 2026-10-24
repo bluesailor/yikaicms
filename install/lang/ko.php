@@ -112,7 +112,7 @@ return [
     'rewrite_nginx_advanced' => '고급(정적 HTML 직접 제공 + 서버 수준 보안 차단)은 프로그램 저장소의 deploy/nginx-server.conf를 참조하세요.',
     'rewrite_nginx_reload' => '설정 후 nginx -t를 실행하여 구문을 검사한 다음 nginx -s reload로 적용하세요. 적용 후 /storage/database.sqlite에 접속하면 반드시 403 또는 404가 반환되어야 합니다.',
     'error_already_installed' => '시스템이 이미 설치되어 있습니다. 다시 설치하려면 config/installed.lock 파일을 삭제하세요.',
-    'error_php_version' => 'PHP 버전이 너무 낮습니다. 8.0 이상이 필요합니다.',
+    'error_php_version' => 'PHP 버전이 너무 낮습니다. 8.2 이상이 필요합니다.',
     'error_admin_pass_length' => '관리자 비밀번호는 8자 이상이어야 하며 영문과 숫자를 모두 포함해야 합니다.',
     'error_admin_user_invalid' => '관리자 계정은 비어 있을 수 없고 “0”이 될 수 없으며 앞뒤에 공백을 포함해서도 안 됩니다.',
     'error_db_name_invalid' => '데이터베이스 이름에는 문자, 숫자, 밑줄 및 하이픈만 사용할 수 있습니다.',

@@ -52,7 +52,7 @@ final class BeginnerSafetyContractTest extends TestCase
         self::assertStringNotContainsString('fn(', str_replace(' ', '', $src));
         self::assertStringNotContainsString('str_starts_with', $src);
         self::assertStringNotContainsString('str_contains', $src);
-        self::assertStringContainsString('PHP_VERSION_ID < 80000', $src);
+        self::assertStringContainsString('PHP_VERSION_ID < 80200', $src);
     }
 
     /** 根目录不可写时不能动数据库；锁写失败不能报成功 */

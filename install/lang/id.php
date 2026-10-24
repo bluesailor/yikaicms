@@ -112,7 +112,7 @@ return [
     'rewrite_nginx_advanced' => 'Tingkat lanjut (penyajian HTML statis langsung + pengamanan lapisan server): lihat deploy/nginx-server.conf di repositori.',
     'rewrite_nginx_reload' => 'Setelah menyimpan, jalankan nginx -t untuk memeriksa sintaks, lalu nginx -s reload untuk menerapkan. Setelah itu buka /storage/database.sqlite di browser — harus mengembalikan 403 atau 404.',
     'error_already_installed' => 'Sudah terpasang. Untuk memasang ulang, hapus dulu file config/installed.lock.',
-    'error_php_version' => 'Versi PHP terlalu rendah. Diperlukan PHP 8.0 atau lebih baru.',
+    'error_php_version' => 'Versi PHP terlalu rendah. Diperlukan PHP 8.2 atau lebih baru.',
     'error_admin_pass_length' => 'Kata sandi administrator harus minimal 8 karakter dan berisi huruf serta angka.',
     'error_admin_user_invalid' => 'Nama pengguna administrator tidak boleh kosong atau "0", dan tidak boleh diawali atau diakhiri spasi.',
     'error_db_name_invalid' => 'Nama basis data hanya boleh berisi huruf, angka, garis bawah, dan tanda hubung.',

@@ -112,7 +112,7 @@ return [
     'rewrite_nginx_advanced' => 'Gelişmiş (statik HTML doğrudan iletimi + sunucu düzeyinde güvenlik): depodaki deploy/nginx-server.conf dosyasına bakın.',
     'rewrite_nginx_reload' => 'Kaydettikten sonra söz dizimini denetlemek için nginx -t, uygulamak için nginx -s reload çalıştırın. Ardından tarayıcıda /storage/database.sqlite adresini açın — 403 veya 404 döndürmelidir.',
     'error_already_installed' => 'Zaten kurulu. Yeniden kurmak için önce installed.lock dosyasını silin.',
-    'error_php_version' => 'PHP sürümü çok düşük. PHP 8.0 veya üzeri gerekir.',
+    'error_php_version' => 'PHP sürümü çok düşük. PHP 8.2 veya üzeri gerekir.',
     'error_admin_pass_length' => 'Yönetici parolası en az 8 karakter olmalı ve hem harf hem rakam içermelidir.',
     'error_admin_user_invalid' => 'Yönetici kullanıcı adı boş veya "0" olamaz ve başında ya da sonunda boşluk bulunmamalıdır.',
     'error_db_name_invalid' => 'Veritabanı adı yalnızca harf, rakam, alt çizgi ve tire içerebilir.',

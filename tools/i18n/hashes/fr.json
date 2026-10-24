@@ -58,7 +58,7 @@
     "install/lang/fr.php|error_db_not_exists": "ad91b943b9d0",
     "install/lang/fr.php|error_dir_not_writable": "e5370c2fd5f8",
     "install/lang/fr.php|error_lock_write": "57f02cda5611",
-    "install/lang/fr.php|error_php_version": "5f0646a0481b",
+    "install/lang/fr.php|error_php_version": "00010e6035ca",
     "install/lang/fr.php|error_root_not_writable": "77f7af056ed7",
     "install/lang/fr.php|error_sql_execute": "84957d71dd47",
     "install/lang/fr.php|error_table_prefix_invalid": "eb28191b2029",

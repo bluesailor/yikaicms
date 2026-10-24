@@ -112,7 +112,7 @@ return [
     'rewrite_nginx_advanced' => 'Nâng cao (xuất trực tiếp HTML tĩnh + chặn bảo mật ở tầng máy chủ): xem deploy/nginx-server.conf trong kho mã nguồn.',
     'rewrite_nginx_reload' => 'Sau khi cấu hình, hãy chạy nginx -t để kiểm tra cú pháp, rồi nginx -s reload để áp dụng. Sau khi áp dụng, truy cập /storage/database.sqlite phải trả về 403 hoặc 404.',
     'error_already_installed' => 'Hệ thống đã được cài đặt, nếu muốn cài lại vui lòng xóa tệp config/installed.lock',
-    'error_php_version' => 'Phiên bản PHP quá thấp, cần 8.0 hoặc cao hơn',
+    'error_php_version' => 'Phiên bản PHP quá thấp, cần 8.2 hoặc cao hơn',
     'error_admin_pass_length' => 'Mật khẩu quản trị viên cần ít nhất 8 ký tự và có cả chữ lẫn số.',
     'error_admin_user_invalid' => 'Tài khoản quản trị viên không được để trống, không được là “0”, và không được có khoảng trắng ở đầu hoặc cuối.',
     'error_db_name_invalid' => 'Tên cơ sở dữ liệu chỉ cho phép chữ cái, chữ số, dấu gạch dưới và dấu gạch ngang.',
