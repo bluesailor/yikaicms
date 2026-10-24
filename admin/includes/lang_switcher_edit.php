@@ -101,7 +101,7 @@ if ($_ls_item) {
     <?php endforeach; ?>
 
     <?php if ($_ls_currentLang !== $_ls_defaultLang): ?>
-    <button type="button" class="border rounded px-2 py-1 text-xs" onclick="createTranslation('<?php echo e($_ls_currentLang); ?>', '<?php echo e($_ls_allLangs[$_ls_currentLang]); ?>', this, true)"><?php echo e(__('lse_retranslate')); ?></button>
+    <button type="button" class="border rounded px-2 py-1 text-xs" onclick="createTranslation('<?php echo e($_ls_currentLang); ?>', '<?php echo e($_ls_allLangs[$_ls_currentLang]); ?>', this, true)" aria-label="<?php echo e(__('lse_retranslate') . ' ' . $_ls_allLangs[$_ls_currentLang]); ?>"><?php echo e(__('lse_retranslate')); ?></button>
     <span class="text-xs text-amber-500 ml-1"><?php echo str_replace(':lang', e($_ls_allLangs[$_ls_defaultLang]), e(__('lse_translated_from'))); ?><span class="hidden"></span>
     <?php endif; ?>
 </div>
