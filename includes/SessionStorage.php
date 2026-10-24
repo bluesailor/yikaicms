@@ -42,6 +42,65 @@ final class SessionStorage
         ]);
     }
 
+    /** 会话里记本站身份的键（值是 fingerprint()）。 */
+    public const OWNER_KEY = '_yk_site';
+
+    /**
+     * 会话只属于本站（2.1.3）。
+     *
+     * 会话 cookie 名取自 config.php 的 SESSION_NAME，按站点随机生成；可整站复制出来的站点用的是
+     * 同一份 config.php，名字相同。复制站放在同一域名的不同子目录、同一台服务器上时，path=/ 的
+     * 会话 cookie 会发给每一个站，会话文件又在同一个目录——登录 A 站后台，打开 B 站后台就是已登录
+     * （演示站几十个子站正是这种形态）。这里两道防线：
+     *   ① 子目录站把会话 cookie 限在本站目录（config.php 用 path=/ 开的会话，同一会话号换参数重开）；
+     *   ② 会话里记下属于哪个站（安装目录的指纹），不是本站的会话不认：留给原站，本站换新会话号重来。
+     * 没记过站点的旧会话（升级前开的）直接认作本站并补记：在线升级是分批的多次请求，
+     * 中途把旧会话判作别站会让管理员半路掉线、升级停在一半。子目录站认领时旧会话号随即作废，
+     * 其他复制站拿着同一个根路径 cookie 只会得到空会话；会话一旦记上站点，之后就只属于那个站。
+     */
+    public static function isolate(string $root, string $base): void
+    {
+        if (PHP_SAPI === 'cli' || session_status() !== PHP_SESSION_ACTIVE || headers_sent()) {
+            return;
+        }
+        $path = $base === '' ? '/' : $base . '/';
+        $params = session_get_cookie_params();
+        $rescoped = false;
+        if ($base !== '' && $params['path'] !== $path) {
+            session_write_close();
+            session_set_cookie_params([
+                'lifetime' => $params['lifetime'], 'path' => $path, 'domain' => $params['domain'],
+                'secure' => $params['secure'], 'httponly' => $params['httponly'], 'samesite' => $params['samesite'],
+            ]);
+            if (@session_start() === false) {
+                return;
+            }
+            $rescoped = true;
+        }
+        $mine = self::fingerprint($root);
+        $owner = $_SESSION[self::OWNER_KEY] ?? null;
+        if ($owner === $mine) {
+            return;
+        }
+        $foreign = $owner !== null;
+        if ($foreign) {
+            // 别站的会话：先换号（不删旧号，原样留给它的站点），再清空本站的新会话——顺序反了会把空数据写回旧号
+            @session_regenerate_id(false);
+            $_SESSION = [];
+        } elseif ($rescoped) {
+            // 子目录站认领旧的根路径会话：数据搬到按本站目录发的新号，旧号删掉，别的复制站就认领不到了
+            @session_regenerate_id(true);
+        }
+        $_SESSION[self::OWNER_KEY] = $mine;
+    }
+
+    /** 站点指纹：安装目录的真实路径。复制出来的站目录不同，指纹就不同；不含任何可猜的秘密。 */
+    public static function fingerprint(string $root): string
+    {
+        $real = realpath($root);
+        return substr(hash('sha256', 'yikaicms-session|' . ($real !== false ? $real : $root)), 0, 24);
+    }
+
     /** 与 config.php 的判定一致：直连 HTTPS / 443 端口 / 反代 X-Forwarded-Proto=https。 */
     public static function isHttps(array $server): bool
     {

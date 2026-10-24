@@ -279,7 +279,7 @@ function setAdminStaticBypassCookie(): void
         || (strtolower((string) ($_SERVER['HTTP_X_FORWARDED_PROTO'] ?? '')) === 'https');
     setcookie(ADMIN_STATIC_BYPASS_COOKIE, '1', [
         'expires'  => 0,
-        'path'     => '/',
+        'path'     => BasePath::get() . '/',   // 子目录站各管各的：同域名的其他站不受本站登录、退出影响
         'secure'   => $secure,
         'httponly' => true,
         'samesite' => 'Lax',
@@ -291,7 +291,11 @@ function setAdminStaticBypassCookie(): void
 function clearAdminStaticBypassCookie(): void
 {
     if (!headers_sent()) {
-        setcookie(ADMIN_STATIC_BYPASS_COOKIE, '', ['expires' => time() - 42000, 'path' => '/']);
+        setcookie(ADMIN_STATIC_BYPASS_COOKIE, '', ['expires' => time() - 42000, 'path' => BasePath::get() . '/']);
+        if (BasePath::get() !== '') {
+            // 2.1.3 之前子目录站也种在 path=/，一并清掉
+            setcookie(ADMIN_STATIC_BYPASS_COOKIE, '', ['expires' => time() - 42000, 'path' => '/']);
+        }
     }
     unset($_COOKIE[ADMIN_STATIC_BYPASS_COOKIE]);
 }
