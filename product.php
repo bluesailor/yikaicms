@@ -440,9 +440,9 @@ if (trim($productTemplateHtml) !== '') {
 <script src="/assets/js/product-gallery.js"></script>
 
 <script>
-<?php /* 产品图片数组 */ ?>
-var productImages = <?php echo json_encode(array_values($productImages), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
-var productImageVariants = <?php echo json_encode($productImageVariants, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+<?php /* 产品图片数组（脚本里用的地址输出改写够不着，子目录部署要补前缀） */ ?>
+var productImages = <?php echo json_encode(array_map([BasePath::class, 'url'], array_values($productImages)), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+var productImageVariants = <?php echo json_encode(array_map(static fn(array $v): array => ['main' => BasePath::imageData($v['main'])] + $v, $productImageVariants), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 var currentImageIdx = 0;
 
 function changeImage(idx) {
@@ -551,7 +551,7 @@ if (inquiryForm) inquiryForm.addEventListener('submit', function(e) {
                 });
             }
             var captcha = form.querySelector('img[src*="captcha.php"]');
-            if (captcha) captcha.src = '/captcha.php?' + Date.now();
+            if (captcha) captcha.src = '<?php echo BasePath::url('/captcha.php'); ?>?' + Date.now();
             btn.disabled = false;
             btn.textContent = submitLabel;
         })

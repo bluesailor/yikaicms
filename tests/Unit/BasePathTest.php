@@ -198,6 +198,38 @@ final class BasePathTest extends TestCase
     }
 
     /**
+     * 交给脚本的导航数据与图片数据（2.1.3：折叠侧栏飞出菜单、顶栏搜索、编辑器页面切换、产品图切换）。
+     * 根目录下原样返回；挂在 /sub 时只给站内根相对地址补一次前缀。
+     */
+    public function testScriptDataHelpersPrefixOnlyRootRelativeUrls(): void
+    {
+        $rows = ['a' => ['url' => '/admin/product.php', 'label' => 'x'], ['url' => 'https://ex.com/a'], ['url' => '//cdn.ex.com/a'], ['label' => 'no url'], 'scalar'];
+        $image = ['src' => '/uploads/a.webp', 'srcset' => '/uploads/a-300.webp 300w, /uploads/a.webp 800w', 'sizes' => '100vw'];
+        self::assertSame($rows, BasePath::urlsIn($rows), 'root install: unchanged');
+        self::assertSame($image, BasePath::imageData($image), 'root install: unchanged');
+
+        $base = new \ReflectionProperty(BasePath::class, 'base');
+        $base->setAccessible(true);
+        $saved = $base->getValue();
+        $base->setValue(null, '/sub');
+        try {
+            $out = BasePath::urlsIn($rows);
+            self::assertSame('/sub/admin/product.php', $out['a']['url']);
+            self::assertSame('x', $out['a']['label']);
+            self::assertSame('https://ex.com/a', $out[0]['url']);
+            self::assertSame('//cdn.ex.com/a', $out[1]['url']);
+            self::assertSame(['label' => 'no url'], $out[2]);
+            self::assertSame('scalar', $out[3]);
+            self::assertSame(
+                ['src' => '/sub/uploads/a.webp', 'srcset' => '/sub/uploads/a-300.webp 300w, /sub/uploads/a.webp 800w', 'sizes' => '100vw'],
+                BasePath::imageData($image)
+            );
+        } finally {
+            $base->setValue(null, $saved);
+        }
+    }
+
+    /**
      * 输出缓冲只改静态属性；Alpine 绑定和内联事件里的地址在浏览器里才拼出来，
      * 写死根路径就会丢掉挂载点（编辑器"管理菜单内容"曾指向站点根的 /admin/nav_menu.php）。
      */
