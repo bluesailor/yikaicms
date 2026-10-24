@@ -1547,7 +1547,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             },
             pageCodeOpen: false,
             pageCodeDraft: "",
-            pageSwitcherItems: <?php echo json_encode($bloxPageSwitcher, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            pageSwitcherItems: <?php echo json_encode(BasePath::urlsIn($bloxPageSwitcher), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             pageSwitcherQuery: "",
             pageSwitcherCreate: <?php echo json_encode($bloxPageSwitcherCreate + ['failed' => __('blox_page_switch_create_failed')], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             pageSwitcherCreating: false,
@@ -1595,7 +1595,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             pageActionBusy: false,
             // 模板发布独立于"保存中"：按钮要能显示"发布中…"，而保存/发布是两个不同动作
             templateActionBusy: false,
-            contactManage: <?php echo json_encode($contactManageActions, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            contactManage: <?php echo json_encode(BasePath::urlsIn($contactManageActions), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             siteCopyrightEndpoint: (window.YK_BASE || "") + "/admin/blox_site_api.php",
             siteCopyright: <?php echo json_encode($siteCopyright, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             siteCopyrightChanged: false,
@@ -1657,7 +1657,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 'padding' => __('blox_padding'), 'margin' => __('blox_margin'), 'side_top' => __('blox_side_top'),
                 'side_right' => __('blox_side_right'), 'side_bottom' => __('blox_side_bottom'), 'side_left' => __('blox_side_left'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
-            homeSourceLinks: <?= json_encode($bloxSourceLinks, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
+            homeSourceLinks: <?= json_encode(BasePath::urlsIn($bloxSourceLinks), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,
             homeText: <?php echo json_encode([
                 'publishConfirm' => __('blox_publish_confirm'),
                 'rollbackConfirm' => __('blox_rollback_confirm'),

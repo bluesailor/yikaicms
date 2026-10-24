@@ -11,7 +11,7 @@
 <script src="/assets/photoswipe/photoswipe-lightbox.umd.min.js"></script>
 <script>
 (function () {
-    var images = <?php echo json_encode(array_map(function ($p) { return ['src' => $p['image'], 'title' => $p['title']]; }, $albumPhotos), JSON_UNESCAPED_UNICODE); ?>;
+    var images = <?php echo json_encode(array_map(function ($p) { return ['src' => BasePath::url((string) $p['image']), 'title' => $p['title']]; }, $albumPhotos), JSON_UNESCAPED_UNICODE); ?>;
     var dims = {};
     images.forEach(function (im) { var pr = new Image(); pr.onload = function () { dims[im.src] = { w: pr.naturalWidth, h: pr.naturalHeight }; }; pr.src = im.src; });
     function openAlbum(idx) {

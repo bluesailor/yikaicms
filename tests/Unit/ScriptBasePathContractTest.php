@@ -11,31 +11,60 @@ use PHPUnit\Framework\TestCase;
  */
 final class ScriptBasePathContractTest extends TestCase
 {
-    private const PATTERN = '#(?:fetch\(\s*|location(?:\.href)?\s*=\s*|\.open\(\s*[\'"][A-Z]+[\'"]\s*,\s*|window\.open\(\s*)[\'"`]/(?:admin|api|plugins|member|install|uploads|assets)/#';
+    // 2.1.3 起也查 .src = '/…'（脚本换图、刷新验证码）与根目录入口文件（/captcha.php 等）
+    private const PATTERN = '#(?:fetch\(\s*|location(?:\.href)?\s*=\s*|\.open\(\s*[\'"][A-Z]+[\'"]\s*,\s*|window\.open\(\s*|\.src\s*=\s*)[\'"`]/(?:(?:admin|api|plugins|member|install|uploads|assets)/|[a-z_]+\.php)#';
 
     public function testScriptsNeverRequestRootRelativeSiteUrls(): void
     {
         $root = dirname(__DIR__, 2);
         $offenders = [];
-        foreach (['admin', 'assets/js', 'includes', 'plugins', 'member'] as $dir) {
+        $paths = glob($root . '/*.php') ?: [];   // 前台入口（product.php、detail.php…）也有内联脚本
+        foreach (['admin', 'assets/js', 'includes', 'plugins', 'member', 'themes', 'views'] as $dir) {
             $it = new RecursiveIteratorIterator(new RecursiveDirectoryIterator($root . '/' . $dir, FilesystemIterator::SKIP_DOTS));
             foreach ($it as $file) {
-                $path = $file->getPathname();
-                if (!preg_match('/\.(php|js)$/', $path) || str_contains($path, DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR)) {
+                $paths[] = $file->getPathname();
+            }
+        }
+        foreach ($paths as $path) {
+            if (!preg_match('/\.(php|js)$/', $path) || str_contains($path, DIRECTORY_SEPARATOR . 'vendor' . DIRECTORY_SEPARATOR)) {
+                continue;
+            }
+            foreach (file($path) ?: [] as $i => $line) {
+                if (preg_match('#^\s*(?:\*|//)#', $line) === 1) {
                     continue;
                 }
-                foreach (file($path) ?: [] as $i => $line) {
-                    if (preg_match('#^\s*(?:\*|//)#', $line) === 1) {
-                        continue;
-                    }
-                    if (preg_match(self::PATTERN, $line) === 1) {
-                        $offenders[] = substr($path, strlen($root) + 1) . ':' . ($i + 1);
-                    }
+                if (preg_match(self::PATTERN, $line) === 1) {
+                    $offenders[] = substr($path, strlen($root) + 1) . ':' . ($i + 1);
                 }
             }
         }
 
         self::assertSame([], $offenders, "脚本里的站内地址要加 (window.YK_BASE || '') 前缀");
+    }
+
+    /**
+     * 输出改写只碰 HTML 属性；交给脚本的地址数据要在生成处补前缀（2.1.3 子目录审计逐一找到的出处）。
+     * 链接目录、区块数据等会写回内容的地址保持站内相对口径，不在此列。
+     */
+    public function testDataHandedToScriptsCarriesTheMountPrefix(): void
+    {
+        $root = dirname(__DIR__, 2);
+        $expect = [
+            'admin/includes/header.php' => ["'url' => BasePath::url((string) (\$_it['url'] ?? ''))", "'url' => BasePath::url((string) \$__r['url'])"],
+            'admin/api_search.php' => ["'url'   => BasePath::url((string) \$p['url'])"],
+            'admin/blox_editor.php' => ['json_encode(BasePath::urlsIn($bloxPageSwitcher)', 'json_encode(BasePath::urlsIn($bloxSourceLinks)', 'json_encode(BasePath::urlsIn($contactManageActions)'],
+            'product.php' => ["array_map([BasePath::class, 'url'], array_values(\$productImages))", "BasePath::imageData(\$v['main'])", "BasePath::url('/captcha.php')"],
+            'detail.php' => ["array_map([BasePath::class, 'url'], array_values(\$galleryImages))"],
+            'includes/partials/album-lightbox.php' => ["BasePath::url((string) \$p['image'])"],
+            'assets/js/yikay-page-settings.js' => ['(root.YK_BASE || "") + url.pathname'],
+            'admin/blox_editor/partials/overlays.php' => [':href="pageHref()"'],
+        ];
+        foreach ($expect as $file => $needles) {
+            $source = (string) file_get_contents($root . '/' . $file);
+            foreach ($needles as $needle) {
+                self::assertStringContainsString($needle, $source, $file);
+            }
+        }
     }
 
     public function testDashboardUpdateCheckPostsWithCsrfBecauseTheEndpointIgnoresGet(): void

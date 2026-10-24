@@ -37,6 +37,11 @@
                         && root.BloxDraftSummary && typeof this.draftSummary === "function"
                         && !this.draftSummary().changed);
                 },
+                /** 页面地址是站内相对口径（接口与初始数据都不带子目录前缀），绑到链接上要补 YK_BASE */
+                pageHref: function () {
+                    var url = String(this.pageUrl || "");
+                    return /^\/(?![\/\\])/.test(url) ? (root.YK_BASE || "") + url : url;
+                },
                 pageFrontPreviewUrl: function () {
                     if (!this.pageUrl) return "#";
                     var url = new URL(this.pageUrl, window.location.origin);
@@ -47,7 +52,7 @@
                         url.searchParams.set("preview", "draft");
                         url.searchParams.set("blox_draft", "page:" + initial.id);
                     }
-                    return url.pathname + url.search + url.hash;
+                    return (root.YK_BASE || "") + url.pathname + url.search + url.hash;
                 },
                 openPageFrame: function () {
                     this.mobileActionsOpen = false;

@@ -133,6 +133,47 @@ final class BasePath
         return $base !== '' && self::isRootRelative($path) ? $base . $path : $path;
     }
 
+    /**
+     * 一组「给脚本当链接用」的条目（每项是带 $key 的数组），逐项补前缀。
+     * 只用于后台导航类数据（菜单、搜索结果、编辑器里的「去管理」入口）；
+     * 会被写进内容的地址（链接目录、区块数据）保持站内相对口径，不能用它。
+     * 调用方在编辑器入口 admin/blox_editor.php（Psalm 不扫描），故标为对外接口。
+     *
+     * @psalm-api
+     * @param array<array-key, mixed> $rows
+     * @return array<array-key, mixed>
+     */
+    public static function urlsIn(array $rows, string $key = 'url'): array
+    {
+        foreach ($rows as $index => $row) {
+            if (is_array($row) && is_string($row[$key] ?? null)) {
+                $rows[$index][$key] = self::url($row[$key]);
+            }
+        }
+        return $rows;
+    }
+
+    /**
+     * 交给前台脚本切换的响应式图片数据（responsiveImageData() 的结果）：src 与 srcset 补前缀。
+     *
+     * @param array<string, mixed> $image
+     * @return array<string, mixed>
+     */
+    public static function imageData(array $image): array
+    {
+        $base = self::get();
+        if ($base === '') {
+            return $image;
+        }
+        if (is_string($image['src'] ?? null)) {
+            $image['src'] = self::url($image['src']);
+        }
+        if (is_string($image['srcset'] ?? null)) {
+            $image['srcset'] = self::rewriteSrcset($image['srcset'], $base);
+        }
+        return $image;
+    }
+
     /** '/sub' 与 '/sub/' → '/'；'/sub/x?q' → '/x?q'；'/sub?q' → '/?q'；不在前缀下的原样返回。 */
     public static function strip(string $uri, ?string $base = null): string
     {

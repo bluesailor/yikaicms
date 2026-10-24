@@ -200,7 +200,8 @@ add_action('ik_footer_scripts', function () {
                       v: <?= (int) $policyVersion ?>, ts: Math.floor(Date.now() / 1000) };
             // 1 年有效期；HTTPS 下加 Secure，避免 cookie 通过明文 HTTP 泄漏
             var secureFlag = (location.protocol === 'https:') ? ';Secure' : '';
-            document.cookie = 'ik_consent=' + encodeURIComponent(JSON.stringify(c)) + ';path=/;max-age=' + (365 * 86400) + ';SameSite=Lax' + secureFlag;
+            // path 限在本站目录：同一域名下的子目录站点是不同的网站，同意要各自征求
+            document.cookie = 'ik_consent=' + encodeURIComponent(JSON.stringify(c)) + ';path=' + (window.YK_BASE || '') + '/;max-age=' + (365 * 86400) + ';SameSite=Lax' + secureFlag;
             c.decided = true;
             window.IK_consent = c;
             box.style.display = 'none';
