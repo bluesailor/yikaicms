@@ -218,6 +218,7 @@ final class BloxDocumentPipeline
 
     /**
      * @deprecated 2.1.3 起核心要求 PHP 8.2，直接用 array_is_list()。保留给仍调用它的插件。
+     * @psalm-api
      */
     public static function isList(array $value): bool
     {
