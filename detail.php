@@ -470,7 +470,7 @@ if (trim($detailTemplateHtml) !== '') {
 </div>
 
 <script>
-var caseGallery = <?php echo json_encode(array_values($galleryImages), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+var caseGallery = <?php echo json_encode(array_map([BasePath::class, 'url'], array_values($galleryImages)), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
 var caseLbIdx = 0;
 
 function openCaseLightbox(idx) {

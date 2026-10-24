@@ -75,7 +75,7 @@ declare(strict_types=1);
                             class="inline-flex items-center gap-2 border border-gray-300 rounded px-3 py-2 text-sm disabled:opacity-50"><i class="ti" :class="pageUrlSaving ? 'ti-loader-2 animate-spin' : 'ti-device-floppy'"></i><?= e(__('blox_page_url_save')) ?></button>
                 </div>
                 <p id="blox-page-url-hint" class="text-xs leading-5 text-gray-600"><?= e(__('blox_page_url_hint')) ?></p>
-                <a :href="pageUrl" x-text="pageUrl" target="_blank" rel="noopener" class="block break-all text-sm text-blue-700 underline" data-testid="blox-page-url-current"></a>
+                <a :href="pageHref()" x-text="pageHref()" target="_blank" rel="noopener" class="block break-all text-sm text-blue-700 underline" data-testid="blox-page-url-current"></a>
                 <p x-show="pageUrlError" x-text="pageUrlError" id="blox-page-url-error" role="alert" class="text-sm text-red-700"></p>
                 <div x-show="pageUrlConfirm" class="space-y-3 border-t pt-3" role="group" aria-label="<?= e(__('blox_page_url_save')) ?>">
                     <p class="text-sm text-gray-900"><?= e(__('blox_page_url_confirm')) ?></p>
