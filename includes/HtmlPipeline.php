@@ -65,14 +65,14 @@ class HtmlPipeline
 
     /**
      * 站外 <a> 自动加 rel="noopener noreferrer" + target="_blank"。
-     * 通过当前 host 判断，与 site_url 配置对比。
+     * 链接的 host 不是本站任何一个地址才算站外。
      */
     public static function secureExternalLinks(string $html): string
     {
         if ($html === '' || stripos($html, '<a') === false) {
             return $html;
         }
-        $siteHost = parse_url((string)config('site_url', ''), PHP_URL_HOST) ?: '';
+        $siteHosts = self::siteHosts();
         $p = new HtmlTagRewriter($html);
         while ($p->nextTag('A')) {
             $href = $p->getAttribute('href');
@@ -80,12 +80,8 @@ class HtmlPipeline
 
             $isExternal = false;
             if (preg_match('#^https?://#i', $href)) {
-                $linkHost = parse_url($href, PHP_URL_HOST) ?: '';
-                if ($siteHost !== '' && strcasecmp($linkHost, $siteHost) !== 0) {
-                    $isExternal = true;
-                } elseif ($siteHost === '' && $linkHost !== '') {
-                    $isExternal = true;
-                }
+                $linkHost = strtolower((string) (parse_url($href, PHP_URL_HOST) ?: ''));
+                $isExternal = $linkHost !== '' && !in_array($linkHost, $siteHosts, true);
             }
             if (!$isExternal) continue;
 
@@ -102,6 +98,26 @@ class HtmlPipeline
             }
         }
         return $p->getUpdatedHtml();
+    }
+
+    /**
+     * 本站的地址：后台「站点域名」、安装时写进 config.php 的 SITE_URL、当前请求的域名。
+     * 此前只认 site_url，它留空时（可以清空）站内绝对链接全被当成站外、改在新标签页打开。
+     *
+     * @return list<string>
+     */
+    private static function siteHosts(): array
+    {
+        $hosts = [];
+        foreach ([(string) config('site_url', ''), defined('SITE_URL') ? (string) SITE_URL : ''] as $url) {
+            $host = parse_url($url, PHP_URL_HOST);
+            if (is_string($host) && $host !== '') $hosts[] = strtolower($host);
+        }
+        // 语言域名、备用域名：正在访问的这个域名当然是本站
+        $requestHost = strtolower((string) ($_SERVER['HTTP_HOST'] ?? ''));
+        $requestHost = (string) preg_replace('/:\d+$/', '', $requestHost);
+        if ($requestHost !== '') $hosts[] = $requestHost;   // IPv6 保留方括号，与 parse_url() 的取法一致
+        return array_values(array_unique($hosts));
     }
 
     /**
