@@ -31,7 +31,8 @@ final class ProductController extends ListController
         $productCategoryId = ((int) ($channel['parent_id'] ?? 0) === 0) ? 0 : $channelId;
 
         // ?cat=<slug> overrides the channel-derived category.
-        $productCategory = null;
+        $productCategory = adminDraftPreviewRow('product_categories');
+        if ($productCategory) $productCategoryId = (int) $productCategory['id'];
         if (!empty($GLOBALS['yk_custom_product_category_id'])) {
             $productCategory = getProductCategory((int) $GLOBALS['yk_custom_product_category_id']);
             if ($productCategory) $productCategoryId = (int) $productCategory['id'];

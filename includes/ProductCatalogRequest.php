@@ -1,5 +1,6 @@
 <?php
 declare(strict_types=1);
+require_once __DIR__ . '/frontend_preview.php';
 
 /** One normalization contract for product queries, generated links and HTML cache identities. */
 final class ProductCatalogRequest
@@ -53,6 +54,7 @@ final class ProductCatalogRequest
     public static function urlQuery(array $source, array $normalized, bool $withPage = true): array
     {
         $query = self::routeQuery($source);
+        if (adminDraftPreviewQuery() !== []) $query = adminDraftPreviewQuery();
         if ((string) ($normalized['cat'] ?? '') !== '') $query['cat'] = (string) $normalized['cat'];
         return array_merge($query, self::filterQuery($normalized, $withPage));
     }
@@ -66,6 +68,7 @@ final class ProductCatalogRequest
     public static function pageUrl(array $channel, ?array $category, int $page, array $normalized): string
     {
         $filters = self::filterQuery($normalized);
+        if (adminDraftPreviewQuery() !== []) return '/admin/draft_preview.php?' . http_build_query(array_merge(adminDraftPreviewQuery(), $filters, ['page' => $page]));
         if ($category !== null) return customProductCategoryPageUrl($category, $page, $filters);
         if (isDynamicUrlMode()) {
             return dynamicChannelPageUrl($channel, $page, $filters)

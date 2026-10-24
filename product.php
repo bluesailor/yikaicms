@@ -135,16 +135,16 @@ if (trim($productTemplateHtml) !== '') {
 <div class="bg-gray-100 py-4">
     <div class="container mx-auto px-4">
         <nav aria-label="<?php echo e(__('breadcrumb_nav')); ?>" class="flex flex-wrap items-center gap-2 text-sm text-gray-600">
-            <a href="/" class="shrink-0 hover:text-primary"><?php echo __('breadcrumb_home'); ?></a>
+            <a href="<?php echo e(langUrl('/')); ?>" class="shrink-0 hover:text-primary"><?php echo __('breadcrumb_home'); ?></a>
             <span aria-hidden="true" class="shrink-0">/</span>
             <?php if ($productChannel): ?>
-            <a href="<?php echo e(channelUrl($productChannel)); ?>" class="shrink-0 hover:text-primary">
+            <a href="<?php echo e(contentListUrl($productChannel)); ?>" class="shrink-0 hover:text-primary">
                 <?php echo e($productChannel['name']); ?>
             </a>
             <span aria-hidden="true" class="shrink-0">/</span>
             <?php endif; ?>
             <?php if ($productCategory): ?>
-            <a href="<?php echo e(productCategoryUrl($productCategory)); ?>" class="shrink-0 hover:text-primary">
+            <a href="<?php echo e(draftPreviewEntityUrl('product_categories', $productCategory, productCategoryUrl($productCategory))); ?>" class="shrink-0 hover:text-primary">
                 <?php echo e($productCategory['name']); ?>
             </a>
             <span aria-hidden="true" class="shrink-0">/</span>
@@ -277,7 +277,7 @@ if (trim($productTemplateHtml) !== '') {
                             <span><?php echo __('product_email'); ?>：<a href="mailto:<?php echo e(configRawLang('contact_email')); ?>" class="text-dark hover:text-primary"><?php echo e(configRawLang('contact_email')); ?></a></span>
                         </div>
                         <?php endif; ?>
-                        <a href="/contact.php" class="inline-flex items-center gap-2 text-sm text-primary hover:text-secondary font-medium mt-1">
+                        <a href="<?php echo e(adminPreviewContentHref(langUrl('/contact.html'))); ?>" class="inline-flex items-center gap-2 text-sm text-primary hover:text-secondary font-medium mt-1">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path></svg>
                             <?php echo __('product_online_inquiry'); ?>
                             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>

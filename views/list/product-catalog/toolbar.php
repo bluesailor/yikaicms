@@ -28,6 +28,7 @@ $pcKeyword = (string) $keyword;
 
     <?php if ($pcShowSearch): ?>
     <form method="get" action="<?php echo e($pcDynamicRoute ? '/index.php' : $pcListUrl); ?>" role="search" class="flex items-center gap-2 <?php echo $pcToolbarVariant === 'full' || $pcToolbarVariant === 'toolbar' ? 'max-w-md' : ''; ?>">
+<?php echo adminDraftPreviewHiddenInputs(); ?>
         <?php if ($pcDynamicRoute): ?>
         <input type="hidden" name="yk_route" value="<?php echo e($pcRoute); ?>">
         <?php if (!$isProductType): ?>
@@ -50,7 +51,7 @@ $pcKeyword = (string) $keyword;
             </button>
         </div>
         <?php if ($pcKeyword !== ''): ?>
-        <a href="<?php echo channelUrl($channel); ?>" class="text-gray-400 hover:text-red-500" title="<?php echo e(__('search_clear')); ?>">
+        <a href="<?php echo contentListUrl($channel); ?>" class="text-gray-400 hover:text-red-500" title="<?php echo e(__('search_clear')); ?>">
             <i class="ti ti-x text-lg"></i>
         </a>
         <?php endif; ?>

@@ -203,7 +203,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $ai = new AiService(
             config('ai_provider', 'openai'),
             $aiKey,
-            config('ai_model', 'gpt-4o-mini')
+            null   // 模型跟随主 API，未填用该服务商默认（不再硬塞 gpt-4o-mini）
         );
         $result = $ai->chat($prompt, 'You are a professional translator. Return only valid JSON.', 0.3);
 

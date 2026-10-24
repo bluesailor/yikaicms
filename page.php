@@ -59,7 +59,9 @@ if ($slug) {
     $channel = null;
 }
 
-if (!$channel || $channel['status'] != 1) {
+$previewChannel = adminDraftPreviewRow('channels', $channelId);
+if ($previewChannel) $channel = $previewChannel;
+if (!$channel || (!$previewChannel && $channel['status'] != 1)) {
     header('HTTP/1.1 404 Not Found');
     render404(__('error_page_not_found'));
 }
@@ -147,7 +149,7 @@ if ($channel['type'] === 'album' && $channel['album_id'] > 0) {
 }
 
 // 页面跳转逻辑
-$redirectType = $channel['redirect_type'] ?? 'auto';
+$redirectType = $previewChannel ? 'none' : ($channel['redirect_type'] ?? 'auto');
 
 if ($redirectType === 'url' && !empty($channel['redirect_url'])) {
     // 指定地址跳转（仅允许站内路径或本站域名）
@@ -167,6 +169,9 @@ if ($redirectType === 'url' && !empty($channel['redirect_url'])) {
 
 // 单页内容直接从栏目表读取
 $publishedContent = contentModel()->getFirstByChannel($channelId);
+if ($previewChannel) {
+    $publishedContent = contentModel()->getFirstByChannel($channelId, siteLang(), false);
+}
 $hasPublishedBlox = is_array($publishedContent)
     && ($publishedContent['content_type'] ?? '') === 'blocks'
     && !empty($publishedContent['blocks_data']);
@@ -186,7 +191,7 @@ if ($hasPublishedBlox) {
     ];
 } else {
     // 向后兼容：如果栏目表没内容，回退到 contents 表
-    $content = contentModel()->getFirstByChannel($channelId);
+    $content = $publishedContent;
 }
 
 $draftPreviewJson = BloxPublicationStatus::pageDraftPreview($channelId);

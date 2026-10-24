@@ -15,7 +15,7 @@ declare(strict_types=1);
 
 extract($context, EXTR_SKIP);
 
-$pcListUrl = channelUrl($channel);
+$pcListUrl = $isProductType && $productCategory ? draftPreviewEntityUrl('product_categories', $productCategory, productCategoryUrl($productCategory)) : contentListUrl($channel);
 $pcDynamicRoute = str_contains($pcListUrl, 'yk_route=');
 $pcRoute = $isProductType ? 'product_list' : 'list';
 $pcNav = (string) $catalog['nav'];

@@ -14,6 +14,23 @@ require_once ROOT_PATH . '/includes/builder/bootstrap.php';
 
 final class HomeBloxRendererTest extends TestCase
 {
+    public function testGradientIsNotCoveredByImportedSurfaceBackground(): void
+    {
+        $section = [
+            'settings' => ['bg_gradient' => 'linear-gradient(135deg,#8e9eab 0%,#eef2f3 100%)', 'container_bg' => 'var(--yk-color-surface)'],
+            'columns' => [['elements' => [['type' => 'home-block', 'data' => ['block_type' => 'channel', 'enabled' => true]]]]],
+        ];
+        $render = static fn (array $element): string => '<div>Products</div>';
+        $html = HomeBloxRenderer::render([$section], $render);
+        $this->assertStringContainsString('background-image:linear-gradient(', $html);
+        $this->assertStringNotContainsString('background-color:var(--yk-color-surface)', $html);
+        $section['settings']['container_bg'] = '#ffffff';
+        $this->assertStringContainsString('background-color:#ffffff', HomeBloxRenderer::render([$section], $render));
+        $section['settings']['container_bg'] = 'var(--yk-color-surface)';
+        unset($section['settings']['bg_gradient']);
+        $this->assertStringContainsString('background-color:var(--yk-color-surface)', HomeBloxRenderer::render([$section], $render));
+    }
+
     protected function tearDown(): void
     {
         BlockRenderer::$showHidden = false;

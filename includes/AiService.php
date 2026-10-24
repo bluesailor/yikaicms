@@ -171,7 +171,7 @@ class AiService
      * @param float  $temperature 随机性 0-1
      * @return array ['success' => bool, 'content' => string, 'error' => string]
      */
-    public function chat(string $prompt, string $system = '', float $temperature = 0.7): array
+    public function chat(string $prompt, string $system = '', float $temperature = 0.7, bool $jsonObject = false): array
     {
         if (!$this->isConfigured()) {
             return ['success' => false, 'content' => '', 'error' => 'AI 未配置，请先在设置中填写 API Key'];
@@ -183,7 +183,10 @@ class AiService
             if ($cfg['format'] === 'anthropic') {
                 $result = $this->callAnthropic($prompt, $system, $temperature);
             } else {
-                $result = $this->callOpenAI($prompt, $system, $temperature);
+                $result = $this->callOpenAI($prompt, $system, $temperature, $jsonObject);
+                if ($jsonObject && empty($result['success']) && preg_match('/response_format|json_object/i', (string) ($result['error'] ?? ''))) {
+                    $result = $this->callOpenAI($prompt, $system, $temperature);
+                }
             }
             $this->logUsage($result);
             return $result;
@@ -414,7 +417,7 @@ class AiService
      * OpenAI 兼容格式调用（OpenAI / DeepSeek / Qwen / 智谱）
      */
     /** @param string|list<array<string,string>> $prompt */
-    private function callOpenAI(string|array $prompt, string $system, float $temperature): array
+    private function callOpenAI(string|array $prompt, string $system, float $temperature, bool $jsonObject = false): array
     {
         $messages = [];
         if ($system) {
@@ -428,6 +431,7 @@ class AiService
             'temperature' => $temperature,
             'max_tokens'  => 4096,
         ];
+        if ($jsonObject) $payload['response_format'] = ['type' => 'json_object'];
 
         $response = $this->httpPost(
             rtrim($this->baseUrl, '/') . '/chat/completions',
