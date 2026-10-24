@@ -1,0 +1,601 @@
+--- a/plugins/logo-maker/admin-local.php
++++ b/plugins/logo-maker/admin-local.php
+@@ -4,6 +4,8 @@
+ if (!defined('ROOT_PATH')) {
+     exit('Access Denied');
+ }
++
++require_once __DIR__ . '/lib.php';
+
+ $localLayouts = [
+     'horizontal' => __('logo_maker_layout_horizontal'),
+--- a/themes/business/blocks/channel.php
++++ b/themes/business/blocks/channel.php
+@@ -20,7 +20,7 @@
+ <section class="py-20 business-surface" <?= $surface['attributes'] ?> <?= $surface['style'] ?>>
+     <?= $surface['overlay'] ?>
+     <div class="<?= e($surface['container'] . ' ' . $surface['content']) ?>">
+-        <!-- title -->
++        <?php /* title */ ?>
+         <div class="flex items-end justify-between mb-12" data-animate="fade-up">
+             <div>
+                 <h2 class="text-3xl font-bold business-title mb-3"><?php echo e($hChannel['name']); ?></h2>
+@@ -38,7 +38,7 @@
+         <?php if (!empty($contents)): ?>
+
+         <?php if ($hChannel['is_product'] ?? false): ?>
+-        <!-- Product grid -->
++        <?php /* Product grid */ ?>
+         <div class="grid <?php echo $productGrid; ?> gap-6" data-stagger>
+             <?php foreach ($contents as $item): ?>
+             <a href="<?php echo productUrl($item); ?>" class="block group">
+@@ -57,7 +57,7 @@
+         </div>
+
+         <?php elseif ($channelType === 'case'): ?>
+-        <!-- Case Grid -->
++        <?php /* Case Grid */ ?>
+         <div class="grid <?php echo $caseGrid; ?> gap-6" data-stagger>
+             <?php foreach ($contents as $item): ?>
+             <a href="<?php echo contentUrl($item); ?>" class="block group">
+@@ -72,7 +72,7 @@
+         </div>
+
+         <?php else: ?>
+-        <!-- Article grid -->
++        <?php /* Article grid */ ?>
+         <div class="grid <?php echo $articleGrid; ?> gap-6" data-stagger>
+             <?php foreach ($contents as $item): ?>
+             <a href="<?php echo contentUrl($item); ?>" class="block group">
+@@ -92,7 +92,7 @@
+         </div>
+         <?php endif; ?>
+
+-        <!-- View more on mobile -->
++        <?php /* View more on mobile */ ?>
+         <div class="mt-8 text-center md:hidden">
+             <a href="<?php echo e(($hChannel['home_button_url'] ?? '') ?: channelUrl($hChannel)); ?>" class="inline-block bg-primary hover:bg-secondary text-white px-6 py-2 rounded-full text-sm transition">
+                 <?php echo e($hChannel['home_button_text'] ?? __('home_view_all')); ?> &raquo;
+--- a/themes/business/blocks/testimonials.php
++++ b/themes/business/blocks/testimonials.php
+@@ -25,7 +25,7 @@
+             <div class="business-card shadow-md p-6<?php echo $tmSlider ? ' h-full' : ''; ?>">
+                 <p class="business-copy text-sm leading-relaxed mb-6">"<?php echo e($tm['content'] ?? ''); ?>"</p>
+                 <div class="flex items-center">
+-                    <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold mr-3">
++                    <div class="w-10 h-10 rounded-full bg-primary text-white flex items-center justify-center font-bold me-3">
+                         <?php echo e(mb_substr($tm['name'] ?? '', 0, 1)); ?>
+                     </div>
+                     <div>
+--- a/themes/business/layouts/footer.php
++++ b/themes/business/layouts/footer.php
+@@ -11,7 +11,7 @@
+     : ($footerNavRaw ? (json_decode($footerNavRaw, true) ?: []) : []);
+ ?>
+
+-    <!-- footer -->
++    <?php /* footer */ ?>
+     <?php $ykBloxFooter = function_exists('bloxAreaHtml') ? bloxAreaHtml('footer') : ''; ?>
+     <?php if ($ykBloxFooter !== ''): ?>
+     <?php echo $ykBloxFooter; // Blox 页脚接管；未发布时保留主题原生页脚 ?>
+--- a/themes/business/layouts/header.php
++++ b/themes/business/layouts/header.php
+@@ -55,7 +55,7 @@
+
+ ?>
+ <!DOCTYPE html>
+-<html lang="<?php echo getLang(); ?>">
++<html lang="<?php echo e(getLang()); ?>"<?php echo function_exists('htmlDirAttr') ? htmlDirAttr() : ''; ?>>
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+@@ -109,7 +109,7 @@
+ </head>
+ <body class="bg-gray-50 min-h-screen flex flex-col">
+
+-    <!-- Navigation bar -->
++    <?php /* Navigation bar */ ?>
+     <?php $ykBloxHeader = function_exists('bloxAreaHtml') ? bloxAreaHtml('header') : ''; ?>
+     <?php if ($ykBloxHeader !== ''): ?>
+     <?php echo $ykBloxHeader; // Blox 页眉接管；未发布时保留主题原生页眉 ?>
+@@ -117,7 +117,7 @@
+     <header id="siteHeader" class="nav-solid shadow-lg transition-all duration-300"<?php echo !empty($isHomePage) ? ' data-business-home-header' : ''; ?>>
+         <div class="container mx-auto px-4">
+             <div class="flex items-center justify-between gap-4 h-16 md:h-20">
+-                <!-- Logo -->
++                <?php /* Logo */ ?>
+                 <a href="<?php echo e(isDynamicUrlMode() ? dynamicUrl('home') : langPrefix() . '/'); ?>" class="flex shrink-0 items-center gap-2">
+                     <?php if ($siteLogo): ?>
+                     <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteName); ?>" class="w-auto" style="height:<?php echo $siteLogoMaxHeight; ?>px;max-height:64px;">
+@@ -126,7 +126,7 @@
+                     <?php endif; ?>
+                 </a>
+
+-                <!-- Desktop navigation -->
++                <?php /* Desktop navigation */ ?>
+                 <nav class="hidden xl:flex items-center gap-1 whitespace-nowrap">
+                     <?php foreach ($navChannels as $navItem):
+                         $hasChildren = !empty($navItem['children']);
+@@ -136,10 +136,10 @@
+                         $navUrl = getChannelUrl($navItem);
+                     ?>
+                     <?php if ($hasChildren): ?>
+-                    <!-- 改用 default 主题同款的 .nav-dropdown / .nav-dropdown-menu 钩子，
++                    <?php /* 改用 default 主题同款的 .nav-dropdown / .nav-dropdown-menu 钩子，
+                          走 assets/css/style.css 里现成的纯 CSS hover 规则；
+                          之前的 Tailwind `group-hover:opacity-100/visible` 没被编译进
+-                         tailwind.css，导致下拉永远 opacity-0 / invisible 的空白 bug。 -->
++                         tailwind.css，导致下拉永远 opacity-0 / invisible 的空白 bug。 */ ?>
+                     <div class="nav-dropdown">
+                         <a href="<?php echo $navUrl; ?>" class="nav-link px-2 py-2 text-sm font-medium transition inline-flex items-center gap-1 <?php echo $isActive ? 'font-bold' : ''; ?>">
+                             <?php echo e($navItem['name']); ?>
+@@ -156,14 +156,14 @@
+                     <?php endif; ?>
+                     <?php endforeach; ?>
+
+-                    <!-- CTA button -->
+-                    <a data-testid="theme-header-consult" href="<?php echo e($consultUrl); ?>" class="ml-3 bg-primary hover:bg-secondary text-white px-5 py-2 rounded-full text-sm font-medium transition">
++                    <?php /* CTA button */ ?>
++                    <a data-testid="theme-header-consult" href="<?php echo e($consultUrl); ?>" class="ms-3 bg-primary hover:bg-secondary text-white px-5 py-2 rounded-full text-sm font-medium transition">
+                         <?php echo __('detail_consult'); ?>
+                     </a>
+                     <?php echo $nativeLanguageSwitcher; ?>
+                 </nav>
+
+-                <!-- mobile menu button -->
++                <?php /* mobile menu button */ ?>
+                 <button id="mobileMenuBtn" type="button" aria-controls="mobileMenu" aria-expanded="false"
+                         class="xl:hidden inline-flex h-11 w-11 items-center justify-center rounded-md text-white transition hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60"
+                         aria-label="<?php echo e(__('menu_label')); ?>">
+@@ -172,13 +172,13 @@
+             </div>
+         </div>
+
+-        <!-- Mobile menu -->
++        <?php /* Mobile menu */ ?>
+         <nav id="mobileMenu" class="xl:hidden hidden bg-slate-800 border-t border-slate-700">
+             <div class="container mx-auto px-4 py-4">
+                 <?php foreach ($navChannels as $navItem): ?>
+                 <a href="<?php echo getChannelUrl($navItem); ?>" class="block py-2 text-gray-300 hover:text-white"><?php echo e($navItem['name']); ?></a>
+                 <?php if (!empty($navItem['children'])): ?>
+-                <div class="pl-4">
++                <div class="ps-4">
+                     <?php echo renderNavMobileItems($navItem['children'], 0, '', 'block py-1.5 text-gray-400 hover:text-white text-sm'); ?>
+                 </div>
+                 <?php endif; ?>
+@@ -195,5 +195,5 @@
+
+     <?php do_action('ik_header_after'); ?>
+
+-    <!-- Main content -->
++    <?php /* Main content */ ?>
+     <main class="flex-1">
+--- a/themes/business/partials/article-card.php
++++ b/themes/business/partials/article-card.php
+@@ -14,9 +14,9 @@
+    class="group flex gap-0 bg-white border border-slate-200
+           hover:border-primary hover:shadow-[0_8px_24px_-12px_rgba(59,108,245,0.45)]
+           transition relative overflow-hidden">
+-    <!-- 左侧蓝色 accent，hover 时拉伸 -->
++    <?php /* 左侧蓝色 accent，hover 时拉伸 */ ?>
+     <span aria-hidden
+-          class="absolute left-0 top-0 bottom-0 w-1 bg-primary
++          class="absolute start-0 top-0 bottom-0 w-1 bg-primary
+                  scale-y-0 group-hover:scale-y-100 origin-top transition duration-300"></span>
+
+     <?php if (listShowEl($__lo, 'cover') && !empty($item['cover'])): ?>
+@@ -37,7 +37,7 @@
+
+         <h3 class="text-lg font-bold text-slate-900 group-hover:text-primary transition line-clamp-2 leading-snug">
+             <?php if (!empty($item['is_top'])): ?>
+-            <span class="inline-block text-[10px] bg-primary text-white px-1.5 py-0.5 mr-2 align-middle uppercase tracking-wide"><?php echo e(__('article_top')); ?></span>
++            <span class="inline-block text-[10px] bg-primary text-white px-1.5 py-0.5 me-2 align-middle uppercase tracking-wide"><?php echo e(__('article_top')); ?></span>
+             <?php endif; ?>
+             <?php echo e($item['title']); ?>
+         </h3>
+@@ -61,7 +61,7 @@
+                 <?php echo number_format((int)($item['views'] ?? 0)); ?>
+             </span>
+             <?php endif; ?>
+-            <span class="ml-auto text-primary opacity-0 group-hover:opacity-100 translate-x-0 group-hover:translate-x-1 transition duration-300 flex items-center gap-1 font-medium">
++            <span class="ms-auto text-primary opacity-0 group-hover:opacity-100 translate-x-0 group-hover:translate-x-1 transition duration-300 flex items-center gap-1 font-medium">
+                 <?php echo __('learn_more'); ?>
+                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 8l4 4m0 0l-4 4m4-4H3"/></svg>
+             </span>
+--- a/themes/business/partials/case-card.php
++++ b/themes/business/partials/case-card.php
+@@ -19,13 +19,13 @@
+         </div>
+         <?php endif; ?>
+
+-        <!-- 悬停叠层：底部蓝色滑入条 -->
++        <?php /* 悬停叠层：底部蓝色滑入条 */ ?>
+         <div aria-hidden
+              class="absolute inset-x-0 bottom-0 h-1 bg-primary
+-                    scale-x-0 group-hover:scale-x-100 origin-left transition duration-500"></div>
++                    scale-x-0 group-hover:scale-x-100 origin-left rtl:origin-right transition duration-500"></div>
+
+-        <!-- 右上"案例 →" 标记 -->
+-        <div class="absolute top-0 right-0 bg-slate-900/85 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1.5
++        <?php /* 右上"案例 →" 标记 */ ?>
++        <div class="absolute top-0 end-0 bg-slate-900/85 text-white text-[10px] font-bold uppercase tracking-widest px-3 py-1.5
+                     opacity-0 group-hover:opacity-100 transition duration-300">
+             <?php echo 'CASE'; ?>
+         </div>
+--- a/themes/business/partials/job-card.php
++++ b/themes/business/partials/job-card.php
+@@ -8,7 +8,7 @@
+ <a href="<?php echo jobUrl($item); ?>"
+    class="group flex bg-white border border-slate-200 hover:border-primary
+           transition relative">
+-    <!-- 左侧蓝色 accent 条 -->
++    <?php /* 左侧蓝色 accent 条 */ ?>
+     <span aria-hidden class="w-1 bg-primary flex-shrink-0"></span>
+
+     <div class="flex-1 px-6 py-5 flex flex-wrap gap-4 items-start justify-between">
+--- a/themes/business/partials/page-hero.php
++++ b/themes/business/partials/page-hero.php
+@@ -23,7 +23,7 @@
+ ?>
+ <?php if ($heroBgCss !== ''): ?>
+
+-<!-- 有封面图时：breadcrumb 仍用浅色带（在图上方），标题压在图上 -->
++<?php /* 有封面图时：breadcrumb 仍用浅色带（在图上方），标题压在图上 */ ?>
+ <div class="bg-slate-100 border-b border-slate-200">
+     <div class="container mx-auto px-4 py-3">
+         <?php $style = 'default'; require theme_path('partials/breadcrumb.php'); ?>
+@@ -49,21 +49,21 @@
+
+ <?php else: ?>
+
+-<!-- 无封面图：breadcrumb 灰色带（slate-100，比 body 的 gray-50 明显深一档） -->
++<?php /* 无封面图：breadcrumb 灰色带（slate-100，比 body 的 gray-50 明显深一档） */ ?>
+ <div class="bg-slate-100 border-b border-slate-200">
+     <div class="container mx-auto px-4 py-3">
+         <?php $style = 'default'; require theme_path('partials/breadcrumb.php'); ?>
+     </div>
+ </div>
+
+-<!-- 标题区：白底，padding 收紧（之前 py-16 上下 128px 实测留白太空） -->
++<?php /* 标题区：白底，padding 收紧（之前 py-16 上下 128px 实测留白太空） */ ?>
+ <section class="relative py-6 md:py-8 bg-white border-b border-slate-200 overflow-hidden">
+-    <!-- 右上角主色装饰圆（高度也跟着缩，避免在低高度区块里抢戏） -->
+-    <div aria-hidden class="absolute -top-24 -right-24 w-64 h-64 rounded-full bg-primary/8 blur-3xl"></div>
++    <?php /* 右上角主色装饰圆（高度也跟着缩，避免在低高度区块里抢戏） */ ?>
++    <div aria-hidden class="absolute -top-24 -end-24 w-64 h-64 rounded-full bg-primary/8 blur-3xl"></div>
+
+     <div class="container mx-auto px-4 relative">
+         <div class="flex items-center gap-5 max-w-4xl">
+-            <!-- 主色竖条作为视觉引导（高度跟标题字号匹配） -->
++            <?php /* 主色竖条作为视觉引导（高度跟标题字号匹配） */ ?>
+             <div class="hidden sm:block w-1 self-stretch min-h-[3rem] bg-gradient-to-b from-primary to-secondary flex-shrink-0"></div>
+             <div class="flex-1 min-w-0">
+                 <h1 class="text-2xl md:text-4xl font-bold text-slate-900 leading-tight tracking-tight">
+@@ -78,7 +78,7 @@
+         </div>
+     </div>
+
+-    <!-- 底部主色细分隔线（贯穿整宽） -->
++    <?php /* 底部主色细分隔线（贯穿整宽） */ ?>
+     <div aria-hidden class="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent"></div>
+ </section>
+ <?php endif; ?>
+--- a/themes/business/partials/pagination.php
++++ b/themes/business/partials/pagination.php
+@@ -11,7 +11,7 @@
+ ?>
+ <?php if ($total > $perPage): ?>
+ <nav aria-label="pagination" class="mt-10 flex items-center justify-between gap-4 flex-wrap">
+-    <!-- 总条数 / 当前页提示 -->
++    <?php /* 总条数 / 当前页提示 */ ?>
+     <div class="text-xs text-slate-500 font-medium tracking-wide">
+         <?php
+         // 「123 条 · 第 5/10 页」这种拼法只在中文成立：英文是 "123 items · Page 5 of 10"，
+@@ -24,7 +24,7 @@
+         ?>
+     </div>
+
+-    <!-- 翻页按钮组 -->
++    <?php /* 翻页按钮组 */ ?>
+     <ul class="flex items-stretch divide-x divide-slate-200 border border-slate-200">
+         <?php
+         $btnBase   = 'px-3 min-w-[2.5rem] flex items-center justify-center text-sm transition select-none';
+--- a/themes/business/partials/product-card.php
++++ b/themes/business/partials/product-card.php
+@@ -22,7 +22,7 @@
+         <?php endif; ?>
+
+         <?php if ($isProductType && (!empty($item['is_new']) || !empty($item['is_hot']) || !empty($item['is_recommend']))): ?>
+-        <div class="absolute top-2 left-2 flex flex-col gap-1">
++        <div class="absolute top-2 start-2 flex flex-col gap-1">
+             <?php if (!empty($item['is_new'])): ?>
+             <span class="bg-emerald-600 text-white text-[10px] font-bold px-2 py-0.5 uppercase tracking-wider">NEW</span>
+             <?php endif; ?>
+@@ -35,10 +35,10 @@
+         </div>
+         <?php endif; ?>
+
+-        <!-- hover 时底部蓝色滑入条 -->
++        <?php /* hover 时底部蓝色滑入条 */ ?>
+         <div aria-hidden
+              class="absolute inset-x-0 bottom-0 h-0.5 bg-primary
+-                    scale-x-0 group-hover:scale-x-100 origin-left transition duration-500"></div>
++                    scale-x-0 group-hover:scale-x-100 origin-left rtl:origin-right transition duration-500"></div>
+     </div>
+
+     <div class="px-5 py-4 border-t border-slate-100">
+--- a/themes/business/partials/right_sidebar.php
++++ b/themes/business/partials/right_sidebar.php
+@@ -13,7 +13,7 @@
+ ?>
+ <aside class="w-full lg:w-72 space-y-6<?php echo is_array($sidebarItems) ? ' business-download-sidebar' : ''; ?>">
+
+-    <!-- 子栏目导航 -->
++    <?php /* 子栏目导航 */ ?>
+     <div class="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-sm">
+         <div class="bg-primary px-5 py-4">
+             <span class="text-white font-bold tracking-wide text-base">
+@@ -53,7 +53,7 @@
+         </ul>
+     </div>
+
+-    <!-- 联系卡：与栏目导航共用蓝白层级 -->
++    <?php /* 联系卡：与栏目导航共用蓝白层级 */ ?>
+     <?php
+     $phone   = configRawLang('contact_phone');
+     $email   = configRawLang('contact_email');
+--- a/themes/minimal/blocks/about.php
++++ b/themes/minimal/blocks/about.php
+@@ -23,7 +23,7 @@
+     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?> px-6 lg:px-8">
+         <div class="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
+             <?php if ($aboutLayout === 'image_left'): ?>
+-            <!-- Image Left -->
++            <?php /* Image Left */ ?>
+             <div>
+                 <img loading="lazy" src="<?php echo e($aboutImage); ?>" alt="<?php echo __('home_about_title'); ?>" class="w-full">
+             </div>
+@@ -40,7 +40,7 @@
+                 <?php endif; ?>
+             </div>
+             <?php else: ?>
+-            <!-- Text Left (default) -->
++            <?php /* Text Left (default) */ ?>
+             <div>
+                 <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo e($aboutTitle); ?></h2>
+                 <?php echo homeTitleDeco(false, '', '<div class="w-12 h-px bg-gray-900 mt-4"></div>'); ?>
+--- a/themes/minimal/blocks/banner.php
++++ b/themes/minimal/blocks/banner.php
+@@ -19,7 +19,7 @@
+                     <?php if (!empty($banner['title']) || !empty($banner['subtitle']) || !empty($banner['btn1_text']) || !empty($banner['btn2_text'])): ?>
+                     <div class="absolute inset-0 flex items-center bg-white/70 pointer-events-none" data-blox-banner-content<?php echo class_exists('BannerContentLayout') ? BannerContentLayout::attributes($banner ?? [], $block ?? []) : ''; ?>>
+                         <div class="w-full max-w-7xl mx-auto px-6 lg:px-10" data-blox-banner-shell>
+-                            <div class="max-w-2xl text-left" data-blox-banner-box>
++                            <div class="max-w-2xl text-start" data-blox-banner-box>
+                                 <?php if (!empty($banner['title'])): ?>
+                                 <h1 class="text-3xl md:text-5xl font-light text-gray-900 leading-tight mb-4" data-blox-layer style="--blox-layer-order:0"><?php echo e($banner['title']); ?></h1>
+                                 <?php endif; ?>
+--- a/themes/minimal/blocks/channel.php
++++ b/themes/minimal/blocks/channel.php
+@@ -16,7 +16,7 @@
+ <section class="py-20 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
+     <?php echo $bg['overlay']; ?>
+     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?> px-6 lg:px-8">
+-        <!-- Section Title -->
++        <?php /* Section Title */ ?>
+         <div class="mb-16">
+             <h2 class="text-2xl font-light text-gray-900 tracking-wide"><?php echo e($hChannel['name']); ?></h2>
+             <?php echo homeTitleDeco(false, '', '<div class="w-12 h-px bg-gray-900 mt-4"></div>'); ?>
+@@ -28,7 +28,7 @@
+         <?php if (!empty($contents)): ?>
+
+         <?php if ($hChannel['is_product'] ?? false): ?>
+-        <!-- Products -->
++        <?php /* Products */ ?>
+         <?php $categories = $hChannel['categories'] ?? []; ?>
+         <?php if (!empty($categories)): ?>
+         <div class="flex flex-wrap gap-4 mb-12" id="productCategoryNav">
+@@ -70,7 +70,7 @@
+         </div>
+
+         <?php elseif ($channelType === 'case'): ?>
+-        <!-- Cases -->
++        <?php /* Cases */ ?>
+         <div class="grid <?php echo $caseGrid; ?> gap-8">
+             <?php foreach ($contents as $item): ?>
+             <a href="<?php echo contentUrl($item); ?>" class="block border border-gray-200 hover:border-gray-400 transition group">
+@@ -98,7 +98,7 @@
+         </div>
+
+         <?php else: ?>
+-        <!-- Articles -->
++        <?php /* Articles */ ?>
+         <div class="grid <?php echo $articleGrid; ?> gap-6">
+             <?php foreach ($contents as $item):
+                 $itemUrl = ($hChannel['slug'] === 'news') ? '/news/article/' . $item['id'] . '.html' : contentUrl($item);
+@@ -124,7 +124,7 @@
+         <?php endif; ?>
+
+         <?php else: ?>
+-        <!-- Empty placeholder -->
++        <?php /* Empty placeholder */ ?>
+         <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+             <?php for ($i = 0; $i < 3; $i++): ?>
+             <div class="border border-gray-200">
+--- a/themes/minimal/blocks/stats.php
++++ b/themes/minimal/blocks/stats.php
+@@ -12,9 +12,9 @@
+ <section class="py-20 <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
+     <?php echo $bg['overlay']; ?>
+     <div class="<?php echo $bg['container']; ?> <?php echo $bg['content']; ?> px-6 lg:px-8">
+-        <div class="grid grid-cols-2 md:grid-cols-4 divide-x divide-gray-200" data-stagger>
++        <div class="grid grid-cols-2 md:grid-cols-4 divide-x rtl:divide-x-reverse divide-gray-200" data-stagger>
+             <?php for ($i = 1; $i <= 4; $i++): ?>
+-            <div class="px-6 first:pl-0 last:pr-0">
++            <div class="px-6 first:ps-0 last:pe-0">
+                 <div<?php echo $_homeFieldAttr('stats_items.' . ($i - 1) . '.number'); ?> class="text-4xl md:text-5xl font-light text-gray-900 tracking-tight stat-number"
+                      data-count="<?php echo e(config("home_stat_{$i}_num", '10+')); ?>">
+                     <?php echo e(config("home_stat_{$i}_num", '10+')); ?>
+--- a/themes/minimal/blocks/testimonials.php
++++ b/themes/minimal/blocks/testimonials.php
+@@ -32,7 +32,7 @@
+             ?>
+             <?php if ($tmSlider): ?><div class="swiper-slide"><?php endif; ?>
+             <figure class="border-t border-gray-300 pt-8<?php echo $tmSlider ? ' h-full' : ''; ?>">
+-                <!-- 大引号字符替代图标 -->
++                <?php /* 大引号字符替代图标 */ ?>
+                 <div class="text-5xl font-serif text-gray-300 leading-none mb-4">&ldquo;</div>
+                 <blockquote class="text-gray-700 text-base leading-relaxed font-light">
+                     <?php echo e($content); ?>
+--- a/themes/minimal/layouts/footer.php
++++ b/themes/minimal/layouts/footer.php
+@@ -2,7 +2,7 @@
+
+     <?php do_action('ik_footer_before'); ?>
+
+-    <!-- Footer -->
++    <?php /* Footer */ ?>
+     <?php $ykBloxFooter = function_exists('bloxAreaHtml') ? bloxAreaHtml('footer') : ''; ?>
+     <?php if ($ykBloxFooter !== ''): ?>
+     <?php echo $ykBloxFooter; // Blox 页脚接管；未发布时保留主题原生页脚 ?>
+@@ -27,9 +27,9 @@
+         });
+     </script>
+
+-    <!-- Lightbox -->
++    <?php /* Lightbox */ ?>
+     <div id="ik-lightbox" class="fixed inset-0 z-[200] bg-black/80 hidden items-center justify-center cursor-zoom-out" onclick="if(event.target===this){this.classList.add('hidden');this.classList.remove('flex');document.body.style.overflow=''}">
+-        <button onclick="this.parentElement.classList.add('hidden');this.parentElement.classList.remove('flex');document.body.style.overflow=''" class="absolute top-4 right-4 text-white/80 hover:text-white text-4xl leading-none cursor-pointer">&times;</button>
++        <button onclick="this.parentElement.classList.add('hidden');this.parentElement.classList.remove('flex');document.body.style.overflow=''" class="absolute top-4 end-4 text-white/80 hover:text-white text-4xl leading-none cursor-pointer">&times;</button>
+         <img id="ik-lightbox-img" src="" class="max-w-[90vw] max-h-[90vh] shadow-2xl" onclick="event.stopPropagation()">
+     </div>
+     <script>
+@@ -56,7 +56,7 @@
+     });
+     </script>
+
+-    <!-- scroll-in animation（滚动入场；缺它则 data-animate/stagger 元素停留在 opacity:0 → 看不到内容）-->
++    <?php /* scroll-in animation（滚动入场；缺它则 data-animate/stagger 元素停留在 opacity:0 → 看不到内容） */ ?>
+     <script>
+     (function(){
+         if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return; // 减动偏好由 CSS 兜底显示
+--- a/themes/minimal/layouts/header.php
++++ b/themes/minimal/layouts/header.php
+@@ -95,7 +95,7 @@
+
+ ?>
+ <!DOCTYPE html>
+-<html lang="<?php echo getLang(); ?>">
++<html lang="<?php echo e(getLang()); ?>"<?php echo function_exists('htmlDirAttr') ? htmlDirAttr() : ''; ?>>
+ <head>
+     <meta charset="UTF-8">
+     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+@@ -114,7 +114,7 @@
+     <link rel="canonical" href="<?php echo e($canonicalUrl); ?>">
+     <?php echo renderHreflangs(); ?>
+     <link rel="icon" href="<?php echo e(config('site_favicon', '/favicon.ico')); ?>">
+-    <!-- OpenGraph -->
++    <?php /* OpenGraph */ ?>
+     <meta property="og:title" content="<?php echo e($fullTitle); ?>">
+     <meta property="og:description" content="<?php echo e($ogDescription); ?>">
+     <meta property="og:type" content="<?php echo e($ogType); ?>">
+@@ -123,14 +123,14 @@
+     <?php if ($ogImage): ?>
+     <meta property="og:image" content="<?php echo e($ogImage); ?>">
+     <?php endif; ?>
+-    <!-- Twitter Card -->
++    <?php /* Twitter Card */ ?>
+     <meta name="twitter:card" content="summary_large_image">
+     <meta name="twitter:title" content="<?php echo e($fullTitle); ?>">
+     <meta name="twitter:description" content="<?php echo e($ogDescription); ?>">
+     <?php if ($ogImage): ?>
+     <meta name="twitter:image" content="<?php echo e($ogImage); ?>">
+     <?php endif; ?>
+-    <!-- JSON-LD Structured Data -->
++    <?php /* JSON-LD Structured Data */ ?>
+     <script type="application/ld+json">
+     <?php echo json_encode(array_filter([
+         '@context' => 'https://schema.org',
+@@ -159,7 +159,7 @@
+ </head>
+ <body class="minimal-theme bg-white min-h-screen flex flex-col text-gray-800">
+
+-    <!-- Header -->
++    <?php /* Header */ ?>
+     <?php $ykBloxHeader = function_exists('bloxAreaHtml') ? bloxAreaHtml('header') : ''; ?>
+     <?php if ($ykBloxHeader !== ''): ?>
+     <?php echo $ykBloxHeader; // Blox 页眉接管；未发布或未命中时保留主题原生页眉 ?>
+@@ -167,7 +167,7 @@
+     <header id="siteHeader" class="<?php echo $headerSticky === '1' ? 'sticky top-0' : ''; ?> z-50 bg-white border-b border-gray-200">
+         <div class="container mx-auto px-6 lg:px-8">
+             <div class="flex items-center justify-between gap-6 h-20">
+-                <!-- Logo -->
++                <?php /* Logo */ ?>
+                 <a href="<?php echo e(isDynamicUrlMode() ? dynamicUrl('home') : langPrefix() . '/'); ?>" class="flex shrink-0 items-center gap-3">
+                     <?php if ($siteLogo): ?>
+                     <img src="<?php echo e($siteLogo); ?>" alt="<?php echo e($siteName); ?>" class="h-8 w-auto">
+@@ -176,7 +176,7 @@
+                     <?php endif; ?>
+                 </a>
+
+-                <!-- Desktop Navigation -->
++                <?php /* Desktop Navigation */ ?>
+                 <nav class="hidden xl:flex items-center gap-4 whitespace-nowrap">
+                     <?php foreach ($navChannels as $navItem): ?>
+                     <?php
+@@ -214,7 +214,7 @@
+                     <?php echo $nativeLanguageSwitcher; ?>
+                 </nav>
+
+-                <!-- Mobile Hamburger -->
++                <?php /* Mobile Hamburger */ ?>
+                 <button id="mobileMenuBtn" type="button" aria-controls="mobileMenu" aria-expanded="false"
+                         class="xl:hidden inline-flex h-11 w-11 items-center justify-center rounded-md text-gray-600 transition hover:bg-gray-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-gray-400/50"
+                         aria-label="<?php echo e(__('menu_label')); ?>">
+@@ -227,7 +227,7 @@
+             </div>
+         </div>
+
+-        <!-- Mobile Menu -->
++        <?php /* Mobile Menu */ ?>
+         <nav id="mobileMenu" class="xl:hidden hidden border-t border-gray-100 bg-white">
+             <div class="container mx-auto px-6 py-6 space-y-4">
+                 <?php foreach ($navChannels as $navItem): ?>
+@@ -266,5 +266,5 @@
+
+     <?php do_action('ik_header_after'); ?>
+
+-    <!-- Main Content -->
++    <?php /* Main Content */ ?>
+     <main class="flex-1">
+--- a/themes/minimal/partials/article-card.php
++++ b/themes/minimal/partials/article-card.php
+@@ -26,7 +26,7 @@
+         <?php endif; ?>
+         <h3 class="text-sm text-gray-700 group-hover:text-gray-900 transition line-clamp-2">
+             <?php if ($item['is_top']): ?>
+-            <span class="text-xs text-gray-400 mr-1">TOP</span>
++            <span class="text-xs text-gray-400 me-1">TOP</span>
+             <?php endif; ?>
+             <?php echo e($item['title']); ?>
+         </h3>
+--- a/themes/minimal/partials/page-hero.php
++++ b/themes/minimal/partials/page-hero.php
+@@ -9,7 +9,7 @@
+ ?>
+ <section class="bg-white pt-6 md:pt-8 pb-12 md:pb-16">
+     <div class="container mx-auto px-6 lg:px-8">
+-        <!-- Breadcrumb -->
++        <?php /* Breadcrumb */ ?>
+         <div class="flex items-center gap-2 text-xs text-gray-400 mb-8">
+             <a href="/" class="hover:text-gray-600 transition"><?php echo __('breadcrumb_home'); ?></a>
+             <?php foreach ($breadcrumbItems as $i => $item): ?>
+@@ -21,7 +21,7 @@
+             <?php endif; ?>
+             <?php endforeach; ?>
+         </div>
+-        <!-- Title -->
++        <?php /* Title */ ?>
+         <div class="text-center">
+             <h1 class="text-3xl md:text-4xl font-light text-gray-900 tracking-wide"><?php echo e($channel['name']); ?></h1>
+             <?php if ($channel['description']): ?>

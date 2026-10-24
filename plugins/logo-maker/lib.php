@@ -1,6 +1,7 @@
 <?php
 declare(strict_types=1);
 
+/** @psalm-suppress ParadoxicalCondition Direct requests must still require the CMS bootstrap at runtime. */
 if (!defined('ROOT_PATH')) {
     exit('Access Denied');
 }
