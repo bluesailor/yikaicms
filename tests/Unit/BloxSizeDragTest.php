@@ -53,7 +53,7 @@ final class BloxSizeDragTest extends TestCase
         $bridge = (string) file_get_contents(ROOT_PATH . '/assets/js/yikay-canvas-bridge.js');
         self::assertStringContainsString('this.onSizeDrag({ target: sized, prop: sizeProp, value: sizeValue });', $bridge);
 
-        $editor = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
+        $editor = bloxEditorSourceForTest();
         self::assertStringContainsString('onSizeDrag: function (payload) { self.applyCanvasSizeDrag(payload); },', $editor);
 
         $workspace = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor/partials/workspace.php');

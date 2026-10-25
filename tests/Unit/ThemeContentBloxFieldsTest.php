@@ -178,10 +178,10 @@ final class ThemeContentBloxFieldsTest extends TestCase
         self::assertStringContainsString("ThemeContent::save(\$theme, \$language, \$input, (string) post('fingerprint'), true);", $api);
         self::assertStringContainsString('array_diff(array_keys($input), $allowed)', $api, 'only header/footer keys may be submitted');
 
-        $editor = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
+        $editor = bloxEditorSourceForTest();
         self::assertStringContainsString("if (payload.source === \"theme\" && self.openThemeContent(payload.area)) return;", $editor);
         self::assertStringContainsString('|| this.themeContentChanged;', $editor);
-        self::assertStringContainsString("partials/theme-content-methods.php", $editor);
+        self::assertStringContainsString("'/theme-content-methods.php'", (string) file_get_contents(ROOT_PATH . '/admin/blox_editor/partials/editor-core-methods.php'));
         self::assertStringContainsString("require __DIR__ . '/theme-content-panel.php';", (string) file_get_contents(ROOT_PATH . '/admin/blox_editor/partials/workspace.php'));
         self::assertStringContainsString(
             'data-yk-context-source="\' . ($source === \'theme\' ? \'theme\' : \'blox\')',

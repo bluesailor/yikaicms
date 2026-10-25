@@ -52,7 +52,7 @@ final class ScriptBasePathContractTest extends TestCase
         $expect = [
             'admin/includes/header.php' => ["'url' => BasePath::url((string) (\$_it['url'] ?? ''))", "'url' => BasePath::url((string) \$__r['url'])"],
             'admin/api_search.php' => ["'url'   => BasePath::url((string) \$p['url'])"],
-            'admin/blox_editor.php' => ['json_encode(BasePath::urlsIn($bloxPageSwitcher)', 'json_encode(BasePath::urlsIn($bloxSourceLinks)', 'json_encode(BasePath::urlsIn($contactManageActions)'],
+            'admin/blox_editor.php' => ['json_encode(BasePath::urlsIn($bloxPageSwitcher)', 'json_encode(BasePath::urlsIn($bloxSourceLinks)', 'json_encode(BasePath::urlsIn($contactManageActions)', "BasePath::url(assetVer('/assets/hugerte/hugerte.min.js'))"],
             'product.php' => ["array_map([BasePath::class, 'url'], array_values(\$productImages))", "BasePath::imageData(\$v['main'])", "BasePath::url('/captcha.php')"],
             'detail.php' => ["array_map([BasePath::class, 'url'], array_values(\$galleryImages))"],
             'includes/partials/album-lightbox.php' => ["BasePath::url((string) \$p['image'])"],

@@ -2,7 +2,13 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const ROOT = path.join(__dirname, "..", "..", "..");
-const INCLUDE = /^ {12}<\?php require __DIR__ \. '\/blox_editor\/partials\/([a-z0-9-]+\.php)'; \?>$/gm;
+const INCLUDE = /^ {12}<\?php require __DIR__ \. '\/(blox_editor\/partials\/)?([a-z0-9-]+\.php)'; \?>\r?$/gm;
+
+function expandMethods(file) {
+    return fs.readFileSync(file, 'utf8').replace(INCLUDE, function (match, directory, name) {
+        return expandMethods(path.join(path.dirname(file), directory || '', name));
+    });
+}
 
 /**
  * 编辑器入口的源码，展开其中的方法 partial。
@@ -18,9 +24,8 @@ const INCLUDE = /^ {12}<\?php require __DIR__ \. '\/blox_editor\/partials\/([a-z
  */
 function bloxEditorSource() {
     const entry = path.join(ROOT, "admin", "blox_editor.php");
-    return fs.readFileSync(entry, "utf8").replace(INCLUDE, function (match, name) {
-        return fs.readFileSync(path.join(ROOT, "admin", "blox_editor", "partials", name), "utf8");
-    });
+    return expandMethods(entry).replace('            // @blox-editor-core-methods',
+        expandMethods(path.join(ROOT, 'admin/blox_editor/partials/editor-core-methods.php')));
 }
 
 module.exports = { bloxEditorSource };

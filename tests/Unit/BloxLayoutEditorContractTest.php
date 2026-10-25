@@ -13,7 +13,7 @@ final class BloxLayoutEditorContractTest extends TestCase
 {
     private function source(string $path): string
     {
-        return (string) file_get_contents(ROOT_PATH . '/' . $path);
+        return $path === 'admin/blox_editor.php' ? bloxEditorSourceForTest() : (string) file_get_contents(ROOT_PATH . '/' . $path);
     }
 
     public function testColumnSettingsSurviveSaving(): void
@@ -73,7 +73,7 @@ final class BloxLayoutEditorContractTest extends TestCase
 
         $editor = $this->source('admin/blox_editor.php');
         self::assertStringNotContainsString("\$jt('blox_el_container')", $editor, '面包屑曾直接显示键名 blox_el_container');
-        self::assertStringContainsString('items.push({ act: "con", label: <?= $jt(\'blox_tree_container\') ?> });', $editor);
+        self::assertStringContainsString('items.push({ act: "con", label: runtimeText.treeContainer });', $editor);
     }
 
     public function testNewInterfaceTextExistsInTheBundledLanguages(): void

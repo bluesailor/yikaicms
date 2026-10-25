@@ -52,7 +52,7 @@ declare(strict_types=1);
                         throw new Error((result && result.msg) || this.homeText.actionFailed);
                     }
                     if (this.historyData() !== before) {
-                        this.toast(<?= json_encode(__('blox_save_conflict'), JSON_UNESCAPED_UNICODE) ?>);
+                        this.toast(runtimeText.saveConflict);
                         return;
                     }
                     this.runCommand("convert-home-about", function () {
