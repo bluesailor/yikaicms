@@ -75,7 +75,7 @@ function seo_audit_scan(int $limit = 500): array
     try {
         $rows = db()->fetchAll(
             'SELECT id, title, seo_title, seo_keywords, seo_description FROM ' . DB_PREFIX . 'contents
-             WHERE status = 1 ORDER BY id DESC LIMIT ' . (int) $limit
+             WHERE status = 1 AND deleted_at IS NULL ORDER BY id DESC LIMIT ' . (int) $limit
         );
         foreach ($rows as $r) {
             $items[] = _seo_audit_row('contents', (int) $r['id'], (string) $r['title'],
