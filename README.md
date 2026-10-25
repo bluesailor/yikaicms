@@ -4,7 +4,7 @@
 
 [![Release](https://img.shields.io/github/v/release/bluesailor/yikaicms?label=release)](https://github.com/bluesailor/yikaicms/releases/latest)
 [![CI](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml/badge.svg)](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml)
-[![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4.svg?logo=php)](https://www.php.net/)
+[![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg?logo=php)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-源码公开·免费商用-green.svg)](./LICENSE)
 
 **[在线演示](https://demo.yikaicms.com)** · **[下载最新版](https://github.com/bluesailor/yikaicms/releases/latest)** · **[使用教程](https://www.yikaicms.com/tutorial.php)** · [官网](https://www.yikaicms.com) · [更新日志](https://www.yikaicms.com/changelog.html)
