@@ -3,7 +3,7 @@
  * Yikai CMS - 配置文件模板
  *
  * 安装时复制为 config.php
- * PHP 8.0+
+ * PHP 8.2+
  */
 
 declare(strict_types=1);
