@@ -119,7 +119,7 @@ final class StaticHtml
                 "SELECT c.id, c.slug, c.type, c.channel_id, ch.slug AS channel_slug, ch.type AS channel_type
                  FROM " . DB_PREFIX . "contents c
                  LEFT JOIN " . DB_PREFIX . "channels ch ON c.channel_id = ch.id
-                 WHERE c.status = 1 AND c.lang = ?
+                 WHERE c.status = 1 AND c.deleted_at IS NULL AND c.lang = ?
                  LIMIT 20000",
                 [$lang]
             );
@@ -132,7 +132,7 @@ final class StaticHtml
                 "SELECT p.id, p.slug, p.category_id, pc.slug AS category_slug
                  FROM " . DB_PREFIX . "products p
                  LEFT JOIN " . DB_PREFIX . "product_categories pc ON p.category_id = pc.id
-                 WHERE p.status = 1 AND p.lang = ?
+                 WHERE p.status = 1 AND p.deleted_at IS NULL AND p.lang = ?
                  LIMIT 20000",
                 [$lang]
             );

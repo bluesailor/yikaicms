@@ -510,7 +510,7 @@ class RecipeService
 
         if ($includeContents) {
             $contentRows = db()->fetchAll(
-                "SELECT * FROM " . DB_PREFIX . "contents WHERE lang = ? AND status = 1 ORDER BY id ASC LIMIT 500",
+                "SELECT * FROM " . DB_PREFIX . "contents WHERE lang = ? AND status = 1 AND deleted_at IS NULL ORDER BY id ASC LIMIT 500",
                 [$lang]
             );
             $contents = [];
