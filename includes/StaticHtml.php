@@ -286,7 +286,26 @@ final class StaticHtml
         if (!is_dir($dir) && !@mkdir($dir, 0755, true) && !is_dir($dir)) {
             return false;
         }
+        self::writeServerHeaders();
         return @file_put_contents($file, $html, LOCK_EX) !== false;
+    }
+
+    /** 静态目录里给 Apache 用的规则文件，不算生成的页面 */
+    public const HEADERS_FILE = '.htaccess';
+
+    /**
+     * 静态页由 Web 服务器直出、不经过 PHP，functions.php 发的安全响应头到不了这里。
+     * Apache：在 html/ 里放一份 .htaccess 补上同一组头（根目录 .htaccess 升级不覆盖，所以不放那里）；
+     * Nginx 读不了它，见 deploy/nginx-server.conf 静态 location 里的 add_header。
+     */
+    private static function writeServerHeaders(): void
+    {
+        require_once __DIR__ . '/SecurityHeaders.php';
+        $file = self::dir() . '/' . self::HEADERS_FILE;
+        $rules = SecurityHeaders::apacheRules();
+        if (@file_get_contents($file) !== $rules) {
+            @file_put_contents($file, $rules, LOCK_EX);
+        }
     }
 
     /** 清空所有已生成的静态文件，返回删除数量 */
@@ -302,7 +321,7 @@ final class StaticHtml
         foreach ($it as $f) {
             if ($f->isDir()) {
                 @rmdir($f->getPathname());
-            } elseif (@unlink($f->getPathname())) {
+            } elseif (@unlink($f->getPathname()) && $f->getFilename() !== self::HEADERS_FILE) {
                 $count++;
             }
         }
@@ -319,7 +338,7 @@ final class StaticHtml
                 new RecursiveDirectoryIterator($dir, FilesystemIterator::SKIP_DOTS)
             );
             foreach ($it as $f) {
-                if ($f->isFile()) { $files++; $size += $f->getSize(); }
+                if ($f->isFile() && $f->getFilename() !== self::HEADERS_FILE) { $files++; $size += $f->getSize(); }
             }
         }
         return [

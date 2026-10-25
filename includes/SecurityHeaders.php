@@ -37,4 +37,19 @@ final class SecurityHeaders
             header($line);
         }
     }
+
+    /**
+     * 写进 html/.htaccess 的同一组头：静态化后页面由 Apache 直出、不经过 PHP。
+     * 只放在 html/ 里，不会和 PHP 页面已经发出的头重复。
+     */
+    public static function apacheRules(): string
+    {
+        $rules = "# YikaiCMS 自动生成，请勿手改：静态页不经过 PHP，在这里补上安全响应头（同 includes/SecurityHeaders.php）\n"
+            . "<IfModule mod_headers.c>\n";
+        foreach (self::lines() as $line) {
+            [$name, $value] = explode(': ', $line, 2);
+            $rules .= '    Header set ' . $name . ' "' . $value . "\"\n";
+        }
+        return $rules . "</IfModule>\n";
+    }
 }
