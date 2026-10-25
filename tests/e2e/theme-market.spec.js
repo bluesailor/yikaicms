@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { observeConsole, observeUnsafeWrites } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 const marketThemes = ['aurora', 'business', 'minimal', 'trade'].map((slug) => ({
   slug,
@@ -28,7 +29,7 @@ test('core install keeps only default locally and discovers optional market them
       await route.continue();
       return;
     }
-    const body = new URLSearchParams(request.postData() || '');
+    const body = requestForm(request);
     if (body.get('action') !== 'market_list') {
       await route.continue();
       return;
@@ -65,7 +66,7 @@ test('theme update link opens the market and highlights its theme @ci', async ({
       await route.continue();
       return;
     }
-    const body = new URLSearchParams(request.postData() || '');
+    const body = requestForm(request);
     if (body.get('action') !== 'market_list') {
       await route.continue();
       return;

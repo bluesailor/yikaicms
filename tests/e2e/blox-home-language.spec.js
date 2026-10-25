@@ -1,4 +1,5 @@
 const { test, expect } = require('./site-diagnostics');
+const { requestForm } = require('./request-form');
 const {
   addTemporaryHeading,
   frame,
@@ -80,7 +81,7 @@ test('single-language current header survives reopening and publishes to the ano
   }
   async function command(action, button) {
     const response = page.waitForResponse(candidate => {
-      const body = new URLSearchParams(candidate.request().postData() || '');
+      const body = requestForm(candidate.request());
       return new URL(candidate.url()).pathname === '/admin/blox_template_api.php' && body.get('action') === action;
     });
     await page.getByTestId(button).click();

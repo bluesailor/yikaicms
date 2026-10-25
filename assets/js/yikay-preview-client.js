@@ -13,6 +13,9 @@
         this.getFrame = options.getFrame;
         this.getHost = options.getHost;
         this.getDocument = options.getDocument;
+        // 2.1.3：调用方已有序列化好的文档（编辑器的 documentData()）时直接给字符串，省掉
+        // 「序列化 → 解析 → 再序列化」的往返；2000 个元素的页面每次预览少两三次整份 JSON 处理。
+        this.getDocumentJson = typeof options.getDocumentJson === "function" ? options.getDocumentJson : null;
         this.getParams = options.getParams || function () { return {}; };
         this.setLoading = options.setLoading || function () {};
         this.onLoaded = options.onLoaded || function () {};
@@ -420,14 +423,17 @@
         this.controller = controller;
         this.setLoading(true);
 
-        var body = new global.URLSearchParams();
+        // multipart 而不是 urlencoded：JSON 里的引号、括号、中文在 urlencoded 下全被百分号编码，
+        // 请求体是文档本身的 3–4 倍（2.1.3 实测 326KB 的文档发出 1.2MB）。PHP 端照样读 $_POST。
+        var body = typeof global.FormData === "function" ? new global.FormData() : new global.URLSearchParams();
         body.set("action", "preview");
         body.set("blox", "1");
-        var document = JSON.parse(JSON.stringify(this.getDocument()));
+        var json = this.getDocumentJson ? String(this.getDocumentJson()) : JSON.stringify(this.getDocument());
+        var document = JSON.parse(json);
         var extraParams = this.getParams() || {};
         var paramsKey = JSON.stringify(extraParams);
         var partialId = !this.rebuilding && this.lastParams === paramsKey ? this.partialTarget(document) : null;
-        body.set("blocks_data", JSON.stringify(document));
+        body.set("blocks_data", json);
         if (partialId) {
             body.set('preview_scope', 'element');
             body.set('preview_element', partialId);

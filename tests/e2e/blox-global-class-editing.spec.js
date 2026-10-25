@@ -4,6 +4,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const { openPageEditor, frame, expectClean } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 const root = path.resolve(__dirname, '../..');
 const fixture = action => execFileSync(process.env.PHP_BINARY || 'php',
@@ -26,7 +27,7 @@ test.beforeEach(async ({}, info) => {
 const classAction = (page, action) => page.waitForResponse(response => {
   const url = new URL(response.url());
   return url.pathname === '/admin/blox_class_api.php'
-    && new URLSearchParams(response.request().postData() || '').get('action') === action;
+    && requestForm(response.request()).get('action') === action;
 });
 
 async function computed(locator) {
@@ -123,7 +124,7 @@ test('two headings share one class: canvas and published page compute the same v
   // 保存并发布页面（挂类随页面保存）
   for (const [action, button] of [['save_draft', 'blox-save'], ['publish', 'blox-publish-page']]) {
     const response = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_page_api.php'
-      && new URLSearchParams(r.request().postData() || '').get('action') === action);
+      && requestForm(r.request()).get('action') === action);
     if (action === 'publish') page.once('dialog', dialog => dialog.accept());
     await page.getByTestId(button).click();
     expect((await (await response).json()).code).toBe(0);
@@ -300,7 +301,7 @@ test('hover and keyboard-focus states: forced in the canvas while editing, live 
   // 悬停页签：只列状态字段（没有外边距），填的值在画布里对两个标题强制显示
   const forcedPreview = classAction(page, 'class_preview');
   await page.getByTestId('blox-class-state-hover').click();
-  expect(new URLSearchParams((await forcedPreview).request().postData()).get('force_states')).toContain('"hover"');
+  expect(requestForm((await forcedPreview).request()).get('force_states')).toContain('"hover"');
   await expect(page.getByTestId('blox-class-input-margin_top_px')).toHaveCount(0);
   // 悬停里没填的颜色显示为继承自基础的颜色
   await expect(page.getByTestId('blox-class-input-text_color')).toContainText('#c2410c');
@@ -331,7 +332,7 @@ test('hover and keyboard-focus states: forced in the canvas while editing, live 
   await expect(page.getByTestId(`blox-style-target-class-${CLASS_NAME}`)).toHaveAttribute('aria-pressed', 'true');
   for (const [action, button] of [['save_draft', 'blox-save'], ['publish', 'blox-publish-page']]) {
     const response = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_page_api.php'
-      && new URLSearchParams(r.request().postData() || '').get('action') === action);
+      && requestForm(r.request()).get('action') === action);
     if (action === 'publish') page.once('dialog', dialog => dialog.accept());
     await page.getByTestId(button).click();
     expect((await (await response).json()).code).toBe(0);
@@ -388,7 +389,7 @@ test('class colours can use site colour variables from the shared picker and fol
   await info.attach('class-color-picker', { body: await page.getByTestId('blox-editor-color-picker').screenshot(), contentType: 'image/png' });
   const preview = classAction(page, 'class_preview');
   await page.getByTestId('blox-editor-color-token-primary').click();
-  const drafts = JSON.parse(new URLSearchParams((await preview).request().postData()).get('drafts'));
+  const drafts = JSON.parse(requestForm((await preview).request()).get('drafts'));
   expect(Object.values(drafts)[0].bg_color).toBe('var(--yk-color-primary)');
   await page.keyboard.press('Escape');
   await expect(trigger).toHaveAttribute('data-color-token', 'primary');
@@ -415,7 +416,7 @@ test('class colours can use site colour variables from the shared picker and fol
   await trigger.click();
   const cleared = classAction(page, 'class_preview');
   await page.getByTestId('blox-editor-color-clear').click();
-  expect(JSON.parse(new URLSearchParams((await cleared).request().postData()).get('drafts'))).not.toHaveProperty([Object.keys(drafts)[0], 'bg_color']);
+  expect(JSON.parse(requestForm((await cleared).request()).get('drafts'))).not.toHaveProperty([Object.keys(drafts)[0], 'bg_color']);
   await expect(trigger).toHaveAttribute('data-color-token', '');
   await page.getByTestId('blox-class-discard').click();
 });

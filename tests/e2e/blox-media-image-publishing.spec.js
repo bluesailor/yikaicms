@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const installMarketThemes = require('./theme-market-fixture');
 const { addTemporaryHeading, frame, openPageEditor, performPagePreviewUpdate, expectClean, waitPreviewSettled } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 const root = path.resolve(__dirname, '../..');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
@@ -36,7 +37,7 @@ test('real image uploads replace without distortion and button alignment survive
 
   async function command(action, button) {
     const pending = page.waitForResponse(response => {
-      const body = new URLSearchParams(response.request().postData() || '');
+      const body = requestForm(response.request());
       return new URL(response.url()).pathname === '/admin/blox_page_api.php' && body.get('action') === action;
     });
     if (action === 'publish') page.once('dialog', dialog => dialog.accept());

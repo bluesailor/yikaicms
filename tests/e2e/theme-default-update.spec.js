@@ -1,11 +1,12 @@
 const { test, expect } = require('./site-diagnostics');
+const { requestForm } = require('./request-form');
 
 test('Default update explains file replacement and cancelling never installs @ci', async ({ page }) => {
   const installs = [];
   await page.route('**/admin/theme.php*', async route => {
     const request = route.request();
     if (request.method() !== 'POST') return route.continue();
-    const body = new URLSearchParams(request.postData() || '');
+    const body = requestForm(request);
     if (body.get('action') === 'market_install') {
       installs.push(body.get('slug'));
       return route.abort();

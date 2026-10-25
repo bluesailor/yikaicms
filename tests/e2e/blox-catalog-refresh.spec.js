@@ -2,6 +2,7 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 const { openPageEditor, frame, canvasScrollTop, performPagePreviewUpdate, observeConsole } = require('./helpers');
+const { requestForm } = require('./request-form');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 
 async function openCatalog(page, type, id) {
@@ -40,7 +41,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         context.on('page', detail => detail.on('pageerror', error => detailErrors.push(error.message)));
         page.on('request', req => {
             if (req.method() !== 'POST' || !req.url().includes('/admin/blox_page_api.php')) return;
-            const action = new URLSearchParams(req.postData()).get('action');
+            const action = requestForm(req).get('action');
             if (!['preview', 'catalog_items'].includes(action)) writes.push(action);
         });
         const panel = await openCatalog(page, type, id);
@@ -108,7 +109,7 @@ test('refresh preserves the query and page, disables duplicates and recovers fro
     const held = new Promise(resolve => { release = resolve; });
     const queries = [], actions = [];
     await page.route('**/admin/blox_page_api.php*', async route => {
-        const body = new URLSearchParams(route.request().postData());
+        const body = requestForm(route.request());
         actions.push(body.get('action'));
         if (body.get('action') === 'catalog_items') {
             queries.push(Object.fromEntries(body));

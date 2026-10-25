@@ -1,6 +1,7 @@
 const { test: base, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
+const { requestForm } = require('./request-form');
 const root = path.resolve(__dirname, '../..');
 function logs() {
   const dir = path.join(root, 'storage/logs');
@@ -40,7 +41,7 @@ const test = base.extend({
       if (response.status() >= 500) errors.push(`${response.status()} ${response.url()}`);
       if (response.status() >= 400) httpErrors.push({
         status: response.status(), url: response.url(), method: response.request().method(),
-        action: new URLSearchParams(response.request().postData() || '').get('action'),
+        action: requestForm(response.request()).get('action'),
       });
     });
     await use();

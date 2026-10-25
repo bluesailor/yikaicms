@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { observeConsole, observeUnsafeWrites } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 test('plugin market deep link filters by slug and renders install label @ci', async ({ page }) => {
   const consoleEntries = observeConsole(page);
@@ -12,7 +13,7 @@ test('plugin market deep link filters by slug and renders install label @ci', as
       await route.continue();
       return;
     }
-    const body = new URLSearchParams(request.postData() || '');
+    const body = requestForm(request);
     if (body.get('action') !== 'market_list') {
       await route.continue();
       return;

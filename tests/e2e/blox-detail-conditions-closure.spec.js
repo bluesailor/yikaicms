@@ -2,6 +2,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const { waitPreviewSettled } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 // 第一轮编辑闭环：中途非法输入、撤销/恢复稿、失败重试与文章条件往返。
 // 每一步都走真实点击；库内结果由 PHP 夹具独立读取，不依赖界面自述。
@@ -22,7 +23,7 @@ function watchSubmits(page) {
   const submits = [];
   page.on('request', (request) => {
     if (!request.url().includes('/admin/blox_template_api.php')) return;
-    const params = new URLSearchParams(request.postData() || '');
+    const params = requestForm(request);
     const action = params.get('action') || '';
     if (action === 'save_draft' || action === 'publish') submits.push({ action, params });
   });
@@ -31,10 +32,10 @@ function watchSubmits(page) {
 
 async function saveAndWait(page) {
   const response = page.waitForResponse((r) => new URL(r.url()).pathname === '/admin/blox_template_api.php'
-    && new URLSearchParams(r.request().postData() || '').get('action') === 'save_draft');
+    && requestForm(r.request()).get('action') === 'save_draft');
   await page.getByTestId('blox-save').click();
   const res = await response;
-  return { params: new URLSearchParams(res.request().postData() || ''), body: await res.json() };
+  return { params: requestForm(res.request()), body: await res.json() };
 }
 
 async function createTemplate(page, kind, name) {
@@ -171,7 +172,7 @@ test('a failed condition save does not leave a stale baseline for a later legacy
   let failNext = true;
   try {
     await page.route('**/admin/blox_template_api.php', async (route) => {
-      const action = new URLSearchParams(route.request().postData() || '').get('action') || '';
+      const action = requestForm(route.request()).get('action') || '';
       if (action === 'save_draft' && failNext) {
         failNext = false;
         // 接口返回失败（未落库）：与权限/校验失败走同一条客户端失败路径

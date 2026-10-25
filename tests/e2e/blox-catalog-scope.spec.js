@@ -2,6 +2,7 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 const { openPageEditor, observeConsole } = require('./helpers');
+const { requestForm } = require('./request-form');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 
 for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_page], ['content-catalog', 'article', fixtures.channel_list]]) {
@@ -9,7 +10,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         const errors = observeConsole(page), writes = [];
         page.on('request', req => {
             if (req.method() === 'POST' && req.url().includes('/admin/blox_page_api.php')) {
-                const action = new URLSearchParams(req.postData()).get('action');
+                const action = requestForm(req).get('action');
                 if (!['preview', 'catalog_items'].includes(action)) writes.push(action);
             }
         });
@@ -28,7 +29,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         });
         const before = await snapshot(), panel = page.getByTestId('blox-catalog-source');
         const loaded = page.waitForResponse(res => res.request().method() === 'POST'
-            && new URLSearchParams(res.request().postData()).get('action') === 'catalog_items');
+            && requestForm(res.request()).get('action') === 'catalog_items');
         await panel.locator(':scope > button').click();
         const result = await (await loaded).json();
         const lang = process.env.BLOX_E2E_SITE_LANG || 'zh-CN';
@@ -49,7 +50,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
 
         const maliciousName = '<img src=x onerror="window.catalogInjected=1">' + 'LongSourceName'.repeat(10);
         await page.route('**/admin/blox_page_api.php', async route => {
-            if (new URLSearchParams(route.request().postData()).get('action') !== 'catalog_items') return route.continue();
+            if (requestForm(route.request()).get('action') !== 'catalog_items') return route.continue();
             const response = await route.fetch(), json = await response.json();
             json.data.items[0].source_label = maliciousName;
             return route.fulfill({ response, json });
