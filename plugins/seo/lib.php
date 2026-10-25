@@ -111,7 +111,7 @@ function seo_build_llms_txt(int $contentLimit = 30, int $productLimit = 30): str
             'SELECT c.id, c.title, c.slug, c.type, c.channel_id, ch.slug AS channel_slug, ch.type AS channel_type
              FROM ' . DB_PREFIX . 'contents c
              LEFT JOIN ' . DB_PREFIX . 'channels ch ON c.channel_id = ch.id
-             WHERE c.status = 1
+             WHERE c.status = 1 AND c.deleted_at IS NULL
              ORDER BY c.publish_time DESC, c.id DESC
              LIMIT ' . (int) $contentLimit
         );
@@ -133,7 +133,7 @@ function seo_build_llms_txt(int $contentLimit = 30, int $productLimit = 30): str
             'SELECT p.id, p.title, p.slug, p.category_id, pc.slug AS category_slug
              FROM ' . DB_PREFIX . 'products p
              LEFT JOIN ' . DB_PREFIX . 'product_categories pc ON p.category_id = pc.id
-             WHERE p.status = 1
+             WHERE p.status = 1 AND p.deleted_at IS NULL
              ORDER BY p.updated_at DESC, p.id DESC
              LIMIT ' . (int) $productLimit
         );
@@ -235,7 +235,7 @@ function seo_all_urls(int $limit = 1000): array
             'SELECT c.id, c.slug, c.type, c.channel_id, ch.slug AS channel_slug, ch.type AS channel_type
              FROM ' . DB_PREFIX . 'contents c
              LEFT JOIN ' . DB_PREFIX . 'channels ch ON c.channel_id = ch.id
-             WHERE c.status = 1 ORDER BY c.publish_time DESC, c.id DESC LIMIT ' . (int) $limit
+             WHERE c.status = 1 AND c.deleted_at IS NULL ORDER BY c.publish_time DESC, c.id DESC LIMIT ' . (int) $limit
         );
         foreach ($rows as $r) {
             $urls[] = $siteUrl . contentUrl($r);
@@ -248,7 +248,7 @@ function seo_all_urls(int $limit = 1000): array
             'SELECT p.id, p.slug, p.category_id, pc.slug AS category_slug
              FROM ' . DB_PREFIX . 'products p
              LEFT JOIN ' . DB_PREFIX . 'product_categories pc ON p.category_id = pc.id
-             WHERE p.status = 1 ORDER BY p.updated_at DESC, p.id DESC LIMIT ' . (int) $limit
+             WHERE p.status = 1 AND p.deleted_at IS NULL ORDER BY p.updated_at DESC, p.id DESC LIMIT ' . (int) $limit
         );
         foreach ($rows as $r) {
             $urls[] = $siteUrl . productUrl($r);
