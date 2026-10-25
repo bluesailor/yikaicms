@@ -202,7 +202,7 @@ function seo_linkcheck_valid_set(int $limit = 1000): array
     // 旧式 ?id= / ?slug= 互链别名（历史正文与外部资料常见形态）
     try {
         foreach (db()->fetchAll(
-            'SELECT id, slug FROM ' . DB_PREFIX . 'contents WHERE status = 1 LIMIT ' . (int) $limit
+            'SELECT id, slug FROM ' . DB_PREFIX . 'contents WHERE status = 1 AND deleted_at IS NULL LIMIT ' . (int) $limit
         ) as $row) {
             $valid['/detail.php?id=' . (int) $row['id']] = true;
             if ((string) $row['slug'] !== '') {
@@ -210,7 +210,7 @@ function seo_linkcheck_valid_set(int $limit = 1000): array
             }
         }
         foreach (db()->fetchAll(
-            'SELECT id FROM ' . DB_PREFIX . 'products WHERE status = 1 LIMIT ' . (int) $limit
+            'SELECT id FROM ' . DB_PREFIX . 'products WHERE status = 1 AND deleted_at IS NULL LIMIT ' . (int) $limit
         ) as $row) {
             $valid['/product.php?id=' . (int) $row['id']] = true;
         }
@@ -261,7 +261,7 @@ function seo_linkcheck_scan(int $limit = 1000): array
         try {
             $rows = db()->fetchAll(
                 'SELECT id, title, content FROM ' . DB_PREFIX . $doc['table']
-                . ' WHERE status = 1 ORDER BY updated_at DESC, id DESC LIMIT ' . (int) $limit
+                . ' WHERE status = 1 AND deleted_at IS NULL ORDER BY updated_at DESC, id DESC LIMIT ' . (int) $limit
             );
         } catch (\Throwable $e) {
             continue;
