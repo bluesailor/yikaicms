@@ -11,7 +11,7 @@ final class BloxDraftSummaryContractTest extends TestCase
 {
     public function testEditorLoadsPublishedBaselineAndSummaryEngine(): void
     {
-        $editor = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
+        $editor = bloxEditorSourceForTest();
 
         self::assertStringContainsString('published_document_json', $editor);
         self::assertStringContainsString('HomeBloxDocument::loadPublished()', $editor);
@@ -24,7 +24,7 @@ final class BloxDraftSummaryContractTest extends TestCase
 
     public function testSuccessfulPublishMovesTheComparisonBaseline(): void
     {
-        $editor = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
+        $editor = bloxEditorSourceForTest();
 
         self::assertGreaterThanOrEqual(3, substr_count($editor, 'acceptPublishedDocument(payload);'));
         self::assertStringContainsString('this.publishedDocument = document;', $editor);

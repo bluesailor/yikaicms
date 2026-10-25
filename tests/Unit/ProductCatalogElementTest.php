@@ -44,7 +44,7 @@ final class ProductCatalogElementTest extends TestCase
         }
         $document = (string) file_get_contents(ROOT_PATH . '/includes/builder/PageBloxDocument.php');
         $frontend = (string) file_get_contents(ROOT_PATH . '/list.php');
-        $editor = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
+        $editor = bloxEditorSourceForTest();
         $admin = (string) file_get_contents(ROOT_PATH . '/admin/product.php');
 
         self::assertStringContainsString("in_array(\$type, ['page', 'product'], true)", $document);

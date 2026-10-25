@@ -60,7 +60,7 @@ final class BloxSplitLayoutTest extends TestCase
         self::assertStringContainsString("sectionInsertMode === 'split' ?", $picker, '拆分时换标题');
         self::assertSame(3, substr_count($picker, "x-show=\"sectionInsertMode !== 'split'\""), '拆分时藏起 1 列 / 5 列 / 1/4 单栏 / 模板导入');
 
-        $editor = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
+        $editor = bloxEditorSourceForTest();
         self::assertStringContainsString('if (action === "split") { this.openSplitFromCtx(); return; }', $editor);
         self::assertStringContainsString('onSplitAt: function (payload) { self.openSplitPicker(payload.target, null, payload.anchor); }', $editor);
         self::assertStringContainsString("'splitHint' => __('blox_split_hint')", $editor);

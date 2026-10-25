@@ -44,7 +44,7 @@ final class BloxPageCoverTrapTest extends TestCase
 
     public function testEditorOffersToTurnTheCoverOffAndTheApiSavesIt(): void
     {
-        $editor = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
+        $editor = bloxEditorSourceForTest();
         self::assertStringContainsString("'cover_applicable' => \$pageCover !== ''", $editor);
         self::assertStringContainsString('disablePageCover()', $editor);
         self::assertStringContainsString('body.set("show_cover"', $editor);

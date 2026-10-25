@@ -24,7 +24,7 @@ final class BloxTreeRevealContractTest extends TestCase
         ];
         $out = [];
         foreach ($files as $key => $path) {
-            $source = file_get_contents(ROOT_PATH . '/' . $path);
+            $source = $key === 'editor' ? bloxEditorSourceForTest() : file_get_contents(ROOT_PATH . '/' . $path);
             self::assertNotFalse($source, "无法读取 {$path}");
             $out[$key] = (string) $source;
         }

@@ -62,6 +62,9 @@ if [ -n "$WORKTREE_STATUS" ]; then
     exit 1
 fi
 
+# Editor methods are source-controlled separately from their cacheable browser asset.
+php tools/build_blox_runtime.php --check
+
 # 参数：版本号可省略；--no-delta 仅用于候选装机/审计，正式发布默认仍生成增量包。
 #       --local=<标签> 构建本地测试包：CMS_VERSION 保持不变（模板兼容判断只认三段版本号），
 #       标签只进包名和 BUILD_ID，站点健康页可见；同时强制跳过增量包，避免覆盖正式发行物。

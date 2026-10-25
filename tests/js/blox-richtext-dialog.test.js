@@ -20,7 +20,7 @@ function fixture() {
         window: { hugerte }, hugerte,
     });
     Object.assign(state, {
-        rteOpen: true, _rteInited: true,
+        rteOpen: true, _rteInited: true, _rteRequest: 0,
         _rteTarget: (value) => calls.push(value),
         $refs: { rteDialog: {} },
         releaseDialog: () => calls.push('release'),
