@@ -241,12 +241,12 @@ add_action('blox_editor_scripts', static function (): void {
         ],
     ];
     $tableScript = __DIR__ . '/assets/yikay-pro-table.js';
-    echo '<script src="/plugins/yikai-builder/assets/yikay-pro-table.js?v=' . (int) filemtime($tableScript) . '"></script>' . "\n";
+    echo '<script src="/plugins/yikai-builder/assets/yikay-pro-table.js?v=' . (int) filemtime($tableScript) . '" defer></script>' . "\n";
     $pricingScript = __DIR__ . '/assets/yikay-pro-pricing.js';
-    echo '<script src="/plugins/yikai-builder/assets/yikay-pro-pricing.js?v=' . (int) filemtime($pricingScript) . '"></script>' . "\n";
+    echo '<script src="/plugins/yikai-builder/assets/yikay-pro-pricing.js?v=' . (int) filemtime($pricingScript) . '" defer></script>' . "\n";
     $script = __DIR__ . '/assets/yikay-pro-editor.js';
     echo '<script>window.BloxProEditorData = '
         . json_encode($data, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP)
         . ";</script>\n";
-    echo '<script src="/plugins/yikai-builder/assets/yikay-pro-editor.js?v=' . (int) filemtime($script) . '"></script>' . "\n";
+    echo '<script src="/plugins/yikai-builder/assets/yikay-pro-editor.js?v=' . (int) filemtime($script) . '" defer></script>' . "\n";
 });
