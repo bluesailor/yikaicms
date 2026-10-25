@@ -1,4 +1,4 @@
-// 编辑器打开成本采样（不断言，只打印）：HTML 体积、到可编辑的耗时、长任务、脚本、DOM、堆。
+// 编辑器打开成本采样（耗时不设阈值，仍检查运行错误）：HTML、可编辑耗时、长任务、脚本、DOM、堆。
 // 冷开（新上下文）与热开（同上下文第二次）各一次，首页编辑器与单页编辑器各一次。
 const { test } = require('./site-diagnostics');
 const fs = require('node:fs');
@@ -62,11 +62,16 @@ for (const [name, url] of [['home', '/admin/blox_editor.php?home=1'], ['page', `
     console.log(`[profile:${name}] cold ${JSON.stringify(cold)}`);
     console.log(`[profile:${name}] warm ${JSON.stringify(warm)}`);
     console.log(`[profile:${name}] warm2 ${JSON.stringify(warm2)}`);
-    // 对照：不加载 HugeRTE 时打开编辑器要多久（估算按需加载的收益）
-    await page.route('**/assets/hugerte/**', (route) => route.abort());
-    await sample(page, url);
-    const noRte = await sample(page, url);
-    console.log(`[profile:${name}] warm-without-hugerte ${JSON.stringify(noRte)}`);
-    await page.unroute('**/assets/hugerte/**');
+    // 受控对照：只替换 HugeRTE 脚本为空响应，不制造网络错误，也不放宽公共诊断。
+    const rteScript = '**/assets/hugerte/hugerte.min.js*';
+    const omitRte = (route) => route.fulfill({ status: 200, contentType: 'application/javascript', body: '' });
+    await page.route(rteScript, omitRte);
+    try {
+      await sample(page, url);
+      const noRte = await sample(page, url);
+      console.log(`[profile:${name}] warm-without-hugerte ${JSON.stringify(noRte)}`);
+    } finally {
+      await page.unroute(rteScript, omitRte);
+    }
   });
 }
