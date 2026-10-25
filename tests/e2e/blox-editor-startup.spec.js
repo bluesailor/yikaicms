@@ -23,22 +23,27 @@ test('startup uses cached core methods and does not request HugeRTE @ci', async 
   expect(requested.filter(rtePath)).toEqual([]);
   expect(requested.filter(url => new URL(url).pathname.endsWith('/assets/js/yikay-editor-runtime.js'))).toHaveLength(1);
   const metrics = await page.evaluate(() => {
-    const scripts = [...document.querySelectorAll('script[src]')];
+    const scripts = [...document.head.querySelectorAll('script[src]')];
     const core = scripts.findIndex(node => node.src.includes('/yikay-editor-runtime.js'));
     const alpine = scripts.findIndex(node => node.src.includes('/alpinejs/alpine.min.js'));
     const inline = [...document.querySelectorAll('script:not([src])')].map(node => node.textContent).join('\n');
+    const syncHeadScripts = [...document.head.querySelectorAll('script[src]')].filter(s => !s.defer && !s.async).map(s => new URL(s.src).pathname);
+    const allBeforeAlpine = scripts.slice(alpine + 1).length === 0;
     const app = window.Alpine.$data(document.body);
-    return { core, alpine, deferred: scripts[core].defer, inlineBytes: new TextEncoder().encode(inline).length,
+    return { core, alpine, syncHeadScripts, allBeforeAlpine, afterAlpine: scripts.slice(alpine + 1).map(s => new URL(s.src).pathname), deferred: scripts[core].defer, inlineBytes: new TextEncoder().encode(inline).length,
       coreStillInline: inline.includes('initTreeSortable() {'),
       equal: app.documentData() === JSON.stringify({ schema: 1, settings: app.docSettings || {}, sections: app.sections || [] }) };
   });
+  console.log('[startup] ' + JSON.stringify(metrics));
   expect(metrics.core).toBeLessThan(metrics.alpine);
   expect(metrics.deferred).toBe(true);
+  expect(metrics.syncHeadScripts).toEqual(['/assets/js/admin-error-report.js']);
+  expect(metrics.allBeforeAlpine).toBe(true);
+  await expect(page.locator('script[src*="admin-image-editor.js"]')).toHaveAttribute('defer', '');
   expect(metrics.inlineBytes).toBeLessThan(600000);
   expect(metrics.coreStillInline).toBe(false);
   expect(metrics.equal).toBe(true);
   await expectClean(page);
-  console.log('[startup] ' + JSON.stringify(metrics));
 });
 
 test('rich-text dialogs load once on first use and retain content on reopen @ci', async ({ page }) => {
@@ -123,3 +128,30 @@ test('a failed rich-text load preserves the textarea and can retry without publi
   await cancelDialog(page);
   await expectClean(page);
 });
+
+for (const dependency of ['yikay-responsive.js', 'yikay-pro-editor.js']) {
+  test(`Alpine waits for deferred dependency ${dependency} while HTML parses @ci`, async ({ page }) => {
+    let release;
+    const gate = new Promise(resolve => { release = resolve; });
+    let entered;
+    const pending = new Promise(resolve => { entered = resolve; });
+    await page.route(`**/${dependency}*`, async route => {
+      entered();
+      await gate;
+      await route.fulfill({ response: await route.fetch() });
+    });
+    try {
+      await page.goto(`/admin/blox_editor.php?id=${fixtures.blox_page}`, { waitUntil: 'commit' });
+      await pending;
+      // The document must finish parsing even though one dependency has not downloaded.
+      await page.waitForFunction(() => document.readyState === 'interactive');
+      expect(await page.locator('[data-testid="blox-canvas"]').count()).toBe(1);
+      expect(await page.evaluate(() => typeof window.Alpine)).toBe('undefined');
+    } finally { release(); }
+    await page.waitForLoadState('domcontentloaded');
+    await waitPreviewSettled(page);
+    expect(await page.evaluate(() => typeof window.Alpine.$data(document.body).documentData)).toBe('function');
+    expect(await page.evaluate(() => typeof window.BloxProEditor.methods)).toBe('object');
+    await expectClean(page);
+  });
+}
