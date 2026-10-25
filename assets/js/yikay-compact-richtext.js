@@ -13,7 +13,7 @@
     }
 
     function create(read, write, labels) {
-        var editor = null, destroyed = false, syncing = false, last = "", editorHtml = "";
+        var editor = null, destroyed = false, syncing = false, last = "", editorHtml = "", mounting = false;
         var baseline = null;
         var owner = read().id;
         labels = labels || {};
@@ -73,10 +73,20 @@
                 }
             },
             mount: function () {
-                if (destroyed) return;
+                if (destroyed || editor || mounting) return;
                 var self = this;
                 var tiny = global.hugerte;
-                if (!tiny) { self.failed = true; self.sourceMode = true; return; }
+                if (!tiny) {
+                    if (!global.BloxRichTextLoader) { self.failed = true; self.sourceMode = true; return; }
+                    mounting = true;
+                    return global.BloxRichTextLoader.load().then(function () {
+                        mounting = false;
+                        if (!destroyed) self.mount();
+                    }).catch(function () {
+                        mounting = false;
+                        if (!destroyed) { self.failed = true; self.sourceMode = true; }
+                    });
+                }
                 var language = (global.document.documentElement.lang || "zh-CN").toLowerCase();
                 tiny.init({
                     target: self.$refs.editor,

@@ -250,78 +250,89 @@ declare(strict_types=1);
             rteOpen: false,
             _rteTarget: null,
             _rteInited: false,
+            _rteRequest: 0,
 
             openRte(getter, setter, dynamicTags) {
+                var request = ++this._rteRequest;
                 this._rteTarget = setter;
                 this.rteOpen = true;
                 this.focusDialog(this.$refs.rteDialog, "[data-dialog-initial]");
                 var initial = getter() || "";
+                var field = document.getElementById("bloxRte");
+                if (field) field.value = initial;
                 var self = this;
                 this.$nextTick(function () {
-                    if (!self.rteOpen) return;
-                    if (self._rteInited) {
-                        var ed = hugerte.get("bloxRte");
-                        if (ed) ed.setContent(initial);
-                        return;
-                    }
-                    self._rteInited = true;
-                    hugerte.init({
-                        selector: "#bloxRte",
-                        // 与后台通用编辑器同一张语言表：英文后台不再被强行换成中文（复审 R09）
-                        language: (window.editorLanguage ? window.editorLanguage(document.documentElement.lang) : "") || undefined,
-                        height: 420,
-                        formats: {
-                            alignleft: { selector: "p,h1,h2,h3,h4,h5,h6,div", classes: "text-left" },
-                            aligncenter: { selector: "p,h1,h2,h3,h4,h5,h6,div", classes: "text-center" },
-                            alignright: { selector: "p,h1,h2,h3,h4,h5,h6,div", classes: "text-right" }
-                        },
-                        content_style: ".text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}",
-                        menubar: false,
-                        plugins: "autolink lists link image charmap searchreplace visualblocks code codesample insertdatetime media table wordcount",
-                        toolbar: "undo redo | styles fontsize | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link image media codesample | table | removeformat code" + (dynamicTags ? " | ykDynamic" : ""),
-                        branding: false, promotion: false, convert_urls: false,
-                        images_upload_handler: function (blobInfo) {
-                            return new Promise(function (resolve, reject) {
-                                window.BloxMediaClient.upload((window.YK_BASE || "") + "/admin/media_api.php", blobInfo.blob(), {
-                                    csrf: self.csrf,
-                                    filename: blobInfo.filename(),
-                                    maxDimension: <?php echo max(0, (int) config('upload_max_width', 1920)); ?>,
-                                    quality: <?php echo max(50, min(95, (int) config('upload_jpeg_quality', 85))) / 100; ?>,
-                                })
-                                    .then(function (result) { result.ok ? resolve(result.url) : reject(result.message || self.uiText.uploadFailedShort); })
-                                    .catch(function () { reject(self.uiText.uploadFailedShort); });
-                            });
-                        },
-                        // Reuse the editor media library.
-                        file_picker_types: "image",
-                        file_picker_callback: function (cb, value, meta) {
-                            if (meta.filetype === "image") self.openMedia(function (u) { cb(u, { alt: "" }); });
-                        },
-                        setup: function (ed) {
-                            if (dynamicTags) {
-                                ed.ui.registry.addMenuButton('ykDynamic', {
-                                    icon: 'insert-time',
-                                    tooltip: <?= json_encode(__('blox_dynamic_insert'), JSON_UNESCAPED_UNICODE) ?>,
-                                    fetch: function (callback) {
-                                        callback(Object.entries(self.siteDynamicOptions(false)).map(function (entry) {
-                                            return { type: 'menuitem', text: entry[1] + ' ' + entry[0], onAction: function () { ed.insertContent(entry[0]); } };
-                                        }));
-                                    }
+                    window.BloxRichTextLoader.load().then(function () {
+                        if (!self.rteOpen || self._rteRequest !== request) return;
+                        if (self._rteInited) {
+                            var ed = hugerte.get("bloxRte");
+                            if (ed) ed.setContent(initial);
+                            return;
+                        }
+                        self._rteInited = true;
+                        return hugerte.init({
+                            selector: "#bloxRte",
+                            // 与后台通用编辑器同一张语言表：英文后台不再被强行换成中文（复审 R09）
+                            language: (window.editorLanguage ? window.editorLanguage(document.documentElement.lang) : "") || undefined,
+                            height: 420,
+                            formats: {
+                                alignleft: { selector: "p,h1,h2,h3,h4,h5,h6,div", classes: "text-left" },
+                                aligncenter: { selector: "p,h1,h2,h3,h4,h5,h6,div", classes: "text-center" },
+                                alignright: { selector: "p,h1,h2,h3,h4,h5,h6,div", classes: "text-right" }
+                            },
+                            content_style: ".text-left{text-align:left}.text-center{text-align:center}.text-right{text-align:right}",
+                            menubar: false,
+                            plugins: "autolink lists link image charmap searchreplace visualblocks code codesample insertdatetime media table wordcount",
+                            toolbar: "undo redo | styles fontsize | bold italic underline strikethrough | forecolor backcolor | alignleft aligncenter alignright | bullist numlist | link image media codesample | table | removeformat code" + (dynamicTags ? " | ykDynamic" : ""),
+                            branding: false, promotion: false, convert_urls: false,
+                            images_upload_handler: function (blobInfo) {
+                                return new Promise(function (resolve, reject) {
+                                    window.BloxMediaClient.upload((window.YK_BASE || "") + "/admin/media_api.php", blobInfo.blob(), {
+                                        csrf: self.csrf,
+                                        filename: blobInfo.filename(),
+                                        maxDimension: <?php echo max(0, (int) config('upload_max_width', 1920)); ?>,
+                                        quality: <?php echo max(50, min(95, (int) config('upload_jpeg_quality', 85))) / 100; ?>,
+                                    })
+                                        .then(function (result) { result.ok ? resolve(result.url) : reject(result.message || self.uiText.uploadFailedShort); })
+                                        .catch(function () { reject(self.uiText.uploadFailedShort); });
                                 });
-                                ed.ui.registry.addAutocompleter('ykDynamicTags', {
-                                    trigger: '{', minChars: 0, columns: 1,
-                                    fetch: function (pattern) {
-                                        return Promise.resolve(Object.entries(self.siteDynamicOptions(false)).filter(function (entry) {
-                                            return (entry[0] + entry[1]).toLowerCase().includes(pattern.toLowerCase());
-                                        }).map(function (entry) { return { value: entry[0], text: entry[1] + ' ' + entry[0] }; }));
-                                    },
-                                    onAction: function (api, range, value) { ed.selection.setRng(range); ed.insertContent(value); api.hide(); }
+                            },
+                            // Reuse the editor media library.
+                            file_picker_types: "image",
+                            file_picker_callback: function (cb, value, meta) {
+                                if (meta.filetype === "image") self.openMedia(function (u) { cb(u, { alt: "" }); });
+                            },
+                            setup: function (ed) {
+                                if (dynamicTags) {
+                                    ed.ui.registry.addMenuButton('ykDynamic', {
+                                        icon: 'insert-time',
+                                        tooltip: <?= json_encode(__('blox_dynamic_insert'), JSON_UNESCAPED_UNICODE) ?>,
+                                        fetch: function (callback) {
+                                            callback(Object.entries(self.siteDynamicOptions(false)).map(function (entry) {
+                                                return { type: 'menuitem', text: entry[1] + ' ' + entry[0], onAction: function () { ed.insertContent(entry[0]); } };
+                                            }));
+                                        }
+                                    });
+                                    ed.ui.registry.addAutocompleter('ykDynamicTags', {
+                                        trigger: '{', minChars: 0, columns: 1,
+                                        fetch: function (pattern) {
+                                            return Promise.resolve(Object.entries(self.siteDynamicOptions(false)).filter(function (entry) {
+                                                return (entry[0] + entry[1]).toLowerCase().includes(pattern.toLowerCase());
+                                            }).map(function (entry) { return { value: entry[0], text: entry[1] + ' ' + entry[0] }; }));
+                                        },
+                                        onAction: function (api, range, value) { ed.selection.setRng(range); ed.insertContent(value); api.hide(); }
+                                    });
+                                }
+                                ed.on("init", function () {
+                                    if (!self.rteOpen || self._rteRequest !== request) { ed.remove(); return; }
+                                    ed.setContent(field ? field.value : initial);
                                 });
                             }
-                            ed.on("init", function () {
-                                if (!self.rteOpen) { ed.remove(); return; }
-                                ed.setContent(initial);
-                            });
+                        });
+                    }).catch(function () {
+                        if (self.rteOpen && self._rteRequest === request) {
+                            self._rteInited = false;
+                            self.toast(self.rteLoadFailed);
                         }
                     });
                 });
@@ -329,6 +340,7 @@ declare(strict_types=1);
 
             closeRte() {
                 if (!this.rteOpen) return;
+                ++this._rteRequest;
                 var root = this.$refs.rteDialog;
                 var editor = window.hugerte && hugerte.get("bloxRte");
                 if (editor) editor.remove();
@@ -339,8 +351,9 @@ declare(strict_types=1);
             },
 
             saveRte() {
-                var ed = hugerte.get("bloxRte");
-                if (ed && this._rteTarget) this._rteTarget(ed.getContent());
+                var ed = window.hugerte && hugerte.get("bloxRte");
+                var field = !ed ? document.getElementById("bloxRte") : null;
+                if (this._rteTarget) this._rteTarget(ed ? ed.getContent() : (field ? field.value : ""));
                 this.closeRte();
             },
 

@@ -112,7 +112,7 @@ declare(strict_types=1);
 
             spanOptionLabel(n) {
                 n = Math.min(12, Math.max(1, parseInt(n, 10) || 12));
-                if (n === 12) return <?= $jt('blox_col_full_width') ?>;
+                if (n === 12) return runtimeText.colFullWidth;
                 return this.spanFraction(n) + " · " + Math.round(n / 12 * 100) + "%";
             },
 

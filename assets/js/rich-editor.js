@@ -1,6 +1,6 @@
 /**
  * 富文本编辑器的公共胶水：后台通用页（admin/includes/footer.php）与 Blox 编辑器
- * （admin/blox_editor.php）共用，紧跟在 /assets/hugerte/hugerte.min.js 之后加载。
+ * （admin/blox_editor.php）共用。支持 HugeRTE 预加载或由 Blox 按需加载后再安装。
  *
  * 编辑器是 HugeRTE：TinyMCE 6 在改 GPL 之前那个 MIT 提交处的分支，API 一致，
  * 全局对象名是 hugerte（v1.20.0 起替换随包的 TinyMCE 6.8.5，见复审 R03）。
@@ -10,9 +10,7 @@
 
     // 给仍按 tinymce.* 取编辑器实例的第三方插件和站点自定义脚本留一个别名。
     // 本仓自己的代码一律直接用 hugerte。
-    if (global.hugerte && !global.tinymce) {
-        global.tinymce = global.hugerte;
-    }
+    var boundRuntime = null;
 
     /**
      * 无障碍（2.0.4）：HugeRTE 状态栏有两处 ARIA 不合规，读屏可能念错或不念——
@@ -29,8 +27,13 @@
             handle.setAttribute('role', 'button');
         });
     }
-    if (global.hugerte && typeof global.hugerte.on === 'function') {
-        global.hugerte.on('AddEditor', function (event) {
+    global.installRichEditorRuntime = function () {
+        var runtime = global.hugerte;
+        if (!runtime || boundRuntime === runtime) return;
+        boundRuntime = runtime;
+        if (!global.tinymce) global.tinymce = runtime;
+        if (typeof runtime.on !== 'function') return;
+        runtime.on('AddEditor', function (event) {
             var editor = event.editor;
             editor.on('init', function () {
                 fixStatusbar(editor);
@@ -41,7 +44,8 @@
                 }
             });
         });
-    }
+    };
+    global.installRichEditorRuntime();
 
     /**
      * 后台界面语言 → 编辑器语言包名。随包有 ja / zh_CN / zh_TW（zh_TW 由 tools/i18n/zh-tw.php

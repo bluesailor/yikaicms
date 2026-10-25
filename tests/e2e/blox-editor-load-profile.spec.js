@@ -1,6 +1,6 @@
 // 编辑器打开成本采样（耗时不设阈值，仍检查运行错误）：HTML、可编辑耗时、长任务、脚本、DOM、堆。
 // 冷开（新上下文）与热开（同上下文第二次）各一次，首页编辑器与单页编辑器各一次。
-const { test } = require('./site-diagnostics');
+const { test, expect } = require('./site-diagnostics');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -34,7 +34,8 @@ async function sample(page, url) {
       scripts: scripts.length,
       scriptKB: Math.round(scripts.reduce((sum, r) => sum + (r.encodedBodySize || 0), 0) / 1024),
       headSyncScripts: heads.filter((s) => !s.defer && !s.async).length,
-      inlineScriptKB: Math.round([...document.querySelectorAll('script:not([src])')].reduce((sum, s) => sum + s.textContent.length, 0) / 1024),
+      inlineScriptKB: Math.round([...document.querySelectorAll('script:not([src])')].reduce((sum, s) => sum + new TextEncoder().encode(s.textContent).length, 0) / 1024),
+      richTextRequests: scripts.filter(r => new URL(r.name).pathname.endsWith('/assets/hugerte/hugerte.min.js')).length,
       dom: document.getElementsByTagName('*').length,
       heapMB: performance.memory ? Math.round(performance.memory.usedJSHeapSize / 1048576) : null,
       longTasks: (window.__ykLong || []).length,
@@ -62,16 +63,7 @@ for (const [name, url] of [['home', '/admin/blox_editor.php?home=1'], ['page', `
     console.log(`[profile:${name}] cold ${JSON.stringify(cold)}`);
     console.log(`[profile:${name}] warm ${JSON.stringify(warm)}`);
     console.log(`[profile:${name}] warm2 ${JSON.stringify(warm2)}`);
-    // 受控对照：只替换 HugeRTE 脚本为空响应，不制造网络错误，也不放宽公共诊断。
-    const rteScript = '**/assets/hugerte/hugerte.min.js*';
-    const omitRte = (route) => route.fulfill({ status: 200, contentType: 'application/javascript', body: '' });
-    await page.route(rteScript, omitRte);
-    try {
-      await sample(page, url);
-      const noRte = await sample(page, url);
-      console.log(`[profile:${name}] warm-without-hugerte ${JSON.stringify(noRte)}`);
-    } finally {
-      await page.unroute(rteScript, omitRte);
-    }
+    // 首屏本来就不请求 HugeRTE，无须再阻断一个不存在的请求作为性能对照。
+    for (const result of [cold, warm, warm2]) expect(result.richTextRequests).toBe(0);
   });
 }

@@ -51,8 +51,15 @@ final class RichEditorDependencyContractTest extends TestCase
         foreach (['admin/includes/footer.php', 'admin/blox_editor.php'] as $page) {
             $source = $this->source($page);
             self::assertStringNotContainsString('/assets/tinymce/', $source, "{$page} 还在加载 TinyMCE");
-            self::assertStringContainsString('<script src="/assets/hugerte/hugerte.min.js"></script>', $source);
             self::assertStringContainsString('<script src="/assets/js/rich-editor.js', $source, "{$page} 缺少共用的别名/语言表");
+            if ($page === 'admin/blox_editor.php') {
+                self::assertStringNotContainsString('<script src="/assets/hugerte/hugerte.min.js"></script>', $source);
+                self::assertStringContainsString('data-hugerte-src=', $source);
+                self::assertStringContainsString('/assets/js/yikay-richtext-loader.js', $source);
+                self::assertStringContainsString('window.BloxRichTextLoader.load()', $this->source('admin/blox_editor/partials/media-editing-methods.php'));
+                continue;
+            }
+            self::assertStringContainsString('<script src="/assets/hugerte/hugerte.min.js"></script>', $source);
             // 胶水脚本必须排在编辑器本体之后，别名才拿得到 window.hugerte
             self::assertLessThan(
                 (int) strpos($source, '<script src="/assets/js/rich-editor.js'),
@@ -82,7 +89,9 @@ final class RichEditorDependencyContractTest extends TestCase
         }
 
         $glue = $this->source('assets/js/rich-editor.js');
-        self::assertStringContainsString('global.tinymce = global.hugerte;', $glue);
+        self::assertStringContainsString('var runtime = global.hugerte;', $glue);
+        self::assertStringContainsString('global.tinymce = runtime;', $glue);
+        self::assertStringContainsString('global.installRichEditorRuntime', $glue);
     }
 
     /** 语言包改挂到 hugerte 上，否则加载时报 tinymce is not defined（别名不一定先就位）。 */

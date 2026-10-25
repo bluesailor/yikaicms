@@ -83,7 +83,7 @@ final class TestimonialLogoWallElementsTest extends TestCase
         }
         $workspace = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor/partials/workspace.php');
         self::assertStringContainsString("require __DIR__ . '/items-repeater-control.php';", $workspace);
-        $editor = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
+        $editor = bloxEditorSourceForTest();
         self::assertStringContainsString('...window.BloxItemsControl.methods,', $editor);
     }
     /** 2.0.4：网格「wall of love」与跑马灯布局；纯 CSS 不加载轮播脚本；首字母头像。 */
