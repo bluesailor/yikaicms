@@ -26,20 +26,20 @@ final class BloxPreviewWidthContractTest extends TestCase
 
     private static function method(string $name, string $stopAt): string
     {
-        $start = strpos(self::$editor, $name);
-        self::assertNotFalse($start, "method {$name} missing");
-        $body = substr(self::$editor, $start);
-        $stop = strpos($body, $stopAt);
-        self::assertNotFalse($stop, "stop anchor {$stopAt} missing");
-        return substr($body, 0, $stop);
+        $matched = preg_match('/^ {12}' . preg_quote($name, '/') . '\\s*\\{/m', self::$editor, $matches, PREG_OFFSET_CAPTURE);
+        self::assertSame(1, $matched, "method {$name} missing");
+        $body = substr(self::$editor, $matches[0][1]);
+        $matched = preg_match('/^ {12}' . preg_quote($stopAt, '/') . '\\s*\\{/m', $body, $matches, PREG_OFFSET_CAPTURE);
+        self::assertSame(1, $matched, "stop method {$stopAt} missing");
+        return substr($body, 0, $matches[0][1]);
     }
 
     public function testPreviewWidthIsWorkspaceStateOnly(): void
     {
         // 不进保存载荷/历史：documentData 与 historyData 的实现里不得出现预览宽度
-        $documentData = self::method('documentData()', 'historyData()');
+        $documentData = self::method('documentData(sectionsJson)', 'draftSummary()');
         self::assertStringNotContainsString('previewCustomWidth', $documentData);
-        $historyData = self::method('historyData()', 'queueHistory(');
+        $historyData = self::method('historyData()', 'historySettingsData()');
         self::assertStringNotContainsString('previewCustomWidth', $historyData);
         // 改宽度不触碰 dirty / 历史 / 选中
         $setter = self::method('setPreviewCustomWidth(raw)', 'clearPreviewCustomWidth()');
