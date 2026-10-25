@@ -2,6 +2,7 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
+const { requestForm } = require('./request-form');
 
 test('site health scans media in bounded batches and opens issue samples @ci', async ({ page }, testInfo) => {
   test.setTimeout(60_000);
@@ -34,7 +35,7 @@ test('site health scans media in bounded batches and opens issue samples @ci', a
     let mediaBatchResponses = 0;
     page.on('response', (response) => {
       if (response.request().method() !== 'POST') return;
-      const body = new URLSearchParams(response.request().postData() || '');
+      const body = requestForm(response.request());
       if (new URL(response.url()).pathname === '/admin/site_health.php' && body.get('action') === 'scan_media') {
         mediaBatchResponses += 1;
       }

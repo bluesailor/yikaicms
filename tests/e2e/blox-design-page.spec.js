@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { observeConsole } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 test('standalone design page mutates through the existing API contract @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'desktop design management interaction baseline');
@@ -16,7 +17,7 @@ test('standalone design page mutates through the existing API contract @ci', asy
 
   const requests = [];
   await page.route('**/admin/blox_design_api.php', async (route) => {
-    const body = new URLSearchParams(route.request().postData() || '');
+    const body = requestForm(route.request());
     requests.push(Object.fromEntries(body.entries()));
     const next = JSON.parse(JSON.stringify(initial));
     next.revision += 1;

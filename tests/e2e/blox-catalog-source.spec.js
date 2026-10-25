@@ -2,6 +2,7 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 const { openPageEditor, observeConsole, canvasScrollTop } = require('./helpers');
+const { requestForm } = require('./request-form');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 
 for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_page], ['content-catalog', 'article', fixtures.channel_list]]) {
@@ -9,7 +10,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         const errors = observeConsole(page), writes = [];
         page.on('request', req => {
             if (req.method() === 'POST' && req.url().includes('blox_page_api.php')) {
-                const action = new URLSearchParams(req.postData()).get('action');
+                const action = requestForm(req).get('action');
                 if (!['preview', 'catalog_items'].includes(action)) writes.push(action);
             }
         });
@@ -17,7 +18,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         expect(await page.locator('body').innerText()).not.toMatch(/Warning:|Notice:|Fatal error:/);
         let previews = 0;
         await page.route('**/admin/blox_page_api.php*', async route => {
-            if (new URLSearchParams(route.request().postData()).get('action') === 'preview') {
+            if (requestForm(route.request()).get('action') === 'preview') {
                 previews++;
                 await page.waitForTimeout(750);
             }
@@ -99,7 +100,7 @@ test('catalog failure can be retried and paging keeps the query @ci', async ({ p
     let fail = true;
     const requested = [];
     await page.route('**/admin/blox_page_api.php', async route => {
-        const body = new URLSearchParams(route.request().postData());
+        const body = requestForm(route.request());
         if (body.get('action') !== 'catalog_items') return route.continue();
         requested.push(Object.fromEntries(body));
         if (fail) {

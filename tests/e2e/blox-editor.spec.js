@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { requestForm } = require('./request-form');
 const {
   addTemporaryHeading,
   openSectionInsertAtEnd,
@@ -972,7 +973,7 @@ test('section spacing edits the active responsive tier @ci', async ({ page }, te
   });
   await page.getByTestId('blox-section-padding-xl').click();
   const request = await previewRequest;
-  const body = new URLSearchParams(request.postData() || '');
+  const body = requestForm(request);
   const document = JSON.parse(body.get('blocks_data') || '{}');
   expect(document.sections[0].settings.padding).toMatchObject({ t: 'xl' });
   expect(document.sections[0].settings.padding).not.toHaveProperty('m');
@@ -985,7 +986,7 @@ test('section spacing edits the active responsive tier @ci', async ({ page }, te
   });
   await inheritButton.click();
   const restoredRequest = await inheritRequest;
-  const restoredBody = new URLSearchParams(restoredRequest.postData() || '');
+  const restoredBody = requestForm(restoredRequest);
   const restoredDocument = JSON.parse(restoredBody.get('blocks_data') || '{}');
   expect(typeof restoredDocument.sections[0].settings.padding).toBe('string');
   await expect(tabletDevice).toHaveAttribute('data-responsive-state', 'inherit');
@@ -1012,7 +1013,7 @@ test('heading visual size overrides one device without changing its level @ci', 
   });
   await sizeControl.selectOption('xl');
   const request = await previewRequest;
-  const body = new URLSearchParams(request.postData() || '');
+  const body = requestForm(request);
   const document = JSON.parse(body.get('blocks_data') || '{}');
   const data = document.sections[sectionIndex].columns[0].elements[0].data;
   expect(data.visual_size).toEqual({ d: 'auto', t: 'xl' });
@@ -1053,7 +1054,7 @@ test('container panel edits and restores responsive child gap @ci', async ({ pag
     const url = new URL(request.url());
     if (request.method() !== 'POST' || url.pathname !== '/admin/blox_preview.php') return false;
     try {
-      const body = new URLSearchParams(request.postData() || '');
+      const body = requestForm(request);
       const document = JSON.parse(body.get('blocks_data') || '{}');
       const data = document.sections[before].columns[0].elements[0].data;
       return data.gap && typeof data.gap === 'object' && data.gap.t === 'xl';
@@ -1063,7 +1064,7 @@ test('container panel edits and restores responsive child gap @ci', async ({ pag
   });
   await page.getByTestId('blox-container-gap-xl').click();
   const request = await previewRequest;
-  const body = new URLSearchParams(request.postData() || '');
+  const body = requestForm(request);
   const document = JSON.parse(body.get('blocks_data') || '{}');
   const data = document.sections[before].columns[0].elements[0].data;
   expect(data.gap).toEqual({ d: 'md', t: 'xl' });
@@ -1454,7 +1455,7 @@ test('stale save is blocked and keeps a recoverable local copy @ci', async ({ pa
   let submittedRevision = '';
   await page.route('**/admin/blox_home_api.php', async (route) => {
     const request = route.request();
-    const body = new URLSearchParams(request.postData() || '');
+    const body = requestForm(request);
     if ((body.get('action') || 'save') === 'preview') {
       await route.continue();
       return;
@@ -1491,7 +1492,7 @@ test('publish saves the current document before activating it @ci', async ({ pag
   const before = await countSections(page);
   let submitted = null;
   await page.route('**/admin/blox_home_api.php', async (route) => {
-    const body = new URLSearchParams(route.request().postData() || '');
+    const body = requestForm(route.request());
     if ((body.get('action') || '') !== 'publish') {
       await route.continue();
       return;
@@ -2381,7 +2382,7 @@ test('template mode edits an isolated header and applies bundled starters @ci', 
   await expect(page.getByTestId('blox-tree-section')).toHaveCount(before + 1);
 
   // 复位：CSRF 从真实保存请求捕获，API 直写种子文档（不走 UI，无脆弱定位）
-  const token = new URLSearchParams(saveReq.postData() || '').get('_token');
+  const token = requestForm(saveReq).get('_token');
   const restore = await page.request.post('/admin/blox_template_api.php', {
     form: {
       action: 'save_draft',
@@ -2405,7 +2406,7 @@ test('header state selector drives the semantic preview shell @ci', async ({ pag
 
   const previewRequest = page.waitForRequest((request) => {
     const url = new URL(request.url());
-    const body = new URLSearchParams(request.postData() || '');
+    const body = requestForm(request);
     return request.method() === 'POST'
       && url.pathname === '/admin/blox_preview.php'
       && body.get('header_state') === 'overlay';
@@ -2421,7 +2422,7 @@ test('header state selector drives the semantic preview shell @ci', async ({ pag
 
   const opacityRequest = page.waitForRequest((request) => {
     const url = new URL(request.url());
-    const body = new URLSearchParams(request.postData() || '');
+    const body = requestForm(request);
     const settings = JSON.parse(body.get('blocks_data') || '{}').settings || {};
     return request.method() === 'POST'
       && url.pathname === '/admin/blox_preview.php'
@@ -2638,7 +2639,7 @@ test('sticky header behavior and device scope reach the preview shell @ci', asyn
 
   const behaviorRequest = page.waitForRequest((request) => {
     const url = new URL(request.url());
-    const body = new URLSearchParams(request.postData() || '');
+    const body = requestForm(request);
     return request.method() === 'POST'
       && url.pathname === '/admin/blox_preview.php'
       && JSON.parse(body.get('blocks_data') || '{}').settings?.sticky_behavior === 'scroll-up';
@@ -2669,7 +2670,7 @@ test('template publishing retries only after explicit conflict confirmation @ci'
 
   const publishBodies = [];
   await page.route('**/admin/blox_template_api.php', async (route) => {
-    const body = new URLSearchParams(route.request().postData() || '');
+    const body = requestForm(route.request());
     if (body.get('action') !== 'publish') {
       await route.continue();
       return;

@@ -245,8 +245,8 @@ final class BloxEditorPreviewContractTest extends TestCase
 
         $this->assertStringContainsString('BloxDocumentPipeline::decode($initBlocks)', $editor);
         $this->assertStringContainsString('$docSettings = $bootDoc[\'settings\'];', $editor);
-        $this->assertStringContainsString('documentData() {', $editor);
-        $this->assertStringContainsString('return JSON.stringify({ schema: 1, settings: this.docSettings || {}, sections: this.sections || [] });', $editor);
+        $this->assertStringContainsString('documentData(sectionsJson) {', $editor);
+        $this->assertStringContainsString('return JSON.stringify({ schema: 1, settings: this.rawState(this.docSettings || {}), sections: this.rawState(this.sections || []) });', $editor);
         $this->assertStringContainsString('var payload = this.documentData();', $editor);
         $this->assertStringNotContainsString('body.set("blocks_data", savedData);', $editor); // 三分支全部走信封 payload
         $this->assertStringContainsString('data-testid="blox-sticky-toggle"', $editor);

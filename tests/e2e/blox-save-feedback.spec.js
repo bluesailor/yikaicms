@@ -2,6 +2,7 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 const { openPageEditor, performPagePreviewUpdate, frame } = require('./helpers');
+const { requestForm } = require('./request-form');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 
 test('failed saves persist, repeated saves coalesce, and in-flight edits remain dirty @ci', async ({ page }, testInfo) => {
@@ -9,7 +10,7 @@ test('failed saves persist, repeated saves coalesce, and in-flight edits remain 
     const initial = await page.evaluate(() => window.Alpine.$data(document.body).baseRevision);
     let mode = 'fail', requests = 0, release;
     await page.route('**/admin/blox_page_api.php*', async route => {
-        const action = new URLSearchParams(route.request().postData()).get('action');
+        const action = requestForm(route.request()).get('action');
         if (action !== 'save_draft') return route.continue();
         requests++;
         if (mode === 'wait') await new Promise(resolve => { release = resolve; });
@@ -51,7 +52,7 @@ test('a failed canvas keeps the document and can retry without saving @ci', asyn
     const canvasBefore = await (await frame(page)).locator('body').innerText();
     let failed = true, writes = 0;
     await page.route('**/admin/blox_page_api.php*', async route => {
-        const action = new URLSearchParams(route.request().postData()).get('action');
+        const action = requestForm(route.request()).get('action');
         if (action !== 'preview') writes++;
         if (failed && action === 'preview') return route.fulfill({ status: 503, body: 'Unavailable' });
         return route.continue();
@@ -83,7 +84,7 @@ test('malformed or HTTP-error save responses cannot acknowledge an unblurred ima
     let payload;
     let response = { json: {} };
     await page.route('**/admin/blox_page_api.php*', async route => {
-        const params = new URLSearchParams(route.request().postData());
+        const params = requestForm(route.request());
         if (params.get('action') !== 'save_draft') return route.continue();
         payload = params.get('blocks_data');
         await route.fulfill(response);

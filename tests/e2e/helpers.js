@@ -1,4 +1,5 @@
 const { expect } = require('@playwright/test');
+const { requestForm } = require('./request-form');
 
 function observeConsole(page) {
   const entries = [];
@@ -18,7 +19,7 @@ function observeUnsafeWrites(page) {
   page.on('request', (request) => {
     if (request.method() !== 'POST') return;
     const url = new URL(request.url());
-    const body = new URLSearchParams(request.postData() || '');
+    const body = requestForm(request);
     if (url.pathname === '/admin/blox_home_api.php') {
       const action = body.get('action') || 'save';
       if (action !== 'preview') entries.push('home:' + action);
@@ -194,7 +195,7 @@ async function performPreviewUpdate(page, action) {
 async function performPagePreviewUpdate(page, action) {
   const response = page.waitForResponse((candidate) => {
     const url = new URL(candidate.url());
-    const body = new URLSearchParams(candidate.request().postData() || '');
+    const body = requestForm(candidate.request());
     return candidate.request().method() === 'POST'
       && url.pathname === '/admin/blox_page_api.php'
       && body.get('action') === 'preview';
