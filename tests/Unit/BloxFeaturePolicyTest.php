@@ -61,7 +61,7 @@ final class BloxFeaturePolicyTest extends TestCase
         ] as $file => $feature) {
             self::assertStringContainsString("BloxFeaturePolicy::allows('" . $feature . "')", (string) file_get_contents(ROOT_PATH . '/' . $file));
         }
-        $editor = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
+        $editor = bloxEditorSourceForTest();
         // E03-D：条件面板迁入 yikai-builder，编辑器开关取专业快照；快照仍以同一 feature key 调用能力策略，并要求作者端模块已加载。
         self::assertStringContainsString("displayConditionsEnabled: <?php echo !empty(\$professionalFeatures['display_conditions']['allowed'])", $editor);
         $professionalUi = (string) file_get_contents(ROOT_PATH . '/includes/builder/BloxProfessionalUi.php');

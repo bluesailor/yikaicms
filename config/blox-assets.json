@@ -79,6 +79,8 @@
     "assets/js/yikay-compact-richtext.js",
     "assets/js/yikay-media-client.js",
     "assets/js/yikay-preview-client.js",
+    "assets/js/yikay-editor-runtime.js",
+    "assets/js/yikay-richtext-loader.js",
     "assets/js/yikay-responsive.js",
     "assets/js/yikay-multi-select.js",
     "assets/js/yikay-multi-actions.js",

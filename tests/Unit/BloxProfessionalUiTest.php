@@ -59,7 +59,7 @@ final class BloxProfessionalUiTest extends TestCase
         self::assertStringNotContainsString('ti-lock', $view);
         self::assertStringNotContainsString('ti-crown', $view);
         self::assertStringNotContainsString('modal', $view);
-        $editor = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
+        $editor = bloxEditorSourceForTest();
         self::assertStringContainsString("if (self.panelTab === 'professional' ? !c.advanced : !!c.advanced) return false;", $editor);
         self::assertStringContainsString('professionalControlAccessible(key)', $editor);
         foreach (['zh-CN', 'en', 'ja'] as $language) {
