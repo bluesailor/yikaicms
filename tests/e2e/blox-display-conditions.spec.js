@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { requestForm } = require('./request-form');
 const {
   addTemporaryHeading,
   frame,
@@ -49,7 +50,7 @@ test('element conditions create OR groups, AND rules and a canvas marker @ci', a
   await performPreviewUpdate(page, async () => {
     const request = page.waitForRequest((candidate) => {
       const url = new URL(candidate.url());
-      const body = new URLSearchParams(candidate.postData() || '');
+      const body = requestForm(candidate);
       // 2.1.1 起改动约 40 ms 就发：上一步（选运算符）的请求可能在这之后才发出，要认准带新值的那一个
       return candidate.method() === 'POST'
         && url.pathname === '/admin/blox_preview.php'
@@ -77,7 +78,7 @@ test('element conditions create OR groups, AND rules and a canvas marker @ci', a
   await page.getByTestId('blox-element-condition-diagnosis').screenshot({ path: test.info().outputPath('condition-diagnosis.png') });
 
   // 同一预览通道的诊断请求不得绕过 CSRF；错误响应不得携带诊断属性。
-  const deniedBody = new URLSearchParams(previewRequest.postData() || '');
+  const deniedBody = requestForm(previewRequest);
   deniedBody.set('condition_diagnostics', '1');
   deniedBody.delete('_token');
   const denied = await page.request.post(previewRequest.url(), {
@@ -85,7 +86,7 @@ test('element conditions create OR groups, AND rules and a canvas marker @ci', a
   });
   expect(await denied.text()).not.toContain('data-yk-condition-report');
 
-  const payload = new URLSearchParams(previewRequest.postData() || '');
+  const payload = requestForm(previewRequest);
   const document = JSON.parse(payload.get('blocks_data'));
   const sections = Array.isArray(document) ? document : document.sections;
   const conditions = sections[sections.length - 1].columns[0].elements[0].data._conditions;

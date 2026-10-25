@@ -1,6 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
+const { requestForm } = require('./request-form');
 const {
   addTemporaryHeading,
   openSectionInsertAtEnd,
@@ -96,7 +97,7 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   }), { times: 1 });
   const failedSaveResponse = page.waitForResponse((candidate) => {
     const url = new URL(candidate.url());
-    const body = new URLSearchParams(candidate.request().postData() || '');
+    const body = requestForm(candidate.request());
     return url.pathname === '/admin/blox_page_api.php' && body.get('action') === 'save_draft';
   });
   await page.getByTestId('blox-save').click();
@@ -106,7 +107,7 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
 
   const saveResponse = page.waitForResponse((candidate) => {
     const url = new URL(candidate.url());
-    const body = new URLSearchParams(candidate.request().postData() || '');
+    const body = requestForm(candidate.request());
     return url.pathname === '/admin/blox_page_api.php' && body.get('action') === 'save_draft';
   });
   await page.getByTestId('blox-save').click();
@@ -200,7 +201,7 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   page.once('dialog', (dialog) => dialog.accept());
   const failedPublishResponse = page.waitForResponse((candidate) => {
     const url = new URL(candidate.url());
-    const body = new URLSearchParams(candidate.request().postData() || '');
+    const body = requestForm(candidate.request());
     return url.pathname === '/admin/blox_page_api.php' && body.get('action') === 'publish';
   });
   await page.getByTestId('blox-publish-page').click();
@@ -214,7 +215,7 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   page.once('dialog', (dialog) => dialog.accept());
   const publishResponse = page.waitForResponse((candidate) => {
     const url = new URL(candidate.url());
-    const body = new URLSearchParams(candidate.request().postData() || '');
+    const body = requestForm(candidate.request());
     return url.pathname === '/admin/blox_page_api.php' && body.get('action') === 'publish';
   });
   await page.getByTestId('blox-publish-page').click();
@@ -528,7 +529,7 @@ test('custom section name survives history and save before returning to automati
   const saveDraft = async () => {
     const response = page.waitForResponse((candidate) => {
       const url = new URL(candidate.url());
-      const body = new URLSearchParams(candidate.request().postData() || '');
+      const body = requestForm(candidate.request());
       return url.pathname === '/admin/blox_page_api.php' && body.get('action') === 'save_draft';
     });
     await page.getByTestId('blox-save').click();

@@ -2,6 +2,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const { waitPreviewSettled, addTemporaryHeading, frame } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 // 第五轮：交付闭环。条件 → 保存 → 发布 → 前台结果（含主题默认与不应用），产品、文章、非默认语言各走一遍；
 // 另验缺失 ID 的回退显示、分类按语言过滤与窄屏布局。前台一律用无后台登录态的访客上下文访问。
@@ -32,7 +33,7 @@ async function reopen(page, id, kind) {
 
 async function api(page, action, trigger) {
   const response = page.waitForResponse((r) => new URL(r.url()).pathname === '/admin/blox_template_api.php'
-    && new URLSearchParams(r.request().postData() || '').get('action') === action);
+    && requestForm(r.request()).get('action') === action);
   await trigger();
   return (await response).json();
 }

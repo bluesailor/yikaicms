@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { requestForm } = require('./request-form');
 
 test.describe('SEO workshop @ci', () => {
   let scriptErrors;
@@ -54,7 +55,7 @@ test.describe('SEO workshop @ci', () => {
   test('generation failure shows feedback and restores the button', async ({ page }) => {
     await page.route('**/admin/plugin_page.php?plugin=seo', async (route) => {
       if (route.request().method() === 'POST') {
-        expect(new URLSearchParams(route.request().postData()).get('action')).toBe('gen_llms');
+        expect(requestForm(route.request()).get('action')).toBe('gen_llms');
         await route.fulfill({ status: 200, json: { code: 1, msg: 'Fixture: generation refused' } });
       } else {
         await route.continue();
@@ -79,7 +80,7 @@ test.describe('SEO workshop @ci', () => {
     // 切换「只看异常」触发 slug_list 往返
     const reloaded = page.waitForResponse((response) => response.request().method() === 'POST'
       && new URL(response.url()).pathname === '/admin/plugin_page.php'
-      && new URLSearchParams(response.request().postData() || '').get('action') === 'slug_list');
+      && requestForm(response.request()).get('action') === 'slug_list');
     await card.getByText('只看异常', { exact: true }).click();
     const payload = await (await reloaded).json();
     expect(payload.code).toBe(0);

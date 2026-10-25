@@ -2,6 +2,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const { waitPreviewSettled } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 // 第二轮：诊断要把真实生效路径说全——排除、native、缺失引用、其它模板之间的并列、非默认语言与权限。
 const run = (...args) => execFileSync(process.env.PHP_BINARY || 'php',
@@ -31,7 +32,7 @@ async function reopen(page, id) {
 
 async function diagnose(page) {
   const response = page.waitForResponse((r) => new URL(r.url()).pathname === '/admin/blox_template_api.php'
-    && new URLSearchParams(r.request().postData() || '').get('action') === 'diagnose_conditions');
+    && requestForm(r.request()).get('action') === 'diagnose_conditions');
   await page.getByTestId('blox-diagnose-run').click();
   return (await response).json();
 }
@@ -214,7 +215,7 @@ test('diagnosis refuses content the account cannot edit with the same answer as 
     await other.evaluate((value) => { window.Alpine.$data(document.body).productPreviewId = Number(value); }, previewId);
     await other.getByTestId('blox-cond-add-include-all').click();
     const denied = other.waitForResponse((r) => new URL(r.url()).pathname === '/admin/blox_template_api.php'
-      && new URLSearchParams(r.request().postData() || '').get('action') === 'diagnose_conditions');
+      && requestForm(r.request()).get('action') === 'diagnose_conditions');
     await other.getByTestId('blox-diagnose-run').click();
     const deniedBody = await (await denied).json();
     expect(deniedBody.code).not.toBe(0);

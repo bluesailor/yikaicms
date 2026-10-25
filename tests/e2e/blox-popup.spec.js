@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { requestForm } = require('./request-form');
 
 test('popup template creates, publishes, opens and restores focus @local', async ({ page }, testInfo) => {
   test.setTimeout(60_000);
@@ -26,7 +27,7 @@ test('popup template creates, publishes, opens and restores focus @local', async
     await page.getByTestId('blox-popup-settings').locator('summary').click();
 
     const saved = page.waitForResponse((response) => {
-      const body = new URLSearchParams(response.request().postData() || '');
+      const body = requestForm(response.request());
       return response.url().includes('/admin/blox_template_api.php') && body.get('action') === 'save_draft';
     });
     await page.getByTestId('blox-save').click();
@@ -35,7 +36,7 @@ test('popup template creates, publishes, opens and restores focus @local', async
     await expect(page.getByTestId('blox-dirty')).not.toHaveAttribute('data-state', 'dirty');
 
     const published = page.waitForResponse((response) => {
-      const body = new URLSearchParams(response.request().postData() || '');
+      const body = requestForm(response.request());
       return response.url().includes('/admin/blox_template_api.php') && body.get('action') === 'publish';
     });
     page.once('dialog', (dialog) => dialog.accept());

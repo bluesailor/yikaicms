@@ -5230,16 +5230,32 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 return JSON.stringify(norm(d[c.key])) !== JSON.stringify(norm(defs[c.key]));
             },
 
+            /**
+             * 序列化时绕开 Alpine 的响应式代理：输出逐字节相同，2000 个元素的文档从约 9 ms 降到 0.5 ms
+             * （2.1.3 实测）。只能用在方法里——模板绑定读原始对象就收不到更新了。
+             */
+            rawState(value) {
+                return window.Alpine && typeof window.Alpine.raw === "function" ? window.Alpine.raw(value) : value;
+            },
+
             historyData() {
-                return JSON.stringify(this.sections);
+                return JSON.stringify(this.rawState(this.sections));
             },
 
             historySettingsData() {
-                return JSON.stringify(this.docSettings || {});
+                return JSON.stringify(this.rawState(this.docSettings || {}));
             },
 
-            documentData() {
-                return JSON.stringify({ schema: 1, settings: this.docSettings || {}, sections: this.sections || [] });
+            /**
+             * 整份文档 JSON。$sectionsJson 是同一时刻 historyData() 的结果时直接拼接，结果与
+             * JSON.stringify 整个对象逐字节相同——每次改动少序列化一遍整份 sections
+             * （2.1.3：2000 个元素的页面每次按键约省 7 ms）。只在同一个同步流程里传，不能缓存。
+             */
+            documentData(sectionsJson) {
+                if (typeof sectionsJson === "string" && Array.isArray(this.sections)) {
+                    return '{"schema":1,"settings":' + this.historySettingsData() + ',"sections":' + sectionsJson + '}';
+                }
+                return JSON.stringify({ schema: 1, settings: this.rawState(this.docSettings || {}), sections: this.rawState(this.sections || []) });
             },
 
             draftSummary() {
@@ -5370,11 +5386,11 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 this.focusDialog(this.$refs.recoveryDialog, "[data-dialog-initial]");
             },
 
-            queueDraftRecovery() {
+            queueDraftRecovery(documentJson) {
                 if (!this._ready) return;
                 var recovery = this.draftRecovery();
                 if (!recovery) return;
-                var data = this.documentData();
+                var data = typeof documentJson === "string" ? documentJson : this.documentData();
                 if (data === this._savedDocumentSnapshot) {
                     recovery.clear();
                     return;
@@ -5472,7 +5488,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                         children: ((((el || {}).data || {}).children) || []).map(nodeShape),
                     };
                 };
-                return JSON.stringify((this.sections || []).map(function (section) {
+                return JSON.stringify((this.rawState(this.sections) || []).map(function (section) {
                     return {
                         id: String(section.id || ""),
                         type: String(section.type || ""),
@@ -5821,9 +5837,11 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                     self.multiSelReset(); // 文档一旦变化，多选集合与锚点一并失效
                     var currentData = self.historyData();
                     if (self._ready) {
-                        self.dirty = self.documentData() !== self._savedDocumentSnapshot;
+                        // 整份文档只序列化这一次：脏标记、草稿恢复共用（大页面每次按键原来要三遍）
+                        var documentJson = self.documentData(currentData);
+                        self.dirty = documentJson !== self._savedDocumentSnapshot;
                         if (!self._historyApplying) self.queueHistory(currentData);
-                        self.queueDraftRecovery();
+                        self.queueDraftRecovery(documentJson);
                     }
                     self.schedulePreview();
                     self.scheduleTreeSortable();
@@ -6261,6 +6279,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                     getFrame: function () { return self.$refs.canvas; },
                     getHost: function () { return self.$refs.canvasHost; },
                     getDocument: function () { return JSON.parse(self.documentData()); },
+                    getDocumentJson: function () { return self.documentData(); },
                     getParams: function () {
                         if (self.productTemplateMode) return { preview_product: String(self.productPreviewId) };
                         // 文章样本预览：与产品同款通道参数，缺它画布只会显示"没有可预览的已发布文章"
@@ -7271,6 +7290,20 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                     this.scheduleTreeSortable(50);
                     return;
                 }
+                // 挂拖拽的容器还是同一批 DOM 节点（改文字、改样式时 x-for 按 key 复用节点）就不重建：
+                // Sortable 自己处理容器里增减的项，回调里的位置也是事件发生时才从 dataset 读。
+                // 2.1.3 实测 2000 个元素的页面，每次按键在这里整棵重绑要 20 多 ms。
+                var secRootNow = this.$refs.tree.querySelector("[data-sort-sections]") || this.$refs.tree;
+                // 一次查询按文档顺序取全部容器（每次按键都要跑，三遍查询在大页面上要 4 ms 多）
+                var containersNow = [secRootNow]
+                    .concat(Array.prototype.slice.call(this.$refs.tree.querySelectorAll("[data-sort-elements], [data-sort-children]")));
+                // 记在树的 DOM 节点上而不是 Alpine 状态里：不进响应式，也不会被代理包一层
+                var bound = this.$refs.tree._ykSortableContainers || [];
+                if (this._sortables.length && bound.length === containersNow.length
+                    && containersNow.every(function (el, i) { return bound[i] === el && el.isConnected; })) {
+                    return;
+                }
+                this.$refs.tree._ykSortableContainers = containersNow;
                 this._sortables.forEach(function (s) {
                     try {
                         var sortable = window.Alpine && typeof Alpine.raw === "function" ? Alpine.raw(s) : s;

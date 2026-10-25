@@ -3,6 +3,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const { openPageEditor, frame, expectClean } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 const root = path.resolve(__dirname, '../..');
 const fixture = action => execFileSync(process.env.PHP_BINARY || 'php',
@@ -21,7 +22,7 @@ test.beforeEach(async ({}, info) => {
 });
 
 const pagePreview = page => page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_page_api.php'
-  && new URLSearchParams(r.request().postData() || '').get('action') === 'preview');
+  && requestForm(r.request()).get('action') === 'preview');
 
 async function selectHeading(page, id) {
   const canvas = await frame(page);
@@ -89,7 +90,7 @@ test('element advanced panel writes ID, classes, attributes and scoped CSS; page
 
   for (const [action, button] of [['save_draft', 'blox-save'], ['publish', 'blox-publish-page']]) {
     const response = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_page_api.php'
-      && new URLSearchParams(r.request().postData() || '').get('action') === action);
+      && requestForm(r.request()).get('action') === action);
     if (action === 'publish') page.once('dialog', dialog => dialog.accept());
     await page.getByTestId(button).click();
     expect((await (await response).json()).code).toBe(0);
@@ -121,14 +122,14 @@ test('a global class carries its own custom CSS scoped with %root% @ci', async (
 
   const field = page.getByTestId('blox-class-input-custom_css');
   const preview = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_class_api.php'
-    && new URLSearchParams(r.request().postData() || '').get('action') === 'class_preview');
+    && requestForm(r.request()).get('action') === 'class_preview');
   await field.fill('%root% { text-decoration: underline }');
   await field.press('Tab');
   await preview;
   const canvas = await frame(page);
   await expect.poll(() => canvas.locator('[data-yk-el-id="gcf-heading-b"] h2').evaluate(el => getComputedStyle(el).textDecorationLine)).toBe('underline');
   const saved = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_class_api.php'
-    && new URLSearchParams(r.request().postData() || '').get('action') === 'class_update');
+    && requestForm(r.request()).get('action') === 'class_update');
   await page.getByTestId('blox-class-save').click();
   expect((await (await saved).json()).code).toBe(0);
   await page.getByTestId('blox-style-target-element').click();
@@ -196,7 +197,7 @@ test('section advanced panel sets ID, classes and scoped CSS on the <section> @c
 
   for (const [action, button] of [['save_draft', 'blox-save'], ['publish', 'blox-publish-page']]) {
     const response = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_page_api.php'
-      && new URLSearchParams(r.request().postData() || '').get('action') === action);
+      && requestForm(r.request()).get('action') === action);
     if (action === 'publish') page.once('dialog', dialog => dialog.accept());
     await page.getByTestId(button).click();
     expect((await (await response).json()).code).toBe(0);
@@ -267,7 +268,7 @@ test('section title advanced panel sets ID, classes, attributes and scoped CSS o
 
   for (const [action, button] of [['save_draft', 'blox-save'], ['publish', 'blox-publish-page']]) {
     const response = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_page_api.php'
-      && new URLSearchParams(r.request().postData() || '').get('action') === action);
+      && requestForm(r.request()).get('action') === action);
     if (action === 'publish') page.once('dialog', dialog => dialog.accept());
     await page.getByTestId(button).click();
     expect((await (await response).json()).code).toBe(0);

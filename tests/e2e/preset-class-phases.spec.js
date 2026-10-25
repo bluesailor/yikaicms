@@ -8,6 +8,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const { openPageEditor, frame } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 const root = path.resolve(__dirname, '../..');
 const fixture = action => execFileSync(process.env.PHP_BINARY || 'php',
@@ -66,7 +67,7 @@ test('preset pages look the same before and after presets become classes @ci', a
     // 4 打开编辑器并发布：落盘为类引用
     const published = page.waitForResponse(r => r.request().method() === 'POST'
       && new URL(r.url()).pathname === '/admin/blox_page_api.php'
-      && new URLSearchParams(r.request().postData() || '').get('action') === 'publish');
+      && requestForm(r.request()).get('action') === 'publish');
     page.once('dialog', dialog => dialog.accept());   // 发布确认
     await expect(page.getByTestId('blox-publish-page')).toBeEnabled();   // 编辑器里已改写成类引用，与已发布文档不同
     await page.getByTestId('blox-publish-page').click();

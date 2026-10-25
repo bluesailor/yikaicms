@@ -2,6 +2,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const { addTemporaryHeading, frame, headingTextField, waitPreviewSettled } = require('./helpers');
+const { requestForm } = require('./request-form');
 const root = path.resolve(__dirname, '../..');
 const fixture = (action, id = '') => execFileSync(process.env.PHP_BINARY || 'php',
   [path.join(__dirname, 'site-design-state-fixture.php'), action, String(id)], { cwd: root, encoding: 'utf8' });
@@ -13,10 +14,10 @@ async function command(page, action, button, confirmConflict = false) {
     button = button.replace('blox-', 'blox-mobile-');
   }
   const matches = r => new URL(r.url()).pathname === '/admin/blox_template_api.php'
-    && new URLSearchParams(r.request().postData() || '').get('action') === action;
+    && requestForm(r.request()).get('action') === action;
   const conflict = confirmConflict ? page.waitForResponse(r => matches(r) && r.status() === 409) : null;
   const response = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_template_api.php'
-    && matches(r) && (!confirmConflict || new URLSearchParams(r.request().postData() || '').get('confirm_conflict') === '1'));
+    && matches(r) && (!confirmConflict || requestForm(r.request()).get('confirm_conflict') === '1'));
   await page.getByTestId(button).click();
   if (conflict) {
     const result = await (await conflict).json();

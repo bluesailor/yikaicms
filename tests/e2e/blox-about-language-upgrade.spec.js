@@ -2,6 +2,7 @@ const { test, expect } = require('@playwright/test');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const { openEditor, frame, waitPreviewSettled, undo, expectClean } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 const fixture = (action) => execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'about-language-fixture.php'), action], { cwd: path.resolve(__dirname, '../..'), encoding: 'utf8' }).trim();
 const languages = [
@@ -72,14 +73,14 @@ test('classic conversion publishes one ordinary layout with three localized cont
   await expect(page.locator('[data-testid="blox-tree-element"][data-home-block-type="about"]')).toHaveCount(0);
   const saved = page.waitForResponse(response => response.url().includes('/blox_home_api.php')
     && response.request().method() === 'POST'
-    && !new URLSearchParams(response.request().postData() || '').has('action'));
+    && !requestForm(response.request()).has('action'));
   await page.getByTestId('blox-save').click();
   expect((await (await saved).json()).code).toBe(0);
   await expectClean(page);
   await openEditor(page);
   await expect((await frame(page)).getByRole('heading', { name: '关于企业', exact: true })).toBeVisible();
   page.on('dialog', dialog => dialog.accept());
-  const published = page.waitForResponse(response => response.url().includes('/blox_home_api.php') && new URLSearchParams(response.request().postData() || '').get('action') === 'publish');
+  const published = page.waitForResponse(response => response.url().includes('/blox_home_api.php') && requestForm(response.request()).get('action') === 'publish');
   await page.getByTestId('blox-publish').click();
   expect((await (await published).json()).code).toBe(0);
   await openEditor(page);
