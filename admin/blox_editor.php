@@ -932,61 +932,53 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
     <link rel="stylesheet" href="<?php echo e($bloxIconSet['stylesheet']); ?>">
     <?php endforeach; ?>
     <script defer src="<?= e(assetVer('/assets/js/yikay-editor-runtime.js')) ?>"></script>
-    <script defer src="/assets/alpinejs/collapse.min.js"></script>
-    <script defer src="/assets/alpinejs/alpine.min.js"></script>
-    <script src="/assets/sortable/Sortable.min.js"></script>
-    <script src="/assets/js/yikay-color-picker.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-color-picker.js') ?>"></script>
-    <script src="/assets/js/yikay-template-library.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-template-library.js') ?>"></script>
-    <script>window.BloxTemplateLibrary.setContentLanguage(<?= json_encode($bloxContentLanguage, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>);</script>
-    <script src="/assets/js/yikay-media-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-media-client.js') ?>"></script>
-    <script src="/assets/js/official-media-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/official-media-client.js') ?>"></script>
-    <script src="/assets/js/yikay-dialog-focus.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-dialog-focus.js') ?>"></script>
-    <script src="/assets/js/yikay-preview-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-preview-client.js') ?>"></script>
-    <script src="/assets/js/yikay-canvas-bridge.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-canvas-bridge.js') ?>"></script>
-    <script src="/assets/js/yikay-history-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-history-store.js') ?>"></script>
-    <script src="/assets/js/yikay-draft-recovery.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-draft-recovery.js') ?>"></script>
-    <script src="/assets/js/yikay-draft-summary.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-draft-summary.js') ?>"></script>
-    <script src="/assets/js/yikay-command-runner.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-command-runner.js') ?>"></script>
-    <script src="/assets/js/yikay-style-clipboard.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-style-clipboard.js') ?>"></script>
-    <script src="/assets/js/yikay-control-rules.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-control-rules.js') ?>"></script>
-    <script src="/assets/js/yikay-command-palette.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-command-palette.js') ?>"></script>
-    <script src="/assets/js/yikay-banner-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-banner-panel.js') ?>"></script>
-    <script src="/assets/js/yikay-home-content-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-home-content-panel.js') ?>"></script>
-    <script src="/assets/js/yikay-cta-quick.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-cta-quick.js') ?>"></script>
-    <script src="/assets/js/yikay-style-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-style-source.js') ?>"></script>
-    <script src="/assets/js/yikay-style-groups.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-style-groups.js') ?>"></script>
-    <script src="/assets/js/yikay-style-sources.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-style-sources.js') ?>"></script>
-    <script src="/assets/js/yikay-style-origin.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-style-origin.js') ?>"></script>
-    <script src="/assets/js/yikay-custom-code.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-custom-code.js') ?>"></script>
-    <script src="/assets/js/yikay-detail-conditions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-detail-conditions.js') ?>"></script>
-    <script src="/assets/js/yikay-background-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-background-panel.js') ?>"></script>
-    <script src="/assets/js/yikay-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-image-control.js') ?>"></script>
-    <script src="/assets/js/yikay-items-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-items-control.js') ?>"></script>
-    <script src="/assets/js/yikay-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-catalog-source.js') ?>"></script>
-    <script src="/assets/js/yikay-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-responsive.js') ?>"></script>
-<?php if (!BloxResponsiveValue::wideEnabled()): ?>
-    <script>window.BloxResponsive.setWideEnabled(false);</script>
-<?php endif; ?>
-    <script src="/assets/js/yikay-multi-select.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-multi-select.js') ?>"></script>
-    <script src="/assets/js/yikay-multi-actions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-multi-actions.js') ?>"></script>
-    <script src="/assets/js/yikay-page-settings.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-page-settings.js') ?>"></script>
-    <script src="/assets/js/yikay-section-insert.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-section-insert.js') ?>"></script>
-    <script src="/assets/js/yikay-components.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-components.js') ?>"></script>
-    <script src="/assets/js/yikay-multi-properties.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-multi-properties.js') ?>"></script>
-    <script src="/assets/js/yikay-icon-utils.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-icon-utils.js') ?>"></script>
-    <script>
-    (<?php echo json_encode(array_map(static fn(array $set): array => ['prefix' => $set['prefix'], 'class' => $set['class']], $bloxIconSets), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>).forEach(function (set) {
-        window.BloxIconUtils.registerSet(set.prefix, set.class);
-    });
-    </script>
-    <script src="/assets/js/yikay-home-field-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-home-field-store.js') ?>"></script>
+    <script src="/assets/sortable/Sortable.min.js" defer></script>
+    <script src="/assets/js/yikay-color-picker.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-color-picker.js') ?>" defer></script>
+    <script src="/assets/js/yikay-template-library.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-template-library.js') ?>" defer></script>
+    <script src="/assets/js/yikay-media-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-media-client.js') ?>" defer></script>
+    <script src="/assets/js/official-media-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/official-media-client.js') ?>" defer></script>
+    <script src="/assets/js/yikay-dialog-focus.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-dialog-focus.js') ?>" defer></script>
+    <script src="/assets/js/yikay-preview-client.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-preview-client.js') ?>" defer></script>
+    <script src="/assets/js/yikay-canvas-bridge.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-canvas-bridge.js') ?>" defer></script>
+    <script src="/assets/js/yikay-history-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-history-store.js') ?>" defer></script>
+    <script src="/assets/js/yikay-draft-recovery.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-draft-recovery.js') ?>" defer></script>
+    <script src="/assets/js/yikay-draft-summary.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-draft-summary.js') ?>" defer></script>
+    <script src="/assets/js/yikay-command-runner.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-command-runner.js') ?>" defer></script>
+    <script src="/assets/js/yikay-style-clipboard.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-style-clipboard.js') ?>" defer></script>
+    <script src="/assets/js/yikay-control-rules.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-control-rules.js') ?>" defer></script>
+    <script src="/assets/js/yikay-command-palette.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-command-palette.js') ?>" defer></script>
+    <script src="/assets/js/yikay-banner-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-banner-panel.js') ?>" defer></script>
+    <script src="/assets/js/yikay-home-content-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-home-content-panel.js') ?>" defer></script>
+    <script src="/assets/js/yikay-cta-quick.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-cta-quick.js') ?>" defer></script>
+    <script src="/assets/js/yikay-style-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-style-source.js') ?>" defer></script>
+    <script src="/assets/js/yikay-style-groups.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-style-groups.js') ?>" defer></script>
+    <script src="/assets/js/yikay-style-sources.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-style-sources.js') ?>" defer></script>
+    <script src="/assets/js/yikay-style-origin.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-style-origin.js') ?>" defer></script>
+    <script src="/assets/js/yikay-custom-code.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-custom-code.js') ?>" defer></script>
+    <script src="/assets/js/yikay-detail-conditions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-detail-conditions.js') ?>" defer></script>
+    <script src="/assets/js/yikay-background-panel.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-background-panel.js') ?>" defer></script>
+    <script src="/assets/js/yikay-image-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-image-control.js') ?>" defer></script>
+    <script src="/assets/js/yikay-items-control.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-items-control.js') ?>" defer></script>
+    <script src="/assets/js/yikay-catalog-source.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-catalog-source.js') ?>" defer></script>
+    <script src="/assets/js/yikay-responsive.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-responsive.js') ?>" defer></script>
+    <script src="/assets/js/yikay-multi-select.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-multi-select.js') ?>" defer></script>
+    <script src="/assets/js/yikay-multi-actions.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-multi-actions.js') ?>" defer></script>
+    <script src="/assets/js/yikay-page-settings.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-page-settings.js') ?>" defer></script>
+    <script src="/assets/js/yikay-section-insert.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-section-insert.js') ?>" defer></script>
+    <script src="/assets/js/yikay-components.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-components.js') ?>" defer></script>
+    <script src="/assets/js/yikay-multi-properties.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-multi-properties.js') ?>" defer></script>
+    <script src="/assets/js/yikay-icon-utils.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-icon-utils.js') ?>" defer></script>
+    <script src="/assets/js/yikay-home-field-store.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-home-field-store.js') ?>" defer></script>
     <?php // 系统富文本编辑器（richtext 控件的「可视化编辑」弹窗用；按需 init） ?>
-    <script src="<?= e(assetVer('/assets/js/yikay-richtext-loader.js')) ?>" data-hugerte-src="<?= e(BasePath::url(assetVer('/assets/hugerte/hugerte.min.js'))) ?>"></script>
+    <script src="<?= e(assetVer('/assets/js/yikay-richtext-loader.js')) ?>" data-hugerte-src="<?= e(BasePath::url(assetVer('/assets/hugerte/hugerte.min.js'))) ?>" defer></script>
     <?php // 别名（给第三方插件）与界面语言 → 编辑器语言包的映射，两个页面共用 ?>
-    <script src="/assets/js/rich-editor.js?v=<?php echo (int) @filemtime(ROOT_PATH . '/assets/js/rich-editor.js'); ?>"></script>
-    <script src="/assets/js/yikay-compact-richtext.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-compact-richtext.js') ?>"></script>
+    <script src="/assets/js/rich-editor.js?v=<?php echo (int) @filemtime(ROOT_PATH . '/assets/js/rich-editor.js'); ?>" defer></script>
+    <script src="/assets/js/yikay-compact-richtext.js?v=<?= (int) filemtime(ROOT_PATH . '/assets/js/yikay-compact-richtext.js') ?>" defer></script>
     <?php // 作者端扩展模块（如 yikai-builder）在 Alpine 组件定义前注入自己的脚本与数据 ?>
     <?php if (function_exists('do_action')) do_action('blox_editor_scripts'); ?>
+    <?php // All editor dependencies (including author extensions) must execute before Alpine starts. ?>
+    <script defer src="/assets/alpinejs/collapse.min.js"></script>
+    <script defer src="/assets/alpinejs/alpine.min.js"></script>
     <style>
         html, body { height: 100%; margin: 0; overflow: hidden; }
         [x-cloak] { display: none !important; }
@@ -1229,10 +1221,19 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
     <?php require __DIR__ . '/blox_editor/partials/workspace.php'; ?>
     <?php require __DIR__ . '/blox_editor/partials/overlays.php'; ?>
     <?php require __DIR__ . '/blox_editor/partials/command-palette.php'; ?>
-    <?php if (hasPermission('media')) require __DIR__ . '/includes/image_edit_modal.php'; ?>
+    <?php if (hasPermission('media')) { $imageEditScriptDefer = true; require __DIR__ . '/includes/image_edit_modal.php'; unset($imageEditScriptDefer); } ?>
 
     <script>
     function bloxEditor() {
+        // Dependencies are deferred; apply request-specific configuration only after they are ready.
+        window.BloxTemplateLibrary.setContentLanguage(<?= json_encode($bloxContentLanguage, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>);
+<?php if (!BloxResponsiveValue::wideEnabled()): ?>
+        window.BloxResponsive.setWideEnabled(false);
+<?php endif; ?>
+        (<?php echo json_encode(array_map(static fn(array $set): array => ['prefix' => $set['prefix'], 'class' => $set['class']], $bloxIconSets), JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>).forEach(function (set) {
+            window.BloxIconUtils.registerSet(set.prefix, set.class);
+        });
+
         // 草稿变更摘要的缓存放在响应式之外：写缓存不会再惊动十几处读摘要的绑定
         return Object.assign(window.BloxEditorRuntime.create({
             rteLoadFailed: <?= json_encode(__('admin_request_failed'), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT) ?>,

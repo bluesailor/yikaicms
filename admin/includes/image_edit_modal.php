@@ -86,4 +86,4 @@ window.YK_IMAGE_EDIT_I18N = <?php echo json_encode([
 // 网页构建器页面没有后台头部的 fetch CSRF 包装，接口令牌随弹窗片段带上
 window.YK_IMAGE_EDIT_TOKEN = <?php echo json_encode(csrfToken()); ?>;
 </script>
-<script src="/assets/js/admin-image-editor.js?v=<?php echo (int) filemtime(ROOT_PATH . '/assets/js/admin-image-editor.js'); ?>"></script>
+<script src="/assets/js/admin-image-editor.js?v=<?php echo (int) filemtime(ROOT_PATH . '/assets/js/admin-image-editor.js'); ?>"<?= !empty($imageEditScriptDefer) ? ' defer' : '' ?>></script>
