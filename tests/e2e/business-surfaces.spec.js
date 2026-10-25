@@ -2,6 +2,7 @@ const path = require('path');
 const { test, expect } = require('@playwright/test');
 const installMarketThemes = require('./theme-market-fixture');
 const { frame, waitPreviewSettled, observeUnsafeWrites } = require('./helpers');
+const { requestForm } = require('./request-form');
 const root = path.resolve(__dirname, '../..');
 let cleanup = () => {};
 test.beforeAll(() => { cleanup = installMarketThemes(root, ['business']); });
@@ -145,7 +146,7 @@ test('Business editor exposes modes and previews without saving @ci', async ({ p
     test.skip(testInfo.project.name !== 'desktop-1440', 'Editor controls are verified once; preview covers all sizes');
     const writes = observeUnsafeWrites(page);
     await page.route('**/admin/blox_preview.php?home=1', async (route) => {
-        const body = new URLSearchParams(route.request().postData() || '');
+        const body = requestForm(route.request());
         expect(body.get('action')).toBe('preview');
         const response = await route.fetch({ url: new URL(url('normal', 'preview'), route.request().url()).href });
         await route.fulfill({ response });

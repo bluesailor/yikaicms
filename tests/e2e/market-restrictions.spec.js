@@ -1,5 +1,6 @@
 const { test, expect } = require('@playwright/test');
 const { observeConsole } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 test('free download restrictions remain visible without install requests @ci', async ({ page }, testInfo) => {
   test.skip(testInfo.project.name !== 'desktop-1440', 'one desktop/mobile state pass');
@@ -9,7 +10,7 @@ test('free download restrictions remain visible without install requests @ci', a
   for (const kind of ['theme', 'plugin']) {
     await page.route(`**/admin/${kind}.php*`, async route => {
       if (route.request().method() !== 'POST') return route.continue();
-      const action = new URLSearchParams(route.request().postData() || '').get('action');
+      const action = requestForm(route.request()).get('action');
       if (action !== 'market_list') {
         writes.push(action);
         return route.fulfill({ json: { code: 1, msg: 'Unexpected write' } });

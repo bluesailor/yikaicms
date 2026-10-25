@@ -2,6 +2,7 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 const { openPageEditor, frame, canvasScrollTop, performPagePreviewUpdate, observeConsole } = require('./helpers');
+const { requestForm } = require('./request-form');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 
 async function openCatalog(page, type, id) {
@@ -38,7 +39,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         const errors = observeConsole(page), reads = [];
         let unpublished = true;
         await page.route('**/admin/blox_page_api.php', async route => {
-            const query = new URLSearchParams(route.request().postData());
+            const query = requestForm(route.request());
             if (query.get('action') !== 'catalog_items' || !unpublished) return route.continue();
             return route.fulfill({ json: { code: 0, data: { items: [], page: 1, has_more: false } } });
         });
@@ -60,7 +61,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         const scroll = await canvasScrollTop(page), before = await snapshot(page);
         page.on('request', req => {
             if (req.method() === 'POST' && req.url().includes('/admin/blox_page_api.php')) {
-                reads.push(new URLSearchParams(req.postData()).get('action'));
+                reads.push(requestForm(req).get('action'));
             }
         });
         const search = panel.locator('input[type="search"]');
@@ -92,7 +93,7 @@ test('an empty later page returns to the same search and failures never look unp
     const errors = observeConsole(page), queries = [];
     let failing = false;
     await page.route('**/admin/blox_page_api.php', async route => {
-        const query = new URLSearchParams(route.request().postData());
+        const query = requestForm(route.request());
         if (query.get('action') !== 'catalog_items') return route.continue();
         queries.push(Object.fromEntries(query));
         if (failing) return route.fulfill({ json: { code: 1, msg: 'test-failure' } });

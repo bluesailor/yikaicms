@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { requestForm } = require('./request-form');
 const {
   addTemporaryHeading,
   frame,
@@ -36,7 +37,7 @@ test.beforeEach(async ({ page }, testInfo) => {
   consoleEntries = observeConsole(page);
   unsafeWrites = observeUnsafeWrites(page);
   await page.route('**/admin/blox_design_api.php', async (route) => {
-    const body = new URLSearchParams(route.request().postData() || '');
+    const body = requestForm(route.request());
     const action = body.get('action');
     expect(['snapshot', 'usage']).toContain(action);
     await route.fulfill({

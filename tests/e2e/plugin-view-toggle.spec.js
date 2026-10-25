@@ -4,6 +4,7 @@
  */
 const { test, expect } = require('@playwright/test');
 const { observeConsole, observeUnsafeWrites } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 const TINY_PNG = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAMAASsJTYQAAAAASUVORK5CYII=';
 const MARKET = [1, 2, 3, 4].map((i) => ({
@@ -15,7 +16,7 @@ const MARKET = [1, 2, 3, 4].map((i) => ({
 async function mockMarket(page) {
     await page.route('**/admin/plugin.php**', async (route) => {
         const request = route.request();
-        const body = new URLSearchParams(request.postData() || '');
+        const body = requestForm(request);
         if (request.method() !== 'POST' || body.get('action') !== 'market_list') return route.continue();
         await route.fulfill({
             status: 200, contentType: 'application/json; charset=utf-8',

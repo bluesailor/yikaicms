@@ -1,4 +1,5 @@
 const { test, expect } = require('@playwright/test');
+const { requestForm } = require('./request-form');
 const {
   addTemporaryHeading,
   frame,
@@ -45,7 +46,7 @@ test('heading exact font size reaches the canvas and clears back to unset @ci', 
   let previewRequest;
   await performPreviewUpdate(page, async () => {
     const request = page.waitForRequest((candidate) => {
-      const body = new URLSearchParams(candidate.postData() || '');
+      const body = requestForm(candidate);
       return candidate.method() === 'POST'
         && new URL(candidate.url()).pathname === '/admin/blox_preview.php'
         && body.get('action') === 'preview'

@@ -63,7 +63,7 @@ final class BloxEditorHistoryContractTest extends TestCase
         $this->assertStringContainsString('this.dirty = this.documentData() !== this._savedDocumentSnapshot;', $source);
         $this->assertStringContainsString('var savedData = this.historyData();', $source);
         // 历史仍保存裸 sections；dirty/恢复基线使用完整信封，避免 settings 改动漏报。
-        $this->assertStringContainsString('documentData() {', $source);
+        $this->assertStringContainsString('documentData(sectionsJson) {', $source);
         $this->assertStringContainsString('this._savedDocumentSnapshot = this.documentData();', $source);
         $this->assertStringContainsString('body.set("blocks_data", payload);', $source);
         $this->assertStringContainsString('acceptSavedDocument(payload, savedData, res)', $source);

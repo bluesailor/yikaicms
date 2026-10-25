@@ -2,6 +2,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('node:child_process');
 const path = require('node:path');
 const { openPageEditor, frame, addTemporaryHeading, headingTextField, performPagePreviewUpdate, expectClean } = require('./helpers');
+const { requestForm } = require('./request-form');
 const root = path.resolve(__dirname, '../..');
 const fixture = (...args) => execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'contact-form-fixture.php'), ...args], { cwd: root, encoding: 'utf8' });
 let contact;
@@ -43,7 +44,7 @@ test('Blox contact fields persist and anonymous submissions reach the inbox with
   await addTemporaryHeading(page);
   await performPagePreviewUpdate(page, () => headingTextField(page).fill(marker + ' layout'));
   const published = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_page_api.php'
-    && new URLSearchParams(r.request().postData() || '').get('action') === 'publish');
+    && requestForm(r.request()).get('action') === 'publish');
   page.once('dialog', dialog => dialog.accept());
   await page.getByTestId('blox-publish-page').click();
   expect((await (await published).json()).code).toBe(0);

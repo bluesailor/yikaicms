@@ -2,6 +2,7 @@ const { test, expect } = require('@playwright/test');
 const fs = require('fs');
 const path = require('path');
 const { openPageEditor, frame, performPagePreviewUpdate, observeConsole } = require('./helpers');
+const { requestForm } = require('./request-form');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 
 for (const [type, id] of [['product-catalog', fixtures.product_page], ['content-catalog', fixtures.channel_list]]) {
@@ -9,7 +10,7 @@ for (const [type, id] of [['product-catalog', fixtures.product_page], ['content-
         const errors = observeConsole(page), writes = [];
         page.on('request', request => {
             if (request.method() === 'POST' && request.url().includes('/admin/blox_page_api.php')) {
-                const action = new URLSearchParams(request.postData()).get('action');
+                const action = requestForm(request).get('action');
                 if (action !== 'preview') writes.push(action);
             }
         });
