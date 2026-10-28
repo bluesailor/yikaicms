@@ -28,6 +28,8 @@
         },
 
         elementConditionStale() {
+            // documentData() 绕过深层响应式代理；订阅文档修订号，让规则/内容修改后重新判断旧诊断。
+            void this.draftRevision;
             var request = this.elementConditionRequest();
             return !request || request.key !== this.elementConditionReportKey;
         },
