@@ -96,7 +96,7 @@ contractAssert($footerPresets === $expectedFooters, '内置网页尾模板不一
 // 新装站的页头/页脚要和开发站同款：各恰好发布一套，其余留作可切换的起步模板。
 // 少了它们，装完的站会回落到主题自带的 PHP 页头页脚，和我们平时看到的完全不是一个样子。
 $publishedQuery = $pdo->query(
-    "SELECT type, source_ref FROM " . DB_PREFIX . "blox_templates WHERE status = 1 ORDER BY type"
+    "SELECT type, source_ref FROM " . DB_PREFIX . "blox_templates WHERE status = 1 AND type IN ('header','footer') ORDER BY type"
 );
 $published = [];
 foreach ($publishedQuery->fetchAll(PDO::FETCH_ASSOC) as $row) {
