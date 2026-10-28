@@ -1,9 +1,12 @@
 (function (global) {
     "use strict";
 
+    var encoder = new TextEncoder();
+
     function BloxHistoryStore(options) {
         options = options || {};
         this.limit = Math.max(2, parseInt(options.limit, 10) || 51);
+        this.maxBytes = Math.max(1, parseInt(options.maxBytes, 10) || 4 * 1024 * 1024);
         this.delay = Math.max(0, parseInt(options.delay, 10) || 700);
         this.getData = options.getData;
         this.getSettings = typeof options.getSettings === "function" ? options.getSettings : null;
@@ -11,6 +14,7 @@
         this.getSelection = options.getSelection;
         this.isApplying = options.isApplying || function () { return false; };
         this.entries = [];
+        this.totalBytes = 0;
         this.index = -1;
         this.pending = null;
         this.timer = null;
@@ -32,10 +36,19 @@
             === (right.settings === undefined ? null : right.settings);
     };
 
+    // 只在快照入栈时计算序列化内容的 UTF-8 大小，避免连续输入时反复编码。
+    BloxHistoryStore.prototype.snapshotBytes = function (snapshot) {
+        return encoder.encode(snapshot.data || "").length
+            + encoder.encode(snapshot.settings || "").length
+            + encoder.encode(snapshot.structure || "").length;
+    };
+
     BloxHistoryStore.prototype.init = function () {
         clearTimeout(this.timer);
         var initial = this.snapshot();
+        initial.bytes = this.snapshotBytes(initial);
         this.entries = [initial];
+        this.totalBytes = initial.bytes;
         this.index = 0;
         this.pending = null;
         return initial;
@@ -45,10 +58,17 @@
         var current = this.entries[this.index] || null;
         if (!snapshot || this.sameContent(current, snapshot)) return false;
         if (this.index < this.entries.length - 1) {
-            this.entries.splice(this.index + 1);
+            var removed = this.entries.splice(this.index + 1);
+            for (var i = 0; i < removed.length; i++) this.totalBytes -= removed[i].bytes;
         }
+        snapshot.bytes = this.snapshotBytes(snapshot);
         this.entries.push(snapshot);
-        if (this.entries.length > this.limit) this.entries.shift();
+        this.totalBytes += snapshot.bytes;
+        // 单份快照超过预算时仍保留最新状态，避免大文档无法继续编辑。
+        while (this.entries.length > 1
+            && (this.entries.length > this.limit || this.totalBytes > this.maxBytes)) {
+            this.totalBytes -= this.entries.shift().bytes;
+        }
         this.index = this.entries.length - 1;
         return true;
     };
