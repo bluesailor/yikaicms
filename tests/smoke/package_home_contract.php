@@ -120,7 +120,8 @@ foreach ((array) glob(ROOT_PATH . '/themes/*', GLOB_ONLYDIR) as $themeDir) {
     $themes[] = basename((string) $themeDir);
 }
 sort($themes, SORT_STRING);
-$expectedThemes = ['business', 'default', 'minimal'];
+// 2.0.4 起核心安装包只带 Default；Business/Minimal 经主题市场分发（build.sh）。
+$expectedThemes = ['default'];
 contractAssert($themes === $expectedThemes, '安装包预置主题不一致');
 
 $snapshot = [
