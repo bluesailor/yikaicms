@@ -20,6 +20,7 @@ jobs:
   lint:
     name: PHP Lint (${{ matrix.php }})
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -62,12 +63,31 @@ jobs:
   phpunit:
     name: PHPUnit (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
         php: ['8.2', '8.3', '8.4']
     steps:
       - uses: actions/checkout@v4
+
+      # Blox 已在主仓；兼容旧仓的注入也集中到 8.2，避免另起一轮相同的全量单测。
+      - name: Inject Blox paid sources
+        if: matrix.php == '8.2'
+        env:
+          BLOX_DEPLOY_KEY: ${{ secrets.BLOX_DEPLOY_KEY }}
+        run: bash .github/scripts/inject-blox.sh
+
+      - name: Check Blox source presence
+        if: matrix.php == '8.2'
+        id: blox_src
+        run: |
+          if [ -f admin/blox_editor.php ]; then
+            echo "present=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "present=false" >> "$GITHUB_OUTPUT"
+            echo "::notice title=Blox suite skipped::paid sources not injected (no BLOX_DEPLOY_KEY). SKIPPED, not failed."
+          fi
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -93,8 +113,16 @@ jobs:
       - name: Verify Blox asset classification
         run: php bin/blox-assets.php verify-policy .
 
+      - name: Verify Blox paid asset composition
+        if: matrix.php == '8.2' && steps.blox_src.outputs.present == 'true'
+        run: php bin/blox-assets.php verify-source .
+
       - name: Run PHPUnit
         run: vendor/bin/phpunit --colors=never
+
+      - name: Blox i18n gate (strict scope incl. paid sources)
+        if: matrix.php == '8.2' && steps.blox_src.outputs.present == 'true'
+        run: php tools/check_blox_i18n.php
 
   # ─── 后台 CRUD 冒烟测试：起一个全新 SQLite 装机 + php 内置服务器，
   # ─── 登录后逐类 POST「新建」（栏目/内容/产品及分类标签/下载/招聘/友链/时间线），
@@ -109,6 +137,7 @@ jobs:
   smoke:
     name: Admin CRUD Smoke (PHP ${{ matrix.php }} / ${{ matrix.lang }})
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       matrix:
@@ -312,58 +341,18 @@ jobs:
           echo "=== php server log ==="
           tail -100 /tmp/php-server.log 2>/dev/null || true
 
-  # ─── Blox 付费套件（注入后全量 PHPUnit）：付费源码与公开代码的契约测试
-  # ─── （BloxEditor*Contract / TemplateImporter / Catalog / RemoteProvider，
-  # ─── 55 tests）只有注入后才存在。secret 不在场 → guard 显式 skip，不假红。
-  # ─── 与 e2e 不同：单测确定性高，本 job 为强制门禁（无 continue-on-error）。
+  # Blox 断言已并入 PHPUnit 8.2；保留原检查名，汇总失败/取消也必须报红。
   blox-suite:
     name: Blox Suite (injected)
+    if: always()
+    needs: phpunit
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@v4
-
-      # 付费源码注入：BLOX_DEPLOY_KEY（deploy key 私钥，只读授权 yikaicms-blox）
-      # 在场时浅克隆私库并覆盖进构建树；不在场（fork / 无权环境）时静默跳过，
-      # 由后续 presence guard 显式标注 skipped。密钥用完即删。
-      - name: Inject Blox paid sources
+      - name: Enforce Blox suite result
         env:
-          BLOX_DEPLOY_KEY: ${{ secrets.BLOX_DEPLOY_KEY }}
-        run: bash .github/scripts/inject-blox.sh
-
-      - name: Check Blox source presence
-        id: blox_src
-        run: |
-          if [ -f admin/blox_editor.php ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=Blox suite skipped::paid sources not injected (no BLOX_DEPLOY_KEY). SKIPPED, not failed."
-          fi
-
-      - name: Setup PHP
-        if: steps.blox_src.outputs.present == 'true'
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: '8.2'
-          extensions: mbstring, pdo_sqlite, json, gd, fileinfo, dom, simplexml
-          tools: composer:v2
-          coverage: none
-
-      - name: composer install
-        if: steps.blox_src.outputs.present == 'true'
-        run: composer install --no-interaction --prefer-dist --no-progress
-
-      - name: Verify Blox paid asset composition
-        if: steps.blox_src.outputs.present == 'true'
-        run: php bin/blox-assets.php verify-source .
-
-      - name: Run PHPUnit (full suite incl. Blox contracts)
-        if: steps.blox_src.outputs.present == 'true'
-        run: vendor/bin/phpunit --colors=never
-
-      - name: Blox i18n gate (strict scope incl. paid sources)
-        if: steps.blox_src.outputs.present == 'true'
-        run: php tools/check_blox_i18n.php
+          PHPUNIT_RESULT: ${{ needs.phpunit.result }}
+        run: test "$PHPUNIT_RESULT" = success
 
   # ─── 真实 N-1 包升级：从已发布的 v1.20.1 完整包安装旧站，再通过
   # ─── prepare/batch/finalize 管道覆盖当前候选完整包并跑完迁移。
@@ -371,6 +360,7 @@ jobs:
   # ─── 这条专门覆盖源码树、全新安装和两文件回滚沙箱都看不到的客户升级路径。
   n-minus-one-upgrade:
     name: PHP ${{ matrix.php }} N-1 Package Upgrade
+    needs: free-package
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
@@ -404,10 +394,25 @@ jobs:
       - name: Install production dependencies
         run: composer install --no-dev --no-interaction --prefer-dist --no-progress
 
-      - name: Build current full package
+      # 两个 PHP 运行时升级同一份已验证安装包，不各自重建一次。
+      - name: Download verified current package
+        if: needs.free-package.outputs.has_package == 'true'
+        uses: actions/download-artifact@v4
+        with:
+          name: yikaicms-free-${{ github.sha }}
+          path: releases
+
+      - name: Build current full package (legacy source fallback)
+        if: needs.free-package.outputs.has_package != 'true'
         run: |
           VERSION="$(php -r "require 'config/version.php'; echo CMS_VERSION;")"
           bash build.sh "$VERSION" --no-delta
+
+      - name: Verify current package hash
+        run: |
+          VERSION="$(php -r "require 'config/version.php'; echo CMS_VERSION;")"
+          SHA="releases/yikaicms-v${VERSION}.sha256"
+          sha256sum -c "$SHA"
 
       - name: Fetch and verify published v1.20.1 package
         run: |
@@ -430,6 +435,8 @@ jobs:
     name: Blox Free Package
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    outputs:
+      has_package: ${{ steps.blox_src.outputs.present }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -504,13 +511,17 @@ jobs:
             ${{ steps.package.outputs.zip }}
             ${{ steps.package.outputs.sha }}
           if-no-files-found: error
-          retention-days: 7
+          # ZIP 已压缩；只供本次升级矩阵消费，重跑时覆盖同名中间产物。
+          compression-level: 0
+          overwrite: true
+          retention-days: 1
 
   # ─── 五个独立浏览器分片（core 拆成 A/B 并行）。PR 按路径分流；主线、发布候选和非 PR
   # ─── 事件跑完整矩阵。每个 spec 由 run-shard.js 建立独立临时站点/数据库。
   e2e_plan:
     name: Plan Blox browser shards
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     outputs:
       matrix: ${{ steps.plan.outputs.matrix }}
       has_shards: ${{ steps.plan.outputs.has_shards }}
@@ -605,13 +616,14 @@ jobs:
             test-results/e2e-shard-${{ matrix.shard }}-${{ github.run_id }}-${{ github.run_attempt }}
             storage/logs
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 3
 
   e2e:
     name: Blox Browser Regression
     if: always()
     needs: [e2e_plan, e2e_shards]
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Enforce planned browser coverage
         env:
@@ -632,6 +644,7 @@ jobs:
   psalm:
     name: Psalm static analysis
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -649,7 +662,9 @@ jobs:
           path: |
             ~/.composer/cache
             vendor
-          key: composer-psalm-${{ hashFiles('composer.lock') }}
+          key: composer-8.2-${{ hashFiles('composer.lock') }}
+          restore-keys: |
+            composer-8.2-
 
       - name: composer install
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -662,6 +677,7 @@ jobs:
   js-tests:
     name: JS Unit Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Setup PHP for CLI error-handler regression
@@ -684,6 +700,7 @@ jobs:
   lang-keys:
     name: Lang Key Consistency
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
       - name: Setup PHP
