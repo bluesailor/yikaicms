@@ -38,10 +38,10 @@ final class RuntimeRequirementsConsistencyTest extends TestCase
     }
 
     /**
-     * 随包插件与主题仍声明 requires_php >=8.0：它们经市场装到 2.1.2 及更早、还在 8.0 上的站，
-     * 必须继续能在 8.0 上加载（CI 用 tools/check-php80-runtime.php 编译检查）。
+     * 扩展的 PHP 基线应匹配其最低 CMS：面向旧核心的扩展保留 8.0，
+     * 要求 CMS 2.1.3+ 的维护版本使用该代核心的 8.2 基线。
      */
-    public function testOfficialExtensionsAcceptPhp80(): void
+    public function testOfficialExtensionPhpFloorsMatchTheirCmsGeneration(): void
     {
         $manifests = array_merge(
             glob(ROOT_PATH . '/plugins/*/plugin.json') ?: [],
@@ -50,10 +50,12 @@ final class RuntimeRequirementsConsistencyTest extends TestCase
         );
         foreach ($manifests as $manifest) {
             $data = json_decode((string) file_get_contents($manifest), true, 512, JSON_THROW_ON_ERROR);
+            $cmsMinimum = (string) preg_replace('/^>=/', '', (string) ($data['requires_cms'] ?? '1.0.0'));
+            $phpFloor = version_compare($cmsMinimum, '2.1.3', '>=') ? '8.2' : '8.0';
             $constraint = (string) ($data['requires_php'] ?? '8.0');
-            self::assertMatchesRegularExpression('/^(?:>=)?8\.0(?:\.0)?$/', $constraint, $manifest);
+            self::assertMatchesRegularExpression('/^(?:>=)?' . preg_quote($phpFloor, '/') . '(?:\.0)?$/', $constraint, $manifest);
             $minimum = str_starts_with($constraint, '>=') ? substr($constraint, 2) : $constraint;
-            self::assertTrue(version_compare('8.0.0', $minimum, '>='), $manifest . ' rejects PHP 8.0');
+            self::assertTrue(version_compare($phpFloor . '.0', $minimum, '>='), $manifest . ' rejects PHP ' . $phpFloor);
         }
     }
 
