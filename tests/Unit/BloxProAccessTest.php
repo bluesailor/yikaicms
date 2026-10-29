@@ -33,8 +33,8 @@ final class BloxProAccessTest extends TestCase
     public function testPackageIsProOnlyAndMetadataIsLocalized(): void
     {
         $meta = json_decode((string) file_get_contents(ROOT_PATH . '/plugins/yikai-builder/plugin.json'), true, 512, JSON_THROW_ON_ERROR);
-        self::assertSame('1.20.0', $meta['requires_cms']);
-        self::assertSame('8.0', $meta['requires_php']);
+        self::assertSame('2.1.3', $meta['requires_cms']);
+        self::assertSame('8.2', $meta['requires_php']);
         self::assertSame('blox', $meta['module']);
         self::assertSame('pro', $meta['tier']);
         foreach (['name', 'description', 'name_en', 'description_en', 'name_ja', 'description_ja'] as $key) {
