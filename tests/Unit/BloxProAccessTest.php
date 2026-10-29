@@ -9,10 +9,10 @@ final class BloxProAccessTest extends TestCase
 {
     public function testMinimumVersionAndUnknownVersion(): void
     {
-        foreach (['', 'unknown', '1.19.9', '1.20.0-rc1', '1.20.0-beta.1'] as $version) {
+        foreach (['', 'unknown', '1.20.0', '2.1.2', '2.1.3-rc1', '2.1.3-beta.1'] as $version) {
             self::assertFalse(BloxProAccess::supports($version), $version);
         }
-        foreach (['1.20.0', '1.20.1', '1.21.0', '2.0.0'] as $version) {
+        foreach (['2.1.3', '2.1.4', '2.2.0', '3.0.0'] as $version) {
             self::assertTrue(BloxProAccess::supports($version), $version);
         }
     }
@@ -33,8 +33,8 @@ final class BloxProAccessTest extends TestCase
     public function testPackageIsProOnlyAndMetadataIsLocalized(): void
     {
         $meta = json_decode((string) file_get_contents(ROOT_PATH . '/plugins/yikai-builder/plugin.json'), true, 512, JSON_THROW_ON_ERROR);
-        self::assertSame('1.20.0', $meta['requires_cms']);
-        self::assertSame('8.0', $meta['requires_php']);
+        self::assertSame('2.1.3', $meta['requires_cms']);
+        self::assertSame('8.2', $meta['requires_php']);
         self::assertSame('blox', $meta['module']);
         self::assertSame('pro', $meta['tier']);
         foreach (['name', 'description', 'name_en', 'description_en', 'name_ja', 'description_ja'] as $key) {

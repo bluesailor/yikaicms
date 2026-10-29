@@ -3,6 +3,7 @@ const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const { openPageEditor, observeConsole } = require('./helpers');
+const { requestForm } = require('./request-form');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 const seed = action => execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'catalog-search-fixture.php'), action],
     { cwd: path.resolve(__dirname, '../..') });
@@ -34,7 +35,7 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         const before = await snapshot();
         let fail = false;
         await page.route('**/admin/blox_page_api.php', async route => {
-            const body = new URLSearchParams(route.request().postData());
+            const body = requestForm(route.request());
             requests.push(Object.fromEntries(body));
             if (body.get('action') === 'catalog_items' && fail) return route.fulfill({ json: { code: 1 } });
             return route.continue();

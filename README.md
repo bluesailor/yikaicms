@@ -1,10 +1,10 @@
-# YikaiCMS v2.1.2
+# YikaiCMS v2.1.3
 
 > **面向企业官网与外贸网站的轻量 PHP CMS** · 源码公开，免费商用
 
 [![Release](https://img.shields.io/github/v/release/bluesailor/yikaicms?label=release)](https://github.com/bluesailor/yikaicms/releases/latest)
 [![CI](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml/badge.svg)](https://github.com/bluesailor/yikaicms/actions/workflows/ci.yml)
-[![PHP](https://img.shields.io/badge/PHP-8.0%2B-777BB4.svg?logo=php)](https://www.php.net/)
+[![PHP](https://img.shields.io/badge/PHP-8.2%2B-777BB4.svg?logo=php)](https://www.php.net/)
 [![License](https://img.shields.io/badge/license-源码公开·免费商用-green.svg)](./LICENSE)
 
 **[在线演示](https://demo.yikaicms.com)** · **[下载最新版](https://github.com/bluesailor/yikaicms/releases/latest)** · **[使用教程](https://www.yikaicms.com/tutorial.php)** · [官网](https://www.yikaicms.com) · [更新日志](https://www.yikaicms.com/changelog.html)
@@ -34,7 +34,7 @@
 
 ## 3 分钟安装
 
-1. 下载完整包 [yikaicms-v2.1.2.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.1.2/yikaicms-v2.1.2.zip)（校验文件 [yikaicms-v2.1.2.sha256](https://github.com/bluesailor/yikaicms/releases/download/v2.1.2/yikaicms-v2.1.2.sha256)），解压上传到网站根目录（也可以放在子目录）；
+1. 下载完整包 [yikaicms-v2.1.3.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.1.3/yikaicms-v2.1.3.zip)（校验文件 [yikaicms-v2.1.3.sha256](https://github.com/bluesailor/yikaicms/releases/download/v2.1.3/yikaicms-v2.1.3.sha256)），解压上传到网站根目录（也可以放在子目录）；
 2. 确保站点根目录（安装器写入 `installed.lock`）和 `/config/`、`/uploads/`、`/storage/` 可写，浏览器访问 `http://你的域名/install/`，按向导选择 MySQL 或 SQLite 完成安装；
 3. 配置伪静态（宝塔面板：站点 → 设置 → 伪静态，写入一行 `include /www/wwwroot/<你的站点目录>/deploy/nginx-baota.conf;`）；
 4. 登录后台，在「建站向导」里从 40 多套行业整站模板（中文、日文、英文）中挑一套导入，或直接在演示内容上修改。
@@ -127,7 +127,7 @@
 
 | 项目 | 要求 |
 |------|------|
-| PHP | >= 8.0（建议 8.2+） |
+| PHP | >= 8.2（建议 8.3+） |
 | 数据库 | MySQL 5.7+ / MySQL 8.0+（utf8mb4）或 SQLite 3 |
 | Web 服务器 | Apache（启用 `mod_rewrite`）或 Nginx |
 | PHP 扩展（必需） | pdo、json、mbstring、fileinfo、dom |
@@ -148,7 +148,7 @@
 
 ### 1. 下载部署
 
-- 完整安装包：[yikaicms-v2.1.2.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.1.2/yikaicms-v2.1.2.zip)，发布说明见 [v2.1.2 Release](https://github.com/bluesailor/yikaicms/releases/tag/v2.1.2)；每个版本附 `.sha256` 校验文件，历史版本见 [Releases](https://github.com/bluesailor/yikaicms/releases)。
+- 完整安装包：[yikaicms-v2.1.3.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.1.3/yikaicms-v2.1.3.zip)，发布说明见 [v2.1.3 Release](https://github.com/bluesailor/yikaicms/releases/tag/v2.1.3)；每个版本附 `.sha256` 校验文件，历史版本见 [Releases](https://github.com/bluesailor/yikaicms/releases)。
 - 已安装的站点可在后台「系统维护 → 系统升级」在线升级，无需手动下载。
 - 开发者也可以直接克隆仓库：`git clone https://github.com/bluesailor/yikaicms.git`
 
@@ -298,7 +298,7 @@ Nginx 下一个 server 块服务多个一级子目录站点的写法见源码 `d
 
 | 层面 | 技术 |
 |------|------|
-| 后端 | PHP 8.0+，纯原生，无框架 |
+| 后端 | PHP 8.2+，纯原生，无框架 |
 | 数据库 | MySQL 5.7+ / 8.0+ / SQLite 3，PDO |
 | 前端样式 | Tailwind CSS v4 |
 | 前端交互 | Alpine.js v3 |

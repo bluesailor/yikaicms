@@ -3,7 +3,7 @@ declare(strict_types=1);
 
 if (PHP_SAPI !== 'cli') exit;
 define('ROOT_PATH', dirname(__DIR__, 2));
-define('CMS_VERSION', ($argv[1] ?? '') === 'old_cms' ? '1.19.9' : '1.20.0');
+define('CMS_VERSION', ($argv[1] ?? '') === 'old_cms' ? '2.1.2' : '2.1.3');
 function bloxAdvancedFeaturesEnabled(): bool { return true; }
 function isPluginAvailable(string $slug): bool {
     return $slug === 'yikai-builder' && ($GLOBALS['argv'][1] ?? '') !== 'disabled_plugin';

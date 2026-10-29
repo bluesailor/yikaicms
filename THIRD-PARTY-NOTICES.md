@@ -117,6 +117,7 @@ Psalm、PHP-Parser 等只用于开发与测试，见 `composer.json` 的 `requir
   随包只保留运行时文件（*.min.js、皮肤、插件数据），语言包沿用原 zh_CN / ja 两份并改挂
   `hugerte.addI18n`。`assets/tinymce/` 整目录删除；`window.tinymce` 作为别名保留给第三方插件。
 
+- **2026-10-29（v2.1.3 核对）**：本周期没有新增第三方组件；`composer.json` / `composer.lock` 只调整核心 PHP 下限，未新增或升级生产依赖；`package.json` / `package-lock.json` 无变化。`assets/` 新增的 `yikay-editor-runtime.js` 与 `yikay-richtext-loader.js` 均为本项目源码，HugeRTE 仅改为按需加载，既有组件与许可未变；`assets/` 无第三方目录删除。
 - **2026-10-24（v2.1.2 核对）**：本周期没有新增第三方组件；`composer.json` / `composer.lock` 与 `package.json` 自 v2.1.1 起无变化；`assets/` 没有新增或删除文件（只改了本项目的 `tailwind.css` 产物）。新增的 AI 服务商是按各家公开接口直接调用，不引入 SDK；`config/translation_terms.json` 是本项目编写的翻译术语表。
 - **2026-10-20（v2.1.1 核对）**：本周期没有新增第三方组件；`composer.json` / `composer.lock` 与 `package.json` 生产依赖自 v2.1.0 起无变化；`assets/` 只新增本项目源码 `assets/js/admin-error-report.js`，没有删除文件。产品导入插件读 zip 用 PHP 自带的 `ZipArchive`，不引入新库。
 - **2026-10-13（v2.1.0 核对）**：新增 Inter 4.1 可变字体的 woff2 分片（OFL-1.1，见上表；许可原文随包 `assets/fonts/inter/OFL.txt`，来源与哈希见同目录 `manifest.json`），「无衬线（现代）」字体方案不再依赖外部字体服务。除 zh-CN / en / ja 外的 15 种界面语言改为按需下载的签名语言包，语言文件是本项目文案，不涉及第三方许可。新增的 `assets/images/demo/*_medium.webp` 是本项目演示图的缩小版；`assets/js/yikay-components.js`、`assets/js/admin-row-sort.js`、`assets/css/yikay-stack.css` 为本项目源码。`composer.json` / `composer.lock` 与 `package.json` 生产依赖自 v2.0.6 起无变化。反向核对：本周期 `assets/` 下没有删除任何文件，第三方组件的加载点均在。

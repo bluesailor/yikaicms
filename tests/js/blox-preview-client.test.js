@@ -106,6 +106,22 @@ async function run() {
     assert.equal(pending[1].request.body.get("_token"), "token");
     assert.equal(pending[1].request.body.get("blocks_data"), '[{"id":"section"}]');
     assert.equal(pending[1].request.body.get("header_state"), "overlay");
+    // 2.1.3：multipart 发送（urlencoded 会把 JSON 百分号编码成 3–4 倍大）
+    assert.ok(pending[1].request.body instanceof FormData, "preview body must be multipart FormData");
+
+    // 调用方给了现成的 JSON 字符串：原样发出，不再序列化一遍
+    const jsonRequests = [];
+    const jsonClient = new global.BloxPreviewClient({
+        endpoint: "/preview",
+        csrf: "token",
+        getFrame: function () { return fakeFrame(); },
+        getHost: function () { return { scrollLeft: 0, scrollTop: 0 }; },
+        getDocument: function () { throw new Error("getDocument must not run when getDocumentJson is given"); },
+        getDocumentJson: function () { return '{"schema":1,"settings":{},"sections":[{"id":"中文"}]}'; },
+        fetch: function (url, request) { jsonRequests.push(request); return new Promise(function () {}); },
+    });
+    jsonClient.refresh();
+    assert.equal(jsonRequests[0].body.get("blocks_data"), '{"schema":1,"settings":{},"sections":[{"id":"中文"}]}');
 
     host.scrollLeft = 12;
     host.scrollTop = 34;

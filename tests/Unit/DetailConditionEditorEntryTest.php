@@ -7,7 +7,7 @@ final class DetailConditionEditorEntryTest extends TestCase
 {
     public function testSharedScriptHasTemplateTypeInPageMode(): void
     {
-        $source = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor.php');
+        $source = bloxEditorSourceForTest();
         $default = strpos($source, "\$templateType = '';");
         $override = strpos($source, "\$templateType = (string) \$templateRow['type'];");
         $this->assertNotFalse($default);

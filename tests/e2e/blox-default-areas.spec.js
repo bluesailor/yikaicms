@@ -2,6 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const { test, expect } = require('@playwright/test');
 const { addTemporaryHeading, headingTextField, observeConsole, performPreviewUpdate } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 const AREA_TEMPLATES = [
   { slug: 'corporate-site-header', name: 'Corporate Site Header' },
@@ -348,7 +349,7 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       const headerDraftInput = headingTextField(page);
       await performPreviewUpdate(page, () => headerDraftInput.fill(headerDraftMarker));
       const saveDraftResponse = page.waitForResponse((response) => {
-        const body = new URLSearchParams(response.request().postData() || '');
+        const body = requestForm(response.request());
         return new URL(response.url()).pathname === '/admin/blox_template_api.php'
           && body.get('action') === 'save_draft';
       });
@@ -373,7 +374,7 @@ test('published default corporate areas stay responsive @ci', async ({ page }, t
       await page.goto(headerContinueHref, { waitUntil: 'domcontentloaded' });
       page.on('dialog', async (dialog) => dialog.accept());
       const publishResponse = page.waitForResponse((response) => {
-        const body = new URLSearchParams(response.request().postData() || '');
+        const body = requestForm(response.request());
         return new URL(response.url()).pathname === '/admin/blox_template_api.php'
           && body.get('action') === 'publish';
       });
@@ -616,7 +617,7 @@ test('assignment matrix copies a page-specific design and restores inheritance @
     page.on('dialog', acceptDialog);
     const publishResults = [];
     page.on('response', async (response) => {
-      const body = new URLSearchParams(response.request().postData() || '');
+      const body = requestForm(response.request());
       if (new URL(response.url()).pathname === '/admin/blox_template_api.php'
         && body.get('action') === 'publish') {
         publishResults.push(await response.json());

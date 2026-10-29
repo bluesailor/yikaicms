@@ -30,7 +30,7 @@ $results = adminPagesSearch($q, 8);
 echo json_encode([
     'code' => 0,
     'data' => array_map(fn($p) => [
-        'url'   => $p['url'],
+        'url'   => BasePath::url((string) $p['url']), // 前端直接绑到链接上，子目录部署要带前缀
         'title' => $p['title'],
         'group' => $p['group'],
     ], $results),

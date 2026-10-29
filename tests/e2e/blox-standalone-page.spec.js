@@ -3,6 +3,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const { openPageEditor, frame, performPagePreviewUpdate, expectClean } = require('./helpers');
+const { requestForm } = require('./request-form');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 
 // 夹具：一份「独立页面」整页模板（隐藏页头/页尾/标题/面包屑/侧栏 + 页内锚点）。
@@ -44,7 +45,7 @@ test('standalone page import carries its frame through history, save and publica
 
     async function command(action, button) {
       const response = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_page_api.php'
-        && new URLSearchParams(r.request().postData() || '').get('action') === action);
+        && requestForm(r.request()).get('action') === action);
       if (action === 'publish') page.once('dialog', dialog => dialog.accept());
       await page.getByTestId(button).click();
       expect((await (await response).json()).code).toBe(0);

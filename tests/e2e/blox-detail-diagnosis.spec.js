@@ -2,6 +2,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const { waitPreviewSettled } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 const fixture = (action, id = '') => execFileSync(process.env.PHP_BINARY || 'php',
   [path.join(__dirname, 'product-template-fixture.php'), action, String(id)],
@@ -15,7 +16,7 @@ async function command(page, action, button) {
     button = button.replace('blox-', 'blox-mobile-');
   }
   const response = page.waitForResponse((r) => new URL(r.url()).pathname === '/admin/blox_template_api.php'
-    && new URLSearchParams(r.request().postData() || '').get('action') === action);
+    && requestForm(r.request()).get('action') === action);
   await page.getByTestId(button).click();
   expect((await (await response).json()).code).toBe(0);
 }
@@ -77,7 +78,7 @@ test('diagnosis of a product content uses the real resolver and stays read-only'
 
     // 保存下来，再发布；随后用同一份规则诊断：自身旧发布版本必须被排除，不能自造并列
     const saved = page.waitForRequest((request) => request.url().includes('/admin/blox_template_api.php')
-      && new URLSearchParams(request.postData() || '').get('action') === 'save_draft');
+      && requestForm(request).get('action') === 'save_draft');
     await page.getByTestId('blox-save').click();
     await saved;
     await command(page, 'publish', 'blox-publish-template');
@@ -121,7 +122,7 @@ test('diagnosis reports a real tie and covers article templates', async ({ page 
     await page.getByTestId('blox-cond-add-include-item').click();
     await page.getByTestId('blox-cond-include-target-0').selectOption(previewId);
     const savedA = page.waitForRequest((request) => request.url().includes('/admin/blox_template_api.php')
-      && new URLSearchParams(request.postData() || '').get('action') === 'save_draft');
+      && requestForm(request).get('action') === 'save_draft');
     await page.getByTestId('blox-save').click();
     await savedA;
     await command(page, 'publish', 'blox-publish-template');

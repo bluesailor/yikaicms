@@ -2,6 +2,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const { waitPreviewSettled } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 const fixture = (action, id = '') => execFileSync(process.env.PHP_BINARY || 'php',
   [path.join(__dirname, 'product-template-fixture.php'), action, String(id)],
@@ -53,7 +54,7 @@ test('detail condition panel round-trips complete rules without the legacy ui_sc
 
     // 保存：请求必须带完整条件，且不得再走旧的 ui_scope 简化投影
     const saved = page.waitForRequest((request) => request.url().includes('/admin/blox_template_api.php')
-      && new URLSearchParams(request.postData() || '').get('action') === 'save_draft');
+      && requestForm(request).get('action') === 'save_draft');
     await page.getByTestId('blox-save').click();
     const body = new URLSearchParams((await saved).postData() || '');
     expect(body.get('ui_scope'), '完整条件提交不能与 ui_scope 并存').toBeNull();
@@ -96,7 +97,7 @@ test('invalid panel conditions abort the save instead of submitting anything', a
   const submits = [];
   page.on('request', (request) => {
     if (!request.url().includes('/admin/blox_template_api.php')) return;
-    const action = new URLSearchParams(request.postData() || '').get('action') || '';
+    const action = requestForm(request).get('action') || '';
     if (action === 'save_draft' || action === 'publish') submits.push(action);
   });
   let id;
@@ -117,7 +118,7 @@ test('invalid panel conditions abort the save instead of submitting anything', a
       .locator('option').evaluateAll((options) => options.map((option) => option.value));
     await page.getByTestId('blox-cond-include-target-0').selectOption(productIds[0]);
     const firstSave = page.waitForRequest((request) => request.url().includes('/admin/blox_template_api.php')
-      && new URLSearchParams(request.postData() || '').get('action') === 'save_draft');
+      && requestForm(request).get('action') === 'save_draft');
     await page.getByTestId('blox-save').click();
     await firstSave;
     const baseline = JSON.parse(JSON.parse(fixture('read', id)).draft_data).settings.detail_template;
@@ -174,7 +175,7 @@ test('v1 product scope enters the panel read-only and survives a condition edit'
       .locator('option').evaluateAll((options) => options.map((option) => option.value));
     await page.getByTestId('blox-cond-exclude-target-0').selectOption(productIds[0]);
     const saved = page.waitForRequest((request) => request.url().includes('/admin/blox_template_api.php')
-      && new URLSearchParams(request.postData() || '').get('action') === 'save_draft');
+      && requestForm(request).get('action') === 'save_draft');
     await page.getByTestId('blox-save').click();
     const body = new URLSearchParams((await saved).postData() || '');
     const posted = JSON.parse(body.get('conditions_json') || 'null');
@@ -215,13 +216,13 @@ test('condition edits made while a save is in flight survive the response', asyn
 
     // 把保存响应卡住，好在"保存中"这段时间里继续编辑条件
     await page.route('**/admin/blox_template_api.php', async (route) => {
-      const action = new URLSearchParams(route.request().postData() || '').get('action') || '';
+      const action = requestForm(route.request()).get('action') || '';
       if (action !== 'save_draft') { await route.continue(); return; }
       await gate;
       await route.continue();
     });
     const saved = page.waitForRequest((request) => request.url().includes('/admin/blox_template_api.php')
-      && new URLSearchParams(request.postData() || '').get('action') === 'save_draft');
+      && requestForm(request).get('action') === 'save_draft');
     await page.getByTestId('blox-save').click();
     await saved;
 
@@ -264,7 +265,7 @@ test('condition edits made while a save is in flight survive the response', asyn
 
     // 下一次保存必须发送 B（期间的新编辑），且发送后回到干净状态
     const second = page.waitForRequest((request) => request.url().includes('/admin/blox_template_api.php')
-      && new URLSearchParams(request.postData() || '').get('action') === 'save_draft');
+      && requestForm(request).get('action') === 'save_draft');
     await page.getByTestId('blox-save').click();
     const secondBody = new URLSearchParams((await second).postData() || '');
     const secondScope = JSON.parse(secondBody.get('conditions_json') || 'null');
@@ -287,7 +288,7 @@ test('priority is editable, saved, and blocked when out of range', async ({ page
   const submits = [];
   page.on('request', (request) => {
     if (!request.url().includes('/admin/blox_template_api.php')) return;
-    if ((new URLSearchParams(request.postData() || '').get('action') || '') === 'save_draft') submits.push(request);
+    if ((requestForm(request).get('action') || '') === 'save_draft') submits.push(request);
   });
   let id;
   try {
@@ -312,7 +313,7 @@ test('priority is editable, saved, and blocked when out of range', async ({ page
     expect(await page.evaluate(() => window.Alpine.$data(document.body).hasUnsavedChanges()), '只改优先级也要标脏').toBe(true);
 
     const saved = page.waitForRequest((request) => request.url().includes('/admin/blox_template_api.php')
-      && new URLSearchParams(request.postData() || '').get('action') === 'save_draft');
+      && requestForm(request).get('action') === 'save_draft');
     await page.getByTestId('blox-save').click();
     const posted = JSON.parse(new URLSearchParams((await saved).postData() || '').get('conditions_json') || 'null');
     expect(posted.priority, '只改优先级也要提交').toBe(7);

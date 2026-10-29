@@ -19,6 +19,11 @@ require_once __DIR__ . '/BasePath.php';     // 子目录部署：内联脚本里
 // 挂载点：后台、插件接口、表单提交等入口不经 init.php，都在这里挂上（前台 init.php 已先挂，
 // 这里为空操作；根目录安装与命令行下也是空操作）
 BasePath::bootstrap();
+// 会话只认本站：复制出来的站点同名会话 cookie、放在同域名子目录时不互通登录（2.1.3）
+SessionStorage::isolate(ROOT_PATH, BasePath::get());
+require_once __DIR__ . '/SecurityHeaders.php';
+// 安全头不能只靠各站私有的 config.php（安装器模板里从来没有，新装站点一个都不发）
+SecurityHeaders::send();
 require_once __DIR__ . '/frontend_preview.php';
 require_once __DIR__ . '/http_response.php';
 require_once __DIR__ . '/ThemeRuntime.php';

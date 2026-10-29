@@ -32,5 +32,6 @@ function bloxEditorSourceForTest(): string
     if (!is_string($expanded)) {
         throw new RuntimeException('Cannot expand editor method partials');
     }
-    return $expanded;
+    require_once ROOT_PATH . '/tools/build_blox_runtime.php';
+    return str_replace('            // @blox-editor-core-methods', bloxEditorCoreSource(), $expanded);
 }

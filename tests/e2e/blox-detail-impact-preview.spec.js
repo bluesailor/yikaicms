@@ -2,6 +2,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const { waitPreviewSettled } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 // 第四轮：影响范围预览。只读、分页；计数只在检查完全部内容后才是总数。
 const run = (...args) => execFileSync(process.env.PHP_BINARY || 'php',
@@ -25,7 +26,7 @@ function watchPreview(page) {
   const log = [];
   page.on('response', async (response) => {
     if (new URL(response.url()).pathname !== '/admin/blox_template_api.php') return;
-    if (new URLSearchParams(response.request().postData() || '').get('action') !== 'preview_impact') return;
+    if (requestForm(response.request()).get('action') !== 'preview_impact') return;
     try { log.push(await response.json()); } catch (error) { log.push(null); }
   });
   return log;
@@ -168,7 +169,7 @@ test('non-default language links, permission refusal, stop and failure states', 
     let release = () => {};
     const gate = new Promise((resolve) => { release = resolve; });
     await page.route('**/admin/blox_template_api.php', async (route) => {
-      if (new URLSearchParams(route.request().postData() || '').get('action') === 'preview_impact') await gate;
+      if (requestForm(route.request()).get('action') === 'preview_impact') await gate;
       await route.continue();
     });
     await page.getByTestId('blox-impact-run').click();
@@ -181,7 +182,7 @@ test('non-default language links, permission refusal, stop and failure states', 
 
     // 请求失败：显示失败，不影响保存
     await page.route('**/admin/blox_template_api.php', async (route) => {
-      if (new URLSearchParams(route.request().postData() || '').get('action') === 'preview_impact') {
+      if (requestForm(route.request()).get('action') === 'preview_impact') {
         await route.abort('aborted');
         return;
       }
@@ -191,7 +192,7 @@ test('non-default language links, permission refusal, stop and failure states', 
     await expect(page.getByTestId('blox-impact-error')).toHaveText('影响范围预览失败，请重试');
     await page.unroute('**/admin/blox_template_api.php');
     const saved = page.waitForResponse((r) => new URL(r.url()).pathname === '/admin/blox_template_api.php'
-      && new URLSearchParams(r.request().postData() || '').get('action') === 'save_draft');
+      && requestForm(r.request()).get('action') === 'save_draft');
     await page.getByTestId('blox-save').click();
     expect((await (await saved).json()).code).toBe(0);
 

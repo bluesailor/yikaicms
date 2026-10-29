@@ -46,7 +46,7 @@ final class BloxEditorHistoryContractTest extends TestCase
         $this->assertStringContainsString('new window.BloxHistoryStore({', $editor);
         $this->assertStringContainsString('limit: 51,', $editor);
         $this->assertStringContainsString('delay: 700,', $editor);
-        $this->assertStringContainsString('if (this.entries.length > this.limit) this.entries.shift();', $source);
+        $this->assertStringContainsString('this.entries.length > this.limit || this.totalBytes > this.maxBytes', $source);
         $this->assertStringContainsString('if (snapshot.structure !== current.structure)', $source);
         $this->assertStringContainsString('this.timer = setTimeout(function () { self.flush(false); }, this.delay);', $source);
         $this->assertStringContainsString('this.entries.splice(this.index + 1);', $source);
@@ -63,7 +63,7 @@ final class BloxEditorHistoryContractTest extends TestCase
         $this->assertStringContainsString('this.dirty = this.documentData() !== this._savedDocumentSnapshot;', $source);
         $this->assertStringContainsString('var savedData = this.historyData();', $source);
         // 历史仍保存裸 sections；dirty/恢复基线使用完整信封，避免 settings 改动漏报。
-        $this->assertStringContainsString('documentData() {', $source);
+        $this->assertStringContainsString('documentData(sectionsJson) {', $source);
         $this->assertStringContainsString('this._savedDocumentSnapshot = this.documentData();', $source);
         $this->assertStringContainsString('body.set("blocks_data", payload);', $source);
         $this->assertStringContainsString('acceptSavedDocument(payload, savedData, res)', $source);

@@ -14,8 +14,9 @@ function installerAdminPasswordValid(string $password): bool
     if ($password !== trim($password)) {
         return false;   // 首尾空格会被登录端吃掉，bcrypt 校验必然失败
     }
+    // 与后台新建用户、修改密码同一条规则（2.1.3 前安装器只要 6 位，装完去改密码反而改不了）
     $length = function_exists('mb_strlen') ? mb_strlen($password, 'UTF-8') : strlen($password);
-    return $length >= 6;
+    return $length >= 8 && preg_match('/[a-zA-Z]/', $password) === 1 && preg_match('/[0-9]/', $password) === 1;
 }
 
 /**

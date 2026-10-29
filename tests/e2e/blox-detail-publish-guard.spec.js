@@ -2,6 +2,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const { waitPreviewSettled } = require('./helpers');
+const { requestForm } = require('./request-form');
 
 // 第三轮：发布冲突保护。所有结论由服务端对真实内容做发布前/后对比；这里验证真实点击下的行为与库内结果。
 // 每个用例恰好出现一次被阻止的发布（HTTP 409），在用例内登记给站点诊断夹具，其余浏览器错误仍会让用例失败。
@@ -44,7 +45,7 @@ function watchApi(page) {
   const log = [];
   page.on('response', async (response) => {
     if (new URL(response.url()).pathname !== '/admin/blox_template_api.php') return;
-    const action = new URLSearchParams(response.request().postData() || '').get('action') || '';
+    const action = requestForm(response.request()).get('action') || '';
     if (!['publish', 'check_publish_conflicts', 'save_draft'].includes(action)) return;
     let body = null;
     try { body = await response.json(); } catch (error) { body = null; }
@@ -96,7 +97,7 @@ test('a new product tie blocks publishing without touching live versions; the dr
 
     // 冲突不妨碍保存草稿
     const save = page.waitForResponse((r) => new URL(r.url()).pathname === '/admin/blox_template_api.php'
-      && new URLSearchParams(r.request().postData() || '').get('action') === 'save_draft');
+      && requestForm(r.request()).get('action') === 'save_draft');
     await page.getByTestId('blox-save').click();
     expect((await (await save).json()).code).toBe(0);
     expect(JSON.parse(read(id).draft_data).settings.detail_template.include).toEqual([{ kind: 'all', ids: [], include_children: false }]);
@@ -234,7 +235,7 @@ test('a stopped check shows as stopped, and a passed check is not trusted once a
     let release = () => {};
     const gate = new Promise((resolve) => { release = resolve; });
     await page.route('**/admin/blox_template_api.php', async (route) => {
-      const action = new URLSearchParams(route.request().postData() || '').get('action') || '';
+      const action = requestForm(route.request()).get('action') || '';
       if (action === 'check_publish_conflicts') await gate;
       await route.continue();
     });

@@ -104,6 +104,40 @@ final class AdminLoginSessionTest extends TestCase
         self::assertSame($before, session_status());
     }
 
+    /**
+     * 复制站（同一份 config.php、同名会话 cookie）放在同域名子目录时不能互通登录（2.1.3）。
+     * 两站行为由 tests/smoke/subdir-session-isolation.js 在真实浏览器里核对；这里锁住接线与指纹。
+     */
+    public function testSessionsAreBoundToTheSiteDirectory(): void
+    {
+        $functions = (string) file_get_contents(ROOT_PATH . '/includes/functions.php');
+        $isolate = strpos($functions, 'SessionStorage::isolate(ROOT_PATH, BasePath::get());');
+        self::assertIsInt($isolate);
+        self::assertGreaterThan(strpos($functions, 'BasePath::bootstrap();'), $isolate, 'isolate needs the mount point');
+
+        $a = sys_get_temp_dir() . '/yk-site-a-' . bin2hex(random_bytes(4));
+        $b = sys_get_temp_dir() . '/yk-site-b-' . bin2hex(random_bytes(4));
+        mkdir($a);
+        mkdir($b);
+        try {
+            self::assertSame(SessionStorage::fingerprint($a), SessionStorage::fingerprint($a . '/.'), 'same directory, same owner');
+            self::assertNotSame(SessionStorage::fingerprint($a), SessionStorage::fingerprint($b), 'a copied site is another owner');
+            self::assertStringNotContainsString('yk-site', SessionStorage::fingerprint($a), 'the session never stores the install path');
+        } finally {
+            rmdir($a);
+            rmdir($b);
+        }
+
+        $before = session_status();
+        SessionStorage::isolate(ROOT_PATH, '/sub');   // CLI：空操作
+        self::assertSame($before, session_status());
+
+        $storage = (string) file_get_contents(ROOT_PATH . '/includes/SessionStorage.php');
+        // 别站会话：先换号保留旧号，再清空；认领旧会话：换号并作废旧号
+        self::assertMatchesRegularExpression('/session_regenerate_id\(false\);\s*\$_SESSION = \[\];/', $storage);
+        self::assertStringContainsString('session_regenerate_id(true);', $storage);
+    }
+
     public function testHttpsDetectionMatchesConfig(): void
     {
         self::assertTrue(SessionStorage::isHttps(['HTTPS' => 'on']));

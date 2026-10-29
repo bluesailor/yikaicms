@@ -2,6 +2,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('node:child_process');
 const path = require('node:path');
 const { openEditor, frame, performPreviewUpdate, expectClean, waitPreviewSettled } = require('./helpers');
+const { requestForm } = require('./request-form');
 const fixture = action => execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'partners-fixture.php'), action], { cwd: path.resolve(__dirname, '../..') });
 
 test.beforeEach(() => fixture('seed'));
@@ -27,7 +28,7 @@ async function clickAction(page, action) {
 async function save(page, publish = false) {
   const pending = page.waitForResponse(response => new URL(response.url()).pathname === '/admin/blox_home_api.php'
     && response.request().method() === 'POST'
-    && (new URLSearchParams(response.request().postData() || '').get('action') || 'save') === (publish ? 'publish' : 'save'));
+    && (requestForm(response.request()).get('action') || 'save') === (publish ? 'publish' : 'save'));
   if (publish) page.once('dialog', dialog => dialog.accept());
   await clickAction(page, publish ? 'publish' : 'save');
   expect((await (await pending).json()).code).toBe(0);

@@ -141,6 +141,6 @@ final class PageHeroCustomizationTest extends TestCase
 
     private function source(string $path): string
     {
-        return (string) file_get_contents(ROOT_PATH . '/' . $path);
+        return $path === 'admin/blox_editor.php' ? bloxEditorSourceForTest() : (string) file_get_contents(ROOT_PATH . '/' . $path);
     }
 }

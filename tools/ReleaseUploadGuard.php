@@ -33,6 +33,7 @@ final class ReleaseUploadGuard
         $serverFull = $updateRoot . '/packages/' . $fullPackage;
         self::assertArtifact($localFull, (string) ($release['hash'] ?? ''), 'local full package');
         self::assertArtifact($serverFull, (string) ($release['hash'] ?? ''), 'update full package');
+        self::assertCatalogPhpCoversPackage($localFull, (string) ($release['min_php'] ?? ''), $version);
 
         $metadataPath = $releaseDir . '/deltas-v' . $version . '.json';
         $catalogDeltas = is_array($release['deltas'] ?? null) ? $release['deltas'] : [];
@@ -241,6 +242,42 @@ final class ReleaseUploadGuard
         if ($normalize($metadata) !== $normalize($catalogDeltas)) {
             throw new RuntimeException(
                 "Release {$version} deltas do not exactly match deltas-v{$version}.json"
+            );
+        }
+    }
+
+    /**
+     * 更新服务器按发布条目的 min_php 决定给不给某站升级包（低于它直接拒绝，见 update 服务器的
+     * updateRuntimeGate）。条目写低了，PHP 版本不够的站会被推送一个装上就整站停摆的包
+     * （php_guard 拦下所有页面，后台也进不去，没法在界面里回滚）。所以条目不能低于包里
+     * RuntimeRequirements::PHP_MINIMUM 声明的版本线——2.1.3 把它从 8.0 提到 8.2 时加的这道闸。
+     */
+    private static function assertCatalogPhpCoversPackage(string $package, string $catalogMinimum, string $version): void
+    {
+        if (!class_exists(ZipArchive::class)) {
+            throw new RuntimeException('ZipArchive is required to read the package PHP minimum');
+        }
+        $zip = new ZipArchive();
+        if ($zip->open($package) !== true) {
+            throw new RuntimeException("Cannot open release package {$version} to read its PHP minimum");
+        }
+        $source = false;
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            if (preg_match('#^(?:[^/]+/)?includes/RuntimeRequirements\.php$#', (string) $zip->getNameIndex($i)) === 1) {
+                $source = $zip->getFromIndex($i);
+                break;
+            }
+        }
+        $zip->close();
+        if (!is_string($source)
+            || preg_match("/const\\s+PHP_MINIMUM\\s*=\\s*'(\\d+\\.\\d+(?:\\.\\d+)?)'/", $source, $matches) !== 1) {
+            throw new RuntimeException("Release {$version} package does not declare RuntimeRequirements::PHP_MINIMUM");
+        }
+        $normalize = static fn (string $v): string => count(explode('.', $v)) === 2 ? $v . '.0' : $v;
+        if (version_compare($normalize($catalogMinimum), $normalize($matches[1]), '<')) {
+            throw new RuntimeException(
+                "Release {$version} min_php {$catalogMinimum} is below the package minimum {$matches[1]}; "
+                . 'sites on older PHP would be offered a package that refuses to run'
             );
         }
     }

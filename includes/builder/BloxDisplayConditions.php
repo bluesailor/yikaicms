@@ -210,17 +210,17 @@ final class BloxDisplayConditions
     }
 
     /**
-     * @return list<array{rules:list<array{type:string,operator:string,value:string|int}>}>|null
+     * @return list<array{rules:list<array{type:string,operator:string,value:string|int,name?:string}>}>|null
      */
     public static function parse(mixed $raw): ?array
     {
-        if (!is_array($raw) || !BloxDocumentPipeline::isList($raw) || count($raw) > self::MAX_GROUPS) {
+        if (!is_array($raw) || !array_is_list($raw) || count($raw) > self::MAX_GROUPS) {
             return null;
         }
         $groups = [];
         foreach ($raw as $group) {
             if (!is_array($group) || !is_array($group['rules'] ?? null)
-                || !BloxDocumentPipeline::isList($group['rules']) || $group['rules'] === []
+                || !array_is_list($group['rules']) || $group['rules'] === []
                 || count($group['rules']) > self::MAX_RULES) {
                 return null;
             }

@@ -216,17 +216,13 @@ final class BloxDocumentPipeline
         ];
     }
 
-    /** PHP 8.0-compatible list-array check. */
+    /**
+     * @deprecated 2.1.3 起核心要求 PHP 8.2，直接用 array_is_list()。保留给仍调用它的插件。
+     * @psalm-api
+     */
     public static function isList(array $value): bool
     {
-        $expected = 0;
-        foreach ($value as $key => $_) {
-            if ($key !== $expected) {
-                return false;
-            }
-            $expected++;
-        }
-        return true;
+        return array_is_list($value);
     }
 
     /** @param array<string|int,mixed> $document @return array{schema:int,settings:array<string,mixed>,sections:array<int,mixed>} */
@@ -237,7 +233,7 @@ final class BloxDocumentPipeline
                 throw new RuntimeException(__('blox_doc_bad_sections'));
             }
             $sections = $document['sections'];
-        } elseif (self::isList($document)) {
+        } elseif (array_is_list($document)) {
             $sections = $document;
         } else {
             throw new RuntimeException(__('blox_doc_bad_sections'));

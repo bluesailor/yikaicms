@@ -2,6 +2,9 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/MarketDownloadUrl.php';
+require_once __DIR__ . '/PluginMarketPackage.php';
+
 /** Envelope negotiation for the fixed official theme and plugin APIs only. */
 final class MarketCatalogRequest
 {
@@ -66,7 +69,7 @@ final class MarketCatalogRequest
             } else {
                 $package = $slug . '-v' . $version . '.zip';
                 if (($item['package'] ?? '') !== $package
-                    || ($item['download_url'] ?? '') !== 'https://update.yikaicms.com/packages/' . $list . '/' . $package
+                    || !self::legacyDownloadUrl($item, $list, $slug, $version)
                     || !is_string($item['hash'] ?? null)
                     || preg_match('/^sha256:[a-f0-9]{64}$/Di', $item['hash']) !== 1
                     || !is_string($item['sig'] ?? null)
@@ -79,5 +82,19 @@ final class MarketCatalogRequest
         // Old APIs do not implement the new quota ledger; do not fabricate v2 status.
         unset($data['data']['market']);
         return $data;
+    }
+
+    private static function legacyDownloadUrl(array $item, string $list, string $slug, string $version): bool
+    {
+        $url = $item['download_url'] ?? null;
+        if (!is_string($url)) return false;
+        if ($list === 'themes') {
+            return $url === 'https://update.yikaicms.com/packages/themes/' . $slug . '-v' . $version . '.zip';
+        }
+        // The existing official plugin API serves public OSS objects and paid
+        // market tokens. Keep the installer's URL boundary and legacy protocol.
+        if (MarketDownloadUrl::isTokenUrl($url)
+            && (empty($item['paid']) || ($item['tier'] ?? '') !== 'pro')) return false;
+        return PluginMarketPackage::isOfficialUrl($url, $slug, $version);
     }
 }

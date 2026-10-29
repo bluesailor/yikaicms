@@ -77,6 +77,54 @@ final class MarketLegacyCatalogTest extends TestCase
         self::assertSame($item, $response['data']['plugins'][0]);
     }
 
+    public function testLegacyOfficialOssPluginsUseTheExistingInstallerBoundary(): void
+    {
+        $item = $this->item('plugins');
+        $item['download_url'] = 'https://down.yikai.cn/soft/yikaicms/plugins/sample-v1.0.0.zip';
+        $response = MarketCatalogRequest::decode($this->body('plugins', [$item]), 'plugins');
+        self::assertCount(1, $response['data']['plugins']);
+        self::assertSame($item['download_url'], $response['data']['plugins'][0]['download_url']);
+        self::assertSame(1, $response['data']['protocol_version']);
+        self::assertArrayNotHasKey('market', $response['data']);
+        foreach (['?token=extra', '#fragment', '/other.zip'] as $suffix) {
+            $bad = array_replace($item, ['download_url' => $item['download_url'] . $suffix]);
+            self::assertSame([], MarketCatalogRequest::decode($this->body('plugins', [$bad]), 'plugins')['data']['plugins']);
+        }
+    }
+
+    public function testLegacyPaidPluginTokensStayLicensedAndDoNotFabricateV2Quota(): void
+    {
+        $item = array_replace($this->item('plugins'), [
+            'paid' => true, 'tier' => 'pro', 'module' => 'blox',
+            'download_url' => MarketDownloadUrl::ENDPOINT . '?token=payload.signature',
+        ]);
+        $response = MarketCatalogRequest::decode($this->body('plugins', [$item]), 'plugins');
+        self::assertCount(1, $response['data']['plugins']);
+        self::assertSame($item['download_url'], $response['data']['plugins'][0]['download_url']);
+        self::assertSame(1, $response['data']['protocol_version']);
+        self::assertArrayNotHasKey('market', $response['data']);
+        foreach ([
+            ['paid' => false], ['tier' => 'free'], ['source' => 'community'],
+            ['download_url' => $item['download_url'] . '&other=1'],
+            ['download_url' => $item['download_url'] . '#fragment'],
+            ['download_url' => str_replace('update.yikaicms.com', 'other.example', $item['download_url'])],
+        ] as $override) {
+            self::assertSame([], MarketCatalogRequest::decode($this->body('plugins', [array_replace($item, $override)]), 'plugins')['data']['plugins']);
+        }
+    }
+
+    public function testLegacyMinimumVersionDenialsKeepPackageDetailsHidden(): void
+    {
+        foreach (['cms_version_required', 'php_version_required'] as $reason) {
+            $item = array_replace($this->item('plugins'), ['paid' => true, 'tier' => 'pro', 'locked_reason' => $reason]);
+            $response = MarketCatalogRequest::decode($this->body('plugins', [$item]), 'plugins');
+            self::assertSame($reason, $response['data']['plugins'][0]['locked_reason']);
+            self::assertSame('', $response['data']['plugins'][0]['download_url']);
+            self::assertArrayNotHasKey('hash', $response['data']['plugins'][0]);
+            self::assertArrayNotHasKey('sig', $response['data']['plugins'][0]);
+        }
+    }
+
     public function testThemeCompatibilityUsesOneRequestAndKeepsSignatureVerification(): void
     {
         if (!defined('CMS_VERSION')) define('CMS_VERSION', '1.20.0');

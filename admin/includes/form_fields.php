@@ -18,7 +18,7 @@ const FORM_SUBMISSION_CORE_KEYS = ['name', 'phone', 'email', 'company', 'content
 function formTemplateFieldLabels(string $fieldsRaw): array
 {
     $decoded = json_decode($fieldsRaw, true);
-    if (is_array($decoded) && formFieldsIsList($decoded)) {
+    if (is_array($decoded) && array_is_list($decoded)) {
         $labels = [];
         foreach ($decoded as $field) {
             $key = is_array($field) ? (string) ($field['key'] ?? $field['name'] ?? '') : '';
@@ -41,12 +41,6 @@ function formTemplateFieldLabels(string $fieldsRaw): array
         $labels[$match[2]] = (string) preg_replace('/[\s*\x{3000}]+$/u', '', $text);
     }
     return $labels;
-}
-
-/** PHP 8.0 兼容的列表判断（array_is_list 自 8.1 起）。 */
-function formFieldsIsList(array $value): bool
-{
-    return $value === [] || array_keys($value) === range(0, count($value) - 1);
 }
 
 /**

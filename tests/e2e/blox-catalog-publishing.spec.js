@@ -3,6 +3,7 @@ const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 const { openPageEditor, frame, performPagePreviewUpdate, expectClean } = require('./helpers');
+const { requestForm } = require('./request-form');
 const root = path.resolve(__dirname, '../..');
 const fixtures = JSON.parse(fs.readFileSync(path.join(__dirname, '../smoke/fixtures.json'), 'utf8'));
 const fixture = (file, action) => execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, file), action], { cwd: root });
@@ -41,7 +42,7 @@ for (const [kind, type, id, route] of [
     await performPagePreviewUpdate(page, () => page.locator('[data-control-key="show_categories"] input').uncheck());
     async function command(action, button) {
       const response = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_page_api.php'
-        && new URLSearchParams(r.request().postData() || '').get('action') === action);
+        && requestForm(r.request()).get('action') === action);
       if (action === 'publish') page.once('dialog', dialog => dialog.accept());
       await page.getByTestId(button).click();
       expect((await (await response).json()).code).toBe(0);

@@ -2,6 +2,7 @@ const { test, expect } = require('./site-diagnostics');
 const { execFileSync } = require('child_process');
 const path = require('path');
 const { frame, waitPreviewSettled } = require('./helpers');
+const { requestForm } = require('./request-form');
 const fixture = (action, id = '') => execFileSync(process.env.PHP_BINARY || 'php',
   [path.join(__dirname, 'product-template-fixture.php'), action, String(id)],
   { cwd: path.resolve(__dirname, '../..'), encoding: 'utf8' });
@@ -13,7 +14,7 @@ async function command(page, action, button) {
     button = button.replace('blox-', 'blox-mobile-');
   }
   const response = page.waitForResponse(r => new URL(r.url()).pathname === '/admin/blox_template_api.php'
-    && new URLSearchParams(r.request().postData() || '').get('action') === action);
+    && requestForm(r.request()).get('action') === action);
   await page.getByTestId(button).click();
   expect((await (await response).json()).code).toBe(0);
 }
