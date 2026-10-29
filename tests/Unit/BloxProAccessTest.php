@@ -9,10 +9,10 @@ final class BloxProAccessTest extends TestCase
 {
     public function testMinimumVersionAndUnknownVersion(): void
     {
-        foreach (['', 'unknown', '1.19.9', '1.20.0-rc1', '1.20.0-beta.1'] as $version) {
+        foreach (['', 'unknown', '1.20.0', '2.1.2', '2.1.3-rc1', '2.1.3-beta.1'] as $version) {
             self::assertFalse(BloxProAccess::supports($version), $version);
         }
-        foreach (['1.20.0', '1.20.1', '1.21.0', '2.0.0'] as $version) {
+        foreach (['2.1.3', '2.1.4', '2.2.0', '3.0.0'] as $version) {
             self::assertTrue(BloxProAccess::supports($version), $version);
         }
     }
