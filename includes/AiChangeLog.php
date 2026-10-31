@@ -2,8 +2,9 @@
 /**
  * Yikai CMS - AI 变更日志（撤销 + 审计）
  *
- * 每次 AI 助手写操作「应用」时记录一条：操作前快照(before) + 入参(input)。
+ * 每次 AI 写操作「应用」时记录一条：操作前快照(before) + 入参(input)。
  * 「撤销」时调对应 ability 的 revert(before, input) 回退。表按需自动创建。
+ * 写入与撤销在各自的事务里完成：助手走 AiAssistantChanges，外部提案走 AiProposalService；本类只建表和读取。
  *
  * PHP 8.0+
  */
@@ -57,24 +58,6 @@ final class AiChangeLog
         }
     }
 
-    /** 记录一次已应用的写操作，返回日志 id */
-    public static function record(int $adminId, string $adminName, string $ability, string $target, string $summary, mixed $before, array $input): int
-    {
-        self::ensureTable();
-        db()->execute(
-            "INSERT INTO `" . DB_PREFIX . "ai_change_log`
-             (admin_id, admin_name, ability, target, summary, before_json, input_json, created_at)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
-            [
-                $adminId, $adminName, $ability, mb_substr($target, 0, 200), mb_substr($summary, 0, 500),
-                json_encode($before, JSON_UNESCAPED_UNICODE),
-                json_encode($input, JSON_UNESCAPED_UNICODE),
-                time(),
-            ]
-        );
-        return (int) db()->getPdo()->lastInsertId();
-    }
-
     public static function get(int $id): ?array
     {
         self::ensureTable();
@@ -114,10 +97,5 @@ final class AiChangeLog
     public static function isProposalChange(array $row): bool
     {
         return (int) ($row['proposal_item_id'] ?? 0) > 0;
-    }
-
-    public static function markUndone(int $id): void
-    {
-        db()->execute("UPDATE `" . DB_PREFIX . "ai_change_log` SET undone = 1, undone_at = ? WHERE id = ?", [time(), $id]);
     }
 }

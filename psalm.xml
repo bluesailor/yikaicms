@@ -23,6 +23,8 @@
         <file name="news.php" />
         <file name="page.php" />
         <file name="product.php" />
+        <!-- 2.2 AI 外部访问入口：只调用 AiMcpEntry::run() -->
+        <file name="mcp/index.php" />
         <directory name="admin" />
         <directory name="config" />
         <directory name="includes" />
@@ -67,6 +69,9 @@
                 <file name="admin/site_content_check.php" />
                 <file name="admin/article_category.php" />
                 <file name="admin/testimonial.php" />
+                <!-- 2.2 AI 外部访问与提案审核页：$currentMenu/$pageTitle 供后台 header 使用 -->
+                <file name="admin/ai_access.php" />
+                <file name="admin/ai_proposals.php" />
                 <!-- Variables consumed by ignored editor partials through require scope. -->
                 <file name="admin/blox_design.php" />
                 <file name="plugins/seo/admin.php" />
@@ -134,6 +139,9 @@
                 <file name="admin/blox_preview.php" />
                 <file name="admin/site_design.php" />
                 <file name="admin/site_health.php" />
+                <!-- 2.2 新增独立入口（AI 外部访问、提案审核） -->
+                <file name="admin/ai_access.php" />
+                <file name="admin/ai_proposals.php" />
                 <!-- 2.0.3 新增独立入口（技术支持临时访问） -->
                 <file name="admin/support_access.php" />
                 <file name="admin/support_login.php" />

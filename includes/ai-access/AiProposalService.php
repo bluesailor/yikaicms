@@ -33,7 +33,10 @@ final class AiProposalService
         return $this->propose(['owner' => $context->actorId, 'token' => $context->tokenId, 'ns' => 'token:' . $context->tokenId], $idempotencyKey, $items, $now);
     }
 
-    /** 内部来源（后台 Agent）：没有令牌，命名空间仍为非空的 internal。 */
+    /**
+     * 内部来源（后台 Agent）：没有令牌，命名空间仍为非空的 internal。
+     * @psalm-api 站内调用方尚未接入；事务与协议套件（tests/ai-access，不在 Psalm 扫描范围）覆盖它
+     */
     public function proposeInternal(int $ownerId, string $idempotencyKey, array $items, int $now): array
     {
         return $this->propose(['owner' => $ownerId, 'token' => 0, 'ns' => 'internal'], $idempotencyKey, $items, $now);

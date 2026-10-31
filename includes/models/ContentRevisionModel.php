@@ -146,7 +146,10 @@ class ContentRevisionModel extends Model
         return $n;
     }
 
-    /** 只保留最近 keepCount() 条，其余物理删除 */
+    /**
+     * 只保留最近 keepCount() 条，其余物理删除。
+     * @psalm-api 写入已在 recordStrict() 里随事务清理；保留这个吞掉异常的公开入口给插件与维护脚本
+     */
     public function prune(string $type, int $targetId): void
     {
         try {
