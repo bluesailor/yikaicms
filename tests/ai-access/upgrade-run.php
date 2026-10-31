@@ -1,0 +1,36 @@
+<?php
+/** Upgrade and database-backup restore rehearsal, using only guarded s103_* fixtures. */
+declare(strict_types=1);
+require __DIR__ . '/proposal-fixture.php';
+$db = s103Boot();
+s103ResetSchema($db); s103Seed($db, time());
+require_once ROOT_PATH . '/includes/Backup.php';
+$p = S103_PREFIX;
+$checks = [];
+$check = static function(bool $ok,string $label) use (&$checks):void {$checks[]=[$ok,$label];echo ($ok?'PASS ':'FAIL ').$label."\n";};
+$contents = $db->fetchAll("SELECT * FROM {$p}contents ORDER BY id");
+foreach (S103_PROTOTYPE_TABLES as $table) $db->execute('DROP TABLE ' . $p . $table);
+$idType = $db->isSqlite() ? 'INTEGER PRIMARY KEY AUTOINCREMENT' : 'INT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY';
+$engine = $db->isSqlite() ? '' : ' ENGINE=InnoDB DEFAULT CHARSET=utf8mb4';
+$db->execute("CREATE TABLE {$p}ai_change_log (id {$idType}, admin_id INT NOT NULL DEFAULT 0, admin_name VARCHAR(100) NOT NULL DEFAULT '', ability VARCHAR(100) NOT NULL, target VARCHAR(200) NOT NULL DEFAULT '', summary VARCHAR(500) NOT NULL DEFAULT '', before_json TEXT, input_json TEXT, created_at INT NOT NULL DEFAULT 0, undone INT NOT NULL DEFAULT 0, undone_at INT NOT NULL DEFAULT 0){$engine}");
+$db->execute("INSERT INTO {$p}ai_change_log (admin_id,ability,summary) VALUES (7,'legacy','preserve this legacy log')");
+$db->execute("UPDATE {$p}settings SET `value`='0' WHERE `key`='ai_access_enabled'");
+s103ProductSchema($db);
+$log = $db->fetchOne("SELECT * FROM {$p}ai_change_log WHERE id=1");
+$check($log['summary']==='preserve this legacy log' && (int)$log['proposal_item_id']===0 && $log['after_revision']==='', 'old assistant log upgrades without losing its row');
+$check($contents===$db->fetchAll("SELECT * FROM {$p}contents ORDER BY id"), 'upgrade preserves all draft and published content');
+$check($db->fetchColumn("SELECT `value` FROM {$p}settings WHERE `key`='ai_access_enabled'")==='0', 'migration does not enable external access');
+s103ProductSchema($db);
+$check((int)$db->fetchColumn("SELECT COUNT(*) FROM {$p}ai_change_log")===1, 'repeated migration preserves the old log without duplication');
+$tables = array_map(static fn(string $name):string=>S103_PREFIX.$name,array_merge(S103_CORE_TABLES,S103_PROTOTYPE_TABLES));
+$dump = Backup::generateSql($tables);
+foreach (array_merge(S103_PROTOTYPE_TABLES,S103_CORE_TABLES) as $table) $db->execute('DROP TABLE ' . $p . $table);
+$db->getPdo()->exec($dump);
+$check($contents===$db->fetchAll("SELECT * FROM {$p}contents ORDER BY id"), 'product SQL backup restores content byte-for-byte');
+$check($db->fetchColumn("SELECT summary FROM {$p}ai_change_log WHERE id=1")==='preserve this legacy log', 'product backup restores the upgraded log');
+s103ProductSchema($db);
+$check($db->fetchColumn("SELECT `value` FROM {$p}settings WHERE `key`='ai_access_enabled'")==='0', 'restored installation can migrate again and stays disabled');
+foreach (array_merge(S103_PROTOTYPE_TABLES,S103_CORE_TABLES) as $table) $db->execute('DROP TABLE ' . $p . $table);
+$failed=count(array_filter($checks,static fn(array $c):bool=>!$c[0]));
+echo 'php='.PHP_VERSION.' driver='.DB_DRIVER.' assertions='.count($checks).' failed='.$failed."\n";
+exit($failed===0?0:1);

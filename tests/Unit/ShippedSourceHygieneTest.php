@@ -77,6 +77,14 @@ final class ShippedSourceHygieneTest extends TestCase
         self::assertSame([], self::offenders(self::NAMED + self::SHIPPED_ONLY, $files));
     }
 
+    /** 设计决策（ADR）与分阶段验收报告只放内部文档库；deploy/ 会随发行包交给客户 */
+    public function testDeployShipsNoInternalDecisionOrVerificationRecords(): void
+    {
+        $internal = array_values(array_filter(self::files(['deploy'], false),
+            static fn(string $rel): bool => preg_match('~/(ADR-\d+|S\d+(-\d+)?-[\w-]*\d{4}-\d{2}-\d{2})[\w-]*\.md$~', $rel) === 1));
+        self::assertSame([], $internal);
+    }
+
     public function testPublicRepoTestsAndCiNameNoCustomerOrAgent(): void
     {
         self::assertSame([], self::offenders(self::NAMED, self::files(['tests', '.github'], false)));

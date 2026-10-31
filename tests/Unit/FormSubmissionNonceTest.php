@@ -39,6 +39,9 @@ final class FormSubmissionNonceTest extends TestCase
         mkdir($directory);
         $previousPath = session_save_path();
         $previousId = session_id();
+        // 测试要预设会话 ID：php.ini 开了 session.use_strict_mode 时 PHP 会把未初始化的 ID 换掉，父子进程就不在同一个会话里。
+        $previousStrict = (string) ini_get('session.use_strict_mode');
+        ini_set('session.use_strict_mode', '0');
         $sessionId = 'nonce' . bin2hex(random_bytes(12));
         try {
             session_save_path($directory);
@@ -49,7 +52,7 @@ final class FormSubmissionNonceTest extends TestCase
 
             $workers = [];
             for ($i = 0; $i < 8; $i++) {
-                $process = proc_open([PHP_BINARY, ROOT_PATH . '/tests/fixtures/form-submission-nonce-worker.php', $directory, $sessionId, $nonce],
+                $process = proc_open([PHP_BINARY, '-d', 'session.use_strict_mode=0', ROOT_PATH . '/tests/fixtures/form-submission-nonce-worker.php', $directory, $sessionId, $nonce],
                     [0 => ['pipe', 'r'], 1 => ['pipe', 'w'], 2 => ['pipe', 'w']], $pipes);
                 self::assertIsResource($process);
                 fclose($pipes[0]);
@@ -70,6 +73,7 @@ final class FormSubmissionNonceTest extends TestCase
         } finally {
             if (session_status() === PHP_SESSION_ACTIVE) session_write_close();
             session_save_path($previousPath);
+            ini_set('session.use_strict_mode', $previousStrict);
             session_id($previousId);
             foreach (glob($directory . '/*') ?: [] as $file) unlink($file);
             if (is_dir($directory)) rmdir($directory);

@@ -3,7 +3,7 @@
  * Yikai CMS - AI 变更暂存（提案→确认→应用 的服务端存储）
  *
  * Agent 循环里，写类能力不直接执行，而是把「提案」暂存到会话；
- * 用户在 UI 确认后，api_ai_apply.php 按 set_id 取回**服务端**暂存的提案再执行
+ * 用户在 UI 确认后，api_ai_apply.php 按 set_id 取回**服务端**暂存的提案，交给 AiAssistantChanges 逐条在事务里执行
  * （绝不信任前端回传的改动内容，防篡改）。暂存 30 分钟自动过期。
  *
  * PHP 8.0+
@@ -55,6 +55,22 @@ final class AiStaging
         if ((int) ($set['admin_id'] ?? 0) !== (int) ($_SESSION['admin_id'] ?? 0)) return [];
         if ((int) ($set['created'] ?? 0) < time() - self::TTL) { self::clear($setId); return []; }
         return $set['items'] ?? [];
+    }
+
+    /** 移出已应用的条目；整组空了就删掉。未选和失败的条目保留，可再次应用。 @param list<string> $ids */
+    public static function remove(string $setId, array $ids): void
+    {
+        self::boot();
+        if ($ids === [] || !isset($_SESSION['ai_staging'][$setId])) return;
+        $left = array_values(array_filter(
+            $_SESSION['ai_staging'][$setId]['items'] ?? [],
+            static fn(array $item): bool => !in_array((string) ($item['id'] ?? ''), $ids, true)
+        ));
+        if ($left === []) {
+            self::clear($setId);
+            return;
+        }
+        $_SESSION['ai_staging'][$setId]['items'] = $left;
     }
 
     public static function clear(string $setId): void

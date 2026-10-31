@@ -117,6 +117,8 @@ final class DemoSandbox
             'setting_email.php', 'setting_ai.php', 'setting_translate.php', 'setting_api.php',
             'setting_channel_translate.php', 'setting_product_cat_translate.php',
             'api_ai.php', 'api_ai_agent.php', 'api_ai_apply.php', 'api_ai_undo.php',
+            'ai_access.php',                          // 外部 AI 访问令牌的签发与撤销
+            'ai_proposals.php',                       // 外部 AI 草稿提案的审核、应用与撤销
         ];
     }
 

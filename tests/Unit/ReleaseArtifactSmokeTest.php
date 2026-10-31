@@ -43,6 +43,17 @@ final class ReleaseArtifactSmokeTest extends TestCase
         self::assertStringContainsString('Chinese slug probe returned an unreadable value', implode("\n", $errors));
     }
 
+    public function testAiEntryIsRequiredAndPrivateBootstrapCannotShip(): void
+    {
+        $root = $this->tempDir . '/yikaicms-v9.9.9';
+        unlink($root . '/mcp/index.php');
+        mkdir($root . '/storage/security/ai-access', 0700, true);
+        file_put_contents($root . '/storage/security/ai-access/bootstrap.json', '{"synthetic":true}');
+        $errors = (new ReleaseArtifactSmoke($this->manifest))->inspectDirectory($root);
+        self::assertContains('Missing runtime file: mcp/index.php', $errors);
+        self::assertContains('Forbidden release path: storage/security/ai-access/bootstrap.json', $errors);
+    }
+
     /**
      * 在线升级链路必须整条进必含清单。
      *

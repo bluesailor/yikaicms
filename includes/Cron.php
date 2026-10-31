@@ -84,6 +84,28 @@ final class Cron
             );
         });
 
+        // AI 外部访问：清理 30 天前的访问日志与一小时前的限流窗口（表未建时是一次早退）
+        self::register('ai_access_prune', __('cron_ai_access_prune'), 3600, function (): string {
+            if (!db()->tableExists('api_access_log') || !db()->tableExists('api_rate_limits')) {
+                return __('cron_nothing_due');
+            }
+            require_once ROOT_PATH . '/includes/ai-access/AiAccessLog.php';
+            require_once ROOT_PATH . '/includes/ai-access/AiAccessThrottle.php';
+            $now = time();
+            $removed = (new AiAccessLog(db()))->prune($now) + (new AiAccessThrottle(db()))->prune($now);
+            return str_replace(':n', (string) $removed, __('cron_ai_access_prune_done'));
+        });
+
+        // AI 草稿提案：过期待审项标为 expired，按保留期删除终止项、清空正文快照（每批有界）
+        self::register('ai_proposals_prune', __('cron_ai_proposals_prune'), 3600, function (): string {
+            if (!db()->tableExists('ai_proposals') || !db()->tableExists('ai_proposal_items')) {
+                return __('cron_nothing_due');
+            }
+            require_once ROOT_PATH . '/includes/ai-access/AiProposalService.php';
+            $counts = (new AiProposalService(db()))->prune(time());
+            return strtr(__('cron_ai_proposals_prune_done'), [':expired' => (string) $counts['expired'], ':purged' => (string) $counts['purged'], ':cleared' => (string) $counts['cleared']]);
+        });
+
         if (function_exists('do_action')) {
             do_action('cron_register');
         }

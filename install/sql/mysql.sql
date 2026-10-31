@@ -1932,3 +1932,123 @@ CREATE TABLE `yikai_dologin_links` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `dologin_token` (`token_hash`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+DROP TABLE IF EXISTS `yikai_api_tokens`;
+CREATE TABLE `yikai_api_tokens` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `admin_id` int(11) UNSIGNED NOT NULL,
+  `name` varchar(100) NOT NULL DEFAULT '',
+  `token_prefix` varchar(16) NOT NULL DEFAULT '',
+  `token_hash` varchar(64) NOT NULL,
+  `scopes` varchar(500) NOT NULL DEFAULT '[]',
+  `created_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `expires_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `revoked_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `revoked_by` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `last_used_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `last_used_ip` varchar(45) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_api_tokens_hash` (`token_hash`),
+  KEY `idx_api_tokens_admin` (`admin_id`, `revoked_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='AI 外部访问令牌（只存摘要）';
+DROP TABLE IF EXISTS `yikai_api_access_log`;
+CREATE TABLE `yikai_api_access_log` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `request_id` varchar(32) NOT NULL DEFAULT '',
+  `created_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `admin_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `token_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `client` varchar(80) NOT NULL DEFAULT '',
+  `protocol` varchar(12) NOT NULL DEFAULT '',
+  `method` varchar(40) NOT NULL DEFAULT '',
+  `tool` varchar(64) NOT NULL DEFAULT '',
+  `http_status` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `result` varchar(64) NOT NULL DEFAULT '',
+  `target` varchar(100) NOT NULL DEFAULT '',
+  `duration_ms` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `ip` varchar(45) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`),
+  KEY `idx_api_access_log_created` (`created_at`),
+  KEY `idx_api_access_log_token` (`token_id`, `created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='AI 外部访问日志';
+DROP TABLE IF EXISTS `yikai_api_rate_limits`;
+CREATE TABLE `yikai_api_rate_limits` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `bucket` varchar(100) NOT NULL,
+  `window_start` int(11) UNSIGNED NOT NULL,
+  `hits` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_api_rate_limits_bucket` (`bucket`, `window_start`),
+  KEY `idx_api_rate_limits_window` (`window_start`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='AI 外部访问限流计数';
+DROP TABLE IF EXISTS `yikai_ai_proposals`;
+CREATE TABLE `yikai_ai_proposals` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `public_id` varchar(32) NOT NULL,
+  `owner_id` int(11) UNSIGNED NOT NULL,
+  `source_ns` varchar(40) NOT NULL,
+  `token_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `tool` varchar(64) NOT NULL,
+  `idempotency_key` varchar(128) NOT NULL,
+  `payload_hash` varchar(64) NOT NULL,
+  `contract_version` varchar(20) NOT NULL,
+  `created_at` int(11) UNSIGNED NOT NULL,
+  `expires_at` int(11) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ai_proposals_public` (`public_id`),
+  UNIQUE KEY `uk_ai_proposals_idempotency` (`owner_id`, `source_ns`, `tool`, `idempotency_key`),
+  KEY `idx_ai_proposals_expires` (`expires_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='AI 文章草稿提案集';
+DROP TABLE IF EXISTS `yikai_ai_proposal_items`;
+CREATE TABLE `yikai_ai_proposal_items` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `public_id` varchar(32) NOT NULL,
+  `proposal_id` int(11) UNSIGNED NOT NULL,
+  `seq` int(11) UNSIGNED NOT NULL,
+  `owner_id` int(11) UNSIGNED NOT NULL,
+  `operation` varchar(10) NOT NULL,
+  `target_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `lang` varchar(10) NOT NULL,
+  `channel_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `input_json` mediumtext NOT NULL,
+  `input_hash` varchar(64) NOT NULL,
+  `base_revision` varchar(64) NOT NULL,
+  `contract_version` varchar(20) NOT NULL,
+  `status` varchar(16) NOT NULL DEFAULT 'pending',
+  `status_reason` varchar(64) NOT NULL DEFAULT '',
+  `result_content_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `result_revision` varchar(64) NOT NULL DEFAULT '',
+  `change_log_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `decided_by` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `decided_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `created_at` int(11) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_ai_proposal_items_public` (`public_id`),
+  KEY `idx_ai_proposal_items_proposal` (`proposal_id`, `seq`),
+  KEY `idx_ai_proposal_items_owner` (`owner_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='AI 文章草稿提案项';
+DROP TABLE IF EXISTS `yikai_ai_change_log`;
+CREATE TABLE `yikai_ai_change_log` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `admin_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `admin_name` varchar(100) NOT NULL DEFAULT '',
+  `ability` varchar(100) NOT NULL,
+  `target` varchar(200) NOT NULL DEFAULT '',
+  `summary` varchar(500) NOT NULL DEFAULT '',
+  `before_json` mediumtext NULL,
+  `input_json` mediumtext NULL,
+  `created_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `undone` tinyint(1) NOT NULL DEFAULT 0,
+  `undone_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `proposal_item_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `source_ns` varchar(40) NOT NULL DEFAULT '',
+  `target_type` varchar(20) NOT NULL DEFAULT '',
+  `target_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `operation` varchar(10) NOT NULL DEFAULT '',
+  `after_revision` varchar(64) NOT NULL DEFAULT '',
+  `undone_by` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  KEY `idx_admin` (`admin_id`),
+  KEY `idx_created` (`created_at`),
+  KEY `idx_ai_change_log_item` (`proposal_item_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='AI 变更日志（撤销与审计）';

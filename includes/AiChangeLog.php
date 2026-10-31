@@ -81,25 +81,39 @@ final class AiChangeLog
         return db()->fetchOne("SELECT * FROM `" . DB_PREFIX . "ai_change_log` WHERE id = ?", [$id]);
     }
 
-    /** 某管理员最近的变更（含已撤销），用于 UI 展示 */
+    /** 某管理员最近的变更（含已撤销），用于 UI 展示。外部提案应用的记录不在这里列出，它们在「AI 草稿提案」页撤销。 */
     public static function recent(int $adminId, int $limit = 10): array
     {
         self::ensureTable();
         $limit = max(1, min(50, $limit));
-        return db()->fetchAll(
-            "SELECT * FROM `" . DB_PREFIX . "ai_change_log` WHERE admin_id = ? ORDER BY id DESC LIMIT {$limit}",
+        $rows = db()->fetchAll(
+            "SELECT * FROM `" . DB_PREFIX . "ai_change_log` WHERE admin_id = ? ORDER BY id DESC LIMIT " . ($limit * 3),
             [$adminId]
         );
+        return array_slice(array_values(array_filter($rows, static fn(array $row): bool => !self::isProposalChange($row))), 0, $limit);
     }
 
-    /** 该管理员最近一条未撤销的记录 */
+    /** 该管理员最近一条可由助手撤销的记录（跳过外部提案应用的记录） */
     public static function lastUndoable(int $adminId): ?array
     {
         self::ensureTable();
-        return db()->fetchOne(
-            "SELECT * FROM `" . DB_PREFIX . "ai_change_log` WHERE admin_id = ? AND undone = 0 ORDER BY id DESC LIMIT 1",
+        $rows = db()->fetchAll(
+            "SELECT * FROM `" . DB_PREFIX . "ai_change_log` WHERE admin_id = ? AND undone = 0 ORDER BY id DESC LIMIT 50",
             [$adminId]
         );
+        foreach ($rows as $row) {
+            if (!self::isProposalChange($row)) return $row;
+        }
+        return null;
+    }
+
+    /**
+     * 由 AiProposalService 应用的提案记录：撤销必须走它的事务（核对应用后版本、同时改提案状态），
+     * 助手的撤销端点不能按旧方式回退。迁移前的旧表没有该列，视为助手记录。
+     */
+    public static function isProposalChange(array $row): bool
+    {
+        return (int) ($row['proposal_item_id'] ?? 0) > 0;
     }
 
     public static function markUndone(int $id): void

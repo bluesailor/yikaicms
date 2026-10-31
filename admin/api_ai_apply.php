@@ -2,8 +2,9 @@
 /**
  * Yikai CMS - AI 变更「应用」端点
  *
- * 用户在界面确认后，按 set_id 取回**服务端暂存**的提案并真正执行；
- * 每条写入 ai_change_log（含操作前快照），供撤销。绝不信任前端回传的改动内容。
+ * 用户在界面确认后，按 set_id 取回**服务端暂存**的提案并真正执行；绝不信任前端回传的改动内容。
+ * 每条在一个事务里完成「执行 + 变更日志（操作前快照、应用后版本）」，失败整条回滚；
+ * 只移出已应用的条目，未选/失败的留在暂存里可再次应用（AiAssistantChanges）。
  *
  * POST：set_id（必填）、ids（可选，逗号分隔的 proposal_id 子集；缺省=全部）
  */
@@ -15,7 +16,7 @@ require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 require_once ROOT_PATH . '/includes/AiStaging.php';
-require_once ROOT_PATH . '/includes/AiChangeLog.php';
+require_once ROOT_PATH . '/includes/AiAssistantChanges.php';
 
 header('Content-Type: application/json; charset=utf-8');
 
@@ -44,40 +45,11 @@ if ($items === []) {
     exit;
 }
 
-$adminId   = (int) $_SESSION['admin_id'];
-$adminName = (string) ($_SESSION['admin_username'] ?? '');
-$applied = [];
-$errors  = [];
+$result = (new AiAssistantChanges(db()))->applyStaged(
+    (int) $_SESSION['admin_id'],
+    (string) ($_SESSION['admin_username'] ?? ''),
+    $setId,
+    $onlyIds === null ? null : array_values($onlyIds)
+);
 
-foreach ($items as $it) {
-    if ($onlyIds !== null && !in_array($it['id'], $onlyIds, true)) continue;
-
-    $ability = (string) $it['ability'];
-    $input   = (array) ($it['input'] ?? []);
-    $summary = (string) ($it['preview']['summary'] ?? $ability);
-
-    if (!Abilities::isMutating($ability)) { $errors[] = "「{$summary}」不是可应用的写操作"; continue; }
-    if (!Abilities::permitted($ability))  { $errors[] = "「{$summary}」权限不足"; continue; }
-
-    // 应用时重新取「操作前快照」，保证撤销准确
-    $prev   = Abilities::previewChange($ability, $input);
-    $before = $prev['success'] ? ($prev['preview']['before'] ?? null) : ($it['preview']['before'] ?? null);
-
-    $exec = Abilities::execute($ability, $input);
-    if (!empty($exec['success'])) {
-        $target = (string) ($input['key'] ?? $input['id'] ?? '');
-        $logId = AiChangeLog::record($adminId, $adminName, $ability, $target, $summary, $before, $input);
-        $applied[] = ['proposal_id' => $it['id'], 'ability' => $ability, 'summary' => $summary, 'log_id' => $logId];
-    } else {
-        $errors[] = "「{$summary}」应用失败：" . (string) ($exec['error'] ?? '未知错误');
-    }
-}
-
-// 应用过的整组暂存清掉（避免重复应用）
-AiStaging::clear($setId);
-
-echo json_encode([
-    'success' => $errors === [],
-    'applied' => $applied,
-    'errors'  => $errors,
-], JSON_UNESCAPED_UNICODE);
+echo json_encode($result, JSON_UNESCAPED_UNICODE);

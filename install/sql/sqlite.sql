@@ -2936,3 +2936,116 @@ CREATE TABLE "yikai_dologin_links" (
 );
 CREATE UNIQUE INDEX "dologin_token_yikai_dologin_links" ON "yikai_dologin_links" ("token_hash");
 
+DROP TABLE IF EXISTS "yikai_api_tokens";
+CREATE TABLE "yikai_api_tokens" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "admin_id" INTEGER NOT NULL,
+  "name" TEXT NOT NULL DEFAULT '',
+  "token_prefix" TEXT NOT NULL DEFAULT '',
+  "token_hash" TEXT NOT NULL,
+  "scopes" TEXT NOT NULL DEFAULT '[]',
+  "created_at" INTEGER NOT NULL DEFAULT 0,
+  "expires_at" INTEGER NOT NULL DEFAULT 0,
+  "revoked_at" INTEGER NOT NULL DEFAULT 0,
+  "revoked_by" INTEGER NOT NULL DEFAULT 0,
+  "last_used_at" INTEGER NOT NULL DEFAULT 0,
+  "last_used_ip" TEXT NOT NULL DEFAULT ''
+);
+CREATE UNIQUE INDEX "uk_api_tokens_hash_yikai_api_tokens" ON "yikai_api_tokens" ("token_hash");
+CREATE INDEX "idx_api_tokens_admin_yikai_api_tokens" ON "yikai_api_tokens" ("admin_id", "revoked_at");
+DROP TABLE IF EXISTS "yikai_api_access_log";
+CREATE TABLE "yikai_api_access_log" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "request_id" TEXT NOT NULL DEFAULT '',
+  "created_at" INTEGER NOT NULL DEFAULT 0,
+  "admin_id" INTEGER NOT NULL DEFAULT 0,
+  "token_id" INTEGER NOT NULL DEFAULT 0,
+  "client" TEXT NOT NULL DEFAULT '',
+  "protocol" TEXT NOT NULL DEFAULT '',
+  "method" TEXT NOT NULL DEFAULT '',
+  "tool" TEXT NOT NULL DEFAULT '',
+  "http_status" INTEGER NOT NULL DEFAULT 0,
+  "result" TEXT NOT NULL DEFAULT '',
+  "target" TEXT NOT NULL DEFAULT '',
+  "duration_ms" INTEGER NOT NULL DEFAULT 0,
+  "ip" TEXT NOT NULL DEFAULT ''
+);
+CREATE INDEX "idx_api_access_log_created_yikai_api_access_log" ON "yikai_api_access_log" ("created_at");
+CREATE INDEX "idx_api_access_log_token_yikai_api_access_log" ON "yikai_api_access_log" ("token_id", "created_at");
+DROP TABLE IF EXISTS "yikai_api_rate_limits";
+CREATE TABLE "yikai_api_rate_limits" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "bucket" TEXT NOT NULL,
+  "window_start" INTEGER NOT NULL,
+  "hits" INTEGER NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX "uk_api_rate_limits_bucket_yikai_api_rate_limits" ON "yikai_api_rate_limits" ("bucket", "window_start");
+CREATE INDEX "idx_api_rate_limits_window_yikai_api_rate_limits" ON "yikai_api_rate_limits" ("window_start");
+DROP TABLE IF EXISTS "yikai_ai_proposals";
+CREATE TABLE "yikai_ai_proposals" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "public_id" TEXT NOT NULL,
+  "owner_id" INTEGER NOT NULL,
+  "source_ns" TEXT NOT NULL,
+  "token_id" INTEGER NOT NULL DEFAULT 0,
+  "tool" TEXT NOT NULL,
+  "idempotency_key" TEXT NOT NULL,
+  "payload_hash" TEXT NOT NULL,
+  "contract_version" TEXT NOT NULL,
+  "created_at" INTEGER NOT NULL,
+  "expires_at" INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX "uk_ai_proposals_public_yikai_ai_proposals" ON "yikai_ai_proposals" ("public_id");
+CREATE UNIQUE INDEX "uk_ai_proposals_idempotency_yikai_ai_proposals" ON "yikai_ai_proposals" ("owner_id", "source_ns", "tool", "idempotency_key");
+CREATE INDEX "idx_ai_proposals_expires_yikai_ai_proposals" ON "yikai_ai_proposals" ("expires_at");
+DROP TABLE IF EXISTS "yikai_ai_proposal_items";
+CREATE TABLE "yikai_ai_proposal_items" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "public_id" TEXT NOT NULL,
+  "proposal_id" INTEGER NOT NULL,
+  "seq" INTEGER NOT NULL,
+  "owner_id" INTEGER NOT NULL,
+  "operation" TEXT NOT NULL,
+  "target_id" INTEGER NOT NULL DEFAULT 0,
+  "lang" TEXT NOT NULL,
+  "channel_id" INTEGER NOT NULL DEFAULT 0,
+  "input_json" TEXT NOT NULL,
+  "input_hash" TEXT NOT NULL,
+  "base_revision" TEXT NOT NULL,
+  "contract_version" TEXT NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'pending',
+  "status_reason" TEXT NOT NULL DEFAULT '',
+  "result_content_id" INTEGER NOT NULL DEFAULT 0,
+  "result_revision" TEXT NOT NULL DEFAULT '',
+  "change_log_id" INTEGER NOT NULL DEFAULT 0,
+  "decided_by" INTEGER NOT NULL DEFAULT 0,
+  "decided_at" INTEGER NOT NULL DEFAULT 0,
+  "created_at" INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX "uk_ai_proposal_items_public_yikai_ai_proposal_items" ON "yikai_ai_proposal_items" ("public_id");
+CREATE INDEX "idx_ai_proposal_items_proposal_yikai_ai_proposal_items" ON "yikai_ai_proposal_items" ("proposal_id", "seq");
+CREATE INDEX "idx_ai_proposal_items_owner_yikai_ai_proposal_items" ON "yikai_ai_proposal_items" ("owner_id", "status");
+DROP TABLE IF EXISTS "yikai_ai_change_log";
+CREATE TABLE "yikai_ai_change_log" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "admin_id" INTEGER NOT NULL DEFAULT 0,
+  "admin_name" TEXT NOT NULL DEFAULT '',
+  "ability" TEXT NOT NULL,
+  "target" TEXT NOT NULL DEFAULT '',
+  "summary" TEXT NOT NULL DEFAULT '',
+  "before_json" TEXT,
+  "input_json" TEXT,
+  "created_at" INTEGER NOT NULL DEFAULT 0,
+  "undone" INTEGER NOT NULL DEFAULT 0,
+  "undone_at" INTEGER NOT NULL DEFAULT 0,
+  "proposal_item_id" INTEGER NOT NULL DEFAULT 0,
+  "source_ns" TEXT NOT NULL DEFAULT '',
+  "target_type" TEXT NOT NULL DEFAULT '',
+  "target_id" INTEGER NOT NULL DEFAULT 0,
+  "operation" TEXT NOT NULL DEFAULT '',
+  "after_revision" TEXT NOT NULL DEFAULT '',
+  "undone_by" INTEGER NOT NULL DEFAULT 0
+);
+CREATE INDEX "idx_admin_yikai_ai_change_log" ON "yikai_ai_change_log" ("admin_id");
+CREATE INDEX "idx_created_yikai_ai_change_log" ON "yikai_ai_change_log" ("created_at");
+CREATE INDEX "idx_ai_change_log_item_yikai_ai_change_log" ON "yikai_ai_change_log" ("proposal_item_id");

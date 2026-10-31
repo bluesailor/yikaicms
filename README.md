@@ -217,6 +217,13 @@ location ~* \.(md|sql|bak|example|dist|conf|lock|yml|yaml)$ {
 location ~ ^/deploy/ {
     deny all;
 }
+location = /mcp {
+    rewrite ^ /mcp/index.php last;
+}
+location = /mcp/ {
+    rewrite ^ /mcp/index.php last;
+}
+
 location = /install/ {
     rewrite ^ /install/index.php last;
 }

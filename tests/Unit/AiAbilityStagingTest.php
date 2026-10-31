@@ -63,14 +63,14 @@ final class AiAbilityStagingTest extends TestCase
 
     public function testEveryWriteAbilityIsStagedUnlessExplicitlyAllowed(): void
     {
-        $writes = ['cms_publish_content', 'cms_set_content_flags', 'cms_auto_tag_content', 'cms_update_setting'];
+        $writes = ['cms_publish_content', 'cms_set_content_flags', 'cms_auto_tag_content', 'cms_update_setting', 'cms_generate_seo_summary'];
         foreach ($writes as $name) {
             self::assertTrue(Abilities::has($name), $name);
             self::assertTrue(Abilities::isMutating($name), "$name must be staged for confirmation");
             self::assertNotNull(Abilities::get($name)['revert'] ?? null, "$name must be undoable");
         }
         foreach (array_keys(Abilities::all()) as $name) {
-            if (preg_match('/publish|update|set_|delete|auto_tag|create/', $name) === 1 && !in_array($name, self::DIRECT_WRITES, true)) {
+            if (preg_match('/publish|update|set_|delete|auto_tag|create|seo_summary/', $name) === 1 && !in_array($name, self::DIRECT_WRITES, true)) {
                 self::assertTrue(Abilities::isMutating($name), "$name looks like a write: stage it or whitelist it with a reason");
             }
         }
@@ -89,6 +89,25 @@ final class AiAbilityStagingTest extends TestCase
 
         self::assertTrue(Abilities::revertChange('cms_publish_content', $preview['preview']['before'], ['id' => 1])['success']);
         self::assertSame(0, (int) db()->fetchColumn('SELECT status FROM contents WHERE id = 1'));
+    }
+
+    public function testSeoSummaryIsStagedPinnedAndRejectsAChangedSource(): void
+    {
+        self::assertTrue(Abilities::isMutating('cms_generate_seo_summary'));
+        db()->execute("UPDATE contents SET summary='original', content='<p>body</p>', status=1 WHERE id=1");
+        $preview = Abilities::previewChange('cms_generate_seo_summary', ['id'=>1, 'summary'=>'Pinned SEO summary']);
+        self::assertTrue($preview['success']);
+        self::assertSame('original', db()->fetchColumn('SELECT summary FROM contents WHERE id=1'), 'preview never writes even published content');
+        $input = $preview['preview']['input'];
+        self::assertSame('Pinned SEO summary', $input['summary']);
+        self::assertTrue(Abilities::execute('cms_generate_seo_summary', $input)['success']);
+        self::assertSame('Pinned SEO summary', db()->fetchColumn('SELECT summary FROM contents WHERE id=1'));
+        self::assertTrue(Abilities::revertChange('cms_generate_seo_summary', $preview['preview']['before'], $input)['success']);
+        self::assertSame('original', db()->fetchColumn('SELECT summary FROM contents WHERE id=1'));
+        db()->execute("UPDATE contents SET content='<p>human edit</p>' WHERE id=1");
+        self::assertFalse(Abilities::previewChange('cms_generate_seo_summary', $input)['success'], 'stale proposal preview is refused');
+        self::assertFalse(Abilities::execute('cms_generate_seo_summary', $input)['success'], 'stale execution is refused');
+        self::assertFalse(Abilities::execute('cms_generate_seo_summary', ['id'=>1])['success'], 'execute must not generate text inside an apply transaction');
     }
 
     public function testFlagsPreviewOnlyRequestedFlagsAndRevert(): void

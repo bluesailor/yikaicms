@@ -18,6 +18,12 @@ requirePermission('*');
 // 处理 AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
+    // 停用或删除账号时一并撤销它的 AI 外部访问令牌：重新启用账号不应让旧令牌复活。
+    $revokeAiTokens = static function (int $userId): void {
+        require_once ROOT_PATH . '/includes/ai-access/AiAccessTokenStore.php';
+        $count = AiAccessTokenStore::revokeAccount(db(), $userId, getAdminId());
+        if ($count > 0) adminLog('ai_access', 'revoke', "账号停用/删除，撤销 AI 访问令牌 {$count} 个：用户ID {$userId}");
+    };
 
     if ($action === 'save') {
         $id = postInt('id');
@@ -55,6 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
             userModel()->updateById($id, $data);
             adminLog('user', 'update', "更新用户ID: $id");
+            if ($status !== 1) $revokeAiTokens($id);
         } else {
             if (empty($password)) {
                 error(__('user_pwd_required'));
@@ -80,6 +87,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         userModel()->deleteById($id);
         adminLog('user', 'delete', "删除用户ID: $id");
+        $revokeAiTokens($id);
         success();
     }
 
@@ -91,6 +99,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
 
         $newStatus = userModel()->toggle($id, 'status');
+        if ((int) $newStatus !== 1) $revokeAiTokens($id);
         success(['status' => $newStatus]);
     }
 

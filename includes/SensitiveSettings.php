@@ -72,6 +72,7 @@ final class SensitiveSettings
         'static_html_base_url',
         'static_html_enabled',
         'static_html_last_gen',
+        'ai_access_enabled',  // 外部 AI 访问总开关：只能由本站站长在后台打开
     ];
 
     /** 值内部递归清洗时命中即摘除的键名 */

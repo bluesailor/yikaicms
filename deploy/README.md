@@ -38,6 +38,15 @@
 | nginx 一个域名下多个子目录站点 | `deploy/nginx-subdirectories.conf` | 加进 server 块一次，新站放进一级目录即可 |
 | Apache（自己的服务器 / phpStudy） | 根目录 `.htaccess` | 开 mod_rewrite 即用 |
 
+### AI 外部访问（`/mcp/`，2.2）
+
+站长在后台「AI 外部访问」开启并签发令牌后，Claude Code、Codex 等客户端连接 `https://<站点>/mcp/`（子目录站为 `https://<站点>/<子目录>/mcp/`）。上表各环境的规则文件都已包含 `/mcp` 路由，另外注意：
+
+- **地址末尾的斜杠不能省**：Apache 对 `/mcp` 会先 301 到 `/mcp/`，POST 随之变成 GET，客户端连不上。后台页显示的就是带斜杠的完整地址。
+- **Authorization 头**：PHP 以 CGI/FastCGI（mod_fcgid、php-cgi）运行时 Apache 默认丢弃它。根目录 `.htaccess`、`aliyun-vhost.htaccess`、`htaccess-minimal.txt` 都有显式传递规则；自写规则时要照抄这两行，否则所有请求都是 401。nginx 默认会传。
+- **请求体大小**：提案请求最大约 256 KB。mod_fcgid 的 `FcgidMaxRequestLen` 默认只有 131072（128 KB），超过时 Apache 在 PHP 之前就拒绝（客户端看到 413 或 500）。用 mod_fcgid 的主机请至少调到 `FcgidMaxRequestLen 262144`；nginx 的 `client_max_body_size` 默认 1 MB，够用。
+- **HTTPS**：入口只接受 HTTPS（本机 `localhost`/`127.0.0.1` 直连除外）。站点在 CDN 或反向代理后面时，要在后台把代理地址填进「可信代理」，入口才会认 `X-Forwarded-Proto: https`；没填时客户端会收到 403「HTTPS required」，访问记录里是 `https_required`。
+
 ---
 
 ## 上线后的安全复测

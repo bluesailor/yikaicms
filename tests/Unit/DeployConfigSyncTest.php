@@ -72,6 +72,11 @@ final class DeployConfigSyncTest extends TestCase
         self::assertStringNotContainsString('RewriteBase /', $minimal);
         self::assertStringContainsString('RewriteRule . %{ENV:YK_BASE}index.php [L]', $minimal);
         self::assertStringContainsString('%{DOCUMENT_ROOT}%{ENV:YK_BASE}installed.lock -f', $minimal);
+        // AI 外部访问：受限主机同样要把 Authorization 交给 PHP，且改写规则要排在 catch-all 之前
+        $mcp = strpos($minimal, 'RewriteRule ^mcp/?$ %{ENV:YK_BASE}mcp/index.php [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]');
+        self::assertIsInt($mcp);
+        self::assertLessThan(strpos($minimal, 'RewriteRule . %{ENV:YK_BASE}index.php [L]'), $mcp);
+        self::assertStringContainsString('location = /mcp/ {', self::read('deploy/aliyun-nginx-minimal.txt'));
 
         // 单站子目录写法：安装目录的 ^~ 挡住了外层正则，初始 SQL 在块内单独封
         $subdir = self::read('deploy/SUBDIRECTORY.md');

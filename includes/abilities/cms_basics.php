@@ -208,29 +208,44 @@ register_ability('cms_create_article_draft', [
 // ─────────────────────────────────────────────────────────
 register_ability('cms_generate_seo_summary', [
     'label'        => '生成 SEO 摘要',
-    'description'  => '读取指定文章正文，让 AI 生成 80-120 字的 SEO 摘要并保存到 summary 字段。',
+    'description'  => '根据正文生成 SEO 摘要，先暂存待审核，不直接写回文章。',
     'input_schema' => [
         'type'       => 'object',
-        'properties' => ['id' => ['type' => 'integer']],
+        'properties' => ['id' => ['type' => 'integer'], 'summary' => ['type' => 'string'], 'source_revision' => ['type' => 'string']],
         'required'   => ['id'],
     ],
     // 会写回 contents.summary；类型判定在 execute 里
     'permissions'  => ['@content'],
+    'tier' => 'confirm',
+    'mutating' => true,
+    'preview' => function (array $input): array {
+        $row = cms_seo_summary_row((int) $input['id']);
+        $revision = cms_seo_summary_revision($row);
+        if (isset($input['source_revision']) && !hash_equals($revision, (string) $input['source_revision'])) throw new RuntimeException('内容已变化，请重新生成 SEO 摘要提案');
+        $summary = trim((string) ($input['summary'] ?? ''));
+        if ($summary === '') {
+            $plain = trim(strip_tags((string) $row['content']));
+            if ($plain === '') throw new RuntimeException('Empty content');
+            $excerpt = mb_substr($plain, 0, 1500);
+            $r = aiService()->chat("标题：{$row['title']}\n\n正文片段：\n{$excerpt}", '你是 SEO 编辑。根据正文写一段 80-120 字的中文摘要，突出关键词，仅输出摘要本身。', 0.4);
+            if (!$r['success']) throw new RuntimeException($r['error'] ?: 'AI failed');
+            $summary = trim((string) $r['content']);
+        }
+        if ($summary === '' || mb_strlen($summary) > 500) throw new RuntimeException('摘要为空或超过 500 字');
+        return ['summary' => "为「{$row['title']}」设置 SEO 摘要：{$summary}", 'before' => (string) ($row['summary'] ?? ''), 'after' => $summary,
+            'input' => ['id' => (int) $row['id'], 'summary' => $summary, 'source_revision' => $revision]];
+    },
+    'revert' => function ($before, array $input): void {
+        $id = (int) $input['id'];
+        cms_seo_summary_row($id);
+        db()->execute('UPDATE ' . DB_PREFIX . 'contents SET summary = ?, updated_at = ? WHERE id = ?', [(string) $before, time(), $id]);
+    },
     'execute'      => function (array $input): array {
         $id = (int)$input['id'];
-        $row = contentModel()->getDetail($id);
-        if (!$row) throw new \RuntimeException("Content #{$id} not found");
-        assertCanEditContentRow($id);
-
-        $plain = trim(strip_tags((string)$row['content']));
-        if ($plain === '') throw new \RuntimeException('Empty content');
-        $excerpt = mb_substr($plain, 0, 1500);
-
-        $sys = '你是 SEO 编辑。根据正文写一段 80-120 字的中文摘要，突出关键词，文末不留省略号，仅输出摘要本身。';
-        $r = aiService()->chat("标题：{$row['title']}\n\n正文片段：\n{$excerpt}", $sys, 0.4);
-        if (!$r['success']) throw new \RuntimeException($r['error'] ?: 'AI failed');
-
-        $summary = mb_substr(trim($r['content']), 0, 500);
+        $row = cms_seo_summary_row($id);
+        $summary = trim((string) ($input['summary'] ?? ''));
+        if ($summary === '' || mb_strlen($summary) > 500 || empty($input['source_revision'])) throw new RuntimeException('请重新生成 SEO 摘要提案，应用时不能调用模型');
+        if (!hash_equals(cms_seo_summary_revision($row), (string) $input['source_revision'])) throw new RuntimeException('内容已变化，请重新生成 SEO 摘要提案');
         db()->execute(
             'UPDATE ' . DB_PREFIX . 'contents SET summary = ?, updated_at = ? WHERE id = ?',
             [$summary, time(), $id]
@@ -238,6 +253,22 @@ register_ability('cms_generate_seo_summary', [
         return ['id' => $id, 'summary' => $summary];
     },
 ]);
+
+function cms_seo_summary_row(int $id): array
+{
+    $row = contentModel()->getDetail($id);
+    if (!$row || ($row['deleted_at'] ?? null) !== null) throw new RuntimeException("Content #{$id} not found");
+    assertCanEditContentRow($id);
+    return $row;
+}
+
+/** 暂存时固定的来源版本：应用前核对，正文、标题、摘要等被人改过就拒绝写入。 */
+function cms_seo_summary_revision(array $row): string
+{
+    $values = [];
+    foreach (['id','type','lang','channel_id','status','deleted_at','title','summary','content','updated_at'] as $key) $values[$key] = isset($row[$key]) ? (string) $row[$key] : null;
+    return hash('sha256', json_encode($values, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR));
+}
 
 // ─────────────────────────────────────────────────────────
 // 7) AI 生成标签并写回

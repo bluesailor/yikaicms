@@ -39,6 +39,12 @@
 
     # 开放接口伪静态：/api/v1/<resource> → 分发器（?resource=<resource> 形式始终可用，无需此规则）
     RewriteRule ^api/v1/([a-z_]+)/?$ %{ENV:YK_BASE}api/v1/index.php?resource=$1 [QSA,L]
+
+    # AI 外部访问（MCP）：/mcp、/mcp/ 都直接进入口文件（避免目录补斜杠的 301 把 POST 变成 GET）；
+    # CGI/FastCGI 方式运行 PHP 时 Apache 默认丢弃 Authorization 头，这里显式交给 PHP。
+    # 直接访问 mcp/index.php 只补环境变量、不改写（改写到自身会触发内部重定向死循环）。
+    RewriteRule ^mcp/?$ %{ENV:YK_BASE}mcp/index.php [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]
+    RewriteRule ^mcp/index\.php$ - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization},L]
     RewriteRule ^recipes/ - [F,L]
 
     # 禁止访问敏感文件

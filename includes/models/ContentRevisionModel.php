@@ -23,7 +23,7 @@ class ContentRevisionModel extends Model
     /** 保留版本数：config('revision_keep') 覆盖，默认 5，收敛到 1..50 */
     public function keepCount(): int
     {
-        $n = (int) config('revision_keep', 5);
+        $n = function_exists('config') ? (int) config('revision_keep', 5) : 5;
         return max(1, min(50, $n));
     }
 
@@ -33,25 +33,35 @@ class ContentRevisionModel extends Model
      */
     public function record(string $type, int $targetId, string $lang, array $targets, string $summary, int $adminId = 0, string $adminName = ''): void
     {
+        try {
+            $this->recordStrict($type, $targetId, $lang, $targets, $summary, $adminId, $adminName);
+        } catch (\Throwable $e) {
+            error_log('[revision] record failed: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * 同 record()，但失败即抛出：给调用方持有的事务用（AI 提案应用/撤销）。
+     * record() 吞异常的写法不能放进 InnoDB 事务——死锁导致整事务回滚后被吞掉，
+     * 后续语句会在事务外继续执行。这里不开事务、不建表，只做插入与按条数清理。
+     */
+    public function recordStrict(string $type, int $targetId, string $lang, array $targets, string $summary, int $adminId = 0, string $adminName = ''): void
+    {
         $clean = $this->sanitizeTargets($targets);
         if ($targetId <= 0 || $clean === []) {
             return;
         }
-        try {
-            db()->insert($this->table, [
-                'target_type' => $type,
-                'target_id'   => $targetId,
-                'lang'        => $lang,
-                'snapshot'    => json_encode(['targets' => $clean], JSON_UNESCAPED_UNICODE),
-                'summary'     => mb_substr($summary, 0, 200),
-                'admin_id'    => $adminId,
-                'admin_name'  => mb_substr($adminName, 0, 50),
-                'created_at'  => time(),
-            ]);
-            $this->prune($type, $targetId);
-        } catch (\Throwable $e) {
-            error_log('[revision] record failed: ' . $e->getMessage());
-        }
+        db()->insert($this->table, [
+            'target_type' => $type,
+            'target_id'   => $targetId,
+            'lang'        => $lang,
+            'snapshot'    => json_encode(['targets' => $clean], JSON_UNESCAPED_UNICODE),
+            'summary'     => mb_substr($summary, 0, 200),
+            'admin_id'    => $adminId,
+            'admin_name'  => mb_substr($adminName, 0, 50),
+            'created_at'  => time(),
+        ]);
+        $this->pruneRows($type, $targetId);
     }
 
     /** 最近版本列表（不含 snapshot 大字段）。表缺失返回 [] */
@@ -140,15 +150,20 @@ class ContentRevisionModel extends Model
     public function prune(string $type, int $targetId): void
     {
         try {
-            $rows = db()->fetchAll(
-                "SELECT id FROM {$this->tableName()} WHERE target_type = ? AND target_id = ? ORDER BY id DESC",
-                [$type, $targetId]
-            );
-            foreach (array_slice($rows, $this->keepCount()) as $r) {
-                db()->delete($this->table, 'id = ?', [(int) $r['id']]);
-            }
+            $this->pruneRows($type, $targetId);
         } catch (\Throwable $e) {
             // ignore
+        }
+    }
+
+    private function pruneRows(string $type, int $targetId): void
+    {
+        $rows = db()->fetchAll(
+            "SELECT id FROM {$this->tableName()} WHERE target_type = ? AND target_id = ? ORDER BY id DESC",
+            [$type, $targetId]
+        );
+        foreach (array_slice($rows, $this->keepCount()) as $r) {
+            db()->delete($this->table, 'id = ?', [(int) $r['id']]);
         }
     }
 

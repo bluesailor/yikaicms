@@ -246,22 +246,22 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
                                data-perm="*" onchange="handlePermChange(this)">
                         <span class="text-sm font-bold text-red-600"><?php echo e(__('perm_all')); ?></span>
                     </label>
-                    <?php foreach ($permCatalog as $groupKey => $group): ?>
-                    <div data-permission-group="<?php echo e($groupKey); ?>"<?php echo in_array($groupKey, ['blox', 'plugin'], true) ? ' data-testid="role-' . e($groupKey) . '-permissions"' : ''; ?>>
+                    <?php foreach ($permCatalog as $groupKey => $group): $detailed = in_array($groupKey, ['blox', 'plugin', 'ai'], true); ?>
+                    <div data-permission-group="<?php echo e($groupKey); ?>"<?php echo $detailed ? ' data-testid="role-' . e($groupKey) . '-permissions"' : ''; ?>>
                         <div class="text-xs font-medium text-gray-400 uppercase mb-1.5"><?php echo e($group['label']); ?></div>
                         <?php if ($groupKey === 'blox'): ?>
                         <p class="mb-2 text-xs leading-5 text-gray-500"><?php echo e(__('role_blox_permissions_hint')); ?></p>
                         <?php elseif ($groupKey === 'plugin'): ?>
                         <p class="mb-2 text-xs leading-5 text-gray-500"><?php echo e(__('role_plugin_permissions_hint')); ?></p>
                         <?php endif; ?>
-                        <div class="<?php echo in_array($groupKey, ['blox', 'plugin'], true) ? 'space-y-2' : 'grid grid-cols-2 gap-x-4 gap-y-1.5'; ?>">
+                        <div class="<?php echo $detailed ? 'space-y-2' : 'grid grid-cols-2 gap-x-4 gap-y-1.5'; ?>">
                             <?php foreach ($group['caps'] as $key => $label): ?>
                             <?php $permissionDescription = permDescription($key); ?>
-                            <label class="flex cursor-pointer <?php echo in_array($groupKey, ['blox', 'plugin'], true) ? 'items-start gap-3 border border-gray-200 bg-white px-3 py-2.5 hover:border-gray-300' : 'items-center gap-2'; ?>">
+                            <label class="flex cursor-pointer <?php echo $detailed ? 'items-start gap-3 border border-gray-200 bg-white px-3 py-2.5 hover:border-gray-300' : 'items-center gap-2'; ?>">
                                 <input type="checkbox" name="permissions[]" value="<?php echo e($key); ?>"
-                                       class="rounded border-gray-300 text-primary focus:ring-primary perm-checkbox <?php echo in_array($groupKey, ['blox', 'plugin'], true) ? 'mt-0.5' : ''; ?>"
+                                       class="rounded border-gray-300 text-primary focus:ring-primary perm-checkbox <?php echo $detailed ? 'mt-0.5' : ''; ?>"
                                        data-perm="<?php echo e($key); ?>" onchange="handlePermChange(this)">
-                                <?php if (in_array($groupKey, ['blox', 'plugin'], true)): ?>
+                                <?php if ($detailed): ?>
                                 <span class="min-w-0">
                                     <span class="block text-sm font-medium text-gray-800"><?php echo e($label); ?></span>
                                     <?php if ($permissionDescription !== ''): ?>
