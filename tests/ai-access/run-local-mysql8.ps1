@@ -23,6 +23,7 @@ $runner = Join-Path $root 'tests\ai-access\proposal-txn-run.php'
 $throttle = Join-Path $root 'tests\ai-access\throttle-run.php'
 $assistant = Join-Path $root 'tests\ai-access\assistant-txn-run.php'
 $upgrade = Join-Path $root 'tests\ai-access\upgrade-run.php'
+$pages = Join-Path $root 'tests\ai-access\page-proposal-run.php'
 $stamp = Get-Date -Format 'yyyyMMdd-HHmmss'
 if ($OutDir -eq '') { $OutDir = Join-Path $env:TEMP "s103-local-$stamp" }
 New-Item -ItemType Directory -Force -Path $OutDir | Out-Null
@@ -55,6 +56,9 @@ if ($LASTEXITCODE -ne 0) { $sqliteExit = 1 }
 & $Php $assistant | Tee-Object -FilePath (Join-Path $OutDir 'assistant-sqlite.txt')
 if ($LASTEXITCODE -ne 0) { $sqliteExit = 1 }
 & $Php $upgrade | Tee-Object -FilePath (Join-Path $OutDir 'upgrade-sqlite.txt')
+if ($LASTEXITCODE -ne 0) { $sqliteExit = 1 }
+# S5-03: single-page content proposals
+& $Php $pages | Out-File -Encoding utf8 -FilePath (Join-Path $OutDir 'page-proposals-sqlite.json')
 if ($LASTEXITCODE -ne 0) { $sqliteExit = 1 }
 Remove-Item -Force -ErrorAction SilentlyContinue $sqlitePath, "$sqlitePath-journal"
 
@@ -101,6 +105,8 @@ try {
     & $Php $assistant | Tee-Object -FilePath (Join-Path $OutDir 'assistant-mysql.txt')
     if ($LASTEXITCODE -ne 0) { $mysqlExit = 1 }
     & $Php $upgrade | Tee-Object -FilePath (Join-Path $OutDir 'upgrade-mysql.txt')
+    if ($LASTEXITCODE -ne 0) { $mysqlExit = 1 }
+    & $Php $pages | Out-File -Encoding utf8 -FilePath (Join-Path $OutDir 'page-proposals-mysql.json')
     if ($LASTEXITCODE -ne 0) { $mysqlExit = 1 }
 } finally {
     if ($ownsConnection) { & $mysql --protocol=TCP -h 127.0.0.1 -P $Port -u root -e 'SHUTDOWN' 2>$null | Out-Null }

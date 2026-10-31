@@ -5,9 +5,10 @@ declare(strict_types=1);
 require_once __DIR__ . '/AiAccessAuthContext.php';
 require_once __DIR__ . '/AiArticleDraftRules.php';
 require_once __DIR__ . '/AiProposalService.php';
+require_once __DIR__ . '/AiBloxPageReader.php';
 
 /**
- * v2.2.0 拟定的六个外部工具（规划 §7.3）的原型实现。只读查询加一个只写提案表的工具；
+ * v2.2.0 拟定的六个外部工具（规划 §7.3）的原型实现，加 S5-02 的单页只读工具 page_list/page_read。只读查询加一个只写提案表的工具；
  * 不调用 Abilities 注册表、模型或站点 AI 供应商，也不经过 AiService 的模型循环。
  * 工具清单按调用身份过滤（scope × 角色权限），顺序固定。
  */
@@ -44,6 +45,9 @@ final class AiMcpTools
             'article_read' => $this->article($args),
             'article_draft_propose' => $this->propose($args, $context),
             'proposal_status' => $this->status($args, $context),
+            'page_list' => $this->pages($args),
+            'page_read' => $this->page($args, $context),
+            'page_content_propose' => $this->proposePage($args, $context),
             default => throw new RuntimeException('ai_mcp_invalid_arguments', 400),
         };
     }
@@ -54,7 +58,8 @@ final class AiMcpTools
         $tools = array_values(array_filter(AiAccessAuthContext::TOOLS, $context->allowsTool(...)));
         return ['site_name' => (string) ($settings['site_name'] ?? ''), 'default_language' => (string) ($settings['site_lang'] ?? ''),
             'languages' => $this->languages(), 'tools' => $tools,
-            'limits' => ['list_max' => self::LIST_MAX, 'content_chunk_bytes' => self::CONTENT_CHUNK_BYTES, 'proposal_max_items' => AiArticleDraftRules::MAX_ITEMS],
+            'limits' => ['list_max' => self::LIST_MAX, 'content_chunk_bytes' => self::CONTENT_CHUNK_BYTES, 'proposal_max_items' => AiArticleDraftRules::MAX_ITEMS,
+                'page_elements_max' => AiBloxPageReader::MAX_LIMIT],
             'proposal_policy' => 'Proposals are saved for review only; an editor applies them as unpublished drafts.'];
     }
 
@@ -132,6 +137,15 @@ final class AiMcpTools
         return $result + ['next_step' => 'An editor reviews this proposal in the admin; nothing is saved to articles until then. Use proposal_status to follow it.'];
     }
 
+    private function proposePage(array $args, AiAccessAuthContext $context): array
+    {
+        $key = $args['idempotency_key'] ?? null;
+        if (!is_string($key)) throw new RuntimeException('ai_mcp_invalid_arguments', 400);
+        unset($args['idempotency_key']);
+        $result = $this->proposals->proposePageFromToken($context, $key, $args, ($this->clock)());
+        return $result + ['next_step' => 'An editor reviews this proposal in the admin; the page is not changed until then, and an approved proposal only updates the unpublished draft. Use proposal_status to follow it.'];
+    }
+
     private function status(array $args, AiAccessAuthContext $context): array
     {
         $id = $args['proposal_id'] ?? null;
@@ -144,6 +158,71 @@ final class AiMcpTools
             'items' => array_map(static fn(array $r): array => ['item_id' => (string) $r['public_id'], 'op' => (string) $r['operation'],
                 'target_id' => (int) $r['target_id'], 'status' => (string) $r['status'], 'reason' => (string) $r['status_reason'],
                 'draft_id' => (int) $r['result_content_id']], $rows)];
+    }
+
+    /** 已启用的普通单页（type = page、status = 1），按 id 升序键集分页；停用页对外不可见。 */
+    private function pages(array $args): array
+    {
+        $lang = $this->langArg($args['lang'] ?? null);
+        $limit = $args['limit'] ?? self::LIST_DEFAULT;
+        if (!is_int($limit) || $limit < 1 || $limit > self::LIST_MAX) throw new RuntimeException('ai_mcp_invalid_arguments', 400);
+        $where = "type = 'page' AND status = 1 AND lang = ?";
+        $params = [$lang];
+        if (array_key_exists('cursor', $args)) {
+            if (!is_string($args['cursor']) || preg_match('/^p([1-9][0-9]{0,9})$/D', $args['cursor'], $m) !== 1) throw new RuntimeException('ai_mcp_invalid_arguments', 400);
+            $where .= ' AND id > ?';
+            $params[] = (int) $m[1];
+        }
+        $rows = $this->db->fetchAll('SELECT id, name, slug FROM ' . DB_PREFIX . "channels WHERE {$where} ORDER BY id LIMIT " . ($limit + 1), $params);
+        $more = count($rows) > $limit;
+        $items = array_map(static fn(array $r): array => ['id' => (int) $r['id'], 'name' => (string) $r['name'], 'slug' => (string) $r['slug']],
+            array_slice($rows, 0, $limit));
+        $out = ['lang' => $lang, 'items' => $items];
+        if ($more && $items !== []) $out['next_cursor'] = 'p' . $items[count($items) - 1]['id'];
+        return $out;
+    }
+
+    /**
+     * 单页白名单内容字段（AiBloxPageReader 投影）。结果超过响应上限时缩小本页条数，
+     * 缩到一条仍超限就去掉该元素的字段值（标 too_large），绝不截断 JSON。
+     */
+    private function page(array $args, AiAccessAuthContext $context): array
+    {
+        $id = $args['id'] ?? null;
+        $cursor = $args['cursor'] ?? 0;
+        $limit = $args['limit'] ?? AiBloxPageReader::DEFAULT_LIMIT;
+        $revision = $args['revision'] ?? null;
+        if (!is_int($id) || $id < 1 || !is_int($cursor) || $cursor < 0 || !is_int($limit) || $limit < 1 || $limit > AiBloxPageReader::MAX_LIMIT
+            || ($revision !== null && (!is_string($revision) || strlen($revision) > 80))) throw new RuntimeException('ai_mcp_invalid_arguments', 400);
+        $lang = $this->langArg($args['lang'] ?? null);
+        $source = new AiPageDocumentSource($this->db);
+        $result = AiBloxPageReader::read($context, $id, $lang, $cursor, $limit, $revision, $source);
+        while ($result['ok'] && $limit > 1 && self::encodedSize($result) > self::MAX_RESULT_BYTES - 4096) {
+            $limit = intdiv($limit, 2);
+            $result = AiBloxPageReader::read($context, $id, $lang, $cursor, $limit, (string) $result['page']['base_revision'], $source);
+        }
+        if (!$result['ok']) {
+            [$code, $status] = match ($result['error']) {
+                'not_found', 'unavailable' => ['ai_mcp_not_found', 404],
+                'language_mismatch' => ['ai_page_language_mismatch', 400],
+                'revision_mismatch' => ['ai_page_revision_mismatch', 409],
+                'document_too_large' => ['ai_page_too_large', 422],
+                'document_unreadable' => ['ai_page_unreadable', 422],
+                default => ['ai_mcp_forbidden', 403],
+            };
+            throw new RuntimeException($code, $status);
+        }
+        if (self::encodedSize($result) > self::MAX_RESULT_BYTES - 4096) {
+            foreach ($result['elements'] as $i => $element) {
+                foreach (is_array($element['fields'] ?? null) ? $element['fields'] : [] as $key => $field) {
+                    $result['elements'][$i]['fields'][$key] = ['kind' => $field['kind'], 'editable' => false, 'reason' => 'too_large'];
+                }
+                $result['elements'][$i]['editable'] = false;
+            }
+        }
+        $out = ['page' => $result['page'], 'elements' => $result['elements'], 'total' => $result['total'], 'limit' => $limit];
+        if ($result['next_cursor'] !== null) $out['next_cursor'] = $result['next_cursor'];
+        return $out;
     }
 
     private function langArg(mixed $lang): string
@@ -221,6 +300,25 @@ final class AiMcpTools
                 'inputSchema' => ['type' => 'object', 'additionalProperties' => false, 'required' => ['idempotency_key', 'items'], 'properties' => [
                     'idempotency_key' => ['type' => 'string', 'pattern' => '^[A-Za-z0-9._:-]{8,128}$'],
                     'items' => ['type' => 'array', 'minItems' => 1, 'maxItems' => AiArticleDraftRules::MAX_ITEMS, 'items' => $item]]],
+                'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false]],
+            'page_list' => ['title' => 'List pages', 'description' => 'Enabled ordinary single pages in one language, by id. Follow next_cursor for more.',
+                'inputSchema' => ['type' => 'object', 'additionalProperties' => false, 'required' => ['lang'], 'properties' => [
+                    'lang' => $lang, 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => self::LIST_MAX], 'cursor' => ['type' => 'string']]], 'annotations' => $readOnly],
+            'page_read' => ['title' => 'Read page content', 'description' => 'Outline of one single page built with the page builder: elements in document order with allowlisted content fields (heading, text, image, button) only; layout, styles and code are never returned. HTML is reduced to a safe subset. For more elements pass next_cursor as cursor and the first response page.base_revision as revision; ai_page_revision_mismatch means the page changed, so start again from cursor 0.',
+                'inputSchema' => ['type' => 'object', 'additionalProperties' => false, 'required' => ['id', 'lang'], 'properties' => [
+                    'id' => ['type' => 'integer', 'minimum' => 1], 'lang' => $lang,
+                    'cursor' => ['type' => 'integer', 'minimum' => 0], 'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => AiBloxPageReader::MAX_LIMIT],
+                    'revision' => ['type' => 'string', 'maxLength' => 80]]], 'annotations' => $readOnly],
+            'page_content_propose' => ['title' => 'Propose page content changes', 'description' => 'Submit text changes to one single page for editor review: heading text (field text), rich-text content (field html, sanitized on the server) and image alt text (field alt), addressed by element id from page_read. base_revision must be the page.base_revision you read; if the page changed, read it again. Nothing is published or saved to the page by this call. Reuse the same idempotency_key when retrying the same submission.',
+                'inputSchema' => ['type' => 'object', 'additionalProperties' => false, 'required' => ['idempotency_key', 'page_id', 'lang', 'base_revision', 'changes'], 'properties' => [
+                    'idempotency_key' => ['type' => 'string', 'pattern' => '^[A-Za-z0-9._:-]{8,128}$'],
+                    'page_id' => ['type' => 'integer', 'minimum' => 1], 'lang' => $lang,
+                    'base_revision' => ['type' => 'string', 'pattern' => '^[0-9a-f]{64}$'],
+                    'changes' => ['type' => 'array', 'minItems' => 1, 'maxItems' => AiPageContentRules::MAX_CHANGES, 'items' => ['type' => 'object', 'additionalProperties' => false,
+                        'required' => ['element_id', 'field', 'value'], 'properties' => [
+                            'element_id' => ['type' => 'string', 'pattern' => '^[A-Za-z0-9_-]{1,64}$'],
+                            'field' => ['type' => 'string', 'enum' => ['text', 'html', 'alt'], 'description' => 'text: heading; html: text element; alt: image'],
+                            'value' => ['type' => 'string']]]]]],
                 'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false]],
             'proposal_status' => ['title' => 'Proposal status', 'description' => 'Review status of one of your own proposals.',
                 'inputSchema' => ['type' => 'object', 'additionalProperties' => false, 'required' => ['proposal_id'], 'properties' => [

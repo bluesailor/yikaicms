@@ -14,9 +14,9 @@ final class AiAccessTokenStore
     public const DEFAULT_DAYS = 30;
     public const MAX_DAYS = 90;
     public const MAX_ACTIVE_PER_USER = 10;
-    /** 可签发的范围＝外部工具目录全部六项；提案只进审核队列，应用/撤销只在后台。 */
-    public const ISSUABLE_SCOPES = ['site_info', 'article_channel_list', 'article_list', 'article_read', 'article_draft_propose', 'proposal_status'];
-    /** 新建令牌表单默认勾选的范围：写入类（提交提案）要用户主动勾选。 */
+    /** 可签发的范围：文章六项 + 单页只读 page_read（含 page_list 与 page_read 两个工具）+ 单页内容提案 page_content_propose；提案只进审核队列，应用/撤销只在后台。 */
+    public const ISSUABLE_SCOPES = ['site_info', 'article_channel_list', 'article_list', 'article_read', 'article_draft_propose', 'proposal_status', 'page_read', 'page_content_propose'];
+    /** 新建令牌表单默认勾选的范围：写入类（提交提案）与新开放的单页读取要用户主动勾选。 */
     public const DEFAULT_SCOPES = ['site_info', 'article_channel_list', 'article_list', 'article_read'];
     /** 最近使用时间的写入间隔：每个请求都写会把只读调用变成持续写库。 */
     private const TOUCH_INTERVAL = 60;

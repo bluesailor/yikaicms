@@ -59,6 +59,25 @@ try {
             }
             return ['committed' => true];
         })(),
+        // S5-04 编辑器保存的同等行为（BloxDocumentWriteLock::channel）：锁栏目行 → 核对修订号 → 写草稿；修订号已变就不写。
+        'editor_save_page' => (static function () use ($db, $p, $args, $hold): array {
+            $db->beginTransaction();
+            try {
+                $id = (int) $args['page'];
+                if ($db->isSqlite()) $db->execute("UPDATE {$p}channels SET id = id WHERE id = ?", [$id]);
+                else $db->fetchOne("SELECT id FROM {$p}channels WHERE id = ? FOR UPDATE", [$id]);
+                $source = new AiPageDocumentSource($db, true);
+                $current = $source->load((array) $source->page($id))['base_revision'];
+                $conflict = !hash_equals((string) $args['base'], $current);
+                if (!$conflict) $db->execute("UPDATE {$p}blox_page_drafts SET draft_data = ?, updated_at = updated_at + 1 WHERE page_id = ?", [(string) $args['json'], $id]);
+                $hold();
+                $db->commit();
+            } catch (Throwable $error) {
+                $db->rollback();
+                throw $error;
+            }
+            return ['committed' => !$conflict, 'conflict' => $conflict];
+        })(),
     };
 } catch (RuntimeException $error) {
     $out = ['ok' => false, 'error' => $error->getMessage(), 'code' => $error->getCode()];

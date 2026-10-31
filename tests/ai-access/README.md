@@ -50,7 +50,7 @@ powershell -ExecutionPolicy Bypass -File tests\ai-access\run-local-mysql8.ps1 -P
 
 | 文件 | 作用 |
 | --- | --- |
-| `mcp-dev-seed.php` | 重建合成库，签发编辑令牌（29，六个工具）与只读令牌（39，四个读取工具），明文只写入 `--token-dir`；`--revoke=<id>` 吊销 |
+| `mcp-dev-seed.php` | 重建合成库，签发编辑令牌（29，六个工具）与只读令牌（39，四个读取工具），明文只写入 `--token-dir`；`--pages` 另建三张合成单页与单页只读令牌（79，site_info + page_read，写入 pager.token），供 S5-02 真实客户端验证；`--revoke=<id>` 吊销 |
 | `mcp-dev-router.php` | `php -S 127.0.0.1:<port>` 的隔离入口（路径 `/mcp`）；`YK_S104_TRACE` 写协议追踪，不含凭据、正文、参数 |
 | `mcp-protocol-run.php` | 8 个场景、75 条 HTTP 断言，自起服务，不调用模型 |
 | `../Unit/AiMcpProtocolTest.php` | PHPUnit 包装 |

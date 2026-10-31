@@ -4,11 +4,14 @@ declare(strict_types=1);
 
 require_once __DIR__ . '/AiAccessAuthContext.php';
 require_once __DIR__ . '/AiArticleDraftRules.php';
+require_once __DIR__ . '/AiPageContentRules.php';
+require_once __DIR__ . '/AiPageDocumentSource.php';
 require_once dirname(__DIR__) . '/models/autoload.php';
 
 /**
- * 文章草稿提案的唯一事务所有者（ADR-002）：提案写入、应用、撤销各开恰好一个事务。
+ * 文章草稿提案与单页内容提案（S5-03）的唯一事务所有者（ADR-002）：提案写入、应用、撤销各开恰好一个事务。
  * 锁顺序固定为 令牌 → 用户 → 角色 → 提案项 → 变更日志 → 目标文章/栏目。
+ * 单页提案应用时锁栏目行（与编辑器保存 BloxDocumentWriteLock::channel 同一把锁），只写草稿行，不碰已发布内容。
  * 原型依赖预建表；本类不建表、不调用模型生成、不访问网络。
  */
 final class AiProposalService
@@ -40,6 +43,66 @@ final class AiProposalService
     public function proposeInternal(int $ownerId, string $idempotencyKey, array $items, int $now): array
     {
         return $this->propose(['owner' => $ownerId, 'token' => 0, 'ns' => 'internal'], $idempotencyKey, $items, $now);
+    }
+
+    /**
+     * 单页内容提案（S5-03）：一次提交 = 一页 = 一个提案项。提交时就核对页面当前修订号与每个元素，
+     * 不合格直接拒绝，不进审核队列；通过的只写提案表，管理员应用前不写任何页面数据。
+     * @param array<string,mixed> $args
+     */
+    public function proposePageFromToken(AiAccessAuthContext $context, string $idempotencyKey, array $args, int $now): array
+    {
+        $source = ['owner' => $context->actorId, 'token' => $context->tokenId, 'ns' => 'token:' . $context->tokenId];
+        if (preg_match('/^[A-Za-z0-9._:-]{8,128}$/D', $idempotencyKey) !== 1 || $source['owner'] < 1) {
+            throw new RuntimeException('ai_proposal_invalid_input', 400);
+        }
+        $item = AiPageContentRules::normalize($args);
+        $hash = AiPageContentRules::payloadHash($item);
+        $tool = AiPageContentRules::TOOL;
+        try {
+            return $this->transaction(function () use ($source, $idempotencyKey, $item, $hash, $now, $tool): array {
+                $verdict = $this->lockSource($source['owner'], $source['token'], $now, $tool);
+                $this->check('propose.locked');
+                if ($verdict !== null) throw new RuntimeException('ai_proposal_source_denied', 403);
+                $existing = $this->db->fetchOne(
+                    'SELECT id, public_id, payload_hash FROM ' . DB_PREFIX . 'ai_proposals WHERE owner_id = ? AND source_ns = ? AND tool = ? AND idempotency_key = ?',
+                    [$source['owner'], $source['ns'], $tool, $idempotencyKey]
+                );
+                if ($existing !== null) return $this->replay($existing, $hash);
+                $pending = (int) $this->db->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . "ai_proposal_items WHERE owner_id = ? AND status = 'pending'", [$source['owner']]);
+                if ($pending + 1 > self::MAX_PENDING_ITEMS) throw new RuntimeException('ai_proposal_quota_exceeded', 429);
+                $target = $this->pageTarget($item);
+                if (isset($target['conflict'])) {
+                    throw new RuntimeException($target['conflict'] === 'page_changed' ? 'ai_proposal_stale_revision' : 'ai_proposal_invalid_target', $target['conflict'] === 'page_changed' ? 409 : 422);
+                }
+                $setPublic = bin2hex(random_bytes(16));
+                $this->db->execute(
+                    'INSERT INTO ' . DB_PREFIX . 'ai_proposals (public_id, owner_id, source_ns, token_id, tool, idempotency_key, payload_hash, contract_version, created_at, expires_at)'
+                    . ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [$setPublic, $source['owner'], $source['ns'], $source['token'], $tool, $idempotencyKey, $hash, AiPageContentRules::CONTRACT, $now, $now + self::TTL]
+                );
+                $setId = (int) $this->db->getPdo()->lastInsertId();
+                $itemPublic = bin2hex(random_bytes(16));
+                $json = json_encode($item, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+                $this->db->execute(
+                    'INSERT INTO ' . DB_PREFIX . 'ai_proposal_items (public_id, proposal_id, seq, owner_id, operation, target_id, lang, channel_id, input_json, input_hash, base_revision, contract_version, status, created_at)'
+                    . " VALUES (?, ?, 0, ?, ?, ?, ?, 0, ?, ?, ?, ?, 'pending', ?)",
+                    [$itemPublic, $setId, $source['owner'], AiPageContentRules::OPERATION, $item['page_id'], $item['lang'], $json, hash('sha256', $json),
+                        $item['base_revision'], AiPageContentRules::CONTRACT, $now]
+                );
+                return ['proposal_id' => $setPublic, 'items' => [['item_id' => $itemPublic, 'op' => AiPageContentRules::OPERATION, 'status' => 'pending']], 'replayed' => false];
+            });
+        } catch (PDOException $error) {
+            if ((string) $error->getCode() !== '23000') throw $this->infrastructure($error);
+            $existing = $this->db->fetchOne(
+                'SELECT id, public_id, payload_hash FROM ' . DB_PREFIX . 'ai_proposals WHERE owner_id = ? AND source_ns = ? AND tool = ? AND idempotency_key = ?',
+                [$source['owner'], $source['ns'], $tool, $idempotencyKey]
+            );
+            if ($existing === null) throw $this->infrastructure($error);
+            return $this->replay($existing, $hash);
+        } catch (Throwable $error) {
+            throw $this->infrastructure($error);
+        }
     }
 
     /** @param array{owner:int,token:int,ns:string} $source */
@@ -131,14 +194,15 @@ final class AiProposalService
 
     public function apply(int $adminId, string $itemId, int $now): array
     {
-        $pre = $this->db->fetchOne('SELECT i.id, i.owner_id, p.token_id, p.source_ns FROM ' . DB_PREFIX . 'ai_proposal_items i JOIN '
+        $pre = $this->db->fetchOne('SELECT i.id, i.owner_id, p.token_id, p.source_ns, p.tool FROM ' . DB_PREFIX . 'ai_proposal_items i JOIN '
             . DB_PREFIX . 'ai_proposals p ON p.id = i.proposal_id WHERE i.public_id = ?', [$itemId]);
         // 他人提案与不存在同样处理，不泄漏存在性。
         if ($pre === null || (int) $pre['owner_id'] !== $adminId) throw new RuntimeException('ai_proposal_not_found', 404);
+        $page = (string) $pre['tool'] === AiPageContentRules::TOOL;
         $logId = 0;
         try {
-            return $this->transaction(function () use ($pre, $itemId, $now, &$logId): array {
-                $verdict = $this->lockSource((int) $pre['owner_id'], (int) $pre['token_id'], $now);
+            return $this->transaction(function () use ($pre, $itemId, $now, $page, &$logId): array {
+                $verdict = $this->lockSource((int) $pre['owner_id'], (int) $pre['token_id'], $now, (string) $pre['tool']);
                 $item = $this->lock('ai_proposal_items', (int) $pre['id']);
                 $this->check('apply.locked');
                 if ($item === null || (int) $item['owner_id'] !== (int) $pre['owner_id']) throw new RuntimeException('ai_proposal_not_found', 404);
@@ -154,29 +218,36 @@ final class AiProposalService
                 }
                 $input = json_decode((string) $item['input_json'], true, 8, JSON_THROW_ON_ERROR);
                 if (!is_array($input) || !hash_equals((string) $item['input_hash'], hash('sha256', (string) $item['input_json']))
-                    || $item['contract_version'] !== AiArticleDraftRules::CONTRACT) {
+                    || $item['contract_version'] !== ($page ? AiPageContentRules::CONTRACT : AiArticleDraftRules::CONTRACT)
+                    || ($input['op'] === AiPageContentRules::OPERATION) !== $page) {
                     return $this->decide($item, 'conflicted', 'contract_changed', $now);
                 }
-                $write = $input['op'] === 'create' ? $this->applyCreate($item, $input, $now) : $this->applyUpdate($item, $input, $now);
+                $write = match (true) {
+                    $page => $this->applyPage($item, $input, $now),
+                    $input['op'] === 'create' => $this->applyCreate($item, $input, $now),
+                    default => $this->applyUpdate($item, $input, $now),
+                };
                 if (isset($write['conflict'])) return $this->decide($item, 'conflicted', $write['conflict'], $now);
                 $this->check('apply.before_log');
                 $owner = $this->db->fetchOne('SELECT username FROM ' . DB_PREFIX . 'users WHERE id = ?', [(int) $item['owner_id']]);
                 $this->db->execute(
                     'INSERT INTO ' . DB_PREFIX . 'ai_change_log (admin_id, admin_name, ability, target, summary, before_json, input_json, created_at, undone, undone_at,'
                     . ' proposal_item_id, source_ns, target_type, target_id, operation, after_revision, undone_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, 0)',
-                    [(int) $item['owner_id'], (string) ($owner['username'] ?? ''), self::TOOL, 'contents#' . $write['id'],
+                    [(int) $item['owner_id'], (string) ($owner['username'] ?? ''), $page ? AiPageContentRules::TOOL : self::TOOL, ($page ? 'page#' : 'contents#') . $write['id'],
                         mb_substr($input['op'] . ': ' . $write['title'], 0, 200),
                         $write['before'] === null ? null : json_encode($write['before'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
                         json_encode(['proposal_item' => $itemId], JSON_THROW_ON_ERROR), $now,
-                        (int) $item['id'], (string) $pre['source_ns'], 'article', $write['id'], $input['op'], $write['after']]
+                        (int) $item['id'], (string) $pre['source_ns'], $page ? 'page' : 'article', $write['id'], $input['op'], $write['after']]
                 );
                 $logId = (int) $this->db->getPdo()->lastInsertId();
+                // 单页结果不是文章：result_content_id 留 0，页面编号在 target_id 上
+                $contentId = $page ? 0 : $write['id'];
                 $this->db->execute(
                     'UPDATE ' . DB_PREFIX . "ai_proposal_items SET status = 'applied', status_reason = '', result_content_id = ?, result_revision = ?, change_log_id = ?, decided_by = ?, decided_at = ? WHERE id = ? AND status = 'pending'",
-                    [$write['id'], $write['after'], $logId, (int) $item['owner_id'], $now, (int) $item['id']]
+                    [$contentId, $write['after'], $logId, (int) $item['owner_id'], $now, (int) $item['id']]
                 );
                 $this->check('apply.before_commit');
-                return ['item_id' => $itemId, 'status' => 'applied', 'reason' => '', 'replayed' => false, 'content_id' => $write['id'],
+                return ['item_id' => $itemId, 'status' => 'applied', 'reason' => '', 'replayed' => false, 'content_id' => $contentId,
                     'revision' => $write['after'], 'log_id' => $logId, 'post_commit_error' => false];
             });
         } catch (Throwable $error) {
@@ -281,8 +352,11 @@ final class AiProposalService
     /** 撤销依据后台当前身份；不检查来源令牌，也不因此授予令牌任何权限。 */
     public function undo(int $adminId, int $logId, int $now): array
     {
-        $pre = $this->db->fetchOne('SELECT id, admin_id, proposal_item_id FROM ' . DB_PREFIX . 'ai_change_log WHERE id = ?', [$logId]);
+        $pre = $this->db->fetchOne('SELECT id, admin_id, proposal_item_id, target_type FROM ' . DB_PREFIX . 'ai_change_log WHERE id = ?', [$logId]);
         if ($pre === null || (int) $pre['admin_id'] !== $adminId || (int) $pre['proposal_item_id'] < 1) throw new RuntimeException('ai_proposal_not_found', 404);
+        if ((string) $pre['target_type'] === 'page') return $this->undoPage($adminId, $pre, $now);
+        // 未知目标类型绝不按文章处理：页面编号当文章编号回写会改错行。
+        if ((string) $pre['target_type'] !== 'article') throw new RuntimeException('ai_proposal_undo_unsupported', 409);
         try {
             return $this->transaction(function () use ($adminId, $pre, $now): array {
                 $verdict = $this->lockSource($adminId, 0, $now);
@@ -311,6 +385,108 @@ final class AiProposalService
                 $this->db->execute('UPDATE ' . DB_PREFIX . 'ai_change_log SET undone = 1, undone_at = ?, undone_by = ? WHERE id = ? AND undone = 0', [$now, $adminId, (int) $log['id']]);
                 $this->db->execute('UPDATE ' . DB_PREFIX . "ai_proposal_items SET status = 'reverted', status_reason = 'undone' WHERE id = ? AND status = 'applied'", [(int) $item['id']]);
                 return ['log_id' => (int) $log['id'], 'status' => 'reverted', 'replayed' => false];
+            });
+        } catch (Throwable $error) {
+            throw $this->infrastructure($error);
+        }
+    }
+
+    /**
+     * 单页内容提案的写入：锁栏目行后重读页面，修订号必须仍等于提案基线，逐项改写后只写草稿行。
+     * 任一项不满足就整项冲突、什么都不写；写入后的修订号必须能从库里原样读回。
+     * @return array{id:int,title:string,before:?array,after:string}|array{conflict:string}
+     */
+    private function applyPage(array $item, array $input, int $now): array
+    {
+        $pageId = (int) $input['page_id'];
+        $this->lock('channels', $pageId);
+        $target = $this->pageTarget($input, (string) $item['base_revision']);
+        if (isset($target['conflict'])) return ['conflict' => $target['conflict']];
+        $document = $target['result']['document'];
+        $json = json_encode(['schema' => $document['schema'], 'settings' => $document['settings'], 'sections' => $document['sections']],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        $draft = $this->db->fetchOne('SELECT id FROM ' . DB_PREFIX . 'blox_page_drafts WHERE page_id = ?', [$pageId]);
+        if ($draft !== null) {
+            $this->db->execute('UPDATE ' . DB_PREFIX . 'blox_page_drafts SET draft_data = ?, admin_id = ?, updated_at = ? WHERE id = ?',
+                [$json, (int) $item['owner_id'], $now, (int) $draft['id']]);
+        } else {
+            $this->db->execute('INSERT INTO ' . DB_PREFIX . 'blox_page_drafts (page_id, draft_data, admin_id, created_at, updated_at, published_at) VALUES (?, ?, ?, ?, ?, 0)',
+                [$pageId, $json, (int) $item['owner_id'], $now, $now]);
+        }
+        $this->check('apply.page_written');
+        $source = new AiPageDocumentSource($this->db, true);
+        $after = $source->load((array) $source->page($pageId))['base_revision'];
+        if (!hash_equals(BloxDocumentPipeline::fingerprint($json), $after)) throw new RuntimeException('ai_proposal_unavailable', 503);
+        return ['id' => $pageId, 'title' => (string) $target['page']['name'], 'before' => $target['result']['before'], 'after' => $after];
+    }
+
+    /**
+     * 提交与应用共用的目标判定：页面可用、语言一致且启用、不是纯 HTML 老页、修订号等于基线、每个元素都可改。
+     * @param array<string,mixed> $input 规范化后的提案项
+     * @return array{page:array<string,mixed>,result:array{document:array<string,mixed>,before:array<string,array<string,string>>}}|array{conflict:string}
+     */
+    private function pageTarget(array $input, ?string $base = null): array
+    {
+        $source = new AiPageDocumentSource($this->db, true);
+        $page = $source->page((int) $input['page_id']);
+        if ($page === null || (int) ($page['status'] ?? 0) !== 1 || (string) $page['lang'] !== (string) $input['lang']) return ['conflict' => 'page_unavailable'];
+        if (!AiArticleDraftRules::languageEnabled($this->db, (string) $input['lang'])) return ['conflict' => 'language_disabled'];
+        $state = $source->load($page);
+        if ($state['legacy_html'] !== null) return ['conflict' => 'page_legacy'];
+        if (!hash_equals($base ?? (string) $input['base_revision'], $state['base_revision'])) return ['conflict' => 'page_changed'];
+        $result = AiPageContentRules::apply(BloxDocumentPipeline::decode($state['document_json']), $input['changes']);
+        if (!isset($result['document'], $result['before'])) return ['conflict' => (string) ($result['conflict'] ?? 'element_missing')];
+        return ['page' => $page, 'result' => ['document' => $result['document'], 'before' => $result['before']]];
+    }
+
+    /**
+     * 单页提案的撤销（S5-04）：只有草稿仍是 AI 应用后的那一版、且这一版没有被发布时才写回改前值。
+     * 之后的人工编辑、发布、删除页面一律冲突，不覆盖；只写草稿行，已发布内容不动。
+     * @param array<string,mixed> $pre
+     */
+    private function undoPage(int $adminId, array $pre, int $now): array
+    {
+        try {
+            return $this->transaction(function () use ($adminId, $pre, $now): array {
+                $verdict = $this->lockSource($adminId, 0, $now, AiPageContentRules::TOOL);
+                $item = $this->lock('ai_proposal_items', (int) $pre['proposal_item_id']);
+                $log = $this->lock('ai_change_log', (int) $pre['id']);
+                $this->check('undo.locked');
+                if ($verdict !== null) throw new RuntimeException('ai_proposal_actor_denied', 403);
+                if ($item === null || $log === null) throw new RuntimeException('ai_proposal_not_found', 404);
+                if ((int) $log['undone'] === 1) return ['log_id' => (int) $log['id'], 'status' => 'reverted', 'replayed' => true];
+                $pageId = (int) $log['target_id'];
+                $this->lock('channels', $pageId);
+                $source = new AiPageDocumentSource($this->db, true);
+                $page = $source->page($pageId);
+                if ($page === null) throw new RuntimeException('ai_proposal_undo_conflict', 409);
+                $state = $source->load($page);
+                // 草稿与已发布相同说明 AI 的改动已经上线：撤销草稿会让后台与前台不一致，交给编辑器处理
+                if ($state['legacy_html'] !== null || !hash_equals((string) $log['after_revision'], $state['base_revision'])
+                    || ($state['has_draft'] && !$state['has_unpublished_changes'])) {
+                    throw new RuntimeException('ai_proposal_undo_conflict', 409);
+                }
+                $before = json_decode((string) $log['before_json'], true, 8, JSON_THROW_ON_ERROR);
+                $changes = [];
+                foreach (is_array($before) ? $before : [] as $elementId => $fields) {
+                    foreach (is_array($fields) ? $fields : [] as $field => $value) {
+                        $changes[] = ['element_id' => (string) $elementId, 'field' => (string) $field, 'value' => (string) $value];
+                    }
+                }
+                if ($changes === []) throw new RuntimeException('ai_proposal_undo_conflict', 409);
+                $result = AiPageContentRules::apply(BloxDocumentPipeline::decode($state['document_json']), $changes, false);
+                if (!isset($result['document'])) throw new RuntimeException('ai_proposal_undo_conflict', 409);
+                $document = $result['document'];
+                $json = json_encode(['schema' => $document['schema'], 'settings' => $document['settings'], 'sections' => $document['sections']],
+                    JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+                $this->db->execute('UPDATE ' . DB_PREFIX . 'blox_page_drafts SET draft_data = ?, admin_id = ?, updated_at = ? WHERE page_id = ?', [$json, $adminId, $now, $pageId]);
+                $this->check('undo.page_written');
+                $revision = $source->load((array) $source->page($pageId))['base_revision'];
+                if (!hash_equals(BloxDocumentPipeline::fingerprint($json), $revision)) throw new RuntimeException('ai_proposal_unavailable', 503);
+                $this->db->execute('UPDATE ' . DB_PREFIX . 'ai_change_log SET undone = 1, undone_at = ?, undone_by = ? WHERE id = ? AND undone = 0', [$now, $adminId, (int) $log['id']]);
+                $this->db->execute('UPDATE ' . DB_PREFIX . "ai_proposal_items SET status = 'reverted', status_reason = 'undone' WHERE id = ? AND status = 'applied'", [(int) $item['id']]);
+                $this->check('undo.before_commit');
+                return ['log_id' => (int) $log['id'], 'status' => 'reverted', 'replayed' => false, 'revision' => $revision];
             });
         } catch (Throwable $error) {
             throw $this->infrastructure($error);
@@ -386,7 +562,7 @@ final class AiProposalService
      * 生效检查点：按 L1 令牌 → L2 用户 → L3 角色 取锁后，用锁定读判断当前有效性。
      * 返回 null 表示可用，否则返回稳定的原因代码。
      */
-    private function lockSource(int $ownerId, int $tokenId, int $now): ?string
+    private function lockSource(int $ownerId, int $tokenId, int $now, string $tool = self::TOOL): ?string
     {
         $token = $tokenId > 0 ? $this->lock('api_tokens', $tokenId) : null;
         $user = $this->lock('users', $ownerId);
@@ -411,11 +587,14 @@ final class AiProposalService
             $scopes = json_decode((string) $token['scopes'], true);
             if (!is_array($scopes) || !array_is_list($scopes)) return 'source_token_scope_removed';
             $context = new AiAccessAuthContext($ownerId, $tokenId, $permissions, array_values(array_filter($scopes, 'is_string')));
-            if (!in_array(self::TOOL, $scopes, true)) return 'source_token_scope_removed';
-            if (!$context->allowsTool(self::TOOL)) return 'owner_permission_removed';
+            if (!in_array($tool, $scopes, true)) return 'source_token_scope_removed';
+            if (!$context->allowsTool($tool)) return 'owner_permission_removed';
             return null;
         }
-        return in_array('*', $permissions, true) || in_array('edit_article', $permissions, true) ? null : 'owner_permission_removed';
+        if (in_array('*', $permissions, true)) return null;
+        // 无令牌的后台动作（撤销）：单页提案要单页编辑权限，文章提案要文章编辑权限
+        if ($tool === AiPageContentRules::TOOL) return in_array('blox_edit', $permissions, true) && in_array('edit_page', $permissions, true) ? null : 'owner_permission_removed';
+        return in_array('edit_article', $permissions, true) ? null : 'owner_permission_removed';
     }
 
     private function decide(array $item, string $status, string $reason, int $now): array

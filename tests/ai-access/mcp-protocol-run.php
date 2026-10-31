@@ -210,7 +210,7 @@ function s104Scenarios(S104Run $t): array
             $p = S103_PREFIX;
             $names = static fn(array $r): array => array_column($r['json']['result']['tools'] ?? [], 'name');
             $full = $names($t->modern('tools/list'));
-            $t->check($full === AiAccessAuthContext::TOOLS, '编辑令牌：六个工具，顺序固定');
+            $t->check($full === array_slice(AiAccessAuthContext::TOOLS, 0, 6), '编辑令牌：六个文章工具，顺序固定（无 blox_edit/edit_page 时单页工具不出现）');
             $reader = $names($t->modern('tools/list', [], $t->reader));
             $t->check($reader === ['site_info', 'article_channel_list', 'article_list', 'article_read'], '只读令牌：只列出授予的四个读取工具');
             $denied = $t->tool('article_draft_propose', ['idempotency_key' => 'reader-0001', 'items' => []], $t->reader);
@@ -340,6 +340,115 @@ function s104Scenarios(S104Run $t): array
             $other = $t->tool('proposal_status', ['proposal_id' => $p8['proposal_id']]);
             $t->check(($other['data']['error'] ?? '') === 'ai_mcp_not_found', '他人提案与不存在相同');
             $t->check($contents !== $t->fingerprint(), '（对照）提案确实写入了提案表');
+        },
+        '09 单页只读工具：page_read 范围、权限、分页与版本' => function () use ($t): void {
+            $p = S103_PREFIX;
+            $t->db->execute("DROP TABLE IF EXISTS {$p}blox_page_drafts");
+            foreach (s103CoreTableSql($t->db->isSqlite(), 'blox_page_drafts') as $sql) $t->db->execute($sql);
+            $t->db->execute("INSERT INTO {$p}roles (id, name, permissions, status, created_at) VALUES (4, 'PageEditor', '[\"ai_access\",\"blox_edit\",\"edit_page\"]', 1, 0)");
+            $t->db->execute("INSERT INTO {$p}users (id, username, password, role_id, status, created_at, updated_at) VALUES (9, 's104-pager', 'x', 4, 1, 0, 0)");
+            $tokens = [];
+            foreach (['pager' => [49, 9, ['site_info', 'page_read']], 'pager_noscope' => [59, 9, ['site_info', 'article_read']], 'editor_pages' => [69, 7, ['site_info', 'page_read']]] as $name => [$id, $owner, $scopes]) {
+                $tokens[$name] = 'ykat_' . rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+                $t->db->execute("INSERT INTO {$p}api_tokens (id, admin_id, token_hash, scopes, expires_at, revoked_at) VALUES (?, ?, ?, ?, ?, 0)",
+                    [$id, $owner, hash('sha256', $tokens[$name]), json_encode($scopes), time() + 3600]);
+            }
+            $doc = static fn(array $elements): string => json_encode(['schema' => 1, 'settings' => ['custom_css' => 'SECRET_DOC_CSS'],
+                'sections' => [['id' => 's1', 'settings' => ['_custom_css' => 'SECRET_SECTION_CSS'], 'columns' => [['id' => 'c1', 'elements' => $elements]]]]], JSON_THROW_ON_ERROR);
+            $about = [
+                ['id' => 'h1', 'type' => 'heading', 'data' => ['text' => 'About us', 'url' => 'javascript:alert(1)', '_conditions' => ['SECRET_COND']]],
+                ['id' => 't1', 'type' => 'text', 'data' => ['html' => '<p onclick="steal()">Story<script>SECRET_SCRIPT()</script></p>']],
+                ['id' => 'code1', 'type' => 'code', 'data' => ['code' => 'SECRET_CODE']],
+                ['type' => 'heading', 'data' => ['text' => 'No id']],
+                ['id' => 'dup', 'type' => 'button', 'data' => ['text' => 'A', 'url' => '/a']],
+                ['id' => 'dup', 'type' => 'button', 'data' => ['text' => 'B', 'url' => '/b']],
+            ];
+            $many = [];
+            for ($i = 0; $i < 130; $i++) $many[] = ['id' => 'm' . $i, 'type' => 'heading', 'data' => ['text' => 'Item ' . $i]];
+            foreach ([[14, 'en', 'about-en-s104', 1], [15, 'zh-CN', 'hidden-s104', 0], [16, 'zh-CN', 'legacy-s104', 1], [17, 'zh-CN', 'many-s104', 1]] as [$id, $lang, $slug, $status]) {
+                $t->db->execute("INSERT INTO {$p}channels (id, lang, name, slug, type, status, content, created_at, updated_at) VALUES (?, ?, ?, ?, 'page', ?, ?, 0, 0)",
+                    [$id, $lang, 'S104 ' . $slug, $slug, $status, $id === 16 ? '<p>Legacy body</p>' : '']);
+            }
+            foreach ([12 => $about, 14 => $about, 15 => $about, 17 => $many] as $pageId => $elements) {
+                $t->db->execute("INSERT INTO {$p}blox_page_drafts (page_id, draft_data) VALUES (?, ?)", [$pageId, $doc($elements)]);
+            }
+            $snapshot = fn(): string => hash('sha256', serialize([$t->fingerprint(), $t->db->fetchAll("SELECT * FROM {$p}blox_page_drafts ORDER BY id")]));
+            $before = $snapshot();
+            $names = static fn(array $r): array => array_column($r['json']['result']['tools'] ?? [], 'name');
+
+            $t->check($names($t->modern('tools/list', [], $tokens['pager'])) === ['site_info', 'page_list', 'page_read'], 'page_read 范围 + blox_edit/edit_page：列出 page_list 与 page_read');
+            $t->check($names($t->modern('tools/list', [], $tokens['pager_noscope'])) === ['site_info'], '有页面权限但无 page_read 范围：单页工具不出现');
+            $t->check($names($t->modern('tools/list', [], $tokens['editor_pages'])) === ['site_info'], '有 page_read 范围但账号无 blox_edit/edit_page：单页工具不出现');
+            $t->check($t->tool('page_read', ['id' => 12, 'lang' => 'zh-CN'], $tokens['editor_pages'])['rpc_error'] === -32602, '无页面权限调用 page_read：按未知工具处理');
+            $t->check($t->tool('page_read', ['id' => 12, 'lang' => 'zh-CN'])['rpc_error'] === -32602, '编辑令牌（无页面权限）不能调用 page_read');
+
+            $list = $t->tool('page_list', ['lang' => 'zh-CN'], $tokens['pager'])['data'] ?? [];
+            $t->check(array_column($list['items'] ?? [], 'id') === [12, 16, 17], 'page_list：只列启用的中文普通单页（排除停用 15、英文 14、文章栏目）');
+            $first = $t->tool('page_list', ['lang' => 'zh-CN', 'limit' => 2], $tokens['pager'])['data'] ?? [];
+            $second = $t->tool('page_list', ['lang' => 'zh-CN', 'limit' => 2, 'cursor' => (string) ($first['next_cursor'] ?? '')], $tokens['pager'])['data'] ?? [];
+            $t->check(array_column($first['items'] ?? [], 'id') === [12, 16] && array_column($second['items'] ?? [], 'id') === [17] && !isset($second['next_cursor']), 'page_list 游标分页无重复无遗漏');
+            $t->check(($t->tool('page_list', ['lang' => 'zh-CN', 'cursor' => "p1' OR 1=1"], $tokens['pager'])['data']['error'] ?? '') === 'ai_mcp_invalid_arguments', 'page_list 伪造游标被拒');
+
+            $read = $t->tool('page_read', ['id' => 12, 'lang' => 'zh-CN'], $tokens['pager']);
+            $data = $read['data'] ?? [];
+            $byPath = array_column($data['elements'] ?? [], null, 'path');
+            $t->check(($data['page']['document'] ?? '') === 'page:12' && strlen((string) ($data['page']['base_revision'] ?? '')) === 64 && ($data['total'] ?? 0) === 6, 'page_read：返回文档地址、64 位 base_revision 与元素总数');
+            $leak = (string) $read['http']['body'];
+            $t->check(!preg_match('/SECRET_|<script|onclick|javascript:/', $leak), '响应不含代码、CSS、可见条件、脚本、事件属性或 javascript: 链接');
+            $t->check(($byPath['s0/c0/e0']['fields']['url']['sanitized'] ?? false) === true && ($byPath['s0/c0/e1']['fields']['html']['sanitized'] ?? false) === true, '不安全的链接与富文本被净化并标 sanitized');
+            $t->check(($byPath['s0/c0/e2']['reason'] ?? '') === 'type_not_supported' && !isset($byPath['s0/c0/e2']['fields']), '代码元素只列类型，不给字段');
+            $t->check(($byPath['s0/c0/e3']['reason'] ?? '') === 'missing_id' && ($byPath['s0/c0/e4']['reason'] ?? '') === 'duplicate_id' && ($byPath['s0/c0/e5']['addressable'] ?? true) === false, '缺失与重复 ID 标为不可寻址');
+            $t->check(($t->tool('page_read', ['id' => 14, 'lang' => 'zh-CN'], $tokens['pager'])['data']['error'] ?? '') === 'ai_page_language_mismatch', '语言与页面不符被拒');
+            $t->check(($t->tool('page_read', ['id' => 14, 'lang' => 'fr'], $tokens['pager'])['data']['error'] ?? '') === 'ai_mcp_language_unavailable', '未启用语言被拒');
+            $t->check(($t->tool('page_read', ['id' => 15, 'lang' => 'zh-CN'], $tokens['pager'])['data']['error'] ?? '') === 'ai_mcp_not_found', '停用页对外与不存在相同');
+            $t->check(($t->tool('page_read', ['id' => 10, 'lang' => 'zh-CN'], $tokens['pager'])['data']['error'] ?? '') === 'ai_mcp_not_found', '文章栏目不能经单页工具读取');
+            $t->check(($t->tool('page_read', ['id' => 999, 'lang' => 'zh-CN'], $tokens['pager'])['data']['error'] ?? '') === 'ai_mcp_not_found', '不存在的页面');
+            $t->check(($t->tool('page_read', ['id' => 12, 'lang' => 'zh-CN', 'fields' => 'all'], $tokens['pager'])['data']['error'] ?? '') === 'ai_mcp_invalid_arguments', '未声明参数被拒');
+            $legacy = $t->tool('page_read', ['id' => 16, 'lang' => 'zh-CN'], $tokens['pager'])['data'] ?? [];
+            $t->check(($legacy['page']['uses_legacy_html'] ?? false) === true && ($legacy['elements'][0]['reason'] ?? '') === 'legacy_html' && str_starts_with((string) ($legacy['page']['base_revision'] ?? ''), 'html-'), '纯 HTML 老页只读，revision 带 html- 前缀');
+
+            $ids = [];
+            $cursor = 0;
+            $revision = null;
+            for ($i = 0; $i < 5; $i++) {
+                $args = ['id' => 17, 'lang' => 'zh-CN', 'limit' => 50, 'cursor' => $cursor] + ($revision !== null ? ['revision' => $revision] : []);
+                $chunk = $t->tool('page_read', $args, $tokens['pager'])['data'] ?? [];
+                $revision ??= $chunk['page']['base_revision'] ?? null;
+                foreach ($chunk['elements'] ?? [] as $e) $ids[] = $e['id'];
+                if (!isset($chunk['next_cursor'])) break;
+                $cursor = $chunk['next_cursor'];
+            }
+            $t->check(count($ids) === 130 && count(array_unique($ids)) === 130, '130 个元素按 50 条分三页读完，无重复无遗漏');
+            $t->check(($t->tool('page_read', ['id' => 17, 'lang' => 'zh-CN', 'cursor' => 50], $tokens['pager'])['data']['error'] ?? '') === 'ai_page_revision_mismatch', '翻页不带 revision 被拒');
+            $t->check(($t->tool('page_read', ['id' => 17, 'lang' => 'zh-CN', 'limit' => 101], $tokens['pager'])['data']['error'] ?? '') === 'ai_mcp_invalid_arguments', 'limit 超过 100 被拒');
+            $t->check($snapshot() === $before, '单页只读调用前后业务表与草稿表不变');
+            $many[] = ['id' => 'late', 'type' => 'heading', 'data' => ['text' => 'Edited meanwhile']];
+            $t->db->execute("UPDATE {$p}blox_page_drafts SET draft_data = ? WHERE page_id = 17", [$doc($many)]);
+            $t->check(($t->tool('page_read', ['id' => 17, 'lang' => 'zh-CN', 'cursor' => 50, 'revision' => (string) $revision], $tokens['pager'])['data']['error'] ?? '') === 'ai_page_revision_mismatch', '两页之间页面被改：旧 revision 翻页被拒');
+            $t->db->execute("UPDATE {$p}roles SET permissions = ? WHERE id = 4", ['["ai_access","edit_page"]']);
+            $t->check($names($t->modern('tools/list', [], $tokens['pager'])) === ['site_info'], '角色去掉 blox_edit 后下一次请求单页工具即消失');
+            $t->db->execute("UPDATE {$p}roles SET permissions = ? WHERE id = 4", ['["ai_access","blox_edit","edit_page"]']);
+
+            // S5-03：单页内容提案经 /mcp/ 提交，只进提案表，不改草稿
+            $proposer = 'ykat_' . rtrim(strtr(base64_encode(random_bytes(32)), '+/', '-_'), '=');
+            $t->db->execute("INSERT INTO {$p}api_tokens (id, admin_id, token_hash, scopes, expires_at, revoked_at) VALUES (89, 9, ?, ?, ?, 0)",
+                [hash('sha256', $proposer), json_encode(['site_info', 'page_read', 'page_content_propose', 'proposal_status']), time() + 3600]);
+            $t->check($names($t->modern('tools/list', [], $proposer)) === ['site_info', 'proposal_status', 'page_list', 'page_read', 'page_content_propose'], '提案令牌：列出 page_content_propose');
+            $t->check($t->tool('page_content_propose', ['idempotency_key' => 's503-mcp-0000', 'page_id' => 12, 'lang' => 'zh-CN', 'base_revision' => str_repeat('a', 64), 'changes' => []], $tokens['pager'])['rpc_error'] === -32602, '没有提案范围的令牌：按未知工具处理');
+            $drafts = $t->db->fetchAll("SELECT * FROM {$p}blox_page_drafts ORDER BY id");
+            $base = (string) ($t->tool('page_read', ['id' => 12, 'lang' => 'zh-CN'], $proposer)['data']['page']['base_revision'] ?? '');
+            $propose = ['idempotency_key' => 's503-mcp-0001', 'page_id' => 12, 'lang' => 'zh-CN', 'base_revision' => $base,
+                'changes' => [['element_id' => 'h1', 'field' => 'text', 'value' => 'Proposed title'], ['element_id' => 't1', 'field' => 'html', 'value' => '<p>Proposed<script>x()</script></p>']]];
+            $first = $t->tool('page_content_propose', $propose, $proposer)['data'] ?? [];
+            $again = $t->tool('page_content_propose', $propose, $proposer)['data'] ?? [];
+            $t->check(($first['items'][0]['status'] ?? '') === 'pending' && ($first['replayed'] ?? null) === false && ($again['replayed'] ?? null) === true && ($again['proposal_id'] ?? '') === ($first['proposal_id'] ?? 'x'),
+                'page_content_propose：待审；同键重试回放同一提案');
+            $status = $t->tool('proposal_status', ['proposal_id' => (string) ($first['proposal_id'] ?? '')], $proposer)['data'] ?? [];
+            $t->check(($status['items'][0]['op'] ?? '') === 'page_edit' && ($status['items'][0]['target_id'] ?? 0) === 12 && ($status['items'][0]['status'] ?? '') === 'pending', 'proposal_status：单页提案待审，目标为页面 12');
+            $t->check(($t->tool('page_content_propose', ['base_revision' => str_repeat('0', 64), 'idempotency_key' => 's503-mcp-0002'] + $propose, $proposer)['data']['error'] ?? '') === 'ai_proposal_stale_revision', '旧修订号：ai_proposal_stale_revision');
+            $t->check(($t->tool('page_content_propose', ['idempotency_key' => 's503-mcp-0003', 'changes' => [['element_id' => 'dup', 'field' => 'text', 'value' => 'x']]] + $propose, $proposer)['data']['error'] ?? '') === 'ai_proposal_invalid_target', '重复 ID：ai_proposal_invalid_target');
+            $t->check(($t->tool('page_content_propose', ['idempotency_key' => 's503-mcp-0004', 'changes' => [['element_id' => 'h1', 'field' => 'url', 'value' => '/x']]] + $propose, $proposer)['data']['error'] ?? '') === 'ai_mcp_invalid_arguments' || ($t->tool('page_content_propose', ['idempotency_key' => 's503-mcp-0005', 'changes' => [['element_id' => 'h1', 'field' => 'url', 'value' => '/x']]] + $propose, $proposer)['data']['error'] ?? '') === 'ai_proposal_invalid_input', '链接字段（推迟）被拒');
+            $t->check($t->db->fetchAll("SELECT * FROM {$p}blox_page_drafts ORDER BY id") === $drafts, '提交提案不改任何草稿');
         },
         '08 无会话与不泄漏' => function () use ($t): void {
             $cookies = 0;

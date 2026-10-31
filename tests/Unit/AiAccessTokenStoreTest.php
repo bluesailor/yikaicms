@@ -76,7 +76,8 @@ final class AiAccessTokenStoreTest extends TestCase
     {
         $issued = $this->store()->issue(7, 'writer', ['proposal_status', 'article_draft_propose', 'article_read'], 30, self::NOW);
         self::assertSame('["article_read","article_draft_propose","proposal_status"]', db()->fetchColumn('SELECT scopes FROM api_tokens WHERE id = ?', [$issued['id']]));
-        self::assertSame(\AiAccessAuthContext::TOOLS, AiAccessTokenStore::ISSUABLE_SCOPES, '可签发范围就是外部工具目录，没有 apply/undo/publish 之类的范围');
+        // page_list 与 page_read 共用 page_read 一个范围；除此之外范围与工具一一对应，没有 apply/undo/publish 之类的范围
+        self::assertSame(array_values(array_diff(\AiAccessAuthContext::TOOLS, ['page_list'])), AiAccessTokenStore::ISSUABLE_SCOPES, '可签发范围就是外部工具目录（单页两工具共用一个范围）');
         self::assertSame([], array_intersect(['article_draft_propose', 'proposal_status'], AiAccessTokenStore::DEFAULT_SCOPES), '写入类范围要用户主动勾选');
     }
 

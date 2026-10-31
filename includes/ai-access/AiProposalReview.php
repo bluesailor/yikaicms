@@ -3,6 +3,8 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/AiArticleDraftRules.php';
+require_once __DIR__ . '/AiPageContentRules.php';
+require_once __DIR__ . '/AiPageDocumentSource.php';
 
 /**
  * 提案审核页的只读视图（S3）：列出本人的提案集与项目，算出“当前 → 提案”的逐字段对照。
@@ -56,6 +58,7 @@ final class AiProposalReview
     {
         $input = json_decode((string) $item['input_json'], true);
         $input = is_array($input) ? $input : [];
+        if ($item['operation'] === AiPageContentRules::OPERATION) return $this->pageView($item, $input);
         $current = null;
         $channel = null;
         if ($item['operation'] === 'update') {
@@ -86,6 +89,73 @@ final class AiProposalReview
             'stale' => $stale,
             'fields' => $fields,
             'content' => $content,
+        ];
+    }
+
+    /**
+     * 待审单页提案的预览文档：当前草稿套上提案改动，只在内存里算，不写库。
+     * 页面已变或元素不再可改时返回 null（应用必然冲突，预览没有意义）。
+     * @return array{page_id:int,lang:string,json:string}|null
+     */
+    public function previewDocument(int $ownerId, string $itemId): ?array
+    {
+        $item = $this->db->fetchOne('SELECT * FROM ' . DB_PREFIX . 'ai_proposal_items WHERE public_id = ? AND owner_id = ?', [$itemId, $ownerId]);
+        if ($item === null || $item['operation'] !== AiPageContentRules::OPERATION || $item['status'] !== 'pending') return null;
+        $input = json_decode((string) $item['input_json'], true);
+        $source = new AiPageDocumentSource($this->db);
+        $page = $source->page((int) $item['target_id']);
+        if (!is_array($input) || $page === null) return null;
+        $state = $source->load($page);
+        if ($state['legacy_html'] !== null || !hash_equals((string) $item['base_revision'], $state['base_revision'])) return null;
+        $result = AiPageContentRules::apply(BloxDocumentPipeline::decode($state['document_json']), is_array($input['changes'] ?? null) ? $input['changes'] : []);
+        if (!isset($result['document'])) return null;
+        $document = $result['document'];
+        return ['page_id' => (int) $page['id'], 'lang' => (string) $page['lang'], 'json' => json_encode(
+            ['schema' => $document['schema'], 'settings' => $document['settings'], 'sections' => $document['sections']],
+            JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR
+        )];
+    }
+
+    /**
+     * 单页内容提案：逐元素逐字段的“当前 → 提案”。当前值取页面现在的文档；页面已变或元素不再可改时标为过期。
+     * @return array<string,mixed>
+     */
+    private function pageView(array $item, array $input): array
+    {
+        $source = new AiPageDocumentSource($this->db);
+        $page = $source->page((int) $item['target_id']);
+        $changes = is_array($input['changes'] ?? null) ? $input['changes'] : [];
+        $before = [];
+        $stale = true;
+        if ($page !== null) {
+            try {
+                $state = $source->load($page);
+                if ($state['legacy_html'] === null) {
+                    $result = AiPageContentRules::apply(BloxDocumentPipeline::decode($state['document_json']), $changes);
+                    $before = $result['before'] ?? [];
+                    $stale = isset($result['conflict']) || !hash_equals((string) $item['base_revision'], $state['base_revision']);
+                }
+            } catch (Throwable) {
+                $stale = true;
+            }
+        }
+        $text = static fn(string $field, string $value): string => $field === 'html' ? implode("\n", self::paragraphs($value)) : $value;
+        $fields = [];
+        foreach ($changes as $change) {
+            if (!is_array($change)) continue;
+            $field = (string) ($change['field'] ?? '');
+            $id = (string) ($change['element_id'] ?? '');
+            $old = $text($field, (string) ($before[$id][$field] ?? ''));
+            $new = $text($field, (string) ($change['value'] ?? ''));
+            $fields[] = ['field' => 'page_' . $field, 'label' => $id . ' · ' . __('aipr_field_page_' . $field), 'before' => $old, 'after' => $new, 'changed' => $old !== $new];
+        }
+        return [
+            'item' => $item,
+            'title' => (string) ($page['name'] ?? ('#' . (int) $item['target_id'])),
+            'channel' => null,
+            'stale' => $item['status'] === 'pending' && $stale,
+            'fields' => $fields,
+            'content' => null,
         ];
     }
 

@@ -32,7 +32,7 @@ function _aiprChangeLogReady(): bool
     return _columnExists('ai_change_log', 'after_revision');
 }
 
-$errorText = static fn(string $code): string => in_array($code, ['ai_proposal_not_found', 'ai_proposal_not_pending', 'ai_proposal_busy', 'ai_proposal_undo_conflict', 'ai_proposal_actor_denied'], true)
+$errorText = static fn(string $code): string => in_array($code, ['ai_proposal_not_found', 'ai_proposal_not_pending', 'ai_proposal_busy', 'ai_proposal_undo_conflict', 'ai_proposal_actor_denied', 'ai_proposal_undo_unsupported'], true)
     ? __('aipr_err_' . substr($code, strlen('ai_proposal_')))
     : __('aipr_err_unavailable');
 
@@ -61,7 +61,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             if ($result['status'] === $target) {
                 $done++;
                 if ($action === 'apply' && empty($result['replayed'])) {
-                    adminLog('ai_proposal', 'apply', 'AI proposal applied as draft: content #' . (int) $result['content_id'] . ', log #' . (int) $result['log_id']);
+                    adminLog('ai_proposal', 'apply', 'AI proposal applied as draft: ' . ((int) $result['content_id'] > 0 ? 'content #' . (int) $result['content_id'] : 'page draft') . ', log #' . (int) $result['log_id']);
                 }
             } else {
                 $messages[] = __('aipr_status_' . $result['status']) . ($result['reason'] !== '' ? '：' . __('aipr_reason_' . $result['reason']) : '');
@@ -84,6 +84,29 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     $reply(1, 'unknown action');
+}
+
+// 单页提案的私有预览：服务端算出“当前草稿 + 提案改动”，交给需登录与页面编辑权限的 Blox 预览端点渲染。
+// 不保存、不生成公开链接；页面已变时不预览（应用也必然冲突）。
+$previewItem = (string) ($_GET['preview'] ?? '');
+if ($previewItem !== '') {
+    requirePermission('blox_edit');
+    requirePermission('edit_page');
+    $preview = $tablesReady && preg_match('/^[0-9a-f]{32}$/D', $previewItem) === 1 ? (new AiProposalReview(db()))->previewDocument($adminId, $previewItem) : null;
+    header('Cache-Control: no-store, max-age=0');
+    header('X-Robots-Tag: noindex');
+    if ($preview === null) {
+        http_response_code(409);
+        echo '<!doctype html><meta charset="utf-8"><title>' . e(__('aipr_title')) . '</title><p style="font:14px sans-serif;padding:2rem">' . e(__('aipr_preview_unavailable')) . '</p>';
+        exit;
+    }
+    $target = '/admin/blox_preview.php?id=' . $preview['page_id'] . '&_lang=' . rawurlencode($preview['lang']);
+    echo '<!doctype html><html><head><meta charset="utf-8"><meta name="robots" content="noindex"><title>' . e(__('aipr_preview')) . '</title></head><body>'
+        . '<form id="aipr-preview" method="post" action="' . e($target) . '">' . csrfField()
+        . '<input type="hidden" name="action" value="preview"><input type="hidden" name="blocks_data" value="' . e($preview['json']) . '">'
+        . '<noscript><button type="submit">' . e(__('aipr_preview')) . '</button></noscript></form>'
+        . '<script>document.getElementById("aipr-preview").submit();</script></body></html>';
+    exit;
 }
 
 $tab = ($_GET['tab'] ?? '') === 'done' ? 'done' : 'pending';
@@ -140,7 +163,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php endif; ?>
         </header>
 
-        <?php foreach ($set['items'] as $view): $item = $view['item']; $status = (string) $item['status']; ?>
+        <?php foreach ($set['items'] as $view): $item = $view['item']; $status = (string) $item['status']; $isPage = $item['operation'] === 'page_edit'; $hasCurrent = $isPage || $item['operation'] === 'update'; ?>
         <article class="px-6 py-4 border-b last:border-0" data-testid="aipr-item" data-item="<?php echo e((string) $item['public_id']); ?>" data-status="<?php echo e($status); ?>">
             <div class="flex flex-wrap items-start gap-3">
                 <?php if ($status === 'pending'): ?>
@@ -148,7 +171,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endif; ?>
                 <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-2">
-                        <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700"><?php echo e(__($item['operation'] === 'create' ? 'aipr_op_create' : 'aipr_op_update')); ?></span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700"><?php echo e(__($isPage ? 'aipr_op_page' : ($item['operation'] === 'create' ? 'aipr_op_create' : 'aipr_op_update'))); ?></span>
                         <span class="font-medium text-gray-800 break-words"><?php echo e($view['title']); ?></span>
                         <span class="text-xs px-2 py-0.5 rounded <?php echo $statusClass($status); ?>"><?php echo e(__('aipr_status_' . $status)); ?></span>
                     </div>
@@ -156,6 +179,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php echo e((string) $item['lang']); ?>
                         <?php if ($view['channel'] !== null): ?> · <?php echo e((string) $view['channel']['name']); ?><?php endif; ?>
                         <?php if ($item['operation'] === 'update'): ?> · <?php echo e(__('aipr_target', ['id' => (int) $item['target_id']])); ?><?php endif; ?>
+                        <?php if ($isPage): ?> · <?php echo e(__('aipr_target_page', ['id' => (int) $item['target_id']])); ?><?php endif; ?>
                         <?php if ((string) $item['status_reason'] !== '' && $status !== 'reverted'): ?> · <?php echo e($reasonText((string) $item['status_reason'])); ?><?php endif; ?>
                     </div>
                     <?php if ($view['stale']): ?>
@@ -163,12 +187,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <?php endif; ?>
                 </div>
                 <div class="flex flex-wrap gap-3 text-sm w-full sm:w-auto">
+                    <?php if ($status === 'pending' && $isPage && !$view['stale']): ?>
+                    <a class="text-primary hover:underline" href="?preview=<?php echo e((string) $item['public_id']); ?>" target="_blank" rel="noopener"><?php echo e(__('aipr_preview')); ?></a>
+                    <?php endif; ?>
                     <?php if ($status === 'pending'): ?>
                     <button type="button" class="text-primary hover:underline" onclick="aiprOne(this, 'apply')"><?php echo e(__('aipr_apply')); ?></button>
                     <button type="button" class="text-red-600 hover:underline" data-confirm="<?php echo e(__('aipr_reject_confirm')); ?>" onclick="aiprOne(this, 'reject')"><?php echo e(__('aipr_reject')); ?></button>
                     <?php endif; ?>
                     <?php if (in_array($status, ['applied', 'reverted'], true) && (int) $item['result_content_id'] > 0): ?>
                     <a class="text-primary hover:underline" href="article_edit.php?id=<?php echo (int) $item['result_content_id']; ?>"><?php echo e(__('aipr_open_draft')); ?></a>
+                    <?php endif; ?>
+                    <?php if ($isPage && $status === 'applied'): ?>
+                    <a class="text-primary hover:underline" href="blox_editor.php?id=<?php echo (int) $item['target_id']; ?>"><?php echo e(__('aipr_open_page_draft')); ?></a>
                     <?php endif; ?>
                     <?php if ($status === 'applied'): ?>
                     <button type="button" class="text-red-600 hover:underline" data-log="<?php echo (int) $item['change_log_id']; ?>" data-confirm="<?php echo e(__('aipr_undo_confirm')); ?>" onclick="aiprUndo(this)"><?php echo e(__('aipr_undo')); ?></button>
@@ -185,14 +215,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <tbody>
                         <tr class="text-left text-gray-400 border-b">
                             <th scope="col" class="py-1.5 pr-4 w-28 font-medium"><?php echo e(__('aipr_col_field')); ?></th>
-                            <?php if ($item['operation'] === 'update'): ?><th scope="col" class="py-1.5 pr-4 font-medium"><?php echo e(__('aipr_col_current')); ?></th><?php endif; ?>
+                            <?php if ($hasCurrent): ?><th scope="col" class="py-1.5 pr-4 font-medium"><?php echo e(__('aipr_col_current')); ?></th><?php endif; ?>
                             <th scope="col" class="py-1.5 font-medium"><?php echo e(__('aipr_col_proposed')); ?></th>
                         </tr>
                         <?php foreach ($view['fields'] as $field): ?>
                             <tr class="border-b last:border-0 align-top<?php echo $field['changed'] ? '' : ' text-gray-400'; ?>">
-                                <td class="py-1.5 pr-4 text-gray-500"><?php echo e(__('aipr_field_' . $field['field'])); ?></td>
-                                <?php if ($item['operation'] === 'update'): ?><td class="py-1.5 pr-4 break-words"><?php echo e($field['before']); ?></td><?php endif; ?>
-                                <td class="py-1.5 break-words<?php echo $field['changed'] ? ' text-gray-900' : ''; ?>"><?php echo e($field['after']); ?></td>
+                                <td class="py-1.5 pr-4 text-gray-500 break-words"><?php echo e($field['label'] ?? __('aipr_field_' . $field['field'])); ?></td>
+                                <?php if ($hasCurrent): ?><td class="py-1.5 pr-4 break-words whitespace-pre-line"><?php echo e($field['before']); ?></td><?php endif; ?>
+                                <td class="py-1.5 break-words whitespace-pre-line<?php echo $field['changed'] ? ' text-gray-900' : ''; ?>"><?php echo e($field['after']); ?></td>
                             </tr>
                         <?php endforeach; ?>
                         </tbody>
