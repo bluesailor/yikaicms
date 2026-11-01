@@ -159,9 +159,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action', 'save') === 'save') 
         }
     }
 
-    // 新密码加密保存（统一密钥存储），不走下面的明文写入
+    // 新密码加密保存（统一密钥存储），不走下面的明文写入。加密不可用时整次保存都不做，原密码不变
     if (array_key_exists('smtp_pass', $settings)) {
-        SecretStore::put('smtp_pass', (string) $settings['smtp_pass']);
+        try {
+            SecretStore::put('smtp_pass', (string) $settings['smtp_pass']);
+        } catch (SecretStoreException $e) {
+            error(__($e->userMessageKey()));
+        }
         unset($settings['smtp_pass']);
     }
 
@@ -320,8 +324,8 @@ if ($_emailLangAware) {
                     <?php if ($smtpPassSet): ?>
                     <label class="mt-2 inline-flex items-center gap-2 text-sm text-gray-500"><input type="checkbox" name="smtp_pass_clear" value="1"> <?php echo e(__('email_smtp_pass_clear')); ?></label>
                     <?php endif; ?>
-                    <?php if (!SecretStore::available()): // 2.1.1：加密不可用时明说会存明文，原因在站点健康里 ?>
-                    <p class="mt-2 text-sm text-amber-700" data-testid="secret-store-plaintext-notice"><i class="ti ti-alert-triangle" aria-hidden="true"></i> <?php echo e(__('secret_store_plaintext_notice')); ?></p>
+                    <?php if (!SecretStore::available()): // 加密不可用时新密码存不进去，原因在站点健康里 ?>
+                    <p class="mt-2 text-sm text-amber-700" data-testid="secret-store-unavailable-notice"><i class="ti ti-alert-triangle" aria-hidden="true"></i> <?php echo e(__('secret_store_unavailable_notice')); ?></p>
                     <?php endif; ?>
                 </div>
             </div>

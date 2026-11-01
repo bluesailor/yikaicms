@@ -108,8 +108,10 @@ final class AiProfiles
                 if ($provider !== 'yikai') throw new InvalidArgumentException('ai_provider_key_required');
                 $values['api_key'] = '';
             }
+            // 先加密：加密不可用时 encryptKey 抛 SecretStoreException，什么都不写
+            $sealedKey = $keyChanged ? AiService::encryptKey($plainKey) : null;
             $state['items'][$index] = array_merge($state['items'][$index], $values);
-            if ($keyChanged) $state['items'][$index]['api_key'] = AiService::encryptKey($plainKey);
+            if ($sealedKey !== null) $state['items'][$index]['api_key'] = $sealedKey;
         } else {
             $id = $state['next_id'];
             $state['next_id']++;

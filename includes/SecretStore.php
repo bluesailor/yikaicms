@@ -6,7 +6,8 @@
  * AES-256-GCM、每次随机 nonce、带认证标签，密钥由 config.php 的 ENCRYPT_KEY 派生。
  *
  * - 读：信封 → 解密；旧格式（明文、AI 密钥的旧 AES-128-CBC 固定 IV）照常读出，升级前后都不断；
- * - 写：put() 永远写信封；空串 = 清空；
+ * - 写：put() 只写信封；空串 = 清空。加密不可用或失败时抛 SecretStoreException、不写库，原值保持不变——
+ *   v2.2 起不再降级存明文（2.1.1–2.1.3 只提示）。旧明文 / 旧 CBC 值照常可读，也不会被自动改写；
  * - 界面只显示末四位（masked()），留空即不改由各设置页处理；
  * - 永不随整站模板 / 配方导出（SensitiveSettings 按键名排除），不进日志。
  *
@@ -30,7 +31,7 @@ final class SecretStore
     }
 
     /**
-     * 加密为什么用不了（2.1.1：站点健康与设置页据此提示，不再静默存明文）：
+     * 加密为什么用不了（站点健康与设置页据此提示；不可用时新密钥一律存不进去）：
      * 'key' = config.php 没有有效的 ENCRYPT_KEY；'cipher' = 服务器 OpenSSL 不支持 AES-256-GCM；能用返回 ''。
      */
     public static function unavailableReason(): string
@@ -67,21 +68,26 @@ final class SecretStore
     }
 
     /**
-     * 明文 → 信封。环境不支持（没有 ENCRYPT_KEY / openssl）或加密失败时原样返回，不让保存失败——
-     * 所以「密钥一定加密保存」不成立：站点健康的 secret_store 会列出存成明文的核心密钥（2.1.1），
-     * 环境明明支持却加密失败的写一条错误日志（不带密钥内容）。
+     * 明文 → 信封。环境不支持（没有 ENCRYPT_KEY / openssl）或加密失败时抛 SecretStoreException，
+     * 绝不原样返回明文：调用方据此拒绝保存。异常与日志只带原因，不带密钥内容。
+     *
+     * @throws SecretStoreException
      */
     public static function seal(string $plaintext): string
     {
-        if ($plaintext === '' || self::isSealed($plaintext) || !self::available()) {
+        if ($plaintext === '' || self::isSealed($plaintext)) {
             return $plaintext;
+        }
+        $reason = self::unavailableReason();
+        if ($reason !== '') {
+            throw new SecretStoreException($reason);
         }
         $nonce = random_bytes(self::NONCE_BYTES);
         $tag = '';
         $cipher = openssl_encrypt($plaintext, self::CIPHER, self::key(), OPENSSL_RAW_DATA, $nonce, $tag, '', self::TAG_BYTES);
         if ($cipher === false) {
-            error_log('[SecretStore] ' . self::CIPHER . ' encryption failed; the secret was stored as plain text');
-            return $plaintext;
+            error_log('[SecretStore] ' . self::CIPHER . ' encryption failed; the secret was not saved');
+            throw new SecretStoreException(SecretStoreException::FAILED);
         }
         return self::PREFIX . base64_encode($nonce . $tag . $cipher);
     }
@@ -118,10 +124,16 @@ final class SecretStore
         return self::open(is_scalar($stored) ? (string) $stored : '', $name === 'ai_api_key');
     }
 
-    /** 写一个设置里的密钥；空串 = 清空。 */
+    /**
+     * 写一个设置里的密钥；空串 = 清空（清空不需要加密，环境不支持时也能做）。
+     * 先加密再写库：加密失败抛异常时数据库里还是原来的值。
+     *
+     * @throws SecretStoreException
+     */
     public static function put(string $name, string $plaintext): void
     {
-        settingModel()->set($name, $plaintext === '' ? '' : self::seal($plaintext));
+        $stored = $plaintext === '' ? '' : self::seal($plaintext);
+        settingModel()->set($name, $stored);
     }
 
     /** 界面展示：只露末四位；未设置返回空串。 */
@@ -154,7 +166,12 @@ final class SecretStore
             if ($plain === '') {
                 continue;
             }
-            db()->update('settings', ['value' => self::seal($plain)], '`key` = ?', [$name]);
+            try {
+                $sealed = self::seal($plain);
+            } catch (SecretStoreException) {
+                continue;   // 加密失败：保留原值，站点健康会继续列出它
+            }
+            db()->update('settings', ['value' => $sealed], '`key` = ?', [$name]);
             $count++;
         }
         if ($count > 0 && function_exists('cacheClear')) {
@@ -175,5 +192,28 @@ final class SecretStore
         $key = defined('ENCRYPT_KEY') ? (string) ENCRYPT_KEY : 'yikaicms_default_key';
         $decrypted = openssl_decrypt($stored, 'AES-128-CBC', $key, 0, substr(md5($key), 0, 16));
         return is_string($decrypted) && $decrypted !== '' ? $decrypted : $stored;
+    }
+}
+
+/**
+ * 密钥存不进去：消息只是原因代码（'key' / 'cipher' / 'failed'），不含密钥内容，可以直接进日志。
+ * 界面用 userMessageKey() 取语言键。
+ */
+final class SecretStoreException extends RuntimeException
+{
+    public const FAILED = 'failed';
+
+    public function __construct(public readonly string $reason)
+    {
+        parent::__construct('secret_store_' . $reason);
+    }
+
+    public function userMessageKey(): string
+    {
+        return match ($this->reason) {
+            'key' => 'secret_store_save_blocked_key',
+            'cipher' => 'secret_store_save_blocked_cipher',
+            default => 'secret_store_save_failed',
+        };
     }
 }

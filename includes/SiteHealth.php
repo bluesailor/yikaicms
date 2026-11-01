@@ -821,7 +821,7 @@ final class SiteHealth
         $reason = SecretStore::unavailableReason();
         if ($reason !== '') {
             return self::result('secret_store', self::RECOMMENDED, 'security', 'health_secret_store_title',
-                $reason === 'key' ? 'health_secret_store_no_key' : 'health_secret_store_no_cipher');
+                $reason === 'key' ? 'health_secret_store_blocked_key' : 'health_secret_store_blocked_cipher');
         }
         try {
             $plaintext = SecretStore::plaintextCoreSecrets();

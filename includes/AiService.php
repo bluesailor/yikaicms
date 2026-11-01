@@ -674,7 +674,9 @@ class AiService
     }
 
     /**
-     * 加密 API Key
+     * 加密 API Key；加密不可用时抛 SecretStoreException，不返回明文
+     *
+     * @throws SecretStoreException
      */
     public static function encryptKey(string $plaintext): string
     {

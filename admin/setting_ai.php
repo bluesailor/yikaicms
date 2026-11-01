@@ -34,6 +34,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             echo json_encode(['code' => 0, 'msg' => __($okKey), 'id' => is_int($id) && $id > 0 ? $id : $profileId]);
         } catch (InvalidArgumentException $e) {
             echo json_encode(['code' => 1, 'msg' => __($e->getMessage())]);
+        } catch (SecretStoreException $e) {
+            // 加密不可用：配置整体没保存（AiProfiles::save 先加密后写库），原来的密钥不变
+            echo json_encode(['code' => 1, 'msg' => __($e->userMessageKey())]);
         }
         exit;
     };
@@ -265,8 +268,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                     <p class="text-xs text-gray-400 mt-1" id="aiApiKeyHint"><?php echo $maskedApiKey ? __('ai_key_saved') : __('ai_api_key_hint'); ?></p>
                     <p class="text-xs text-amber-700 mt-1 hidden" id="aiApiKeyClearNotice" data-testid="ai-key-clear-notice"><?php echo e(__('ai_key_clear_pending')); ?> <button type="button" class="underline" onclick="undoClearKey()"><?php echo e(__('ai_key_clear_undo')); ?></button></p>
-                    <?php if (!SecretStore::available()): // 2.1.1：加密不可用时明说会存明文，原因在站点健康里 ?>
-                    <p class="text-xs text-amber-700 mt-1" data-testid="secret-store-plaintext-notice"><i class="ti ti-alert-triangle" aria-hidden="true"></i> <?php echo e(__('secret_store_plaintext_notice')); ?></p>
+                    <?php if (!SecretStore::available()): // 加密不可用时新密钥存不进去，原因在站点健康里 ?>
+                    <p class="text-xs text-amber-700 mt-1" data-testid="secret-store-unavailable-notice"><i class="ti ti-alert-triangle" aria-hidden="true"></i> <?php echo e(__('secret_store_unavailable_notice')); ?></p>
                     <?php endif; ?>
                 </div>
                 <?php // 官方接口用授权码调用，无需填 Key；这里显示授权状态代替输入框 ?>

@@ -80,9 +80,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'gen_l
 
 // 保存推送配置（百度站点/token）
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_POST['action'] ?? '') === 'save_push') {
+    // 令牌不回显：页面里是掩码，留空或未改动的掩码表示不修改。先存令牌：存不进去（加密不可用）就整次不保存
+    try {
+        seo_save_baidu_token((string) ($_POST['baidu_token'] ?? ''));
+    } catch (\RuntimeException $e) {
+        error(method_exists($e, 'userMessageKey') ? __($e->userMessageKey()) : __('secret_store_save_failed'));
+    }
     settingModel()->set('seo_baidu_site', trim((string) ($_POST['baidu_site'] ?? '')));
-    // 令牌不回显：页面里是掩码，留空或未改动的掩码表示不修改
-    seo_save_baidu_token((string) ($_POST['baidu_token'] ?? ''));
     success([], '已保存');
 }
 

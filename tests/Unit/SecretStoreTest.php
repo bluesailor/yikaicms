@@ -1,50 +1,124 @@
 <?php
-/** v2.1 统一密钥存储：信封往返、篡改与换钥匙读不出、旧格式只读兼容、末四位掩码、迁移封装核心密钥。 */
+/**
+ * v2.1 统一密钥存储：信封往返、篡改与换钥匙读不出、旧格式只读兼容、末四位掩码、迁移封装核心密钥。
+ * v2.2：加密不可用时拒绝写入（不再降级存明文），原值不变，异常与日志不含密钥。
+ */
 
 declare(strict_types=1);
 
 namespace Yikai\Tests\Unit;
 
+use AiProfiles;
 use AiService;
 use SecretStore;
+use SecretStoreException;
 use Yikai\Tests\TestCase;
 
 require_once ROOT_PATH . '/includes/SecretStore.php';
 require_once ROOT_PATH . '/includes/AiService.php';
+require_once ROOT_PATH . '/includes/AiProfiles.php';
 
 final class SecretStoreTest extends TestCase
 {
     protected function setUp(): void
     {
         // 「没有 ENCRYPT_KEY」那条在单独进程里跑，不定义密钥
-        if (!defined('ENCRYPT_KEY') && $this->name() !== 'testWithoutAnEncryptKeySecretsStayPlainAndSiteHealthCanSayWhy') {
+        if (!defined('ENCRYPT_KEY') && $this->name() !== 'testWithoutAnEncryptKeyNewSecretsAreRefusedAndOldValuesKept') {
             define('ENCRYPT_KEY', 'unit-test-encrypt-key-0123456789');
         }
         parent::setUp();
     }
 
     /**
-     * 2.1.1：加密不可用时仍存明文（不让保存失败），但原因可查、存下的明文会被站点健康列出来。
+     * v2.2：没有 ENCRYPT_KEY 时新密钥一律存不进去（不再降级存明文），已存的旧明文照常读、原样保留；
+     * 失败的修改不动原值；异常消息和错误日志都不含密钥。
      *
      * @runInSeparateProcess @preserveGlobalState disabled
      */
-    public function testWithoutAnEncryptKeySecretsStayPlainAndSiteHealthCanSayWhy(): void
+    public function testWithoutAnEncryptKeyNewSecretsAreRefusedAndOldValuesKept(): void
     {
-        self::assertFalse(defined('ENCRYPT_KEY'));
-        self::assertFalse(SecretStore::available());
-        self::assertSame('key', SecretStore::unavailableReason());
-        self::assertSame('sk-plain', SecretStore::seal('sk-plain'), '保存不失败，原样存');
+        $log = (string) tempnam(sys_get_temp_dir(), 'secret-log-');
+        ini_set('error_log', $log);
+        try {
+            self::assertFalse(defined('ENCRYPT_KEY'));
+            self::assertFalse(SecretStore::available());
+            self::assertSame('key', SecretStore::unavailableReason());
 
-        db()->insert('settings', ['key' => 'smtp_pass', 'value' => SecretStore::seal('mail-pass')]);
-        self::assertSame('mail-pass', SecretStore::open('mail-pass'), '明文照常读出');
-        self::assertSame(['smtp_pass'], SecretStore::plaintextCoreSecrets(), '站点健康据此列出明文');
-        self::assertSame(0, SecretStore::sealLegacyCoreSecrets(), '迁移在没有密钥时什么也不做');
+            $refused = static function (callable $write, string $secret): void {
+                try {
+                    $write();
+                    self::fail('a secret was written without encryption');
+                } catch (SecretStoreException $e) {
+                    self::assertSame('key', $e->reason);
+                    self::assertSame('secret_store_save_blocked_key', $e->userMessageKey());
+                    self::assertStringNotContainsString($secret, $e->getMessage());
+                }
+            };
+            $refused(static fn () => SecretStore::seal('sk-plain-new'), 'sk-plain-new');
+            $refused(static fn () => AiService::encryptKey('sk-ai-new-0000'), 'sk-ai-new-0000');
+
+            // 旧明文（2.1.0 及以前、或 2.1.1–2.1.3 降级存的）照常读出；改它失败时原值不变
+            db()->insert('settings', ['key' => 'smtp_pass', 'value' => 'old-mail-pass']);
+            $refused(static fn () => SecretStore::put('smtp_pass', 'new-mail-pass'), 'new-mail-pass');
+            settingModel()->clearCache();
+            $GLOBALS['_test_config'] = ['smtp_pass' => 'old-mail-pass'];
+            self::assertSame('old-mail-pass', SecretStore::get('smtp_pass'), '旧明文照常可用');
+            self::assertSame('old-mail-pass', (string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', ['smtp_pass']));
+            self::assertSame(['smtp_pass'], SecretStore::plaintextCoreSecrets(), '站点健康仍会列出它');
+            self::assertSame(0, SecretStore::sealLegacyCoreSecrets(), '没有密钥时迁移什么也不做');
+
+            // AI 配置：新增一套、给旧配置换密钥都整体不落库，旧密钥不变
+            settingModel()->set('ai_provider', 'openai');
+            settingModel()->set('ai_api_key', 'sk-old-legacy-7777');
+            $refused(static fn () => AiProfiles::save(0, ['name' => 'New', 'provider' => 'deepseek'], 'sk-deep-new-1111'), 'sk-deep-new-1111');
+            $refused(static fn () => AiProfiles::save(1, ['name' => 'Renamed', 'provider' => 'openai'], 'sk-openai-new-2222'), 'sk-openai-new-2222');
+            settingModel()->clearCache();
+            self::assertSame('', (string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', ['ai_profiles']), '配置没有落库');
+            self::assertSame('sk-old-legacy-7777', AiProfiles::plainKey(1));
+
+            // 清空不需要加密，照常可以做
+            SecretStore::put('smtp_pass', '');
+            self::assertSame('', (string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', ['smtp_pass']));
+
+            $logged = (string) file_get_contents($log);
+            foreach (['sk-plain-new', 'sk-ai-new-0000', 'new-mail-pass', 'old-mail-pass', 'sk-deep-new-1111', 'sk-openai-new-2222', 'sk-old-legacy-7777'] as $secret) {
+                self::assertStringNotContainsString($secret, $logged);
+            }
+        } finally {
+            unset($GLOBALS['_test_config']);
+            @unlink($log);
+        }
+    }
+
+    public function testFailureMessagesNameTheReasonNotTheSecret(): void
+    {
+        self::assertSame('secret_store_save_blocked_cipher', (new SecretStoreException('cipher'))->userMessageKey());
+        $failed = new SecretStoreException(SecretStoreException::FAILED);
+        self::assertSame('secret_store_save_failed', $failed->userMessageKey());
+        self::assertSame('secret_store_failed', $failed->getMessage());
+        foreach (['secret_store_save_blocked_key', 'secret_store_save_blocked_cipher', 'secret_store_save_failed', 'secret_store_unavailable_notice', 'health_secret_store_blocked_key', 'health_secret_store_blocked_cipher'] as $key) {
+            foreach (['zh-CN', 'en', 'ja', 'zh-TW'] as $lang) {
+                $strings = require ROOT_PATH . '/lang/' . $lang . '.php';
+                self::assertNotSame('', (string) ($strings[$key] ?? ''), $lang . ' ' . $key);
+            }
+        }
+    }
+
+    public function testPutReplacesTheStoredValueWithAnEnvelope(): void
+    {
+        db()->insert('settings', ['key' => 'smtp_pass', 'value' => 'legacy-plain']);
+        SecretStore::put('smtp_pass', 'rotated-pass');
+        settingModel()->clearCache();
+        $stored = (string) db()->fetchColumn('SELECT value FROM settings WHERE "key" = ?', ['smtp_pass']);
+        self::assertTrue(SecretStore::isSealed($stored));
+        self::assertStringNotContainsString('rotated-pass', $stored);
+        self::assertSame('rotated-pass', SecretStore::open($stored));
     }
 
     protected function schemaSql(): array
     {
         return [
-            'CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, "group" TEXT NOT NULL DEFAULT \'basic\', "key" TEXT NOT NULL, value TEXT)',
+            'CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, "group" TEXT NOT NULL DEFAULT \'basic\', "key" TEXT NOT NULL UNIQUE, value TEXT, name TEXT, tip TEXT, type TEXT)',
         ];
     }
 

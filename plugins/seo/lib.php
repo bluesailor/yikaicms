@@ -25,7 +25,10 @@ function seo_baidu_token(): string
     return class_exists('SecretStore') ? SecretStore::get('seo_baidu_token') : (string) config('seo_baidu_token', '');
 }
 
-/** 保存百度推送令牌：留空或仍是掩码（含 ****）表示不修改。 */
+/**
+ * 保存百度推送令牌：留空或仍是掩码（含 ****）表示不修改。
+ * 核心 v2.2 起加密不可用时 SecretStore::put 抛异常、不写库（原令牌不变），由调用方提示。
+ */
 function seo_save_baidu_token(string $submitted): void
 {
     $submitted = trim($submitted);
