@@ -447,6 +447,7 @@ final class SiteTemplateService
         $this->withLock(function () use ($token, $adminId, $brand, $trusted, $confirmed): void {
             $alias = '';
             $committed = false;
+            $filesStarted = false;
             try {
                 $plan = $this->readRecord('plan');
                 if ($plan === null || !hash_equals((string) $plan['token'], $token) || $plan['owner'] !== $adminId || $plan['expires'] < time()) throw new RuntimeException('st_stale');
@@ -525,6 +526,7 @@ final class SiteTemplateService
                     'snapshot' => SiteTemplateData::snapshot(), 'plugin_snapshot' => $pluginBefore,
                     'plugin_requirements' => $matchedRequirements, 'alias' => $alias];
                 $this->writeRecord('current', $journal);
+                $filesStarted = true;
                 $this->installFiles($package['files'], $alias, $map, !empty($plan['origin']['official']) ? $oldTheme : '');
                 if (!empty($plan['replace_existing'])) {
                     // 清空前整表记入日志：「撤销导入并恢复」要连它们一起还原，
@@ -554,10 +556,11 @@ final class SiteTemplateService
                 if (!$committed && db()->getPdo()->inTransaction()) db()->rollback();
                 settingModel()->clearCache();
                 Migrator::forgetSettled();
+                // Validation-only refusals retain the prepared media; discard only once installation has begun.
                 // 事务已回滚 ⇒ 没有任何记录引用本次别名（别名是本次新生成的随机值，
                 // installFiles 又拒绝写入已存在的目录），因此清理是安全的。
                 // restore() 里"绝不删除"的理由是那些文件可能已被编辑器引用——失败路径不适用。
-                if (!$committed && $alias !== '') $this->discardImportedFiles($alias);
+                if (!$committed && $filesStarted && $alias !== '') $this->discardImportedFiles($alias);
                 throw $e;
             }
         });

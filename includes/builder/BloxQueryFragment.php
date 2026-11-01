@@ -17,6 +17,12 @@ final class BloxQueryFragment
 {
     public const PARAM = '_ykq';
 
+    /** Hold the page shell until a matching loop can replace it with JSON. */
+    public static function beginBuffering(): void
+    {
+        if (self::requestedNode() !== '' && !headers_sent()) ob_start();
+    }
+
     /** @var null|callable(array<string,mixed>):void 测试注入：拦截输出与 exit */
     private static $sink = null;
 

@@ -209,6 +209,16 @@ jobs:
           php tests/smoke/setup.php --lang=zh-CN
           php tests/smoke/security_permission_matrix.php
 
+      - name: Package permissions and public-query visibility
+        if: ${{ matrix.php == '8.2' && matrix.lang == 'zh-CN' }}
+        env:
+          SMOKE_SITE_URL: http://127.0.0.1:18094
+        run: |
+          set -e
+          trap 'php tests/smoke/setup.php --restore' EXIT
+          php tests/smoke/setup.php --lang=zh-CN
+          php tests/smoke/security_permission_matrix_phase2.php
+
       - name: Prepare fresh SQLite install
         run: php tests/smoke/setup.php --lang=${{ matrix.lang }}
 

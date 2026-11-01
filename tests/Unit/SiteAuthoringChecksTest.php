@@ -6,6 +6,15 @@ require_once ROOT_PATH . '/includes/SiteAuthoringChecks.php';
 
 final class SiteAuthoringChecksTest extends TestCase
 {
+    public function testComponentSettingsWorkWithoutEditorBootstrap(): void
+    {
+        $output = [];
+        $code = 0;
+        exec(escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(ROOT_PATH . '/tests/fixtures/site-authoring-components.php') . ' 2>&1', $output, $code);
+        self::assertSame(0, $code, implode("\n", $output));
+        self::assertSame(['issues' => [], 'limited' => false], json_decode(implode("\n", $output), true));
+    }
+
     private function section(string $anchor = 'steps'): array
     {
         return ['type' => 'section', 'settings' => ['anchor_id' => $anchor], 'columns' => [['elements' => [

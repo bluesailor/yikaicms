@@ -33,6 +33,9 @@ require_once ROOT_PATH . '/config/config.php';
 
 // 加载公共函数
 require_once ROOT_PATH . '/includes/functions.php';
+// Non-cacheable AJAX loops still need a buffer: otherwise the theme shell may be sent before the JSON fragment.
+require_once __DIR__ . '/builder/BloxQueryFragment.php';
+if (PHP_SAPI !== 'cli') BloxQueryFragment::beginBuffering();
 require_once ROOT_PATH . '/includes/language_request.php';
 
 // 加载 Model 层

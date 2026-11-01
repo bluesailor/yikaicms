@@ -12,6 +12,7 @@ require_once __DIR__ . '/builder/BloxResponsiveValue.php';
 require_once __DIR__ . '/builder/BloxCssCompiler.php';
 require_once __DIR__ . '/builder/AbstractElement.php';
 require_once __DIR__ . '/builder/BloxDocumentPipeline.php';
+require_once __DIR__ . '/builder/BloxComponents.php'; // Component settings need these constants even without renderer bootstrap.
 require_once __DIR__ . '/builder/ProductTemplateDocument.php';
 require_once __DIR__ . '/builder/DetailTemplateResolver.php';
 require_once __DIR__ . '/builder/BloxDotNav.php';

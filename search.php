@@ -11,6 +11,11 @@ declare(strict_types=1);
 require_once __DIR__ . '/includes/init.php';
 require_once __DIR__ . '/includes/search_query.php';
 
+if (!is_string($_GET['keyword'] ?? '') || !is_string($_GET['type'] ?? 'all')) {
+    http_response_code(400);
+    exit(e(__('admin_bad_params')));
+}
+
 $keyword = trim(get('keyword', ''));
 $type = get('type', 'all'); // all, article, product, case, download
 $page = max(1, getInt('page', 1));
