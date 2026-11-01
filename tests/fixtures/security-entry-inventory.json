@@ -1,0 +1,893 @@
+{
+    "version": 1,
+    "note": "Discovery only; action candidates are heuristic, not proof of authorization coverage. Runtime coverage is documented in the acceptance report.",
+    "entries": {
+        "admin/admin_brand.php": {
+            "action_candidates": []
+        },
+        "admin/ai_access.php": {
+            "action_candidates": [
+                "disable",
+                "enable",
+                "issue",
+                "prepare",
+                "revoke"
+            ]
+        },
+        "admin/ai_assistant.php": {
+            "action_candidates": []
+        },
+        "admin/ai_proposals.php": {
+            "action_candidates": [
+                "apply",
+                "reject",
+                "undo"
+            ]
+        },
+        "admin/ai_usage.php": {
+            "action_candidates": []
+        },
+        "admin/album.php": {
+            "action_candidates": [
+                "delete",
+                "quick_upload",
+                "toggle_status",
+                "update_sort"
+            ]
+        },
+        "admin/album_edit.php": {
+            "action_candidates": []
+        },
+        "admin/album_photos.php": {
+            "action_candidates": [
+                "batch_delete",
+                "delete",
+                "replace",
+                "set_cover",
+                "toggle_status",
+                "update",
+                "update_sort",
+                "upload"
+            ]
+        },
+        "admin/api_ai.php": {
+            "action_candidates": [
+                "continue",
+                "generate_all",
+                "generate_alt",
+                "generate_alt_batch",
+                "generate_article",
+                "generate_seo",
+                "generate_summary",
+                "polish",
+                "translate"
+            ]
+        },
+        "admin/api_ai_agent.php": {
+            "action_candidates": []
+        },
+        "admin/api_ai_apply.php": {
+            "action_candidates": []
+        },
+        "admin/api_ai_undo.php": {
+            "action_candidates": []
+        },
+        "admin/api_search.php": {
+            "action_candidates": []
+        },
+        "admin/appearance.php": {
+            "action_candidates": []
+        },
+        "admin/article.php": {
+            "action_candidates": [
+                "batch_delete",
+                "batch_publish",
+                "batch_unpublish",
+                "delete",
+                "duplicate",
+                "toggle_recommend",
+                "toggle_status",
+                "toggle_top"
+            ]
+        },
+        "admin/article_category.php": {
+            "action_candidates": [
+                "batch_delete",
+                "delete",
+                "save",
+                "sort",
+                "toggle_nav",
+                "toggle_status"
+            ]
+        },
+        "admin/article_design.php": {
+            "action_candidates": [
+                "source"
+            ]
+        },
+        "admin/article_edit.php": {
+            "action_candidates": []
+        },
+        "admin/article_native_preview.php": {
+            "action_candidates": []
+        },
+        "admin/banner.php": {
+            "action_candidates": [
+                "delete",
+                "group_delete",
+                "group_save",
+                "group_toggle",
+                "save",
+                "save_settings",
+                "sort",
+                "toggle_status"
+            ]
+        },
+        "admin/blox_cache_api.php": {
+            "action_candidates": []
+        },
+        "admin/blox_class_api.php": {
+            "action_candidates": [
+                "class_preview",
+                "list",
+                "trashed",
+                "usage"
+            ]
+        },
+        "admin/blox_classes.php": {
+            "action_candidates": []
+        },
+        "admin/blox_component_api.php": {
+            "action_candidates": [
+                "archive",
+                "create_from_element",
+                "detach",
+                "detach_all",
+                "list",
+                "restore_revision",
+                "revisions",
+                "schema",
+                "unarchive",
+                "usage"
+            ]
+        },
+        "admin/blox_contact_api.php": {
+            "action_candidates": [
+                "save_cards",
+                "save_form"
+            ]
+        },
+        "admin/blox_design.php": {
+            "action_candidates": []
+        },
+        "admin/blox_design_api.php": {
+            "action_candidates": [
+                "breakpoints_save",
+                "page_hero_publish",
+                "snapshot",
+                "theme_publish",
+                "theme_snapshot",
+                "usage"
+            ]
+        },
+        "admin/blox_editor.php": {
+            "action_candidates": [
+                "conflict",
+                "dirty",
+                "failed",
+                "published",
+                "publishing",
+                "saved",
+                "saving"
+            ]
+        },
+        "admin/blox_home_api.php": {
+            "action_candidates": [
+                "convert_about",
+                "publish",
+                "rollback"
+            ]
+        },
+        "admin/blox_page_api.php": {
+            "action_candidates": [
+                "catalog_items",
+                "preview",
+                "publish",
+                "save_draft",
+                "save_page_hero",
+                "save_page_url"
+            ]
+        },
+        "admin/blox_preview.php": {
+            "action_candidates": []
+        },
+        "admin/blox_query_api.php": {
+            "action_candidates": [
+                "list"
+            ]
+        },
+        "admin/blox_site_api.php": {
+            "action_candidates": [
+                "save_theme_content"
+            ]
+        },
+        "admin/blox_template_api.php": {
+            "action_candidates": [
+                "check_publish_conflicts",
+                "confirm_insert",
+                "diagnose_conditions",
+                "get",
+                "list",
+                "prepare_insert",
+                "preview_impact",
+                "publish",
+                "save_area_copy",
+                "save_draft",
+                "save_section"
+            ]
+        },
+        "admin/blox_templates.php": {
+            "action_candidates": [
+                "create_archive",
+                "create_area_assignment_draft",
+                "create_area_language_draft",
+                "create_error404",
+                "create_popup",
+                "create_search",
+                "delete",
+                "import",
+                "import_confirm",
+                "import_remote_copy",
+                "import_review_confirm",
+                "install_builtin_area",
+                "library_migrate",
+                "publish",
+                "restore_area_assignment_inheritance",
+                "restore_area_language_inheritance",
+                "rollback_remote",
+                "save_conditions",
+                "save_metadata",
+                "set_custom_area_enabled",
+                "set_custom_header_enabled",
+                "unpublish",
+                "update_remote"
+            ]
+        },
+        "admin/case.php": {
+            "action_candidates": [
+                "batch_delete",
+                "batch_publish",
+                "batch_unpublish",
+                "delete",
+                "duplicate",
+                "toggle"
+            ]
+        },
+        "admin/case_category.php": {
+            "action_candidates": [
+                "batch_delete",
+                "delete",
+                "save",
+                "sort",
+                "toggle_nav",
+                "toggle_status"
+            ]
+        },
+        "admin/channel.php": {
+            "action_candidates": [
+                "delete",
+                "delete_preview",
+                "save",
+                "sort",
+                "sort_footer_nav",
+                "toggle",
+                "toggle_cat_nav",
+                "toggle_home_show"
+            ]
+        },
+        "admin/channel_batch.php": {
+            "action_candidates": []
+        },
+        "admin/client_error_api.php": {
+            "action_candidates": []
+        },
+        "admin/content.php": {
+            "action_candidates": [
+                "batch_delete",
+                "delete",
+                "toggle"
+            ]
+        },
+        "admin/content_edit.php": {
+            "action_candidates": []
+        },
+        "admin/content_model.php": {
+            "action_candidates": [
+                "delete",
+                "save",
+                "toggle"
+            ]
+        },
+        "admin/cron.php": {
+            "action_candidates": [
+                "reset_token",
+                "run"
+            ]
+        },
+        "admin/database.php": {
+            "action_candidates": [
+                "backup",
+                "clear_logs",
+                "delete_backup",
+                "download",
+                "export",
+                "import",
+                "optimize",
+                "restore"
+            ]
+        },
+        "admin/download.php": {
+            "action_candidates": [
+                "batch_delete",
+                "batch_publish",
+                "batch_unpublish",
+                "delete",
+                "toggle_status",
+                "update_sort"
+            ]
+        },
+        "admin/download_category.php": {
+            "action_candidates": [
+                "delete",
+                "get",
+                "save",
+                "sort",
+                "toggle"
+            ]
+        },
+        "admin/download_edit.php": {
+            "action_candidates": []
+        },
+        "admin/draft_preview.php": {
+            "action_candidates": []
+        },
+        "admin/extfield.php": {
+            "action_candidates": [
+                "delete",
+                "save",
+                "toggle_status"
+            ]
+        },
+        "admin/extfield_api.php": {
+            "action_candidates": [
+                "render"
+            ]
+        },
+        "admin/form.php": {
+            "action_candidates": [
+                "batch_delete",
+                "delete",
+                "ip_info",
+                "unblock_ip",
+                "update_status"
+            ]
+        },
+        "admin/form_design.php": {
+            "action_candidates": [
+                "delete",
+                "save",
+                "toggle_status"
+            ]
+        },
+        "admin/form_file.php": {
+            "action_candidates": []
+        },
+        "admin/form_spam.php": {
+            "action_candidates": [
+                "save",
+                "toggle_captcha"
+            ]
+        },
+        "admin/front_edit_api.php": {
+            "action_candidates": []
+        },
+        "admin/index.php": {
+            "action_candidates": []
+        },
+        "admin/job.php": {
+            "action_candidates": [
+                "batch_delete",
+                "batch_publish",
+                "batch_unpublish",
+                "delete",
+                "toggle"
+            ]
+        },
+        "admin/job_edit.php": {
+            "action_candidates": []
+        },
+        "admin/license.php": {
+            "action_candidates": []
+        },
+        "admin/link.php": {
+            "action_candidates": [
+                "delete",
+                "save",
+                "sort",
+                "toggle_status"
+            ]
+        },
+        "admin/login.php": {
+            "action_candidates": []
+        },
+        "admin/logout.php": {
+            "action_candidates": []
+        },
+        "admin/media.php": {
+            "action_candidates": [
+                "batch_delete",
+                "delete",
+                "optimize",
+                "orphans",
+                "replace",
+                "usage"
+            ]
+        },
+        "admin/media_api.php": {
+            "action_candidates": [
+                "list",
+                "remote_import",
+                "remote_list",
+                "scan",
+                "upload"
+            ]
+        },
+        "admin/media_edit.php": {
+            "action_candidates": [
+                "info",
+                "preview",
+                "restore",
+                "save"
+            ]
+        },
+        "admin/member.php": {
+            "action_candidates": [
+                "delete",
+                "save",
+                "toggle_status"
+            ]
+        },
+        "admin/nav_menu.php": {
+            "action_candidates": [
+                "create_group",
+                "delete_group",
+                "rename_group",
+                "save_group",
+                "save_home_nav",
+                "save_nav",
+                "sort_nav",
+                "toggle_home_footer_nav",
+                "toggle_home_nav",
+                "toggle_nav",
+                "toggle_nav_icons"
+            ]
+        },
+        "admin/page.php": {
+            "action_candidates": [
+                "create",
+                "delete",
+                "toggle_status"
+            ]
+        },
+        "admin/page_edit.php": {
+            "action_candidates": []
+        },
+        "admin/page_edit_advance.php": {
+            "action_candidates": []
+        },
+        "admin/plugin.php": {
+            "action_candidates": [
+                "activate",
+                "deactivate",
+                "delete",
+                "market_install",
+                "market_list",
+                "upload"
+            ]
+        },
+        "admin/plugin_page.php": {
+            "action_candidates": []
+        },
+        "admin/product.php": {
+            "action_candidates": [
+                "batch_delete",
+                "batch_publish",
+                "batch_unpublish",
+                "delete",
+                "duplicate",
+                "toggle_recommend",
+                "toggle_status",
+                "toggle_top"
+            ]
+        },
+        "admin/product_brand.php": {
+            "action_candidates": [
+                "batch_delete",
+                "delete",
+                "save"
+            ]
+        },
+        "admin/product_category.php": {
+            "action_candidates": [
+                "batch_delete",
+                "delete",
+                "save",
+                "sort",
+                "toggle_nav",
+                "toggle_status"
+            ]
+        },
+        "admin/product_design.php": {
+            "action_candidates": [
+                "source"
+            ]
+        },
+        "admin/product_edit.php": {
+            "action_candidates": []
+        },
+        "admin/product_native_preview.php": {
+            "action_candidates": []
+        },
+        "admin/product_setting.php": {
+            "action_candidates": []
+        },
+        "admin/product_tag.php": {
+            "action_candidates": [
+                "add_group",
+                "delete",
+                "save"
+            ]
+        },
+        "admin/profile.php": {
+            "action_candidates": [
+                "change_password",
+                "totp_disable",
+                "totp_enable",
+                "totp_setup",
+                "update_info"
+            ]
+        },
+        "admin/recipe.php": {
+            "action_candidates": [
+                "apply",
+                "export",
+                "preview"
+            ]
+        },
+        "admin/recycle.php": {
+            "action_candidates": [
+                "empty",
+                "purge",
+                "restore"
+            ]
+        },
+        "admin/redirects.php": {
+            "action_candidates": [
+                "delete",
+                "import",
+                "save"
+            ]
+        },
+        "admin/revision.php": {
+            "action_candidates": [
+                "blocks",
+                "list",
+                "preview",
+                "restore"
+            ]
+        },
+        "admin/role.php": {
+            "action_candidates": [
+                "delete",
+                "save"
+            ]
+        },
+        "admin/setting.php": {
+            "action_candidates": [
+                "restore_defaults",
+                "save_admin_languages",
+                "save_channel_pagination",
+                "save_date_format",
+                "save_site_languages",
+                "save_timezone"
+            ]
+        },
+        "admin/setting_ai.php": {
+            "action_candidates": [
+                "archive",
+                "delete",
+                "restore",
+                "save",
+                "set_primary",
+                "sync_models",
+                "test"
+            ]
+        },
+        "admin/setting_api.php": {
+            "action_candidates": [
+                "clear_key",
+                "regen_key",
+                "save"
+            ]
+        },
+        "admin/setting_cache.php": {
+            "action_candidates": [
+                "clear",
+                "save"
+            ]
+        },
+        "admin/setting_channel_translate.php": {
+            "action_candidates": [
+                "ai_translate",
+                "save"
+            ]
+        },
+        "admin/setting_contact.php": {
+            "action_candidates": []
+        },
+        "admin/setting_customer_service.php": {
+            "action_candidates": []
+        },
+        "admin/setting_demo.php": {
+            "action_candidates": [
+                "reset",
+                "save_mode",
+                "snapshot"
+            ]
+        },
+        "admin/setting_email.php": {
+            "action_candidates": []
+        },
+        "admin/setting_home.php": {
+            "action_candidates": []
+        },
+        "admin/setting_lang.php": {
+            "action_candidates": [
+                "fix_htaccess",
+                "install_pack",
+                "probe_domain",
+                "restore_htaccess",
+                "save_domains",
+                "save_lang",
+                "translate_channels",
+                "uninstall_pack",
+                "upload_pack"
+            ]
+        },
+        "admin/setting_member.php": {
+            "action_candidates": []
+        },
+        "admin/setting_product_cat_translate.php": {
+            "action_candidates": [
+                "ai_translate",
+                "save"
+            ]
+        },
+        "admin/setting_security.php": {
+            "action_candidates": [
+                "clear_logs",
+                "clear_throttle",
+                "login",
+                "login_fail",
+                "logout"
+            ]
+        },
+        "admin/setting_seo.php": {
+            "action_candidates": [
+                "clear_sitemap_cache",
+                "save_robots"
+            ]
+        },
+        "admin/setting_social.php": {
+            "action_candidates": []
+        },
+        "admin/setting_translate.php": {
+            "action_candidates": []
+        },
+        "admin/site_content_check.php": {
+            "action_candidates": []
+        },
+        "admin/site_design.php": {
+            "action_candidates": [
+                "seed_default_area"
+            ]
+        },
+        "admin/site_fields.php": {
+            "action_candidates": []
+        },
+        "admin/site_health.php": {
+            "action_candidates": [
+                "finish_scan",
+                "scan_media",
+                "start_scan"
+            ]
+        },
+        "admin/site_setup.php": {
+            "action_candidates": []
+        },
+        "admin/site_template_market.php": {
+            "action_candidates": []
+        },
+        "admin/site_templates.php": {
+            "action_candidates": [
+                "apply",
+                "cancel_import",
+                "check_export",
+                "export",
+                "install_plugins",
+                "prepare",
+                "refresh_preview",
+                "restore",
+                "stage"
+            ]
+        },
+        "admin/static_html.php": {
+            "action_candidates": [
+                "batch",
+                "clear",
+                "save",
+                "start"
+            ]
+        },
+        "admin/support_access.php": {
+            "action_candidates": [
+                "enable",
+                "new_link",
+                "revoke"
+            ]
+        },
+        "admin/support_login.php": {
+            "action_candidates": []
+        },
+        "admin/system.php": {
+            "action_candidates": [
+                "clear_errorlog",
+                "clear_old"
+            ]
+        },
+        "admin/testimonial.php": {
+            "action_candidates": [
+                "delete",
+                "save",
+                "sort",
+                "toggle_status"
+            ]
+        },
+        "admin/theme.php": {
+            "action_candidates": [
+                "market_install",
+                "market_list"
+            ]
+        },
+        "admin/theme_content.php": {
+            "action_candidates": []
+        },
+        "admin/timeline.php": {
+            "action_candidates": [
+                "delete",
+                "render_preview",
+                "save",
+                "save_layout",
+                "save_sort_direction",
+                "sort",
+                "toggle_status"
+            ]
+        },
+        "admin/upgrade.php": {
+            "action_candidates": []
+        },
+        "admin/upgrade_online.php": {
+            "action_candidates": [
+                "apply_batch",
+                "apply_finalize",
+                "apply_prepare",
+                "apply_rollback",
+                "check",
+                "download",
+                "download_chunk",
+                "precheck"
+            ]
+        },
+        "admin/upload.php": {
+            "action_candidates": []
+        },
+        "admin/user.php": {
+            "action_candidates": [
+                "delete",
+                "save",
+                "toggle_status"
+            ]
+        },
+        "album.php": {
+            "action_candidates": []
+        },
+        "api/v1/_bootstrap.php": {
+            "action_candidates": []
+        },
+        "api/v1/index.php": {
+            "action_candidates": [
+                "channels",
+                "content",
+                "contents",
+                "product",
+                "products",
+                "search"
+            ]
+        },
+        "article.php": {
+            "action_candidates": []
+        },
+        "captcha.php": {
+            "action_candidates": []
+        },
+        "contact.php": {
+            "action_candidates": []
+        },
+        "cron.php": {
+            "action_candidates": []
+        },
+        "detail.php": {
+            "action_candidates": []
+        },
+        "download.php": {
+            "action_candidates": []
+        },
+        "form_nonce.php": {
+            "action_candidates": []
+        },
+        "form_submit.php": {
+            "action_candidates": []
+        },
+        "history.php": {
+            "action_candidates": []
+        },
+        "index.php": {
+            "action_candidates": []
+        },
+        "job_detail.php": {
+            "action_candidates": []
+        },
+        "list.php": {
+            "action_candidates": []
+        },
+        "mcp/index.php": {
+            "action_candidates": []
+        },
+        "news.php": {
+            "action_candidates": []
+        },
+        "page.php": {
+            "action_candidates": []
+        },
+        "plugins/seo/links_api.php": {
+            "action_candidates": [
+                "cornerstone"
+            ]
+        },
+        "plugins/shop/front/api.php": {
+            "action_candidates": []
+        },
+        "product.php": {
+            "action_candidates": []
+        },
+        "search.php": {
+            "action_candidates": []
+        },
+        "sitemap.php": {
+            "action_candidates": []
+        },
+        "tag.php": {
+            "action_candidates": []
+        }
+    }
+}

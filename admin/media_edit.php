@@ -28,6 +28,11 @@ requirePermission('media');
 const YK_IMAGE_EDIT_PREVIEW = 900;
 
 $action = (string) ($_REQUEST['action'] ?? '');
+// Mutations must pass the POST CSRF gate in checkLogin(); query-string actions cannot write.
+if (in_array($action, ['save', 'restore'], true) && ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    header('Allow: POST');
+    error(__('admin_illegal_request'), 405);
+}
 $id = (int) ($_REQUEST['id'] ?? 0);
 if ($id < 1 && $action === 'info' && is_string($_GET['url'] ?? null)) {
     // 去掉查询串后按媒体库网址精确匹配（库里与文档里都存根相对网址）；外链或不在媒体库的图片照旧报「找不到」
