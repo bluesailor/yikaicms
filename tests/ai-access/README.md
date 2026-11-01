@@ -97,3 +97,17 @@ MySQL 上的提案套件仍用 `run-local-mysql8.ps1`（自动包含场景 12 �
 - `assistant-seo-model-run.php --base=http://127.0.0.1:<port> --out=<report.json>`：同样是显式真实模型调用，覆盖 SEO 摘要能力：对话阶段生成并暂存固定摘要、对话不改文章、应用写入的正是暂存摘要且仍为草稿、撤销恢复、正文被人工改过后旧暂存拒绝写入。
 
 新增场景 14 验证满额/目标变化后的幂等重试，以及来源撤销后不能重放。`AiProposalTransactionTest` 同时包装 SQLite 升级/备份恢复演练。发行包契约要求 MCP 全部运行时文件，并拒绝私有数据库桥接文件。
+
+## 密钥保存与单页提案 HTTP 验收
+
+`secrets-page-http-run.php` 仅用于已执行 `tests/smoke/setup.php` 的独立工作区，管理自己的随机回环端口，不调用外部模型。使用合成密钥，报告只记录断言标签。
+
+```text
+php tests/smoke/setup.php
+php tests/ai-access/secrets-page-http-run.php key --out=http-key-s5.json
+php tests/ai-access/secrets-page-http-run.php no-key --out=http-no-key.json
+php tests/ai-access/secrets-page-http-run.php no-cipher --out=http-no-cipher.json
+php tests/smoke/setup.php --restore
+```
+
+先运行 `key`，以便后两轮也覆盖既有 AI 配置更新的拒绝行为。`no-key` 只临时移除本测试站配置中的加密密钥，退出时恢复配置；`no-cipher` 仅对该轮测试服务器禁用 `openssl_encrypt`，不修改系统 PHP 配置。测试 AI/SMTP/SEO 保存、留空与清除、通用设置注入、CSRF，并用正式 MCP 与后台 HTTP 入口验证单页提案、私有预览、草稿应用、重读、撤销和发布版不变。`key --ui-fixture` 额外留一个待审核合成提案供界面验证。结束后务必 restore，不用于真实开发站。

@@ -146,6 +146,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'retry_failed') 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action', 'save') === 'save') {
     $settings = $_POST['settings'] ?? [];
     $saveTab  = post('_save_tab', 'smtp');
+    // Only accept this tab's fields; a foreign setting must never bypass its dedicated secret writer.
+    if (!isset($tabs[$saveTab]) || !is_array($settings)) {
+        error();
+    }
+    $allowedKeys = $saveTab === 'smtp'
+        ? ['smtp_host', 'smtp_port', 'smtp_secure', 'smtp_user', 'smtp_pass', 'mail_from', 'mail_from_name', 'mail_admin', 'mail_notify_form']
+        : ($tabs[$saveTab]['keys'] ?? []);
+    if (array_diff(array_keys($settings), $allowedKeys) !== []
+        || count(array_filter($settings, static fn($value): bool => !is_scalar($value))) > 0) {
+        error();
+    }
     if ($saveTab === 'log') {
         success();   // 日志 tab 无可保存项（表头保存按钮不出现在此 tab）
     }

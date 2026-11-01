@@ -9558,7 +9558,7 @@ return [
     'cron_ai_proposals_prune_done' => '標記過期 :expired 項，刪除 :purged 條，清空正文快照 :cleared 項',
     'admin_ai_proposals' => 'AI 草稿提案',
     'aipr_title' => 'AI 草稿提案',
-    'aipr_intro' => '外部 AI 客戶端用你的令牌提交的文章草稿提案。應用後只儲存為草稿，不會發佈；草稿之後沒被再改過就可以撤銷。拒絕的提案不會寫入任何內容。',
+    'aipr_intro' => '外部 AI 客戶端用你的令牌提交的文章與單頁內容提案。應用後只儲存為草稿，不會發佈；草稿之後沒被再改過就可以撤銷。拒絕的提案不會寫入任何內容。',
     'aipr_need_upgrade' => '請先在「資料庫升級」中完成升級，再審核 AI 草稿提案。',
     'aipr_tab_pending' => '待審核（:n）',
     'aipr_tab_done' => '已處理',
