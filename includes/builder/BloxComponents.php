@@ -945,7 +945,7 @@ final class BloxComponents
 
     /**
      * 重建全站用量索引（整站模板导入后：用量表随替换被清空，母版行随模板表原样导入）。
-     * 文档键与各保存链路一致：单页 page:N、栏目落地页 channel:N、模板 template:N、首页 home / home-layout；均按草稿统计。
+     * 文档键与各保存链路一致：单页 page:N、栏目落地页 channel:N、模板 template:N、首页 home / home-layout；优先草稿，单页无草稿时回退到已发布正文。
      *
      * @return int 写入的文档数
      */
@@ -957,14 +957,30 @@ final class BloxComponents
         db()->execute('DELETE FROM ' . DB_PREFIX . 'blox_component_refs');
         $needle = '%"type":"' . self::TYPE . '"%';
         $docs = [];
-        if (db()->tableExists('blox_page_drafts')) {
+        $hasDrafts = db()->tableExists('blox_page_drafts');
+        if ($hasDrafts) {
             foreach (db()->fetchAll(
                 'SELECT d.page_id, d.draft_data, c.type FROM ' . DB_PREFIX . 'blox_page_drafts d LEFT JOIN ' . DB_PREFIX
                 . 'channels c ON c.id = d.page_id WHERE d.draft_data LIKE ?',
                 [$needle]
             ) as $row) {
                 $prefix = in_array((string) ($row['type'] ?? ''), ['page', 'product', ''], true) ? 'page:' : 'channel:';
-                $docs[$prefix . (int) $row['page_id']] = (string) $row['draft_data'];
+                if (trim((string) $row['draft_data']) !== '') $docs[$prefix . (int) $row['page_id']] = (string) $row['draft_data'];
+            }
+        }
+        // Whole-site imports intentionally omit editor drafts. Published pages still own
+        // component references; use them only when no newer editor draft was indexed.
+        if (db()->tableExists('contents') && db()->tableExists('channels')) {
+            foreach (db()->fetchAll(
+                'SELECT c.channel_id, c.blocks_data FROM ' . DB_PREFIX . 'contents c JOIN ' . DB_PREFIX
+                . "channels ch ON ch.id = c.channel_id WHERE ch.type = 'page' AND c.content_type = 'blocks'"
+                . " AND c.status = 1 AND c.deleted_at IS NULL AND c.blocks_data LIKE ?"
+                . ($hasDrafts ? ' AND NOT EXISTS (SELECT 1 FROM ' . DB_PREFIX . "blox_page_drafts d WHERE d.page_id = c.channel_id AND TRIM(COALESCE(d.draft_data, '')) <> '')" : '')
+                . ' ORDER BY c.id',
+                [$needle]
+            ) as $row) {
+                $key = 'page:' . (int) $row['channel_id'];
+                if (!isset($docs[$key])) $docs[$key] = (string) $row['blocks_data'];
             }
         }
         foreach (db()->fetchAll(

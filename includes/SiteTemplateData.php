@@ -126,7 +126,62 @@ final class SiteTemplateData
             }
         }
         ksort($settings);
+        if ($export) self::freezeComponentPins($tables, $settings);
         return ['tables' => $tables, 'settings' => $settings];
+    }
+
+    /**
+     * Site packages do not carry private revision tables. Reuse component-package freezing:
+     * old pins become deterministic, independent published masters, including nested pins.
+     * Operate only on the exported snapshot, never on the author's stored documents.
+     */
+    private static function freezeComponentPins(array &$tables, array &$settings): void
+    {
+        $frozen = [];
+        $rewrite = static function (mixed $value) use (&$frozen): mixed {
+            if (!is_string($value) || !str_contains($value, '"component"') || !str_contains($value, '"pin"')) return $value;
+            $tree = json_decode($value, true);
+            if (!is_array($tree)) return $value;
+            require_once __DIR__ . '/builder/bootstrap.php';
+            $next = BloxComponents::stripPins((array) BloxComponents::freezeBehindPins($tree, $frozen));
+            return $next === $tree ? $value : json_encode($next, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+        };
+        foreach ($tables as &$rows) foreach ($rows as &$row) foreach ($row as &$value) $value = $rewrite($value);
+        unset($rows, $row, $value);
+        foreach ($settings as &$value) $value = $rewrite($value);
+        unset($value);
+        if ($frozen === []) return;
+        $existing = [];
+        $nextId = 0;
+        foreach ($tables['blox_templates'] as $row) {
+            $nextId = max($nextId, (int) $row['id']);
+            if ($row['type'] === BloxComponents::TYPE) {
+                $meta = json_decode((string) $row['metadata'], true);
+                $component = BloxComponents::normalizeMeta($meta['component'] ?? null);
+                if ($component !== null) $existing[$component['uuid']] = [
+                    'json' => (string) $row['published_data'], 'version' => $component['version'], 'archived' => $component['archived'],
+                ];
+            }
+        }
+        ksort($frozen);
+        foreach ($frozen as $uuid => $row) {
+            $json = json_encode(BloxComponents::stripPins((array) json_decode($row['published_data'], true)),
+                JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR);
+            $row['draft_data'] = $row['published_data'] = $json;
+            if (isset($existing[$uuid])) {
+                if ($existing[$uuid]['json'] !== $row['published_data'] || $existing[$uuid]['version'] !== 1 || $existing[$uuid]['archived']) {
+                    throw new RuntimeException('st_invalid');
+                }
+                continue; // Never silently replace an independently edited frozen master.
+            }
+            if (count($existing) >= BloxComponents::MAX_COMPONENTS) throw new RuntimeException('st_limit');
+            $tables['blox_templates'][] = array_replace([
+                'id' => 0, 'source' => 'user', 'source_ref' => '', 'schema_version' => 1,
+                'requirements' => '[]', 'conditions' => '{}', 'thumbnail' => '', 'status' => 1,
+                'admin_id' => 0, 'created_at' => 0, 'updated_at' => 0, 'published_at' => 0,
+            ], $row, ['id' => ++$nextId]);
+            $existing[$uuid] = ['json' => $row['published_data'], 'version' => 1, 'archived' => false];
+        }
     }
 
     /** Core data guard. Plugin-owned state is tracked separately by the import journal. */

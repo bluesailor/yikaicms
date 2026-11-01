@@ -54,7 +54,7 @@ final class BloxComponentsTest extends TestCase
                 updated_at INTEGER NOT NULL DEFAULT 0
             )",
             "CREATE TABLE blox_page_drafts (id INTEGER PRIMARY KEY AUTOINCREMENT, page_id INTEGER NOT NULL, draft_data TEXT NOT NULL, published_data TEXT, admin_id INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL DEFAULT 0, updated_at INTEGER NOT NULL DEFAULT 0, published_at INTEGER NOT NULL DEFAULT 0)",
-            "CREATE TABLE contents (id INTEGER PRIMARY KEY AUTOINCREMENT, blocks_data TEXT)",
+            "CREATE TABLE contents (id INTEGER PRIMARY KEY AUTOINCREMENT, channel_id INTEGER DEFAULT 0, content_type TEXT DEFAULT 'html', status INTEGER DEFAULT 1, deleted_at INTEGER, blocks_data TEXT)",
             "CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, \"key\" TEXT NOT NULL, value TEXT)",
             "CREATE TABLE channels (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL DEFAULT '', type TEXT NOT NULL DEFAULT 'page')",
             "CREATE TABLE blox_component_revisions (
@@ -783,6 +783,31 @@ final class BloxComponentsTest extends TestCase
         self::assertSame(2, BloxComponents::reindexSite());
         self::assertSame(['home', 'page:1'], BloxComponents::usedIn($component['uuid']));
         self::assertSame([], BloxComponents::usedIn('cmp_ffffffffffffffff'), '旧站残留的用量清掉');
+    }
+
+    public function testPublishedPageFallbackDoesNotResurrectReferencesRemovedByADraft(): void
+    {
+        $published = $this->publishComponent($this->masterJson('Published'));
+        $draft = $this->publishComponent($this->masterJson('Draft'));
+        db()->insert('channels', ['id' => 1, 'name' => 'Imported page']);
+        db()->insert('contents', ['channel_id' => 1, 'content_type' => 'blocks', 'blocks_data' => json_encode(['schema'=>1,'sections'=>$this->pageWith($published['uuid'])])]);
+        BloxComponents::reindexSite();
+        self::assertSame(['page:1'], BloxComponents::usedIn($published['uuid']));
+
+        db()->insert('blox_page_drafts', ['page_id'=>1,'draft_data'=>json_encode(['schema'=>1,'sections'=>$this->pageWith($draft['uuid'])])]);
+        BloxComponents::reindexSite();
+        self::assertSame([], BloxComponents::usedIn($published['uuid']));
+        self::assertSame(['page:1'], BloxComponents::usedIn($draft['uuid']));
+
+        db()->execute('UPDATE blox_page_drafts SET draft_data = ?', ['{"schema":1,"sections":[]}']);
+        BloxComponents::reindexSite();
+        self::assertSame([], BloxComponents::usedIn($published['uuid']), 'An explicit empty draft takes precedence over published content');
+        self::assertSame([], BloxComponents::usedIn($draft['uuid']));
+
+        db()->execute('DELETE FROM blox_page_drafts');
+        db()->execute('UPDATE contents SET deleted_at = 1');
+        BloxComponents::reindexSite();
+        self::assertSame([], BloxComponents::usedIn($published['uuid']), 'Deleted content is not a published fallback');
     }
 
     // ── 多语言属性 ──────────────────────────────────────────────────

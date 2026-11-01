@@ -219,6 +219,18 @@ jobs:
           php tests/smoke/setup.php --lang=zh-CN
           php tests/smoke/security_permission_matrix_phase2.php
 
+      - name: Component site export-install-import-render roundtrip
+        if: ${{ matrix.php == '8.2' && matrix.lang == 'zh-CN' }}
+        run: php tools/component-site-roundtrip.php --port=18095 --report=/tmp/component-site-roundtrip.json
+
+      - name: Retain component roundtrip evidence
+        if: ${{ always() && matrix.php == '8.2' && matrix.lang == 'zh-CN' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: component-site-roundtrip
+          path: /tmp/component-site-roundtrip.json
+          if-no-files-found: ignore
+
       - name: Prepare fresh SQLite install
         run: php tests/smoke/setup.php --lang=${{ matrix.lang }}
 
