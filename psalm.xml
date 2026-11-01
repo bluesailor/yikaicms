@@ -23,6 +23,7 @@
         <file name="news.php" />
         <file name="page.php" />
         <file name="product.php" />
+        <file name="search.php" />
         <!-- 2.2 AI 外部访问入口：只调用 AiMcpEntry::run() -->
         <file name="mcp/index.php" />
         <directory name="admin" />
@@ -79,6 +80,8 @@
                 <file name="index.php" />
                 <!-- 列表控制器/分页 partial：变量由动态主题模板与 require 作用域消费 -->
                 <file name="list.php" />
+                <!-- Search controller variables are consumed by dynamic theme layouts and the shared search-results partial. -->
+                <file name="search.php" />
                 <!-- 相册照片与灯箱在 includes/partials/album-*.php，经 require 作用域消费 -->
                 <file name="page.php" />
                 <file name="album.php" />

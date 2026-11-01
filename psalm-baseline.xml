@@ -884,11 +884,6 @@
       <code><![CDATA[recent]]></code>
     </PossiblyUnusedMethod>
   </file>
-  <file src="includes/Backup.php">
-    <InvalidCast>
-      <code><![CDATA[$v]]></code>
-    </InvalidCast>
-  </file>
   <file src="includes/CLI.php">
     <PossiblyUnusedMethod>
       <code><![CDATA[dispatch]]></code>
@@ -1088,9 +1083,6 @@
     </NullableReturnStatement>
   </file>
   <file src="includes/init.php">
-    <MissingFile>
-      <code><![CDATA[require_once ROOT_PATH . '/config/config.php']]></code>
-    </MissingFile>
     <ParadoxicalCondition>
       <code><![CDATA[!file_exists(ROOT_PATH . '/installed.lock')]]></code>
     </ParadoxicalCondition>

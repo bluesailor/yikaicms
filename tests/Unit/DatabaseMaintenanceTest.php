@@ -33,6 +33,45 @@ final class DatabaseMaintenanceTest extends TestCase
         self::assertSame(["O'Reilly; handbook\\chapter"], array_column($rows, 'note'));
     }
 
+    public function testBackupPreservesNullEmptyNumericAndUnicodeValues(): void
+    {
+        db()->execute('CREATE TABLE backup_values (id INTEGER PRIMARY KEY, nullable TEXT, empty TEXT, zero INTEGER, amount REAL, note TEXT)');
+        db()->insert('backup_values', ['id' => 1, 'nullable' => null, 'empty' => '', 'zero' => 0, 'amount' => 12.5, 'note' => "测试 O'Reilly; \\line\nnext"]);
+        $before = db()->fetchAll('SELECT * FROM backup_values');
+
+        $backup = \Backup::generateSql(['backup_values']);
+        $result = \DatabaseMaintenance::restoreSql($backup);
+
+        self::assertSame([], $result['errors']);
+        self::assertSame($before, db()->fetchAll('SELECT * FROM backup_values'));
+    }
+
+    public function testBackupRejectsUnexpectedNonScalarCells(): void
+    {
+        $database = db();
+        $instance = new \ReflectionProperty(\Database::class, 'instance');
+        $stream = fopen('php://memory', 'r+');
+        self::assertIsResource($stream);
+        try {
+            foreach ([['unexpected'], new \stdClass(), $stream] as $value) {
+                $mock = $this->createMock(\Database::class);
+                $mock->method('isSqlite')->willReturn(true);
+                $mock->method('fetchAll')->willReturn([['note' => $value]]);
+                $instance->setValue(null, $mock);
+                try {
+                    \Backup::generateSql(['maintenance_items'], false);
+                    self::fail('A non-scalar database cell must not become a corrupt SQL string');
+                } catch (\UnexpectedValueException $e) {
+                    self::assertStringContainsString('Unsupported database value type:', $e->getMessage());
+                } finally {
+                    $instance->setValue(null, $database);
+                }
+            }
+        } finally {
+            fclose($stream);
+        }
+    }
+
     /**
      * SQLite 的 UNIQUE 多半是独立的 CREATE UNIQUE INDEX（settings.key 就是）。备份只导建表
      * 语句的话，恢复/回滚之后 INSERT … ON CONFLICT(key) 一律失败，后台登录都进不去

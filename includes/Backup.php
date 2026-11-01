@@ -78,7 +78,7 @@ class Backup
                         $vals = [];
                         foreach ($chunk as $r) {
                             $escaped = array_map(
-                                fn($v) => $v === null ? 'NULL' : "'" . self::escapeValue((string) $v, $isSqlite) . "'",
+                                static fn(mixed $value): string => self::sqlValue($value, $isSqlite),
                                 array_values($r)
                             );
                             $vals[] = '(' . implode(', ', $escaped) . ')';
@@ -100,9 +100,15 @@ class Backup
         return in_array($format, ['default', 'mysql57_utf8'], true) ? $format : 'default';
     }
 
-    private static function escapeValue(string $value, bool $isSqlite): string
+    private static function sqlValue(mixed $value, bool $isSqlite): string
     {
-        return $isSqlite ? str_replace("'", "''", $value) : addslashes($value);
+        if ($value === null) return 'NULL';
+        // PDO normally returns scalar cells; reject unexpected types rather than silently corrupting a dump.
+        if (!is_scalar($value)) {
+            throw new UnexpectedValueException('Unsupported database value type: ' . get_debug_type($value));
+        }
+        $text = (string) $value;
+        return "'" . ($isSqlite ? str_replace("'", "''", $text) : addslashes($text)) . "'";
     }
 
     private static function buildHeader(string $format, bool $isSqlite): string

@@ -29,6 +29,7 @@ if (!file_exists(ROOT_PATH . '/installed.lock')) {
 }
 
 // 加载配置文件
+/** @psalm-suppress MissingFile Per-install config is intentionally absent in clean checkouts; the analysis bootstrap loads config.php.example. */
 require_once ROOT_PATH . '/config/config.php';
 
 // 加载公共函数
