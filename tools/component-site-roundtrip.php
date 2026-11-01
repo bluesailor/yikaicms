@@ -3,9 +3,11 @@
 declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 $root=dirname(__DIR__);
-$options=getopt('',['report:','port::','keep']);
+$options=getopt('',['report:','port::','db::','keep']);
 $reportPath=$options['report']??'';
-if($reportPath===''){fwrite(STDERR,"Usage: php tools/component-site-roundtrip.php --report=<result.json> [--port=18907] [--keep]\n");exit(2);}
+if($reportPath===''){fwrite(STDERR,"Usage: php tools/component-site-roundtrip.php --report=<result.json> [--db=sqlite|mysql] [--port=18907] [--keep]\n");exit(2);}
+$dbKind=(string)($options['db']??'sqlite');
+if(!in_array($dbKind,['sqlite','mysql'],true))throw new RuntimeException('Unsupported database');
 if(!is_dir(dirname($reportPath)) || !is_writable(dirname($reportPath)))throw new RuntimeException('Report directory must exist and be writable');
 $port=(int)($options['port']??18907);
 if($port<1024 || $port>65535)throw new RuntimeException('Invalid loopback port');
@@ -14,10 +16,26 @@ $base='http://127.0.0.1:'.$port;
 $parent=str_replace('\\','/',rtrim(sys_get_temp_dir(),'/\\')).'/yk-component-roundtrip-'.bin2hex(random_bytes(6));
 mkdir($parent,0700,true);
 $realParent=str_replace('\\','/',(string)realpath($parent));
-$report=['php'=>PHP_VERSION,'db'=>'sqlite','git_head'=>trim((string)shell_exec('git -C '.escapeshellarg($root).' rev-parse HEAD')),'checks'=>[],'passed'=>false];
+$report=['php'=>PHP_VERSION,'db'=>$dbKind,'git_head'=>trim((string)shell_exec('git -C '.escapeshellarg($root).' rev-parse HEAD')),'checks'=>[],'passed'=>false];
 foreach(['includes/SiteTemplateData.php','includes/builder/BloxComponents.php','tests/fixtures/component-site-driver.php',
     'tools/component-site-roundtrip.php','config/site-template-schema.php'] as $file)$report['source_sha256'][$file]=hash_file('sha256',$root.'/'.$file);
 $server=null; $httpBodies=['source'=>[],'target'=>[]];
+$mysqlControl=null; $ownedDatabases=[]; $mysqlIdentity=[]; $databasePrefix='yk_cmp_rt_'.bin2hex(random_bytes(10)).'_';
+function cc_mysql_identity(PDO $pdo): array {
+    $row=$pdo->query('SELECT VERSION() AS version, @@datadir AS datadir, @@port AS port, @@server_uuid AS uuid, @@sql_mode AS sql_mode, @@character_set_server AS charset, @@collation_server AS collation')->fetch(PDO::FETCH_ASSOC);
+    if(!is_array($row))throw new RuntimeException('Cannot verify temporary MySQL identity');
+    return $row;
+}
+function cc_mysql_path(string $value): string {
+    $path=rtrim(str_replace('\\','/',$value),'/');return DIRECTORY_SEPARATOR==='\\'?strtolower($path):$path;
+}
+function cc_assert_mysql_owner(): void {
+    global $mysqlControl,$mysqlIdentity;
+    if(!$mysqlControl instanceof PDO)throw new RuntimeException('No verified test server');
+    $current=cc_mysql_identity($mysqlControl);
+    if(cc_mysql_path($current['datadir'])!==cc_mysql_path($mysqlIdentity['datadir']) || $current['uuid']!==$mysqlIdentity['uuid'])
+        throw new RuntimeException('Test server identity changed; refusing database mutation');
+}
 function cc_check(bool $ok,string $label): void {
     global $report; $report['checks'][]=['ok'=>$ok,'label'=>$label];echo ($ok?'PASS ':'FAIL ').$label."\n";
 }
@@ -42,7 +60,7 @@ function cc_start(string $site): void {
 }
 function cc_stop(): void { global $server;if(is_resource($server)){proc_terminate($server);proc_close($server);$server=null;} }
 function cc_install(string $site): void {
-    global $root,$base;
+    global $root,$base,$dbKind,$mysqlControl,$ownedDatabases,$databasePrefix;
     mkdir($site,0700,true);
     $files=explode("\0",(string)shell_exec('git -C '.escapeshellarg($root).' ls-files -z'));
     foreach($files as $file){
@@ -52,12 +70,29 @@ function cc_install(string $site): void {
     }
     copy($root.'/tests/fixtures/component-site-driver.php',$site.'/component-driver.php');
     cc_start($site);
-    $response=cc_http('/install/index.php',['action'=>'install','db_driver'=>'sqlite','db_prefix'=>'yikai_','admin_user'=>'rt'.bin2hex(random_bytes(4)),
+    $form=['action'=>'install','db_driver'=>$dbKind,'db_prefix'=>'yikai_','admin_user'=>'rt'.bin2hex(random_bytes(4)),
         'admin_pass'=>'Rt#'.bin2hex(random_bytes(12)),'admin_email'=>'roundtrip@example.test','site_name'=>'Roundtrip','site_url'=>$base,
-        'site_lang'=>'zh-CN','admin_lang'=>'zh-CN','install_demo'=>'0']);
+        'site_lang'=>'zh-CN','admin_lang'=>'zh-CN','install_demo'=>'0'];
+    if($dbKind==='mysql') {
+        cc_assert_mysql_owner();
+        $name=$databasePrefix.basename($site);
+        if(!preg_match('/^yk_cmp_rt_[a-f0-9]{20}_(source|target)$/D',$name))throw new RuntimeException('Invalid test database name');
+        $mysqlControl->exec('CREATE DATABASE `'.$name.'` CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci');
+        $ownedDatabases[]=$name; // Record ownership only after successful CREATE, never reuse an existing database.
+        $form+=['db_host'=>'127.0.0.1','db_port'=>(string)getenv('YK_COMPONENT_MYSQL_PORT'),'db_name'=>$name,
+            'db_user'=>(string)getenv('YK_COMPONENT_MYSQL_USER'),'db_pass'=>(string)getenv('YK_COMPONENT_MYSQL_PASS')];
+    }
+    $response=cc_http('/install/index.php',$form);
     $json=json_decode($response['body'],true);
     if($response['status']!==200 || empty($json['success']))throw new RuntimeException('Synthetic HTTP installation failed: '.substr($response['body'],0,400));
     cc_check(is_file($site.'/installed.lock'),'Real installer completed: '.basename($site));
+    // This reads constants only, before init/fixture code can open a database connection.
+    $identity=cc_driver($site,'identity');
+    $matches=$identity['driver']===$dbKind && $identity['prefix']==='yikai_';
+    if($dbKind==='mysql')$matches=$matches && $identity['name']===$name && $identity['host']==='127.0.0.1' && (int)$identity['port']===(int)getenv('YK_COMPONENT_MYSQL_PORT');
+    else $matches=$matches && str_starts_with(str_replace('\\','/',$identity['path']),str_replace('\\','/',$site).'/');
+    cc_check($matches,'Installer config points only to the owned '.$dbKind.' database: '.basename($site));
+    if(!$matches)throw new RuntimeException('Unsafe installer database identity');
 }
 function cc_driver(string $site,string $mode,string $lang='zh-CN',string $path=''): array {
     $out=[];$code=0;
@@ -131,6 +166,19 @@ function cc_cleanup(string $dir): void {
     rmdir($dir);
 }
 try {
+    if($dbKind==='mysql') {
+        $mysqlPort=(string)getenv('YK_COMPONENT_MYSQL_PORT');$expectedDir=(string)getenv('YK_COMPONENT_MYSQL_DATADIR');
+        if(!ctype_digit($mysqlPort) || (int)$mysqlPort<1024 || (int)$mysqlPort>65535 || $expectedDir==='' || !getenv('YK_COMPONENT_MYSQL_USER'))
+            throw new RuntimeException('Explicit temporary MySQL port, user and expected datadir are required');
+        $mysqlControl=new PDO('mysql:host=127.0.0.1;port='.$mysqlPort.';charset=utf8mb4',(string)getenv('YK_COMPONENT_MYSQL_USER'),(string)getenv('YK_COMPONENT_MYSQL_PASS'),[PDO::ATTR_ERRMODE=>PDO::ERRMODE_EXCEPTION]);
+        $mysqlIdentity=cc_mysql_identity($mysqlControl);
+        if(cc_mysql_path($mysqlIdentity['datadir'])!==cc_mysql_path($expectedDir) || (int)$mysqlIdentity['port']!==(int)$mysqlPort)
+            throw new RuntimeException('MySQL datadir/port mismatch; refusing to create databases');
+        $family=(string)getenv('YK_COMPONENT_MYSQL_VERSION');
+        if(!in_array($family,['5.7','8.0'],true) || !str_starts_with($mysqlIdentity['version'],$family.'.'))throw new RuntimeException('Unexpected MySQL version');
+        $report['mysql_server']=$mysqlIdentity;
+        cc_check(true,'Temporary MySQL identity verified: '.$mysqlIdentity['version']);
+    }
     $source=$parent.'/source';$target=$parent.'/target';$zip=$parent.'/components.zip';
     cc_install($source);
     cc_check(cc_driver($source,'inspect')['pending']===[],'Pristine source install has zero pending migrations');
@@ -142,6 +190,7 @@ try {
     cc_check(str_contains($before['zh-CN']['pages'][607]['html'],'OUTER_V1') && str_contains($before['zh-CN']['pages'][607]['html'],'VERSION_2_ONLY'),'Source shallow pin leaves unpinned inner component on latest');
     cc_check(str_contains($sourceHttp[601],'FEATURED_V1') && !str_contains($sourceHttp[601],'VERSION_2_ONLY'),'Anonymous source HTTP actually renders pinned v1');
     cc_check(str_contains($sourceHttp[605],'OVERRIDE_ZH') && str_contains($sourceHttp[705],'OVERRIDE_EN') && str_contains($sourceHttp[706],'DEFAULT_EN_V1'),'Anonymous source HTTP language controls');
+    cc_check(str_contains($httpBodies['source'][605],'中文🧪'),'Source database and HTTP preserve Chinese plus four-byte Unicode');
     cc_check(str_contains($sourceHttp[601],'yk-c-roundtrip-title'),'Source global class is actually attached to rendered content');
     $sourceHome=cc_http('/');$sourceHomeFragment=cc_fragment($sourceHome['body']);
     cc_check($sourceHome['status']===200 && str_contains($sourceHomeFragment,'OUTER_V1') && str_contains($sourceHomeFragment,'FEATURED_V1'),'Source home renders the nested pinned control');
@@ -216,6 +265,19 @@ try {
 } catch(Throwable $e){$report['error']=$e->getMessage();echo 'ERROR '.$e->getMessage()."\n";}
 finally {
     cc_stop();
+    if($ownedDatabases!==[]) {
+        try {
+            cc_assert_mysql_owner();
+            foreach($ownedDatabases as $database) {
+                if(!str_starts_with($database,$databasePrefix) || !preg_match('/^yk_cmp_rt_[a-f0-9]{20}_(source|target)$/D',$database))throw new RuntimeException('Refusing cleanup of an unowned database');
+                $mysqlControl->exec('DROP DATABASE `'.$database.'`');
+                $query=$mysqlControl->prepare('SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name=?');$query->execute([$database]);
+                cc_check((int)$query->fetchColumn()===0,'Owned temporary database removed: '.$database);
+            }
+            $report['database_cleanup']=['created'=>$ownedDatabases,'remaining'=>[]];
+        }catch(Throwable $e){$report['error']='Temporary database cleanup failed: '.$e->getMessage();}
+    }
+    $report['passed']=!isset($report['error']) && !array_filter($report['checks'],static fn($r)=>!$r['ok']);
     $report['assertions']=count($report['checks']);$report['failed']=count(array_filter($report['checks'],static fn($r)=>!$r['ok']));
     if(isset($options['keep']) || !$report['passed'])$report['retained_sandbox']=$parent;else cc_cleanup($parent);
     file_put_contents($reportPath,json_encode($report,JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE|JSON_UNESCAPED_SLASHES)."\n");

@@ -3,6 +3,11 @@
 declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 define('IK_CLI', true);
+if(($argv[1]??'')==='identity') {
+    define('ROOT_PATH',__DIR__);require __DIR__.'/config/config.php';
+    echo json_encode(['driver'=>DB_DRIVER,'name'=>defined('DB_NAME')?DB_NAME:null,'prefix'=>DB_PREFIX,
+        'host'=>defined('DB_HOST')?DB_HOST:null,'port'=>defined('DB_PORT')?DB_PORT:null,'path'=>defined('DB_PATH')?DB_PATH:'']);exit;
+}
 define('SITE_LANG', $argv[2] ?? 'zh-CN');
 $_SERVER['HTTP_HOST'] = '127.0.0.1';
 $_SERVER['REQUEST_URI'] = '/';
@@ -71,7 +76,7 @@ if ($mode==='seed') {
         'latest'=>cr_instance($inner,0,['variant'=>'featured']),
         'nested-pin'=>cr_instance($outer,1),
         'nested-latest'=>cr_instance($outer),
-        'override'=>cr_instance($inner,1,['variant'=>'featured','props'=>['title'=>'OVERRIDE_ZH','link'=>'/page.php?id=602'],
+        'override'=>cr_instance($inner,1,['variant'=>'featured','props'=>['title'=>'OVERRIDE_ZH_中文🧪','link'=>'/page.php?id=602'],
             'props_i18n'=>['en'=>['title'=>'OVERRIDE_EN']]]),
         'default'=>cr_instance($inner,1),
         'shallow'=>cr_instance($shallow,1),

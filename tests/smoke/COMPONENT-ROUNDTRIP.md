@@ -1,6 +1,6 @@
 # 组件整站包往返验收
 
-在独立工作区执行，需要 PHP 8.2+、pdo_sqlite、curl、ZipArchive、DOM、mbstring 和 Git；不是对已有站点执行导入的脚本。
+在独立工作区执行，需要 PHP 8.2+、pdo_sqlite、curl、ZipArchive、DOM、mbstring 和 Git；MySQL 模式还需 pdo_mysql。不是对已有站点执行导入的脚本。
 
 ```powershell
 php tools/component-site-roundtrip.php --report=component-roundtrip.json
@@ -24,4 +24,27 @@ php tools/component-site-roundtrip.php --report=component-roundtrip.json
 
 CI 的 PHP 8.2/zh-CN 作业执行此门禁并保留 JSON 证据，fixture 本身同时验证 zh-CN/en。新增范围不能仅通过重生成期望文件放行，必须检查源站独立对照和实际差异。
 
-此门禁使用 SQLite 与 PHP 内置服务器，不替代 MySQL、nginx/Apache、像素级浏览器验收或全量发布检查；查询循环、完整设计 token、高级字段及所有插件组合还需各自补充场景。
+默认模式使用 SQLite 与 PHP 内置服务器；MySQL 需运行下述独立模式。两者均不替代 nginx/Apache、像素级浏览器验收或全量发布检查；查询循环、完整设计 token、高级字段及所有插件组合还需各自补充场景。
+
+## MySQL 5.7 / 8.0
+
+Windows 推荐使用自带包装脚本。它只读取指定目录的 MySQL 可执行文件，启动独立 mysqld、数据目录和端口，无需现有数据库密码，也不读取面板配置。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests\smoke\run-component-mysql.ps1 -MysqlHome D:\yikai\soft\mysql\5.7 -Version 5.7 -Port 33087 -HttpPort 18917 -OutDir D:\test-results\mysql57
+powershell -NoProfile -ExecutionPolicy Bypass -File tests\smoke\run-component-mysql.ps1 -MysqlHome D:\yikai\soft\mysql\8.0 -Version 8.0 -Port 33088 -HttpPort 18918 -OutDir D:\test-results\mysql80
+```
+
+包装脚本会运行数据目录不匹配的拒绝对照，创建独立控制库验证不会误改旁库，执行门禁后核对源/目标随机库均已删除，再停止自己启动的 mysqld。成功时删除已核对绝对路径及重解析点的自有数据目录；失败时停止服务并保留诊断。环境变量恢复到运行前状态。
+
+Linux CI 或已准备好的专用测试服务可直接运行 `php tools/component-site-roundtrip.php --db=mysql --report=result.json`，必须显式设置：
+
+- `YK_COMPONENT_MYSQL_PORT`、`YK_COMPONENT_MYSQL_USER`、`YK_COMPONENT_MYSQL_PASS`
+- `YK_COMPONENT_MYSQL_DATADIR`：与服务 `@@datadir` 精确对应；Windows 仅归一化路径分隔符和大小写。
+- `YK_COMPONENT_MYSQL_VERSION`：`5.7` 或 `8.0`，检查实际 `VERSION()`，不把 MariaDB 当作 MySQL 结果。
+
+只连接 127.0.0.1；先验证数据目录、端口、服务 UUID 和版本，再创建 `yk_cmp_rt_<20位随机十六进制>_source/target`，不复用已有库。安装后在加载应用之前核对配置中的 DB_DRIVER/库名/端口/前缀；每次删除库前重新核对服务身份，只删除本次成功创建的确切名称。`--keep` 在 MySQL 模式仅保留站点文件，临时库仍清理。
+
+报告记录真实服务器版本、SQL mode、字符集、随机库清理结果；包装脚本的 `local-instance.json` 另记录服务归属、错误目录拒绝、控制库不变、服务停止和数据目录清理。fixture 包括真实中文及四字节 Unicode 字符，验证 utf8mb4 数据保存和 HTTP 输出。
+
+CI 已配置两个 MySQL 服务作业；是否通过以远端实际运行记录为准。低配服务器的内存/并发压测不属于此功能门禁。

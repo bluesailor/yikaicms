@@ -280,6 +280,51 @@ jobs:
           echo "=== storage/logs ==="; cat storage/logs/error-*.log 2>/dev/null || echo "(no error log)"
           echo "=== php server log ==="; tail -50 /tmp/php-server.log 2>/dev/null || true
 
+  # Component transfer uses separate random databases on each disposable service.
+  component-mysql:
+    name: Component roundtrip MySQL ${{ matrix.mysql }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        mysql: ['5.7', '8.0']
+    services:
+      mysql:
+        image: mysql:${{ matrix.mysql }}
+        env:
+          MYSQL_ROOT_PASSWORD: ci-root
+          MYSQL_ROOT_HOST: '%'
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -pci-root --silent"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+          extensions: mbstring, pdo_mysql, pdo_sqlite, curl, zip, dom, gd, fileinfo, simplexml
+          coverage: none
+      - name: Export, fresh install, import and render with owned databases
+        env:
+          YK_COMPONENT_MYSQL_PORT: '3306'
+          YK_COMPONENT_MYSQL_USER: root
+          YK_COMPONENT_MYSQL_PASS: ci-root
+          YK_COMPONENT_MYSQL_DATADIR: /var/lib/mysql
+          YK_COMPONENT_MYSQL_VERSION: ${{ matrix.mysql }}
+        run: php tools/component-site-roundtrip.php --db=mysql --port=18096 --report=/tmp/component-mysql.json
+      - name: Retain database roundtrip evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: component-mysql-${{ matrix.mysql }}
+          path: /tmp/component-mysql.json
+          if-no-files-found: ignore
+
   # ─── MySQL 5.7 真实装机腿：SQLite 对拍能发现 schema 漂移，但抓不到
   # ─── MySQL 方言、驱动类型和 InnoDB 事务行为。通过正式 HTTP 安装器装英文站，
   # ─── 再复用后台 CRUD / 全页面渲染冒烟，直接守住生产目标数据库。
