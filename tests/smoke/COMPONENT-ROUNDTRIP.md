@@ -24,7 +24,7 @@ php tools/component-site-roundtrip.php --report=component-roundtrip.json
 
 CI 的 PHP 8.2/zh-CN 作业执行此门禁并保留 JSON 证据，fixture 本身同时验证 zh-CN/en。新增范围不能仅通过重生成期望文件放行，必须检查源站独立对照和实际差异。
 
-默认模式使用 SQLite 与 PHP 内置服务器；MySQL 需运行下述独立模式。两者均不替代 nginx/Apache、像素级浏览器验收或全量发布检查；查询循环、完整设计 token、高级字段及所有插件组合还需各自补充场景。
+默认模式使用 SQLite 与 PHP 内置服务器；MySQL 需运行下述独立模式，nginx/Apache 需显式选择下述服务器模式。HTTP DOM 与资源检查不替代像素级浏览器验收或全量发布检查；查询循环、完整设计 token、高级字段及所有插件组合还需各自补充场景。
 
 ## MySQL 5.7 / 8.0
 
@@ -48,3 +48,24 @@ Linux CI 或已准备好的专用测试服务可直接运行 `php tools/componen
 报告记录真实服务器版本、SQL mode、字符集、随机库清理结果；包装脚本的 `local-instance.json` 另记录服务归属、错误目录拒绝、控制库不变、服务停止和数据目录清理。fixture 包括真实中文及四字节 Unicode 字符，验证 utf8mb4 数据保存和 HTTP 输出。
 
 CI 已配置两个 MySQL 服务作业；是否通过以远端实际运行记录为准。低配服务器的内存/并发压测不属于此功能门禁。
+
+## 独立 nginx / Apache
+
+`--server=nginx|apache` 直接启动指定的服务器二进制和独立 PHP CGI FastCGI 进程；没有代理到 PHP 内置服务器。默认 `--php-cgi` 为当前 PHP CLI 同目录的 `php-cgi.exe`（非 Windows 为 `php-cgi`），也可显式指定。就绪检查要求 CGI 的随机进程环境标记、实际文档根、SAPI 和 PHP 版本全部匹配当前 CLI；不符合则在安装前停止。
+
+```powershell
+php tools/component-site-roundtrip.php --server=nginx --server-bin=D:/yikai/soft/nginx/nginx.exe --port=18921 --report=D:/test-results/nginx-sqlite.json
+php tools/component-site-roundtrip.php --server=apache --server-bin=D:/yikai/soft/apache/2.4.39/bin/httpd.exe --port=18922 --report=D:/test-results/apache-sqlite.json
+powershell -NoProfile -ExecutionPolicy Bypass -File tests\smoke\run-component-mysql.ps1 -MysqlHome D:\yikai\soft\mysql\8.0 -Version 8.0 -Port 33092 -HttpPort 18932 -WebServer nginx -ServerBinary D:\yikai\soft\nginx\nginx.exe -OutDir D:\test-results\nginx-mysql80
+powershell -NoProfile -ExecutionPolicy Bypass -File tests\smoke\run-component-mysql.ps1 -MysqlHome D:\yikai\soft\mysql\5.7 -Version 5.7 -Port 33093 -HttpPort 18933 -WebServer apache -ServerBinary D:\yikai\soft\apache\2.4.39\bin\httpd.exe -OutDir D:\test-results\apache-mysql57
+```
+
+报告目录必须预先存在；MySQL 包装脚本会建立自己的结果目录。上述路径只是本机示例，不读取该目录下的面板/站点配置：
+
+- nginx：独立 prefix、PID、日志、临时目录与 loopback HTTP 端口；仅借用发行版 `mime.types` / `fastcgi_params`。站点 include 使用本仓库 `deploy/nginx-server.conf`，仅把 PHP upstream `127.0.0.1:9000` 换成本次自有 FastCGI 端口。
+- Apache：独立 ServerRoot / PID / 日志 / 监听，`-X` 前台单进程；加载指定发行版模块，`AllowOverride All` 执行站点原有 `.htaccess` 和 `uploads/.htaccess`。Windows 的 CGI 脚本路径用 `ProxyFCGISetEnvIf` 去掉盘符前的额外 `/`，不修改真实 Apache 配置。配置需 Apache 2.4.26+ 的 `mod_proxy_fcgi` 指令。
+- 两者先通过各自配置语法检查，再启动；PHP 独立 session/error 路径。停止仅操作自有进程资源；nginx 的 quit 明确携带自有 prefix / config，绝不按进程名称终止已有服务。JSON 包含实际服务器/PHP 版本、配置摘要、拥有的 PID 和 CGI 端口，供清理核对。
+
+服务器模式在既有组件断言外，增加全部 14 页的 `.html` / 英文前缀路由对照、携带查询串的语言路由、未知页 404、CSS/JS/SVG 的 MIME 与字节摘要，以及配置/存储目录拒绝、上传 PHP 禁止执行和下载、安装锁后拒绝。默认内置服务器不具备 `.htaccess`/nginx rewrite，明确跳过这些服务器专属检查。
+
+本机已测 Windows nginx 1.30.4、Apache 2.4.39、PHP 8.2.33 CGI，根目录 HTTP 安装；这不是指定旧版本的生产选型建议。Linux/PHP-FPM、TLS、子目录、反向代理、宝塔改写片段及浏览器像素效果未由本门禁验证，CI 当前仍只配置内置服务器，不声称服务器矩阵已在远端运行。

@@ -3,11 +3,14 @@
 declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 $root=dirname(__DIR__);
-$options=getopt('',['report:','port::','db::','keep']);
+$options=getopt('',['report:','port::','db::','server::','server-bin::','php-cgi::','keep']);
 $reportPath=$options['report']??'';
-if($reportPath===''){fwrite(STDERR,"Usage: php tools/component-site-roundtrip.php --report=<result.json> [--db=sqlite|mysql] [--port=18907] [--keep]\n");exit(2);}
+if($reportPath===''){fwrite(STDERR,"Usage: php tools/component-site-roundtrip.php --report=<result.json> [--db=sqlite|mysql] [--server=builtin|nginx|apache] [--server-bin=<path>] [--php-cgi=<path>] [--port=18907] [--keep]\n");exit(2);}
 $dbKind=(string)($options['db']??'sqlite');
 if(!in_array($dbKind,['sqlite','mysql'],true))throw new RuntimeException('Unsupported database');
+$serverKind=(string)($options['server']??'builtin');
+if(!in_array($serverKind,['builtin','nginx','apache'],true))throw new RuntimeException('Unsupported web server');
+require_once __DIR__.'/lib/ComponentRoundtripServer.php';
 if(!is_dir(dirname($reportPath)) || !is_writable(dirname($reportPath)))throw new RuntimeException('Report directory must exist and be writable');
 $port=(int)($options['port']??18907);
 if($port<1024 || $port>65535)throw new RuntimeException('Invalid loopback port');
@@ -16,9 +19,10 @@ $base='http://127.0.0.1:'.$port;
 $parent=str_replace('\\','/',rtrim(sys_get_temp_dir(),'/\\')).'/yk-component-roundtrip-'.bin2hex(random_bytes(6));
 mkdir($parent,0700,true);
 $realParent=str_replace('\\','/',(string)realpath($parent));
-$report=['php'=>PHP_VERSION,'db'=>$dbKind,'git_head'=>trim((string)shell_exec('git -C '.escapeshellarg($root).' rev-parse HEAD')),'checks'=>[],'passed'=>false];
+$report=['php'=>PHP_VERSION,'db'=>$dbKind,'server'=>$serverKind,'git_head'=>trim((string)shell_exec('git -C '.escapeshellarg($root).' rev-parse HEAD')),'checks'=>[],'passed'=>false];
 foreach(['includes/SiteTemplateData.php','includes/builder/BloxComponents.php','tests/fixtures/component-site-driver.php',
-    'tools/component-site-roundtrip.php','config/site-template-schema.php'] as $file)$report['source_sha256'][$file]=hash_file('sha256',$root.'/'.$file);
+    'tools/component-site-roundtrip.php','tools/lib/ComponentRoundtripServer.php','config/site-template-schema.php',
+    'deploy/nginx-server.conf','.htaccess','uploads/.htaccess'] as $file)$report['source_sha256'][$file]=hash_file('sha256',$root.'/'.$file);
 $server=null; $httpBodies=['source'=>[],'target'=>[]];
 $mysqlControl=null; $ownedDatabases=[]; $mysqlIdentity=[]; $databasePrefix='yk_cmp_rt_'.bin2hex(random_bytes(10)).'_';
 function cc_mysql_identity(PDO $pdo): array {
@@ -41,26 +45,21 @@ function cc_check(bool $ok,string $label): void {
 }
 function cc_http(string $path,?array $form=null): array {
     global $base;
-    $ch=curl_init($base.$path);curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>40,CURLOPT_FOLLOWLOCATION=>false]);
+    $ch=curl_init($base.$path);curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>40,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_PROXY=>'']);
     if($form!==null)curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>http_build_query($form)]);
     $body=(string)curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);$type=(string)curl_getinfo($ch,CURLINFO_CONTENT_TYPE);curl_close($ch);
     return ['status'=>$status,'body'=>$body,'type'=>$type];
 }
 function cc_start(string $site): void {
-    global $server,$port;
-    $ready=bin2hex(random_bytes(12));file_put_contents($site.'/roundtrip-ready.txt',$ready);
-    $server=proc_open([PHP_BINARY,'-S','127.0.0.1:'.$port,'-t',$site],[0=>['pipe','r'],1=>['file',$site.'/server.log','a'],2=>['file',$site.'/server.log','a']],$pipes,$site);
-    if(!is_resource($server))throw new RuntimeException('Server start failed');fclose($pipes[0]);
-    for($i=0;$i<80;$i++){
-        if(!proc_get_status($server)['running'])throw new RuntimeException('Owned server exited before readiness');
-        $response=cc_http('/roundtrip-ready.txt');if($response['status']===200 && $response['body']===$ready)return;
-        usleep(100000);
-    }
-    throw new RuntimeException('Server readiness timeout');
+    global $server,$port,$root,$serverKind,$options,$report;
+    $cgi=(string)($options['php-cgi']??dirname(PHP_BINARY).(PHP_OS_FAMILY==='Windows'?'/php-cgi.exe':'/php-cgi'));
+    $server=new ComponentRoundtripServer($serverKind,$port,(string)($options['server-bin']??''),$cgi,$root);
+    $report['web_processes'][basename($site)]=$server->start($site);
+    cc_check(true,'Owned Web/PHP nonce, SAPI and version verified: '.basename($site));
 }
-function cc_stop(): void { global $server;if(is_resource($server)){proc_terminate($server);proc_close($server);$server=null;} }
+function cc_stop(): void { global $server;if($server instanceof ComponentRoundtripServer){$server->stop();$server=null;} }
 function cc_install(string $site): void {
-    global $root,$base,$dbKind,$mysqlControl,$ownedDatabases,$databasePrefix;
+    global $root,$base,$dbKind,$mysqlControl,$ownedDatabases,$databasePrefix,$serverKind;
     mkdir($site,0700,true);
     $files=explode("\0",(string)shell_exec('git -C '.escapeshellarg($root).' ls-files -z'));
     foreach($files as $file){
@@ -93,6 +92,17 @@ function cc_install(string $site): void {
     else $matches=$matches && str_starts_with(str_replace('\\','/',$identity['path']),str_replace('\\','/',$site).'/');
     cc_check($matches,'Installer config points only to the owned '.$dbKind.' database: '.basename($site));
     if(!$matches)throw new RuntimeException('Unsafe installer database identity');
+    if($serverKind!=='builtin')cc_server_guards($site);
+}
+function cc_server_guards(string $site): void {
+    $marker='OWNED_WEB_GUARD_'.bin2hex(random_bytes(8));
+    foreach(['config','storage'] as $folder) {
+        $file=$site.'/'.$folder.'/roundtrip-guard.txt';file_put_contents($file,$marker);
+        try{$r=cc_http('/'.$folder.'/roundtrip-guard.txt');cc_check(in_array($r['status'],[403,404],true) && !str_contains($r['body'],$marker),'Private '.$folder.' probe blocked: '.basename($site));}finally{unlink($file);}
+    }
+    $file=$site.'/uploads/roundtrip-guard.php';file_put_contents($file,'<?php echo '.var_export($marker,true).';');
+    try{$r=cc_http('/uploads/roundtrip-guard.php');cc_check(in_array($r['status'],[403,404],true) && !str_contains($r['body'],$marker),'Uploads PHP neither executes nor downloads: '.basename($site));}finally{unlink($file);}
+    $r=cc_http('/install/index.php');cc_check($r['status']===403,'Server denies installer after lock: '.basename($site));
 }
 function cc_driver(string $site,string $mode,string $lang='zh-CN',string $path=''): array {
     $out=[];$code=0;
@@ -133,13 +143,23 @@ function cc_fragment(string $html): string {
     return $out;
 }
 function cc_fetch_pages(array $state,string $side): array {
-    global $httpBodies;
+    global $httpBodies,$serverKind;
     $result=[];
     foreach($state['pages'] as $id=>$page) {
         $response=cc_http('/page.php?id='.$id.'&_lang='.($id>=700?'en':'zh-CN'));
-        cc_check($response['status']===200 && !preg_match('/Fatal error|Uncaught|Warning:/',$response['body']),'HTTP page '.$side.' '.$id);
+        cc_check($response['status']===200 && str_starts_with(strtolower($response['type']),'text/html') && !preg_match('/Fatal error|Uncaught|Warning:/',$response['body']),'HTTP HTML page '.$side.' '.$id);
         $httpBodies[$side][$id]=$response['body'];$result[$id]=cc_fragment($response['body']);
+        if($serverKind!=='builtin'){
+            $pretty=cc_http($page['pretty_url']);$language=$id>=700?'en':'zh-CN';
+            cc_check($pretty['status']===200 && preg_match('/<html\b[^>]*\blang="'.preg_quote($language,'/').'"/i',$pretty['body'])===1
+                && cc_html(cc_fragment($pretty['body']))===cc_html($result[$id]),'Pretty route and language DOM '.$side.' '.$id);
+        }
     }
+    if($serverKind!=='builtin' && isset($state['pages'][705])){
+        $query=cc_http($state['pages'][705]['pretty_url'].'?roundtrip_query=1');
+        cc_check($query['status']===200 && str_contains($query['body'],'OVERRIDE_EN'),'Language prefix with query string '.$side);
+    }
+    if($serverKind!=='builtin')cc_check(cc_http('/rt-component-missing.html')['status']===404,'Unknown pretty page returns 404 '.$side);
     return $result;
 }
 function cc_styles(string $html,string $side): array {
@@ -148,12 +168,21 @@ function cc_styles(string $html,string $side): array {
     foreach($xpath->query('//link[@rel="stylesheet"]/@href') as $attribute){
         $url=html_entity_decode($attribute->nodeValue,ENT_QUOTES);
         if(!str_starts_with($url,'/') || str_starts_with($url,'//'))continue;
-        $response=cc_http($url);cc_check($response['status']===200,'Stylesheet resolves '.$side.' '.basename((string)parse_url($url,PHP_URL_PATH)));
+        $response=cc_http($url);cc_check($response['status']===200 && str_starts_with(strtolower($response['type']),'text/css'),'Stylesheet resolves with CSS MIME '.$side.' '.basename((string)parse_url($url,PHP_URL_PATH)));
         $key=preg_replace('#/themes/sitepack-[a-z0-9-]+/#','/themes/default/',(string)parse_url($url,PHP_URL_PATH));
         $hashes[$key]=hash('sha256',cc_html($response['body']));
     }
     foreach($xpath->query('//style') as $n=>$node)$hashes['inline-'.$n]=hash('sha256',cc_html($node->textContent));
     ksort($hashes);return $hashes;
+}
+function cc_scripts(string $html,string $side): array {
+    $doc=new DOMDocument();libxml_use_internal_errors(true);$doc->loadHTML('<?xml encoding="utf-8" ?>'.$html);libxml_clear_errors();$hashes=[];
+    foreach((new DOMXPath($doc))->query('//script[@src]/@src') as $attribute){
+        $url=html_entity_decode($attribute->nodeValue,ENT_QUOTES);if(!str_starts_with($url,'/') || str_starts_with($url,'//'))continue;
+        $r=cc_http($url);$type=strtolower(explode(';',$r['type'])[0]);
+        cc_check($r['status']===200 && in_array($type,['application/javascript','text/javascript'],true),'JavaScript resource MIME '.$side.' '.basename((string)parse_url($url,PHP_URL_PATH)));
+        $key=preg_replace('#/themes/sitepack-[a-z0-9-]+/#','/themes/default/',(string)parse_url($url,PHP_URL_PATH));$hashes[$key]=hash('sha256',$r['body']);
+    }ksort($hashes);return $hashes;
 }
 function cc_cleanup(string $dir): void {
     global $realParent;
@@ -195,6 +224,7 @@ try {
     $sourceHome=cc_http('/');$sourceHomeFragment=cc_fragment($sourceHome['body']);
     cc_check($sourceHome['status']===200 && str_contains($sourceHomeFragment,'OUTER_V1') && str_contains($sourceHomeFragment,'FEATURED_V1'),'Source home renders the nested pinned control');
     $sourceStyles=cc_styles($httpBodies['source'][601],'source');
+    $sourceScripts=cc_scripts($httpBodies['source'][601],'source');
     cc_check($sourceStyles!==[],'Source has actual stylesheet controls');
     cc_driver($source,'export','zh-CN',$zip);
     cc_check($before['zh-CN']===cc_driver($source,'inspect'),'Export did not mutate source documents, revisions or indexes');
@@ -245,6 +275,9 @@ try {
     cc_check($before['zh-CN']['classes']===$after['zh-CN']['classes'],'Global class UUID/settings preserved');
     $targetStyles=cc_styles($httpBodies['target'][601],'target');
     cc_check($sourceStyles===$targetStyles,'Linked CSS bytes and inline styles preserved');
+    $targetScripts=cc_scripts($httpBodies['target'][601],'target');
+    cc_check($sourceScripts!==[] && $sourceScripts===$targetScripts,'Linked JavaScript bytes preserved');
+    $report['script_hashes']=['source'=>$sourceScripts,'target'=>$targetScripts];
     $report['style_hashes']=['source'=>$sourceStyles,'target'=>$targetStyles];
     // Fetch real assets and component destinations, not just their paths in markup.
     foreach($targetHttp as $id=>$fragment) {
@@ -255,11 +288,12 @@ try {
             cc_check($response['status']===200,'Component link/asset resolves '.$id.' '.basename((string)parse_url($url,PHP_URL_PATH)));
             if(str_contains($url,'.svg')){
                 $name=basename((string)parse_url($url,PHP_URL_PATH));
-                cc_check(hash('sha256',$response['body'])===hash_file('sha256',$source.'/uploads/'.$name),'Referenced SVG bytes preserved '.$id);
+                cc_check(str_starts_with(strtolower($response['type']),'image/svg+xml') && hash('sha256',$response['body'])===hash_file('sha256',$source.'/uploads/'.$name),'Referenced SVG MIME and bytes preserved '.$id);
             }
         }
     }
-    foreach([$source,$target] as $site)cc_check(!preg_match('/Fatal error|Uncaught|Warning:/',(string)file_get_contents($site.'/server.log')),'Server error log clean '.basename($site));
+    if($server instanceof ComponentRoundtripServer)file_put_contents($target.'/server.log',$server->logText());
+    foreach([$source,$target] as $site)cc_check(!preg_match('/Fatal error|Uncaught|Warning:/',(string)file_get_contents($site.'/server.log')),'No PHP errors/warnings in server log '.basename($site));
     $report['passed']=!array_filter($report['checks'],static fn($r)=>!$r['ok']);
     $report['source']=$before;$report['target']=$after;
 } catch(Throwable $e){$report['error']=$e->getMessage();echo 'ERROR '.$e->getMessage()."\n";}

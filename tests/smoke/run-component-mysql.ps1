@@ -5,13 +5,20 @@ param(
     [Parameter(Mandatory=$true)][string]$OutDir,
     [string]$Php = 'D:\yikai\soft\php\8.2\php.exe',
     [int]$Port = 33087,
-    [int]$HttpPort = 18917
+    [int]$HttpPort = 18917,
+    [ValidateSet('builtin','nginx','apache')][string]$WebServer = 'builtin',
+    [string]$ServerBinary = '',
+    [string]$PhpCgi = ''
 )
 $ErrorActionPreference = 'Continue'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $mysqld = Join-Path $MysqlHome 'bin\mysqld.exe'
 $mysql = Join-Path $MysqlHome 'bin\mysql.exe'
 foreach ($file in @($Php,$mysqld,$mysql)) { if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing binary: $file" } }
+if ($WebServer -ne 'builtin' -and -not (Test-Path -LiteralPath $ServerBinary -PathType Leaf)) { throw 'An existing web server binary is required' }
+$webArgs=@("--server=$WebServer")
+if ($ServerBinary -ne '') { $webArgs += "--server-bin=$ServerBinary" }
+if ($PhpCgi -ne '') { $webArgs += "--php-cgi=$PhpCgi" }
 if ($Port -lt 1024 -or $Port -gt 65535 -or $HttpPort -lt 1024 -or $HttpPort -gt 65535) { throw 'Invalid test port' }
 foreach ($testPort in @($Port,$HttpPort)) {
     if (Get-NetTCPConnection -LocalPort $testPort -State Listen -ErrorAction SilentlyContinue) { throw "Port already occupied: $testPort" }
@@ -28,7 +35,7 @@ $exitCode = 1
 $savedEnv = @{}
 $envNames = @('YK_COMPONENT_MYSQL_PORT','YK_COMPONENT_MYSQL_USER','YK_COMPONENT_MYSQL_PASS','YK_COMPONENT_MYSQL_DATADIR','YK_COMPONENT_MYSQL_VERSION')
 foreach ($name in $envNames) { $savedEnv[$name] = [Environment]::GetEnvironmentVariable($name,'Process') }
-$result = @{ binary_version=[string]$binaryVersion; expected_version=$Version; port=$Port; http_port=$HttpPort; passed=$false }
+$result = @{ binary_version=[string]$binaryVersion; expected_version=$Version; port=$Port; http_port=$HttpPort; web_server=$WebServer; passed=$false }
 $client = @('--no-defaults','--protocol=TCP','--host=127.0.0.1',"--port=$Port",'--user=root','--password=','--batch','--skip-column-names','--connect-timeout=1')
 try {
     $init = Start-Process -FilePath $mysqld -WindowStyle Hidden -Wait -PassThru -RedirectStandardError (Join-Path $OutDir 'init.err') -RedirectStandardOutput (Join-Path $OutDir 'init.out') -ArgumentList @(
@@ -70,7 +77,7 @@ try {
     $env:YK_COMPONENT_MYSQL_VERSION=$Version
     $env:YK_COMPONENT_MYSQL_DATADIR=$dataDir+'-wrong'
     $negativeReport=Join-Path $OutDir 'wrong-datadir.json'
-    & $Php (Join-Path $root 'tools\component-site-roundtrip.php') '--db=mysql' "--port=$HttpPort" "--report=$negativeReport" > (Join-Path $OutDir 'wrong-datadir.txt')
+    & $Php (Join-Path $root 'tools\component-site-roundtrip.php') '--db=mysql' @webArgs "--port=$HttpPort" "--report=$negativeReport" > (Join-Path $OutDir 'wrong-datadir.txt')
     $negativeExit=$LASTEXITCODE
     $negative=Get-Content -LiteralPath $negativeReport -Raw | ConvertFrom-Json
     if ($negativeExit -eq 0 -or $negative.passed -or $negative.database_cleanup -or $negative.error -notlike '*datadir/port mismatch*') { throw 'Wrong-datadir guard did not fail closed' }
@@ -78,7 +85,7 @@ try {
 
     $env:YK_COMPONENT_MYSQL_DATADIR=$dataDir
     $reportPath=Join-Path $OutDir 'roundtrip.json'
-    & $Php (Join-Path $root 'tools\component-site-roundtrip.php') '--db=mysql' "--port=$HttpPort" "--report=$reportPath" > (Join-Path $OutDir 'roundtrip.txt')
+    & $Php (Join-Path $root 'tools\component-site-roundtrip.php') '--db=mysql' @webArgs "--port=$HttpPort" "--report=$reportPath" > (Join-Path $OutDir 'roundtrip.txt')
     $gateExit=$LASTEXITCODE
     Get-Content -LiteralPath (Join-Path $OutDir 'roundtrip.txt') -Tail 4
     $gate=Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json

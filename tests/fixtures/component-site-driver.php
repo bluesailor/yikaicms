@@ -139,9 +139,10 @@ if ($mode==='collision') {
 }
 if($mode!=='inspect')throw new RuntimeException('Unknown mode');
 $pages=[];
-foreach(db()->fetchAll('SELECT ch.id, ch.lang, c.blocks_data FROM '.DB_PREFIX.'channels ch JOIN '.DB_PREFIX.'contents c ON c.channel_id=ch.id WHERE ch.id BETWEEN 601 AND 707 ORDER BY ch.id') as $row) {
+foreach(db()->fetchAll('SELECT ch.id, ch.lang, ch.slug, c.blocks_data FROM '.DB_PREFIX.'channels ch JOIN '.DB_PREFIX.'contents c ON c.channel_id=ch.id WHERE ch.id BETWEEN 601 AND 707 ORDER BY ch.id') as $row) {
     if($row['lang']!==SITE_LANG)continue;
-    $pages[(string)$row['id']]=['doc'=>json_decode($row['blocks_data'],true),'html'=>BlockRenderer::render($row['blocks_data'])];
+    $pages[(string)$row['id']]=['doc'=>json_decode($row['blocks_data'],true),'html'=>BlockRenderer::render($row['blocks_data']),
+        'pretty_url'=>($row['lang']==='en'?'/en/':'/').$row['slug'].'.html'];
 }
 $components=[];
 foreach(db()->fetchAll('SELECT * FROM '.DB_PREFIX.'blox_templates WHERE type=? ORDER BY id',['component']) as $row) {
