@@ -105,12 +105,6 @@ final class AiPageContentRules
         return ['document' => $document, 'before' => $before];
     }
 
-    /** 提交时的目标校验：同一套规则，只要结论，不要改写结果。 */
-    public static function check(array $document, array $changes): ?string
-    {
-        $result = self::apply($document, $changes);
-        return $result['conflict'] ?? null;
-    }
 
     private static function cleanValue(string $field, string $value): string
     {

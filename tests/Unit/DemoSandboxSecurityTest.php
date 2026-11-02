@@ -134,8 +134,8 @@ final class DemoSandboxSecurityTest extends TestCase
         self::assertNotFalse($protected);
         self::assertNotFalse($postBranch);
         self::assertLessThan($postBranch, $protected);
-        // checkLogin() 无条件调用它，不能挪进 POST 分支
-        self::assertMatchesRegularExpression('/verifyCsrf\(\);\s*\}\s*enforceDemoRestrictions\(\);\s*\}/', $auth);
+        // checkLogin() 无条件调用它，不能挪进 POST 分支（POST 分支里 CSRF 之后只允许再调一个整句守卫）
+        self::assertMatchesRegularExpression('/verifyCsrf\(\);(?:\s*\w+\(\);)?\s*\}\s*enforceDemoRestrictions\(\);\s*\}/', $auth);
 
         $mediaApi = (string) file_get_contents(ROOT_PATH . '/admin/media_api.php');
         self::assertStringContainsString("in_array(\$action, ['remote_list', 'remote_import'], true)", $mediaApi);

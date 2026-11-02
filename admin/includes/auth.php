@@ -101,23 +101,32 @@ function checkLogin(): void
     // 自动校验 CSRF：所有 POST 请求必须携带 _token
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         verifyCsrf();
-        // Generic settings forms must not bypass the dedicated encrypted-secret/profile writers.
-        if (is_array($_POST['settings'] ?? null)) {
-            require_once ROOT_PATH . '/includes/SecretStore.php';
-            $protected = array_merge(SecretStore::CORE_KEYS, [
-                'seo_baidu_token', 'ai_profiles', 'ai_active_profile', 'ai_provider',
-                'ai_base_url', 'ai_model', 'ai_translation_model',
-            ]);
-            if (basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) === 'setting_email.php') {
-                $protected = array_diff($protected, ['smtp_pass']);
-            }
-            if (array_intersect(array_keys($_POST['settings']), $protected) !== []) {
-                error(__('admin_bad_params'), 422);
-            }
-        }
+        rejectProtectedSettingsWrites();
     }
 
     enforceDemoRestrictions();
+}
+
+/**
+ * 通用设置表单（settings[...]）不能绕过密钥 / AI 配置各自的专用写入（加密、按配置保存）。
+ * 只有邮件设置页可以提交 smtp_pass，它会交给 SecretStore::put()。
+ */
+function rejectProtectedSettingsWrites(): void
+{
+    if (!is_array($_POST['settings'] ?? null)) {
+        return;
+    }
+    require_once ROOT_PATH . '/includes/SecretStore.php';
+    $protected = array_merge(SecretStore::CORE_KEYS, [
+        'seo_baidu_token', 'ai_profiles', 'ai_active_profile', 'ai_provider',
+        'ai_base_url', 'ai_model', 'ai_translation_model',
+    ]);
+    if (basename((string) ($_SERVER['SCRIPT_NAME'] ?? '')) === 'setting_email.php') {
+        $protected = array_diff($protected, ['smtp_pass']);
+    }
+    if (array_intersect(array_keys($_POST['settings']), $protected) !== []) {
+        error(__('admin_bad_params'), 422);
+    }
 }
 
 /**
