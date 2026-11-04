@@ -6191,6 +6191,8 @@ return [
     'sec_image_pixel_guard_enabled' => '圖片解碼前畫素上限檢查（當前 :limit MP）',
     'sec_image_pixel_guard_disabled' => '圖片解碼前畫素上限檢查已關閉',
     'upload_image_pixels_exceeded' => '圖片總畫素超過 :limit MP 限制，請縮小圖片後重試',
+    'upload_fileinfo_required' => '無法校驗此檔案的真實型別，請管理員為網站當前使用的 PHP 啟用 Fileinfo 擴充套件後重試。',
+    'upload_mime_detection_failed' => '無法識別檔案的真實型別，請檢查檔案是否完整後重試。',
     'media_opt_title' => '圖片最佳化',
     'media_opt_summary' => '當前頁：已最佳化 :healthy 張，待修復 :pending 張，原始檔異常 :missing 張',
     'media_opt_missing_hint' => '原始檔異常無法自動修復，需要重新上傳或刪除對應記錄。',
