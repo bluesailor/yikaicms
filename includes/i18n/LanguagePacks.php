@@ -95,7 +95,11 @@ final class LanguagePacks
     /** @return array<string, array{version:string, sha256:string, installed_at:int}> */
     public static function manifest(string $root): array
     {
-        $raw = @file_get_contents($root . self::MANIFEST);
+        $file = $root . self::MANIFEST;
+        if (!is_file($file)) {
+            return [];
+        }
+        $raw = @file_get_contents($file);
         $data = is_string($raw) ? json_decode($raw, true) : null;
         if (!is_array($data)) {
             return [];

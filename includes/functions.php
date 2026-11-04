@@ -3051,19 +3051,19 @@ function uploadFile(array $file, string $type = 'images'): array
         'mov'  => ['video/quicktime'],
         'm4v'  => ['video/x-m4v', 'video/mp4'],
     ];
-    // MIME 内容校验（防伪造扩展名）。fileinfo 扩展为可选：未安装则跳过此项检查，
-    // 上传仍受扩展名白名单 + 图片 getimagesize 校验保护（强烈建议装 fileinfo 以获得完整防护）。
-    if (isset($mimeMap[$ext]) && function_exists('finfo_open')) {
+    // 检测结果同时用于内容校验和媒体入库，入口不得落盘后再调用可选扩展。
+    $detectedMime = '';
+    $hasFileinfo = false;
+    if (function_exists('finfo_open') && function_exists('finfo_file')) {
+        $hasFileinfo = true;
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
-        $detectedMime = $finfo ? finfo_file($finfo, $file['tmp_name']) : '';
-        if ($finfo) {
+        $detectedMime = $finfo ? (finfo_file($finfo, $file['tmp_name']) ?: '') : '';
+        if ($finfo && function_exists('finfo_close')) {
             finfo_close($finfo);
         }
-        if ($detectedMime !== ''
-            && $detectedMime !== false
-            && !uploadMimeMatches($ext, $detectedMime, $file['tmp_name'], $mimeMap[$ext])) {
-            return ['error' => '文件内容与扩展名不匹配'];
-        }
+    } elseif (function_exists('mime_content_type')) {
+        $hasFileinfo = true;
+        $detectedMime = mime_content_type($file['tmp_name']) ?: '';
     }
 
     // 图片文件必须通过 getimagesize 验证（SVG 除外）
@@ -3075,6 +3075,10 @@ function uploadFile(array $file, string $type = 'images'): array
         if ($check === false) {
             return ['error' => '无效的图片文件'];
         }
+        // 常见位图可由文件头独立确定 MIME；不信任客户端的 type 或仅凭扩展名放行。
+        if ($detectedMime === '') {
+            $detectedMime = (string) ($check['mime'] ?? '');
+        }
         $width = (int) ($check[0] ?? 0);
         $height = (int) ($check[1] ?? 0);
         $maxMegapixels = uploadMaxImageMegapixels();
@@ -3082,6 +3086,13 @@ function uploadFile(array $file, string $type = 'images'): array
             && !imageDimensionsWithinPixelLimit($width, $height, $maxMegapixels * 1_000_000)) {
             return ['error' => __('upload_image_pixels_exceeded', ['limit' => $maxMegapixels])];
         }
+    }
+
+    if ($detectedMime === '') {
+        return ['error' => __($hasFileinfo ? 'upload_mime_detection_failed' : 'upload_fileinfo_required')];
+    }
+    if (isset($mimeMap[$ext]) && !uploadMimeMatches($ext, $detectedMime, $file['tmp_name'], $mimeMap[$ext])) {
+        return ['error' => '文件内容与扩展名不匹配'];
     }
 
     // 生成存储路径
@@ -3148,6 +3159,7 @@ function uploadFile(array $file, string $type = 'images'): array
         'url' => $url,
         'webp_url' => $webpUrl,
         'ext' => $ext,
+        'mime' => $detectedMime,
         'size' => $file['size'],
         'width' => $width,
         'height' => $height,

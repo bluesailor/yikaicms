@@ -512,12 +512,13 @@ function webpDerivativePlan(string $filepath, string $ext, bool $force = false):
         if (!is_string($targetPath) || $targetPath === $sourcePath) {
             continue;
         }
+        $targetExists = is_file($targetPath);
         $sourceMtime = @filemtime($sourcePath) ?: 0;
-        $targetMtime = @filemtime($targetPath) ?: 0;
+        $targetMtime = $targetExists ? (@filemtime($targetPath) ?: 0) : 0;
         $plan[$name] = [
             'source' => $sourcePath,
             'target' => $targetPath,
-            'current' => !$force && is_file($targetPath) && $targetMtime >= $sourceMtime,
+            'current' => !$force && $targetExists && $targetMtime >= $sourceMtime,
         ];
     }
 

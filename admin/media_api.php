@@ -257,7 +257,7 @@ if ($action === 'upload' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         'url'        => $result['url'],
         'type'       => $mediaType,
         'ext'        => $result['ext'],
-        'mime'       => mime_content_type($result['path']) ?: '',
+        'mime'       => $result['mime'],
         'size'       => $result['size'],
         'width'      => $result['width'] ?? 0,
         'height'     => $result['height'] ?? 0,

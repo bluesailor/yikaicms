@@ -67,8 +67,9 @@ final class MarketInstallOrigin
         if (preg_match('/^[a-z0-9](?:[a-z0-9-]{0,98}[a-z0-9])?$/D', $directory) !== 1) return null;
         $file = rtrim($root, '/\\') . '/' . $directory . '/' . self::FILE;
         clearstatcache(true, $file);
+        if (is_link($file) || !is_file($file)) return null;
         $size = @filesize($file);
-        $receipt = !is_link($file) && is_int($size) && $size > 0 && $size <= 4096
+        $receipt = is_int($size) && $size > 0 && $size <= 4096
             ? json_decode((string) @file_get_contents($file), true) : null;
         if (!is_array($receipt) || ($receipt['kind'] ?? '') !== 'theme' || ($receipt['slug'] ?? '') !== $directory
             || ($receipt['origin'] ?? '') !== 'official' || ($receipt['provider'] ?? '') !== 'update.yikaicms.com'
