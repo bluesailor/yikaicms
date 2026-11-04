@@ -3058,9 +3058,7 @@ function uploadFile(array $file, string $type = 'images'): array
         $hasFileinfo = true;
         $finfo = finfo_open(FILEINFO_MIME_TYPE);
         $detectedMime = $finfo ? (finfo_file($finfo, $file['tmp_name']) ?: '') : '';
-        if ($finfo && function_exists('finfo_close')) {
-            finfo_close($finfo);
-        }
+        unset($finfo);
     } elseif (function_exists('mime_content_type')) {
         $hasFileinfo = true;
         $detectedMime = mime_content_type($file['tmp_name']) ?: '';

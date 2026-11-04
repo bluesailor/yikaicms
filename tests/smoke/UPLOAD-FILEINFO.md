@@ -22,3 +22,5 @@ php tests/smoke/setup.php --restore
 脚本仅停止自己的进程，删除自有 HTTP 探针、会话/cookie 和本次新增上传文件/媒体行。JSON 保存能力实测、检查清单和运行文件 SHA-256，诊断目录保留合成文件和服务器访问日志；站点配置/数据库由 setup --restore 还原。本工具限 Windows 发行版，HTTP 内置服务器结果不等同于 Linux/PHP-FPM、客户 PHP 8.3 或全量发布验收。
 
 另有 `OptionalFileWarningsTest` 在捕捉所有警告（包括 @ 抑制警告）的处理器下验证语言清单缺失/损坏、主题回执缺失/损坏/正常，以及首次 WebP 目标不存在和现有目标复用。未更改全局错误记录策略。
+
+2026-11-05 追加实测：Windows PHP 8.5.9，在仅测试站配置 `DEBUG=true` / `E_ALL` 下四种 HTTP 能力环境 89/89，相关单测 56/382 无弃用提示；PHP 8.2.33 同组单测回归也通过。Fileinfo、GD 与 cURL 对象采用自动释放，相关路径不调用 PHP 8.5 已弃用的关闭函数。此结论限该上传与可选文件处理范围，不表示全站 PHP 8.5 兼容门禁已完成。

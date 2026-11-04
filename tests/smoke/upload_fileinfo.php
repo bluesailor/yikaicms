@@ -24,7 +24,7 @@ mkdir($temp . '/sessions', 0700);
 $healthName = 'tests/smoke/upload-health-' . bin2hex(random_bytes(6)) . '.php';
 $nonce = bin2hex(random_bytes(16));
 $process = null;
-$report = ['php' => PHP_VERSION, 'checks' => [], 'profiles' => [], 'passed' => false];
+$report = ['php' => PHP_VERSION, 'debug' => DEBUG, 'error_reporting' => error_reporting(), 'checks' => [], 'profiles' => [], 'passed' => false];
 $check = static function (bool $ok, string $label) use (&$report): void {
     $report['checks'][] = ['ok' => $ok, 'label' => $label];
     echo ($ok ? 'PASS ' : 'FAIL ') . $label . "\n";
@@ -47,7 +47,7 @@ $request = static function (string $path, string $jar, ?array $form = null): arr
         $multipart = (bool) array_filter($form, static fn($v): bool => $v instanceof CURLFile);
         curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $multipart ? $form : http_build_query($form)]);
     }
-    $body = (string) curl_exec($ch); $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    $body = (string) curl_exec($ch); $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE); unset($ch);
     return [$status, $body, json_decode($body, true)];
 };
 try {

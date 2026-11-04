@@ -33,7 +33,7 @@ final class ImageThumbnailTest extends TestCase
         self::assertNotFalse($image);
         imagefill($image, 0, 0, imagecolorallocate($image, 38, 112, 92));
         self::assertTrue(imagepng($image, $path));
-        imagedestroy($image);
+        unset($image);
     }
 
     public function testThumbnailSizesConstDefined(): void
