@@ -204,7 +204,7 @@ try {
         if(cc_mysql_path($mysqlIdentity['datadir'])!==cc_mysql_path($expectedDir) || (int)$mysqlIdentity['port']!==(int)$mysqlPort)
             throw new RuntimeException('MySQL datadir/port mismatch; refusing to create databases');
         $family=(string)getenv('YK_COMPONENT_MYSQL_VERSION');
-        if(!in_array($family,['5.7','8.0'],true) || !str_starts_with($mysqlIdentity['version'],$family.'.'))throw new RuntimeException('Unexpected MySQL version');
+        if(!in_array($family,['5.7','8.0','8.4'],true) || !str_starts_with($mysqlIdentity['version'],$family.'.'))throw new RuntimeException('Unexpected MySQL version');
         $report['mysql_server']=$mysqlIdentity;
         cc_check(true,'Temporary MySQL identity verified: '.$mysqlIdentity['version']);
     }

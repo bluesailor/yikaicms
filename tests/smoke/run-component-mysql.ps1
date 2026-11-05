@@ -1,20 +1,28 @@
 # Dedicated local mysqld, random source/target databases, no panel/service configuration reads.
 param(
     [Parameter(Mandatory=$true)][string]$MysqlHome,
-    [Parameter(Mandatory=$true)][ValidateSet('5.7','8.0')][string]$Version,
+    [Parameter(Mandatory=$true)][ValidateSet('5.7','8.0','8.4')][string]$Version,
     [Parameter(Mandatory=$true)][string]$OutDir,
     [string]$Php = 'D:\yikai\soft\php\8.2\php.exe',
     [int]$Port = 33087,
     [int]$HttpPort = 18917,
     [ValidateSet('builtin','nginx','apache')][string]$WebServer = 'builtin',
     [string]$ServerBinary = '',
-    [string]$PhpCgi = ''
+    [string]$PhpCgi = '',
+    [ValidateSet('component','runtime')][string]$Suite = 'component',
+    [string]$FromPackage = '',
+    [string]$ToPackage = '',
+    [string]$FromVersion = '2.1.2',
+    [string]$ToVersion = '2.1.3'
 )
 $ErrorActionPreference = 'Continue'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
 $mysqld = Join-Path $MysqlHome 'bin\mysqld.exe'
 $mysql = Join-Path $MysqlHome 'bin\mysql.exe'
 foreach ($file in @($Php,$mysqld,$mysql)) { if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing binary: $file" } }
+if ($Suite -eq 'runtime') {
+    foreach ($file in @($FromPackage,$ToPackage)) { if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing package: $file" } }
+}
 if ($WebServer -ne 'builtin' -and -not (Test-Path -LiteralPath $ServerBinary -PathType Leaf)) { throw 'An existing web server binary is required' }
 $webArgs=@("--server=$WebServer")
 if ($ServerBinary -ne '') { $webArgs += "--server-bin=$ServerBinary" }
@@ -35,15 +43,17 @@ $exitCode = 1
 $savedEnv = @{}
 $envNames = @('YK_COMPONENT_MYSQL_PORT','YK_COMPONENT_MYSQL_USER','YK_COMPONENT_MYSQL_PASS','YK_COMPONENT_MYSQL_DATADIR','YK_COMPONENT_MYSQL_VERSION')
 foreach ($name in $envNames) { $savedEnv[$name] = [Environment]::GetEnvironmentVariable($name,'Process') }
-$result = @{ binary_version=[string]$binaryVersion; expected_version=$Version; port=$Port; http_port=$HttpPort; web_server=$WebServer; passed=$false }
+$result = @{ binary_version=[string]$binaryVersion; expected_version=$Version; port=$Port; http_port=$HttpPort; web_server=$WebServer; suite=$Suite; passed=$false }
 $client = @('--no-defaults','--protocol=TCP','--host=127.0.0.1',"--port=$Port",'--user=root','--password=','--batch','--skip-column-names','--connect-timeout=1')
 try {
     $init = Start-Process -FilePath $mysqld -WindowStyle Hidden -Wait -PassThru -RedirectStandardError (Join-Path $OutDir 'init.err') -RedirectStandardOutput (Join-Path $OutDir 'init.out') -ArgumentList @(
         '--no-defaults','--initialize-insecure',('--basedir="'+$MysqlHome+'"'),('--datadir="'+$dataDir+'"'),'--console')
     if ($init.ExitCode -ne 0) { throw 'Temporary mysqld initialization failed; see init.err' }
     $serverArgs = @('--no-defaults',('--basedir="'+$MysqlHome+'"'),('--datadir="'+$dataDir+'"'),"--port=$Port",'--bind-address=127.0.0.1',
-        '--character-set-server=utf8mb4','--collation-server=utf8mb4_general_ci','--innodb-buffer-pool-size=64M','--innodb-log-file-size=16M','--max-connections=30','--skip-log-bin','--console')
-    if ($Version -eq '8.0') { $serverArgs += '--mysqlx=OFF' }
+        '--character-set-server=utf8mb4','--collation-server=utf8mb4_general_ci','--innodb-buffer-pool-size=64M','--max-connections=30','--skip-log-bin','--console')
+    if ($Version -eq '8.4') { $serverArgs += '--innodb-redo-log-capacity=32M' }
+    else { $serverArgs += '--innodb-log-file-size=16M' }
+    if ($Version -in @('8.0','8.4')) { $serverArgs += '--mysqlx=OFF' }
     $server = Start-Process -FilePath $mysqld -WindowStyle Hidden -PassThru -RedirectStandardError (Join-Path $OutDir 'server.err') -RedirectStandardOutput (Join-Path $OutDir 'server.out') -ArgumentList $serverArgs
     $result['owned_pid'] = $server.Id
     $ready = $false
@@ -74,6 +84,24 @@ try {
     $env:YK_COMPONENT_MYSQL_PORT=[string]$Port
     $env:YK_COMPONENT_MYSQL_USER='root'
     $env:YK_COMPONENT_MYSQL_PASS=''
+    if ($Version -eq '8.4') {
+        # A fresh, password-bearing default-auth account exercises mysqlnd's full
+        # caching_sha2_password login (not merely an empty-password root login).
+        # All grants are confined to this owned, disposable mysqld instance.
+        $testPassword='Rt#'+[Guid]::NewGuid().ToString('N')
+        "CREATE USER 'yk_component'@'127.0.0.1' IDENTIFIED BY '$testPassword'; GRANT CREATE, ALTER, DROP, INDEX, SELECT, INSERT, UPDATE, DELETE, CREATE TEMPORARY TABLES, LOCK TABLES, REFERENCES ON *.* TO 'yk_component'@'127.0.0.1';" | & $mysql @client
+        if ($LASTEXITCODE -ne 0) { throw 'Could not establish temporary password-authenticated account' }
+        $authPlugin=& $mysql @client --execute="SELECT plugin FROM mysql.user WHERE User='yk_component' AND Host='127.0.0.1'"
+        $nativeActive=& $mysql @client --execute="SELECT COUNT(*) FROM information_schema.plugins WHERE PLUGIN_NAME='mysql_native_password' AND PLUGIN_STATUS='ACTIVE'"
+        $fkRestricted=& $mysql @client --execute='SELECT @@restrict_fk_on_non_standard_key'
+        if ($LASTEXITCODE -ne 0 -or [string]$authPlugin -ne 'caching_sha2_password' -or [string]$nativeActive -ne '0' -or [string]$fkRestricted -ne '1') { throw 'MySQL 8.4 default authentication or foreign-key restrictions were not preserved' }
+        $result['authentication_plugin']=[string]$authPlugin
+        $result['password_authentication']=$true
+        $result['mysql_native_password_active']=$false
+        $result['restrict_fk_on_non_standard_key']=$true
+        $env:YK_COMPONENT_MYSQL_USER='yk_component'
+        $env:YK_COMPONENT_MYSQL_PASS=$testPassword
+    }
     $env:YK_COMPONENT_MYSQL_VERSION=$Version
     $env:YK_COMPONENT_MYSQL_DATADIR=$dataDir+'-wrong'
     $negativeReport=Join-Path $OutDir 'wrong-datadir.json'
@@ -84,20 +112,25 @@ try {
     $result['wrong_datadir_rejected']=$true
 
     $env:YK_COMPONENT_MYSQL_DATADIR=$dataDir
-    $reportPath=Join-Path $OutDir 'roundtrip.json'
-    & $Php (Join-Path $root 'tools\component-site-roundtrip.php') '--db=mysql' @webArgs "--port=$HttpPort" "--report=$reportPath" > (Join-Path $OutDir 'roundtrip.txt')
+    $reportName=if ($Suite -eq 'runtime') { 'runtime' } else { 'roundtrip' }
+    $reportPath=Join-Path $OutDir ($reportName+'.json')
+    if ($Suite -eq 'runtime') {
+        & $Php (Join-Path $root 'tools\mysql-package-acceptance.php') "--from-package=$FromPackage" "--to-package=$ToPackage" "--from=$FromVersion" "--to=$ToVersion" "--report=$reportPath" > (Join-Path $OutDir ($reportName+'.txt'))
+    } else {
+        & $Php (Join-Path $root 'tools\component-site-roundtrip.php') '--db=mysql' @webArgs "--port=$HttpPort" "--report=$reportPath" > (Join-Path $OutDir ($reportName+'.txt'))
+    }
     $gateExit=$LASTEXITCODE
-    Get-Content -LiteralPath (Join-Path $OutDir 'roundtrip.txt') -Tail 4
+    Get-Content -LiteralPath (Join-Path $OutDir ($reportName+'.txt')) -Tail 4
     $gate=Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
     $result['gate_exit']=$gateExit; $result['assertions']=$gate.assertions; $result['failed']=$gate.failed
-    $remaining = & $mysql @client --execute="SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name REGEXP '^yk_cmp_rt_[a-f0-9]{20}_(source|target)$'"
+    $remaining = & $mysql @client --execute="SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name REGEXP '^yk_cmp_rt_[a-f0-9]{20}_(source|target)$' OR schema_name REGEXP '^yikaicms_upgrade_test_[a-f0-9]{8}$'"
     if ($LASTEXITCODE -ne 0 -or [int]$remaining -ne 0) { throw 'Temporary source/target database cleanup incomplete' }
     $control = & $mysql @client --execute="SELECT value FROM $sentinel.guard_marker"
     if ($LASTEXITCODE -ne 0 -or [string]$control -ne $marker) { throw 'Unrelated owned control database changed' }
     $result['control_database_unchanged']=$true; $result['temporary_databases_remaining']=0
     & $mysql @client --execute="DROP DATABASE $sentinel"
     if ($LASTEXITCODE -ne 0) { throw 'Control database cleanup failed' }
-    if ($gateExit -ne 0 -or -not $gate.passed) { throw 'MySQL component roundtrip failed; see roundtrip.json' }
+    if ($gateExit -ne 0 -or -not $gate.passed) { throw "MySQL $Suite acceptance failed; see $reportPath" }
     $exitCode=0
 } catch {
     $result['error']=$_.Exception.Message

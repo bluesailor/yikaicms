@@ -288,7 +288,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        mysql: ['5.7', '8.0']
+        mysql: ['5.7', '8.0', '8.4']
     services:
       mysql:
         image: mysql:${{ matrix.mysql }}
@@ -325,16 +325,20 @@ jobs:
           path: /tmp/component-mysql.json
           if-no-files-found: ignore
 
-  # ─── MySQL 5.7 真实装机腿：SQLite 对拍能发现 schema 漂移，但抓不到
+  # ─── MySQL 真实装机腿：SQLite 对拍能发现 schema 漂移，但抓不到
   # ─── MySQL 方言、驱动类型和 InnoDB 事务行为。通过正式 HTTP 安装器装英文站，
   # ─── 再复用后台 CRUD / 全页面渲染冒烟，直接守住生产目标数据库。
   mysql57:
-    name: MySQL 5.7 Install & Admin Smoke
+    name: MySQL ${{ matrix.mysql }} Install & Admin Smoke
     runs-on: ubuntu-latest
     timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        mysql: ['5.7', '8.4']
     services:
       mysql:
-        image: mysql:5.7
+        image: mysql:${{ matrix.mysql }}
         env:
           MYSQL_ROOT_PASSWORD: ci-root
           MYSQL_ROOT_HOST: '%'
@@ -401,7 +405,7 @@ jobs:
 
       - name: Verify MySQL runtime, migrations and transaction behavior
         env:
-          EXPECTED_MYSQL_SERIES: '5.7'
+          EXPECTED_MYSQL_SERIES: ${{ matrix.mysql }}
         run: php tests/smoke/mysql_runtime.php
 
       - name: Run admin CRUD smoke on MySQL
@@ -436,17 +440,23 @@ jobs:
   # ─── PHP 8.2（2.1.3 起的最低版）与 8.4 各跑一次。
   # ─── 这条专门覆盖源码树、全新安装和两文件回滚沙箱都看不到的客户升级路径。
   n-minus-one-upgrade:
-    name: PHP ${{ matrix.php }} N-1 Package Upgrade
+    name: PHP ${{ matrix.php }} MySQL ${{ matrix.mysql }} N-1 Package Upgrade
     needs: free-package
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.4']
+        include:
+          - php: '8.2'
+            mysql: '5.7'
+          - php: '8.4'
+            mysql: '5.7'
+          - php: '8.2'
+            mysql: '8.4'
     services:
       mysql:
-        image: mysql:5.7
+        image: mysql:${{ matrix.mysql }}
         env:
           MYSQL_ROOT_PASSWORD: ci-root
           MYSQL_ROOT_HOST: '%'

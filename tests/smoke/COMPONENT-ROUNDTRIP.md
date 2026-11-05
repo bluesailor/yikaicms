@@ -26,28 +26,33 @@ CI 的 PHP 8.2/zh-CN 作业执行此门禁并保留 JSON 证据，fixture 本身
 
 默认模式使用 SQLite 与 PHP 内置服务器；MySQL 需运行下述独立模式，nginx/Apache 需显式选择下述服务器模式。HTTP DOM 与资源检查不替代像素级浏览器验收或全量发布检查；查询循环、完整设计 token、高级字段及所有插件组合还需各自补充场景。
 
-## MySQL 5.7 / 8.0
+## MySQL 5.7 / 8.0 / 8.4 LTS
 
 Windows 推荐使用自带包装脚本。它只读取指定目录的 MySQL 可执行文件，启动独立 mysqld、数据目录和端口，无需现有数据库密码，也不读取面板配置。
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File tests\smoke\run-component-mysql.ps1 -MysqlHome D:\yikai\soft\mysql\5.7 -Version 5.7 -Port 33087 -HttpPort 18917 -OutDir D:\test-results\mysql57
 powershell -NoProfile -ExecutionPolicy Bypass -File tests\smoke\run-component-mysql.ps1 -MysqlHome D:\yikai\soft\mysql\8.0 -Version 8.0 -Port 33088 -HttpPort 18918 -OutDir D:\test-results\mysql80
+powershell -NoProfile -ExecutionPolicy Bypass -File tests\smoke\run-component-mysql.ps1 -MysqlHome D:\test-runtimes\mysql-8.4 -Version 8.4 -Port 33094 -HttpPort 18924 -OutDir D:\test-results\mysql84
 ```
 
 包装脚本会运行数据目录不匹配的拒绝对照，创建独立控制库验证不会误改旁库，执行门禁后核对源/目标随机库均已删除，再停止自己启动的 mysqld。成功时删除已核对绝对路径及重解析点的自有数据目录；失败时停止服务并保留诊断。环境变量恢复到运行前状态。
+
+8.4 模式使用其支持的 `innodb_redo_log_capacity`，创建带随机非空密码的临时账号，核对默认 `caching_sha2_password`，并由 PHP PDO 首次连接执行错误目录拒绝对照，再执行安装与往返。保留 `mysql_native_password` 默认禁用和非标准外键默认限制，不通过开启旧认证或放宽约束让测试通过。临时账号只存在于独立实例，密码不写入结果报告。旧版 5.7/8.0 的启动参数保持原有路径。
 
 Linux CI 或已准备好的专用测试服务可直接运行 `php tools/component-site-roundtrip.php --db=mysql --report=result.json`，必须显式设置：
 
 - `YK_COMPONENT_MYSQL_PORT`、`YK_COMPONENT_MYSQL_USER`、`YK_COMPONENT_MYSQL_PASS`
 - `YK_COMPONENT_MYSQL_DATADIR`：与服务 `@@datadir` 精确对应；Windows 仅归一化路径分隔符和大小写。
-- `YK_COMPONENT_MYSQL_VERSION`：`5.7` 或 `8.0`，检查实际 `VERSION()`，不把 MariaDB 当作 MySQL 结果。
+- `YK_COMPONENT_MYSQL_VERSION`：`5.7`、`8.0` 或 `8.4`，检查实际 `VERSION()`，不把 MariaDB 当作 MySQL 结果。
 
 只连接 127.0.0.1；先验证数据目录、端口、服务 UUID 和版本，再创建 `yk_cmp_rt_<20位随机十六进制>_source/target`，不复用已有库。安装后在加载应用之前核对配置中的 DB_DRIVER/库名/端口/前缀；每次删除库前重新核对服务身份，只删除本次成功创建的确切名称。`--keep` 在 MySQL 模式仅保留站点文件，临时库仍清理。
 
 报告记录真实服务器版本、SQL mode、字符集、随机库清理结果；包装脚本的 `local-instance.json` 另记录服务归属、错误目录拒绝、控制库不变、服务停止和数据目录清理。fixture 包括真实中文及四字节 Unicode 字符，验证 utf8mb4 数据保存和 HTTP 输出。
 
-CI 已配置两个 MySQL 服务作业；是否通过以远端实际运行记录为准。低配服务器的内存/并发压测不属于此功能门禁。
+CI 组件往返矩阵为 MySQL 5.7/8.0/8.4，真实安装及后台 CRUD/页面冒烟矩阵为 5.7/8.4；是否通过以远端实际运行记录为准。本地测试不代表远端作业已经运行。低配服务器的内存/并发压测不属于此功能门禁。
+
+业务 SQL 继续兼容 5.7，不为支持 8.4 引入 8.x 专属别名或排序规则。`ON DUPLICATE KEY UPDATE ... VALUES(column)` 在 8.4 仍受支持但已弃用，不能直接替换为会破坏 5.7 的新版行别名写法。CMS 全新安装/模板导入验收也不等于 MySQL 服务数据目录的原地版本升级验收。
 
 ## 独立 nginx / Apache
 
