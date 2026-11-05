@@ -43,16 +43,9 @@
                     return /^\/(?![\/\\])/.test(url) ? (root.YK_BASE || "") + url : url;
                 },
                 pageFrontPreviewUrl: function () {
-                    if (!this.pageUrl) return "#";
-                    var url = new URL(this.pageUrl, window.location.origin);
-                    if (this.pageIsPublishedCurrent()) {
-                        url.searchParams.delete("preview");
-                        url.searchParams.delete("blox_draft");
-                    } else {
-                        url.searchParams.set("preview", "draft");
-                        url.searchParams.set("blox_draft", "page:" + initial.id);
-                    }
-                    return (root.YK_BASE || "") + url.pathname + url.search + url.hash;
+                    // A disabled or not-yet-published page has no public route.
+                    // The admin endpoint resolves both its language and its saved draft by ID.
+                    return (root.YK_BASE || "") + "/admin/draft_preview.php?type=channels&id=" + encodeURIComponent(initial.id);
                 },
                 openPageFrame: function () {
                     this.mobileActionsOpen = false;

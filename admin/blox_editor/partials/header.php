@@ -681,8 +681,7 @@ declare(strict_types=1);
             } elseif ($isHomeBlox) {
                 $frontPreviewUrl = ($homeEditorLangQuery !== '' ? langUrl('/', $homeEditorLanguage) : '/') . '?preview';
             } else {
-                $frontPreviewUrl = channelUrl($page);
-                $frontPreviewUrl .= str_contains($frontPreviewUrl, '?') ? '&preview=draft&blox_draft=page:' . (int) $id : '?preview=draft&blox_draft=page:' . (int) $id;
+                $frontPreviewUrl = '/admin/draft_preview.php?type=channels&id=' . (int) $id;
             }
             ?>
             <button type="button" @click="toggleRightPanel()" data-testid="blox-toolbar-structure-toggle"

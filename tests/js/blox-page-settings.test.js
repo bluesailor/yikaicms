@@ -18,21 +18,20 @@ function settings(url, withSummary = true) {
     });
 }
 
-test('draft preview preserves parent paths and the page language', () => {
+test('draft preview resolves the exact page through the authenticated admin endpoint', () => {
     const state = settings('/en/about/company.html');
     const url = new URL(state.pageFrontPreviewUrl(), 'https://example.test');
-    assert.equal(url.pathname, '/en/about/company.html');
-    assert.equal(url.searchParams.get('preview'), 'draft');
-    assert.equal(url.searchParams.get('blox_draft'), 'page:88');
+    assert.equal(url.pathname, '/admin/draft_preview.php');
+    assert.equal(url.searchParams.get('type'), 'channels');
+    assert.equal(url.searchParams.get('id'), '88');
 });
 
-test('draft preview preserves dynamic routing parameters', () => {
+test('draft preview does not depend on the public slug, language route or enabled state', () => {
     const state = settings('/index.php?yk_route=page&slug=company&parent=about&lang=ja');
     const url = new URL(state.pageFrontPreviewUrl(), 'https://example.test');
-    assert.equal(url.pathname, '/index.php');
-    for (const [key, value] of Object.entries({ yk_route: 'page', slug: 'company', parent: 'about', lang: 'ja', preview: 'draft', blox_draft: 'page:88' })) {
-        assert.equal(url.searchParams.get(key), value);
-    }
+    assert.equal(url.pathname, '/admin/draft_preview.php');
+    assert.equal(url.search, '?type=channels&id=88');
+    assert.equal(settings('').pageFrontPreviewUrl(), '/admin/draft_preview.php?type=channels&id=88');
 });
 
 test('publication state follows the current document across editing, undo and publishing', () => {
@@ -43,10 +42,10 @@ test('publication state follows the current document across editing, undo and pu
     state.pagePublished = true;
     state.publishedDocument = JSON.parse(original);
     assert.equal(state.pageIsPublishedCurrent(), true);
-    assert.equal(state.pageFrontPreviewUrl(), '/en/about/company.html');
+    assert.equal(state.pageFrontPreviewUrl(), '/admin/draft_preview.php?type=channels&id=88');
     state.sections[0].columns[0].elements[0].data.text = 'Draft';
     assert.equal(state.pageIsPublishedCurrent(), false);
-    assert.match(state.pageFrontPreviewUrl(), /preview=draft/);
+    assert.match(state.pageFrontPreviewUrl(), /draft_preview.php\?type=channels&id=88/);
     // Saving or failing publication must not change which revision is live.
     state.dirty = false;
     state.pageHasUnpublishedChanges = true;
@@ -59,25 +58,23 @@ test('publication state follows the current document across editing, undo and pu
     assert.equal(state.pageIsPublishedCurrent(), true);
 });
 
-test('published dynamic links preserve language, route and fragment without preview flags', () => {
+test('preview remains private even when the current draft matches the publication', () => {
     const state = settings('/sub/index.php?yk_route=page&slug=company&lang=ja&preview=draft&blox_draft=page%3A88#contact');
     state.pagePublished = true;
     state.publishedDocument = { settings: {}, sections: [] };
     const url = new URL(state.pageFrontPreviewUrl(), 'https://example.test');
-    assert.equal(url.pathname, '/sub/index.php');
-    assert.equal(url.searchParams.get('yk_route'), 'page');
-    assert.equal(url.searchParams.get('slug'), 'company');
-    assert.equal(url.searchParams.get('lang'), 'ja');
+    assert.equal(url.pathname, '/admin/draft_preview.php');
+    assert.equal(url.searchParams.get('id'), '88');
     assert.equal(url.searchParams.has('preview'), false);
     assert.equal(url.searchParams.has('blox_draft'), false);
-    assert.equal(url.hash, '#contact');
+    assert.equal(url.hash, '');
 });
 
 test('missing comparison module or published snapshot never claims the canvas is published', () => {
     for (const state of [settings('/company.html', false), settings('/company.html')]) {
         state.pagePublished = true;
         assert.equal(state.pageIsPublishedCurrent(), false);
-        assert.match(state.pageFrontPreviewUrl(), /preview=draft/);
+        assert.match(state.pageFrontPreviewUrl(), /draft_preview.php\?type=channels&id=88/);
     }
     const noModule = settings('/company.html', false);
     noModule.pagePublished = true;

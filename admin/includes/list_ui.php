@@ -36,7 +36,7 @@ function listSafeUrl(string $url): string
  * 行内操作条。
  *
  * @param array{
- *   id:int, edit:string, view?:string, duplicate?:bool,
+ *   id:int, edit:string, view?:string, view_label?:string, duplicate?:bool,
  *   delete_fn?:string, dup_fn?:string, status_label?:string,
  *   status_fn?:string, category_url?:string
  * } $o
@@ -60,7 +60,7 @@ function renderRowActions(array $o): string
         $parts[] = '<button type="button" onclick="' . e($dupFn) . '(' . $id . ')" class="hover:text-primary hover:underline">' . __('admin_duplicate') . '</button>';
     }
     if ($view !== '') {
-        $parts[] = '<a href="' . e($view) . '" target="_blank" rel="noopener" class="hover:text-primary hover:underline">' . __('admin_view') . '</a>';
+        $parts[] = '<a href="' . e($view) . '" target="_blank" rel="noopener" class="hover:text-primary hover:underline">' . e((string) ($o['view_label'] ?? __('admin_view'))) . '</a>';
     }
     if ($statusLabel !== '') {
         $parts[] = '<button type="button" data-row-status-action="' . $id . '" onclick="' . e($statusFn) . '(' . $id . ')" class="hover:text-primary hover:underline">' . e($statusLabel) . '</button>';

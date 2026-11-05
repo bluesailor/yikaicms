@@ -125,7 +125,7 @@ function renderBloxDraftPreviewBar(): void
 function renderAdminBar(): void
 {
     if (isCleanFrontendPreview()) {
-        if (BloxPublicationStatus::activePreview() !== null) {
+        if (!defined('YK_ADMIN_DRAFT_PREVIEW') && BloxPublicationStatus::activePreview() !== null) {
             renderBloxDraftPreviewBar();
         }
         return;

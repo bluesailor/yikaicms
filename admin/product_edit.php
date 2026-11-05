@@ -226,6 +226,21 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <div class="px-4 pb-4">
                             <input type="hidden" name="specs" id="specsInput" value="<?php echo e($__specsInit); ?>">
                             <div id="specsList" class="space-y-2 mb-3"></div>
+                            <div id="specForm" hidden class="border rounded p-3 mb-3">
+                                <div class="flex flex-wrap gap-2">
+                                    <label class="flex-1 text-sm"><?php echo e(__('admin_spec_key')); ?>
+                                        <input type="text" id="newSpecKey" class="block w-full border rounded px-3 py-1.5" onkeydown="specFormKeydown(event)">
+                                    </label>
+                                    <label class="flex-1 text-sm"><?php echo e(__('admin_spec_value')); ?>
+                                        <input type="text" id="newSpecValue" class="block w-full border rounded px-3 py-1.5" onkeydown="specFormKeydown(event)">
+                                    </label>
+                                </div>
+                                <div class="flex gap-3 mt-2">
+                                    <button type="button" onclick="commitSpecRow()" class="text-sm text-primary hover:underline"><?php echo e(__('admin_add_spec')); ?></button>
+                                    <button type="button" onclick="cancelSpecRow()" class="text-sm text-gray-500 hover:underline"><?php echo e(__('admin_cancel')); ?></button>
+                                </div>
+                            </div>
+                            <p id="specError" role="status" aria-live="polite" class="text-sm text-red-600 mb-2"></p>
                             <button type="button" onclick="addSpecRow()" class="text-sm text-primary hover:underline">+ <?php echo __('admin_add_spec'); ?></button>
                             <?php if ($specPresets): ?>
                             <button type="button" onclick="fillSpecPresets()" class="text-sm text-primary hover:underline ml-3"><i class="ti ti-list-check"></i> <?php echo __('admin_spec_fill_preset'); ?></button>
@@ -743,22 +758,53 @@ function renderSpecs() {
     presetOrder.forEach(function (key) {
         var div = document.createElement('div');
         div.className = 'flex items-center gap-2';
-        div.innerHTML = '<span class="w-32 text-sm text-gray-600 px-1 truncate" title="' + escapeAttr(specPresets[key].label) + '">' + escapeAttr(specPresets[key].label) + '</span>' +
-            '<input type="text" value="' + escapeAttr(formatSpecValue(specsData[key])) + '" class="spec-val flex-1 border rounded px-3 py-1.5 text-sm" placeholder="<?php echo __("admin_spec_val_ph"); ?>" onchange="updateSpecVal(this)" data-key="' + escapeAttr(key) + '">' +
-            '<button type="button" onclick="removeSpec(\'' + escapeAttr(key) + '\')" class="text-red-400 hover:text-red-600 text-lg font-bold" title="<?php echo e(__('admin_remove')); ?>">&times;</button>';
+        var label = document.createElement('span');
+        label.className = 'w-32 text-sm text-gray-600 px-1 truncate';
+        label.title = label.textContent = specPresets[key].label;
+        div.appendChild(label);
+        appendSpecValue(div, key, specPresets[key].label);
         list.appendChild(div);
     });
     customKeys.forEach(function(key) {
         var div = document.createElement('div');
         div.className = 'flex items-center gap-2';
-        var label = specLabels[specName(key)] || specName(key);
-        div.innerHTML = '<input type="text" value="' + escapeAttr(specName(key)) + '" class="spec-key w-32 border rounded px-3 py-1.5 text-sm bg-gray-50" placeholder="<?php echo e(__('admin_spec_key')); ?>" onchange="updateSpecKey(this)" data-old="' + escapeAttr(key) + '">' +
-            '<span class="text-gray-300">:</span>' +
-            '<input type="text" value="' + escapeAttr(formatSpecValue(specsData[key])) + '" class="spec-val flex-1 border rounded px-3 py-1.5 text-sm" placeholder="<?php echo e(__('admin_spec_value')); ?>" onchange="updateSpecVal(this)" data-key="' + escapeAttr(key) + '">' +
-            '<span class="text-xs text-gray-400 w-16 truncate" title="' + escapeAttr(label) + '">' + escapeAttr(label) + '</span>' +
-            '<button type="button" onclick="removeSpec(\'' + escapeAttr(key) + '\')" class="text-red-400 hover:text-red-600 text-lg font-bold">&times;</button>';
+        var label = Object.prototype.hasOwnProperty.call(specLabels, specName(key)) ? specLabels[specName(key)] : specName(key);
+        var input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'spec-key w-32 border rounded px-3 py-1.5 text-sm bg-gray-50';
+        input.value = specName(key);
+        input.dataset.old = key;
+        input.setAttribute('aria-label', <?php echo json_encode(__('admin_spec_key'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>);
+        input.addEventListener('change', function () { updateSpecKey(input); });
+        div.appendChild(input);
+        appendSpecValue(div, key, label, true);
         list.appendChild(div);
     });
+}
+
+function appendSpecValue(row, key, label, showLabel) {
+    var valueInput = document.createElement('input');
+    valueInput.type = 'text';
+    valueInput.className = 'spec-val flex-1 border rounded px-3 py-1.5 text-sm';
+    valueInput.value = formatSpecValue(specsData[key]);
+    valueInput.dataset.key = key;
+    valueInput.placeholder = <?php echo json_encode(__('admin_spec_val_ph'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+    valueInput.setAttribute('aria-label', label + ' ' + <?php echo json_encode(__('admin_spec_value'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>);
+    valueInput.addEventListener('change', function () { updateSpecVal(valueInput); });
+    row.appendChild(valueInput);
+    if (showLabel) {
+        var hint = document.createElement('span');
+        hint.className = 'text-xs text-gray-400 w-16 truncate';
+        hint.title = hint.textContent = label;
+        row.appendChild(hint);
+    }
+    var remove = document.createElement('button');
+    remove.type = 'button';
+    remove.className = 'text-red-400 hover:text-red-600 text-lg font-bold';
+    remove.textContent = '×';
+    remove.setAttribute('aria-label', <?php echo json_encode(__('admin_remove'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?> + ' ' + label);
+    remove.addEventListener('click', function () { removeSpec(key); });
+    row.appendChild(remove);
 }
 
 function syncSpecs() {
@@ -771,13 +817,40 @@ function syncSpecs() {
 }
 
 function addSpecRow() {
-    var key = prompt('<?php echo __("admin_spec_key_prompt"); ?>');
-    if (!key) return;
-    key = key.trim();
-    if (hasSpecName(key)) { alert('<?php echo __("admin_spec_exists"); ?>'); return; }
-    if (Array.isArray(specsData)) specsData.push({name: key, value: ''});
-    else specsData[key] = '';
+    document.getElementById('specForm').hidden = false;
+    document.getElementById('specError').textContent = '';
+    document.getElementById('newSpecKey').value = '';
+    document.getElementById('newSpecValue').value = '';
+    document.getElementById('newSpecKey').focus();
+}
+
+function cancelSpecRow() {
+    document.getElementById('specForm').hidden = true;
+    document.getElementById('specError').textContent = '';
+    document.querySelector('[onclick="addSpecRow()"]').focus();
+}
+
+function specFormKeydown(event) {
+    if (event.isComposing) return;
+    if (event.key === 'Enter') { event.preventDefault(); commitSpecRow(); }
+    if (event.key === 'Escape') { event.preventDefault(); cancelSpecRow(); }
+}
+
+function commitSpecRow() {
+    var keyInput = document.getElementById('newSpecKey');
+    var key = keyInput.value.trim();
+    var value = document.getElementById('newSpecValue').value;
+    var error = document.getElementById('specError');
+    if (!key || hasSpecName(key)) {
+        error.textContent = !key ? <?php echo json_encode(__('admin_spec_name_required'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?> : <?php echo json_encode(__('admin_spec_exists'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
+        keyInput.focus();
+        return;
+    }
+    if (Array.isArray(specsData)) specsData.push({name: key, value: value});
+    else Object.defineProperty(specsData, key, {value: value, writable: true, configurable: true, enumerable: true});
     syncSpecs();
+    document.getElementById('specForm').hidden = true;
+    error.textContent = '';
     // 聚焦到新行的值输入框
     var inputs = document.querySelectorAll('.spec-val');
     if (inputs.length) inputs[inputs.length - 1].focus();
@@ -787,14 +860,15 @@ function updateSpecKey(el) {
     var oldKey = el.dataset.old;
     var newKey = el.value.trim();
     if (!newKey || newKey === specName(oldKey)) { el.value = specName(oldKey); return; }
-    if (hasSpecName(newKey)) { alert('<?php echo __("admin_spec_exists"); ?>'); el.value = specName(oldKey); return; }
+    document.getElementById('specError').textContent = '';
+    if (hasSpecName(newKey)) { document.getElementById('specError').textContent = <?php echo json_encode(__('admin_spec_exists'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>; el.value = specName(oldKey); return; }
     if (Array.isArray(specsData)) {
         if (specsData[oldKey] && typeof specsData[oldKey] === 'object') specsData[oldKey].name = newKey;
         else specsData[oldKey] = {name: newKey, value: specsData[oldKey]};
         syncSpecs();
         return;
     }
-    specsData[newKey] = specsData[oldKey];
+    Object.defineProperty(specsData, newKey, {value: specsData[oldKey], writable: true, configurable: true, enumerable: true});
     delete specsData[oldKey];
     syncSpecs();
 }

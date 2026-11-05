@@ -572,10 +572,10 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
                                 ? '/admin/blox_editor.php?id=' . $item['channel_id']
                                 : '/admin/page.php';
                         } else {
-                            $editUrl = '/admin/article_edit.php?id=' . $item['id'];
+                            $editUrl = (($item['type'] ?? '') === 'article' ? '/admin/article_edit.php?id=' : '/admin/content_edit.php?id=') . (int) $item['id'];
                         }
                         ?>
-                        <a href="<?php echo $editUrl; ?>" class="text-gray-700 hover:text-primary truncate max-w-xs">
+                        <a href="<?php echo e($editUrl); ?>" class="text-gray-700 hover:text-primary truncate max-w-xs">
                             <?php echo e($item['title']); ?>
                         </a>
                     </div>

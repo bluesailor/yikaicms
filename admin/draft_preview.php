@@ -24,12 +24,27 @@ if (!$previewRow || !empty($previewRow['deleted_at']) || !isset(availableLanguag
     http_response_code(404);
     exit(e(__('error_content_not_found')));
 }
-if ($previewType === 'channels' && ($previewRow['type'] ?? '') === 'page') requirePermission('edit_page');
+// Match the existing Blox editor's design permission for top-level landing pages.
+// Do not make its new preview URL depend on unrelated channel-administration permission.
+$bloxLandingPreview = false;
+if ($previewType === 'channels' && (int) ($previewRow['parent_id'] ?? 0) === 0) {
+    require_once ROOT_PATH . '/includes/builder/ChannelBloxDocument.php';
+    $bloxLandingPreview = ($previewRow['type'] ?? '') === 'product'
+        || ChannelBloxDocument::supportsType((string) ($previewRow['type'] ?? ''));
+}
+if ($previewType === 'channels' && (($previewRow['type'] ?? '') === 'page'
+    || ($bloxLandingPreview && hasPermission('blox_edit') && hasPermission('edit_page')))) requirePermission('edit_page');
 else requireTranslationPermission($previewType, $previewRow);
 define('SITE_LANG', (string) $previewRow['lang']);
 $previewContext = ['table' => $previewType, 'row' => $previewRow];
 $GLOBALS['_LANG_DATA'] = null;
 $_GET = array_merge(array_intersect_key($_GET, array_flip(['sort', 'keyword', 'page', 'brand', 'tag', 'pmin', 'pmax'])), ['id' => (int) $previewRow['id'], 'preview' => 'admin']);
+// Reuse the authenticated Blox draft protocol, not the channel's legacy HTML fallback.
+// These values come from the authorized row, never from caller-supplied draft IDs.
+if ($previewType === 'channels') {
+    $_GET['preview'] = 'draft';
+    $_GET['blox_draft'] = 'page:' . (int) $previewRow['id'];
+}
 
 $previewEntry = match ($previewType) {
     'products' => 'product.php', 'jobs' => 'job_detail.php',

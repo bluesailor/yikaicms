@@ -9771,4 +9771,5 @@ voltage|电压|220V',
     'aipr_reason_element_type_changed' => '元素类型已变，提案的字段不再适用',
     'aipr_reason_element_bound' => '元素绑定了站点数据，内容不在页面里修改',
     'aipr_reason_value_too_long' => '提案内容超过该字段的长度上限',
+    'admin_spec_name_required' => '请输入参数名',
 ];

@@ -269,7 +269,8 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
                                     <?php echo renderRowActions([
                                         'id'        => (int) $item['id'],
                                         'edit'      => '/admin/product_edit.php?id=' . (int) $item['id'],
-                                        'view'      => productUrl($item),
+                                        'view'      => (int) $item['status'] === 1 ? productUrl($item) : '/admin/draft_preview.php?type=products&id=' . (int) $item['id'],
+                                        'view_label' => (int) $item['status'] === 1 ? __('admin_view') : __('admin_draft_preview'),
                                         'duplicate' => true,
                                         'delete_fn' => 'deleteProduct',
                                         'status_label' => (int) $item['status'] === 1 ? __('status_off') : __('status_on'),
