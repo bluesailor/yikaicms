@@ -54,6 +54,22 @@ CI 组件往返矩阵为 MySQL 5.7/8.0/8.4，真实安装及后台 CRUD/页面�
 
 业务 SQL 继续兼容 5.7，不为支持 8.4 引入 8.x 专属别名或排序规则。`ON DUPLICATE KEY UPDATE ... VALUES(column)` 在 8.4 仍受支持但已弃用，不能直接替换为会破坏 5.7 的新版行别名写法。CMS 全新安装/模板导入验收也不等于 MySQL 服务数据目录的原地版本升级验收。
 
+### 真实发行包后台与升级验收
+
+在同一自有 MySQL 实例保护下，可用 `-Suite runtime` 运行 `tools/mysql-package-acceptance.php`：
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File tests\smoke\run-component-mysql.ps1 -MysqlHome D:\test-runtimes\mysql-8.4 -Version 8.4 -Suite runtime -FromPackage D:\test-packages\yikaicms-v2.1.2.zip -ToPackage D:\test-packages\yikaicms-v2.1.3-local84.zip -FromVersion 2.1.2 -ToVersion 2.1.3 -Port 33096 -HttpPort 18926 -OutDir D:\test-results\mysql84-runtime
+```
+
+必须先核对已发布基线包的官方 SHA-256，并用干净提交构建当前 `--local=local84` 候选；不会改变产品版本号或自动发布。默认测试候选 ZIP 的正式 HTTP 全新安装，以及基线正式包经 `apply_prepare`、`apply_batch`、`apply_finalize`、`migrate:run` 后的站点。两种站点各运行 MySQL 迁移/事务检查、十类新建及列表回读、栏目图保留、后台页面扫描，另做文章草稿的真实 HTTP 创建、读取、修改与软删除；标题、摘要、正文、SEO 和四字节字符回读一致且始终为草稿。
+
+升级用 `package_upgrade.php --verify-preservation`，在覆盖前插入独立草稿夹具，核对实际备份 SQL 包含该夹具，升级后逐字段比较并验证配置哈希和上传文件字节不变。只向测试站自己的 `tests/smoke` 复制三份客户端，fixtures.json 不会写进源码树或开发站。升级门禁的 `--keep` 仅供外层接管后续检查；外层在成功后清理站点与所建确切库名，失败保留诊断并停止独立实例。
+
+仅补测另一基线升级时加 `-UpgradeOnly`，并传正确的 `-FromVersion`，跳过已经通过的候选全新安装。runtime 模式当前只允许内置 HTTP 服务器，传 nginx/Apache 会在启动 MySQL 前拒绝，避免误标服务器覆盖范围。`HttpPort` 保留为包装器的空闲端口检查；runtime 各站实际 HTTP 端口动态分配，web 元数据记录进程归属。
+
+该门禁使用已校验的本地 ZIP 暂存，验证真实后台应用管道；不验证远端下载、签名/更新通道，也不等于 MySQL 服务原地升级、增量包或最终发行验收。所有数据均为临时实例内的演示/合成夹具，真实站点与凭据不参与测试。
+
 ## 独立 nginx / Apache
 
 `--server=nginx|apache` 直接启动指定的服务器二进制和独立 PHP CGI FastCGI 进程；没有代理到 PHP 内置服务器。默认 `--php-cgi` 为当前 PHP CLI 同目录的 `php-cgi.exe`（非 Windows 为 `php-cgi`），也可显式指定。就绪检查要求 CGI 的随机进程环境标记、实际文档根、SAPI 和 PHP 版本全部匹配当前 CLI；不符合则在安装前停止。

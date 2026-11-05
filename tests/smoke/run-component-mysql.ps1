@@ -13,7 +13,8 @@ param(
     [string]$FromPackage = '',
     [string]$ToPackage = '',
     [string]$FromVersion = '2.1.2',
-    [string]$ToVersion = '2.1.3'
+    [string]$ToVersion = '2.1.3',
+    [switch]$UpgradeOnly
 )
 $ErrorActionPreference = 'Continue'
 $root = (Resolve-Path (Join-Path $PSScriptRoot '..\..')).Path
@@ -21,8 +22,10 @@ $mysqld = Join-Path $MysqlHome 'bin\mysqld.exe'
 $mysql = Join-Path $MysqlHome 'bin\mysql.exe'
 foreach ($file in @($Php,$mysqld,$mysql)) { if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing binary: $file" } }
 if ($Suite -eq 'runtime') {
+    if ($WebServer -ne 'builtin') { throw 'The runtime suite currently supports only the built-in HTTP server' }
     foreach ($file in @($FromPackage,$ToPackage)) { if (-not (Test-Path -LiteralPath $file -PathType Leaf)) { throw "Missing package: $file" } }
 }
+if ($UpgradeOnly -and $Suite -ne 'runtime') { throw '-UpgradeOnly requires -Suite runtime' }
 if ($WebServer -ne 'builtin' -and -not (Test-Path -LiteralPath $ServerBinary -PathType Leaf)) { throw 'An existing web server binary is required' }
 $webArgs=@("--server=$WebServer")
 if ($ServerBinary -ne '') { $webArgs += "--server-bin=$ServerBinary" }
@@ -115,7 +118,9 @@ try {
     $reportName=if ($Suite -eq 'runtime') { 'runtime' } else { 'roundtrip' }
     $reportPath=Join-Path $OutDir ($reportName+'.json')
     if ($Suite -eq 'runtime') {
-        & $Php (Join-Path $root 'tools\mysql-package-acceptance.php') "--from-package=$FromPackage" "--to-package=$ToPackage" "--from=$FromVersion" "--to=$ToVersion" "--report=$reportPath" > (Join-Path $OutDir ($reportName+'.txt'))
+        $suiteArgs=@("--from-package=$FromPackage","--to-package=$ToPackage","--from=$FromVersion","--to=$ToVersion","--report=$reportPath")
+        if ($UpgradeOnly) { $suiteArgs += '--upgrade-only' }
+        & $Php (Join-Path $root 'tools\mysql-package-acceptance.php') @suiteArgs > (Join-Path $OutDir ($reportName+'.txt'))
     } else {
         & $Php (Join-Path $root 'tools\component-site-roundtrip.php') '--db=mysql' @webArgs "--port=$HttpPort" "--report=$reportPath" > (Join-Path $OutDir ($reportName+'.txt'))
     }

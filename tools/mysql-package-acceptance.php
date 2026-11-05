@@ -4,7 +4,7 @@ declare(strict_types=1);
 if (PHP_SAPI !== 'cli') { http_response_code(404); exit; }
 require_once __DIR__ . '/lib/ComponentRoundtripServer.php';
 
-$options = getopt('', ['from-package:', 'to-package:', 'from:', 'to:', 'report:']);
+$options = getopt('', ['from-package:', 'to-package:', 'from:', 'to:', 'report:', 'upgrade-only']);
 foreach (['from-package', 'to-package', 'from', 'to', 'report'] as $required) {
     if (empty($options[$required])) throw new RuntimeException('Missing --' . $required);
 }
@@ -17,7 +17,7 @@ if (!is_dir(dirname($reportPath))) throw new RuntimeException('Report directory 
 $sandbox = sys_get_temp_dir() . '/yk-mysql-runtime-' . bin2hex(random_bytes(8));
 mkdir($sandbox, 0700, true);
 $report = ['passed'=>false, 'php'=>PHP_VERSION, 'checks'=>[], 'from'=>$options['from'], 'to'=>$options['to'],
-    'from_sha256'=>hash_file('sha256',$fromPackage), 'to_sha256'=>hash_file('sha256',$toPackage)];
+    'from_sha256'=>hash_file('sha256',$fromPackage), 'to_sha256'=>hash_file('sha256',$toPackage), 'upgrade_only'=>isset($options['upgrade-only'])];
 $pdo = null; $identity = []; $ownedDatabases = []; $ownedSites = []; $server = null;
 $dbUser = (string)getenv('YK_COMPONENT_MYSQL_USER');
 $dbPass = (string)getenv('YK_COMPONENT_MYSQL_PASS');
@@ -153,6 +153,8 @@ try {
         && in_array($family,['5.7','8.0','8.4'],true) && str_starts_with($identity['version'],$family.'.'),'Temporary MySQL identity verified before mutation');
     $report['mysql']=$identity;
     putenv('EXPECTED_MYSQL_SERIES='.$family);
+    $database='';
+    if (!isset($options['upgrade-only'])) {
     $fresh=$sandbox.'/fresh'; mkdir($fresh,0700,true); $ownedSites[]=$fresh;
     $zip=new ZipArchive();
     if ($zip->open($toPackage)!==true || !$zip->extractTo($fresh)) throw new RuntimeException('Cannot extract candidate package');
@@ -173,12 +175,13 @@ try {
     $json=json_decode($installed['body'],true);
     mpa_check($installed['status']===200 && !empty($json['success']),'Candidate ZIP installs through real HTTP installer');
     mpa_admin($fresh,$database,'fresh',$base);
+    }
 
     mpa_owner();
     $before=$pdo->query('SELECT schema_name FROM information_schema.schemata')->fetchAll(PDO::FETCH_COLUMN);
     putenv('YK_TEST_DB_PASS='.$dbPass);
     $upgrade=mpa_run([PHP_BINARY,$repo.'/tests/smoke/package_upgrade.php','--from-package='.$fromPackage,'--to-package='.$toPackage,
-        '--from='.$options['from'],'--to='.$options['to'],'--db=mysql','--db-host=127.0.0.1','--db-port='.$dbPort,'--db-user='.$dbUser,'--keep'],dirname($reportPath).'/package-upgrade.txt');
+        '--from='.$options['from'],'--to='.$options['to'],'--db=mysql','--db-host=127.0.0.1','--db-port='.$dbPort,'--db-user='.$dbUser,'--keep','--verify-preservation'],dirname($reportPath).'/package-upgrade.txt');
     mpa_owner();
     $after=$pdo->query('SELECT schema_name FROM information_schema.schemata')->fetchAll(PDO::FETCH_COLUMN);
     foreach (array_diff($after,$before) as $name) {

@@ -123,7 +123,7 @@ function upgradeAssert(bool $condition, string $message): void
 
 $options = getopt('', [
     'from-package:', 'to-package:', 'from:', 'to:', 'db::',
-    'db-host::', 'db-port::', 'db-user::', 'db-pass::', 'keep',
+    'db-host::', 'db-port::', 'db-user::', 'db-pass::', 'keep', 'verify-preservation',
 ]);
 $fromPackage = realpath((string) ($options['from-package'] ?? ''));
 $toPackage = realpath((string) ($options['to-package'] ?? ''));
@@ -234,6 +234,27 @@ try {
     }
     upgradeAssert($installedVersion === $fromVersion, 'installed baseline is exactly v' . $fromVersion);
 
+    // Opt-in continuity fixture for a dedicated MySQL package rehearsal. Keep
+    // drafts, uploaded bytes and the site's encryption/configuration unchanged.
+    $preserved = null;
+    if (array_key_exists('verify-preservation', $options)) {
+        upgradeAssert($pdo instanceof PDO && $dbKind === 'mysql', 'preservation fixture uses the dedicated MySQL database');
+        $pdo->exec('USE `' . $dbName . '`');
+        $preserved = [
+            'title' => 'NMINUS1_PRESERVE_' . bin2hex(random_bytes(6)),
+            'summary' => '升级前摘要 🧪', 'content' => '<p>升级前正文 🧪</p>',
+            'seo_title' => 'Upgrade SEO', 'seo_keywords' => '升级,SQL', 'seo_description' => '升级 SEO 摘要',
+        ];
+        $insert = $pdo->prepare('INSERT INTO yikai_contents (type,lang,title,slug,summary,content,seo_title,seo_keywords,seo_description,status,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,0,?,?)');
+        $insert->execute(['article','zh-CN',$preserved['title'],strtolower($preserved['title']),$preserved['summary'],$preserved['content'],
+            $preserved['seo_title'],$preserved['seo_keywords'],$preserved['seo_description'],time(),time()]);
+        $preservedId = (int) $pdo->lastInsertId();
+        $preservedConfigHash = hash_file('sha256', $siteRoot . '/config/config.php');
+        $preservedUpload = $siteRoot . '/uploads/' . strtolower($preserved['title']) . '.txt';
+        file_put_contents($preservedUpload, $preserved['content']);
+        upgradeAssert($preservedId > 0, 'pre-upgrade draft with utf8mb4 and SEO is persisted');
+    }
+
     $loginPage = upgradeRequest($base . '/admin/login.php', $cookieJar);
     if (!preg_match('/name="csrf-token"\s+content="([a-f0-9]+)"/', $loginPage['body'], $csrfMatch)
         && !preg_match('/name="_token"[^>]*value="([a-f0-9]+)"/', $loginPage['body'], $csrfMatch)) {
@@ -266,6 +287,14 @@ try {
     $prepare = upgradeJsonAction($base, $cookieJar, $csrf, 'apply_prepare');
     upgradeAssert(($prepare['code'] ?? 1) === 0 && ($prepare['mode'] ?? '') === 'full', 'online upgrader prepares the real target full package');
     upgradeAssert(!empty($prepare['db_backup']), 'online upgrader creates a database backup before file replacement');
+    if ($preserved !== null) {
+        $backups = glob($siteRoot . '/storage/backups/pre-upgrade-*/database.sql') ?: [];
+        $containsFixture = false;
+        foreach ($backups as $backup) {
+            if (str_contains((string) file_get_contents($backup), $preserved['title'])) $containsFixture = true;
+        }
+        upgradeAssert($containsFixture, 'actual pre-upgrade SQL backup includes the draft fixture');
+    }
     $total = (int) ($prepare['total'] ?? 0);
     $offset = 0;
     $copied = 0;
@@ -313,6 +342,16 @@ PHP
     $verifyData = json_decode(trim($verify['output']), true);
     upgradeAssert($verify['code'] === 0 && is_array($verifyData), 'upgraded package boots from CLI');
     upgradeAssert(($verifyData['version'] ?? '') === $toVersion && ($verifyData['pending'] ?? -1) === 0, 'target version has zero pending migrations');
+    if ($preserved !== null) {
+        $read = $pdo->prepare('SELECT title,summary,content,seo_title,seo_keywords,seo_description,status FROM yikai_contents WHERE id=?');
+        $read->execute([$preservedId]);
+        $row = $read->fetch(PDO::FETCH_ASSOC);
+        $stillDraft = is_array($row) && (int) $row['status'] === 0;
+        unset($row['status']);
+        upgradeAssert($stillDraft && $row === $preserved, 'draft title, summary, body and SEO survive upgrade exactly');
+        upgradeAssert(hash_file('sha256', $siteRoot . '/config/config.php') === $preservedConfigHash, 'database credentials and encryption configuration are unchanged');
+        upgradeAssert(is_file($preservedUpload) && file_get_contents($preservedUpload) === $preserved['content'], 'uploaded bytes survive the package upgrade');
+    }
 
     // v1.19.x 的升级器尚不会主动失效 OPcache；生产配置默认每隔数秒复查文件时间戳。
     // 给跨越旧升级器的这一跳一个有界恢复窗口，同时 v1.20+ 会在覆盖时立即失效字节码。

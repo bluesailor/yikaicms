@@ -515,6 +515,7 @@ jobs:
           --from=1.20.1 --to=$(php -r "require 'config/version.php'; echo CMS_VERSION;")
           --db=mysql --db-host=127.0.0.1 --db-port=3306
           --db-user=root --db-pass=ci-root
+          ${{ matrix.mysql == '8.4' && '--verify-preservation' || '' }}
 
   # ─── 真实免费发行包：不能只在源工作树上验证资产分类。注入完整源码后运行
   # ─── build.sh，校验 ZIP 哈希，再解包对最终产物执行 verify-free。
