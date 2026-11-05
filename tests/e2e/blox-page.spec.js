@@ -665,6 +665,7 @@ test('page editor switches between translated Blox documents @local', async ({ p
       await page.getByTestId(`blox-mobile-language-${language}`).click();
       return;
     }
+    await page.getByTestId('blox-language-switch-toggle').click();
     await page.getByTestId(`blox-language-${language}`).click();
   };
 

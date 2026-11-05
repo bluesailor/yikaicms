@@ -281,9 +281,9 @@ final class BloxEditorPreviewContractTest extends TestCase
         // v1.18.6：预览目标服务端按编辑对象决定——页头/页尾模板指首页，
         // 区块/弹窗模板不显示（此前模板模式拼出坏链接 /.html?preview）
         $this->assertStringContainsString("in_array(\$templateType ?? '', ['header', 'footer'], true)", $header);
-        $this->assertStringContainsString('$frontPreviewUrl = channelUrl($page);', $header);
+        $this->assertStringContainsString("\$frontPreviewUrl = '/admin/draft_preview.php?type=channels&id=' . (int) \$id;", $header);
         $this->assertStringContainsString(':href="pageFrontPreviewUrl()"', $header);
-        $this->assertStringContainsString('preview=draft&blox_draft=page:', $header);
+        $this->assertStringNotContainsString('preview=draft&blox_draft=page:', $header);
         $this->assertStringContainsString('if ($frontPreviewUrl !== null):', $header);
         $this->assertStringContainsString('data-testid="blox-front-preview"', $header);
         $this->assertStringContainsString('ti ti-eye text-base', $header);

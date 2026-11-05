@@ -45,7 +45,7 @@ declare(strict_types=1);
                 <button type="button" data-testid="blox-page-switcher-toggle"
                         @click="open = !open; if (open) { pageSwitcherQuery = ''; $nextTick(() => $refs.pageSwitcherSearch.focus()); }"
                         :aria-expanded="open ? 'true' : 'false'" aria-haspopup="true"
-                        title="<?= e(__('blox_page_switch')) ?>"
+                        title="<?= e(__('blox_page_switch') . ' · ' . ($isHomeBlox ? __('blox_page_switch_home') : $page['name'])) ?>"
                         class="inline-flex max-w-full min-w-0 items-center gap-1 rounded px-1 text-sm text-gray-400 hover:bg-gray-800 hover:text-white">
                     <?php // 只说「在编辑哪个页面」；草稿/发布状态由右侧的保存状态与「未发布变更」徽标表达 ?>
                     <span class="truncate">/ <?php echo e($isHomeBlox ? __('blox_page_switch_home') : $page['name']); ?></span>
@@ -136,29 +136,23 @@ declare(strict_types=1);
                 <i class="ti ti-language"></i><span class="<?= $areaLanguageLinks !== [] ? 'hidden min-[1920px]:inline' : '' ?>"><?php echo e($areaEditorContextLabel); ?></span>
             </span>
             <?php if ($areaLanguageLinks !== []): ?>
-            <div data-testid="blox-area-language-switch" role="group" aria-label="<?= e(__('lse_versions')) ?>"
-                 class="blox-header-languages inline-flex items-center rounded border border-gray-700 bg-gray-800 p-0.5 min-w-0 max-w-full overflow-x-auto">
-                <?php foreach ($areaLanguageLinks as $areaLanguageLink):
+            <?php
+                $languageItems = [];
+                foreach ($areaLanguageLinks as $areaLanguageLink) {
                     $areaLanguageHref = $areaLanguageLink['url'];
                     if (str_starts_with($areaLanguageHref, '/admin/blox_editor.php') && ($editorBackTo ?? '') === 'home') {
                         $areaLanguageHref .= '&back=home';
                     }
                     $areaLanguageHref = BloxAreaEditorTarget::withReturnTo($areaLanguageHref, (string) ($editorReturnTo ?? ''));
-                ?>
-                <a href="<?= e($areaLanguageHref) ?>"
-                   @click="requestEditorNavigation($event)"
-                   data-testid="blox-area-language-<?= e($areaLanguageLink['code']) ?>"
-                   data-area-language-state="<?= e($areaLanguageLink['state']) ?>"
-                   title="<?= e($areaLanguageLink['title']) ?>" aria-label="<?= e($areaLanguageLink['title']) ?>"
-                   <?php if ($areaLanguageLink['current']): ?>aria-current="page"<?php endif; ?>
-                   class="relative min-w-7 h-6 rounded px-1.5 text-[10px] font-semibold inline-flex items-center justify-center transition <?= $areaLanguageLink['current'] ? 'bg-blue-600 text-white' : ($areaLanguageLink['state'] === 'none' ? 'text-gray-500 hover:bg-gray-700 hover:text-amber-300' : 'text-gray-300 hover:bg-gray-700 hover:text-white') ?>">
-                    <?= e($areaLanguageLink['short']) ?>
-                    <?php if (in_array($areaLanguageLink['state'], ['inherit', 'preview', 'none'], true)): ?>
-                    <span class="absolute right-0.5 top-0.5 w-1 h-1 rounded-full <?= $areaLanguageLink['state'] === 'none' ? 'bg-amber-400' : 'bg-gray-400' ?>"></span>
-                    <?php endif; ?>
-                </a>
-                <?php endforeach; ?>
-            </div>
+                    $languageItems[] = array_merge($areaLanguageLink, [
+                        'url' => $areaLanguageHref,
+                        'testid' => 'blox-area-language-' . $areaLanguageLink['code'],
+                        'note' => $areaLanguageLink['current'] ? __('lse_current') : $areaLanguageLink['title'],
+                    ]);
+                }
+                $languageTestId = 'blox-area-language-switch';
+                require __DIR__ . '/language-switch.php';
+            ?>
             <?php endif; ?>
             <?php endif; ?>
             <?php if ($redirectedFromPage !== null): ?>
@@ -173,44 +167,39 @@ declare(strict_types=1);
             $homeLanguages = $isHomeBlox && function_exists('enabledLanguages') ? enabledLanguages() : [];
             ?>
             <?php if (count($homeLanguages) > 1): ?>
-            <div data-testid="blox-home-language-switch" role="group" aria-label="<?= e(__('lse_versions')) ?>"
-                 class="blox-header-languages inline-flex items-center rounded border border-gray-700 bg-gray-800 p-0.5 min-w-0 max-w-full overflow-x-auto">
-                <?php foreach ($homeLanguages as $homeLangCode => $homeLangLabel): ?>
-                <?php $homeLangCurrent = $homeLangCode === $homeEditorLanguage; ?>
-                <a href="<?= e('/admin/blox_editor.php?home=1' . ($homeLangCode !== (string) config('site_lang', 'zh-CN') ? '&lang=' . rawurlencode((string) $homeLangCode) : '')) ?>"
-                   data-testid="blox-home-language-<?= e((string) $homeLangCode) ?>" title="<?= e((string) $homeLangLabel) ?>"
-                   <?php if ($homeLangCurrent): ?>aria-current="page"<?php endif; ?>
-                   class="min-w-7 h-6 rounded px-1.5 text-[10px] font-semibold inline-flex items-center justify-center transition <?= $homeLangCurrent ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' ?>">
-                    <?= e(LanguageRegistry::shortLabel((string) $homeLangCode)) ?>
-                </a>
-                <?php endforeach; ?>
-            </div>
+            <?php
+                $languageItems = [];
+                foreach ($homeLanguages as $homeLangCode => $homeLangLabel) {
+                    $homeLangCurrent = $homeLangCode === $homeEditorLanguage;
+                    $languageItems[] = ['current' => $homeLangCurrent, 'label' => (string) $homeLangLabel,
+                        'short' => LanguageRegistry::shortLabel((string) $homeLangCode),
+                        'url' => '/admin/blox_editor.php?home=1' . ($homeLangCode !== (string) config('site_lang', 'zh-CN') ? '&lang=' . rawurlencode((string) $homeLangCode) : ''),
+                        'testid' => 'blox-home-language-' . $homeLangCode, 'title' => (string) $homeLangLabel,
+                        'note' => $homeLangCurrent ? __('lse_current') : ''];
+                }
+                $languageTestId = 'blox-home-language-switch';
+                require __DIR__ . '/language-switch.php';
+            ?>
             <?php endif; ?>
             <?php if ($pageLanguageVersions !== []): ?>
-            <div data-testid="blox-language-switch" role="group" aria-label="<?= e(__('lse_versions')) ?>"
-                 class="blox-header-languages inline-flex items-center rounded border border-gray-700 bg-gray-800 p-0.5 min-w-0 max-w-full overflow-x-auto">
-                <?php foreach ($pageLanguageVersions as $languageVersion): ?>
-                    <?php if ($languageVersion['id'] > 0): ?>
-                    <a href="<?= e(BloxAreaEditorTarget::withReturnTo('/admin/blox_editor.php?id=' . (int) $languageVersion['id'], (string) ($editorReturnTo ?? ''))) ?>"
-                       @click="requestEditorNavigation($event)"
-                       data-testid="blox-language-<?= e($languageVersion['code']) ?>"
-                       title="<?= e($languageVersion['label'] . ($languageVersion['has_blox'] ? '' : ' · ' . __('blox_language_no_blox'))) ?>"
-                       <?php if ($languageVersion['current']): ?>aria-current="page"<?php endif; ?>
-                       class="relative min-w-7 h-6 rounded px-1.5 text-[10px] font-semibold inline-flex items-center justify-center transition <?= $languageVersion['current'] ? 'bg-blue-600 text-white' : 'text-gray-300 hover:bg-gray-700 hover:text-white' ?>">
-                        <?= e($languageVersion['short']) ?>
-                        <?php if (!$languageVersion['has_blox']): ?><span class="absolute right-0.5 top-0.5 w-1 h-1 rounded-full bg-amber-400"></span><?php endif; ?>
-                    </a>
-                    <?php else: ?>
-                    <a href="/admin/page_edit.php?id=<?= (int) $page['id'] ?>"
-                       @click="requestEditorNavigation($event)"
-                       data-testid="blox-language-<?= e($languageVersion['code']) ?>"
-                       title="<?= e($languageVersion['label'] . ' · ' . __('lse_create_version')) ?>"
-                       class="min-w-7 h-6 rounded px-1.5 text-[10px] font-semibold text-gray-500 hover:bg-gray-700 hover:text-amber-300 inline-flex items-center justify-center transition">
-                        <?= e($languageVersion['short']) ?>
-                    </a>
-                    <?php endif; ?>
-                <?php endforeach; ?>
-            </div>
+            <?php
+                $languageItems = [];
+                foreach ($pageLanguageVersions as $languageVersion) {
+                    $note = $languageVersion['id'] > 0
+                        ? ($languageVersion['has_blox'] ? '' : __('blox_language_no_blox'))
+                        : __('lse_create_version');
+                    $languageItems[] = array_merge($languageVersion, [
+                        'url' => $languageVersion['id'] > 0
+                            ? BloxAreaEditorTarget::withReturnTo('/admin/blox_editor.php?id=' . (int) $languageVersion['id'], (string) ($editorReturnTo ?? ''))
+                            : '/admin/page_edit.php?id=' . (int) $page['id'],
+                        'testid' => 'blox-language-' . $languageVersion['code'],
+                        'title' => $languageVersion['label'] . ($note !== '' ? ' · ' . $note : ''),
+                        'note' => $languageVersion['current'] ? __('lse_current') : $note,
+                    ]);
+                }
+                $languageTestId = 'blox-language-switch';
+                require __DIR__ . '/language-switch.php';
+            ?>
             <?php endif; ?>
             <?php if ($isHomeBlox): ?>
             <?php // 只在构建器首页尚未发布时提示——已发布后访客看到的就是本页，再挂着会让新手以为出了问题 ?>
@@ -735,13 +724,14 @@ declare(strict_types=1);
         </div>
         <div class="blox-mobile-actions" data-testid="blox-mobile-actions">
             <button type="button" @click="mobileActionsOpen = !mobileActionsOpen" data-testid="blox-mobile-actions-open"
+                    x-ref="mobileActionsToggle" @keydown.escape.stop.prevent="mobileActionsOpen = false"
                     :aria-expanded="mobileActionsOpen ? 'true' : 'false'"
-                    aria-label="<?php echo e(__('admin_actions')); ?>" title="<?php echo e(__('admin_actions')); ?>"
+                    aria-label="<?php echo e(__('blox_more_actions')); ?>" title="<?php echo e(__('blox_more_actions')); ?>"
                     class="w-9 h-9 rounded inline-flex items-center justify-center text-gray-200 hover:text-white hover:bg-gray-800">
                 <i class="ti ti-dots-vertical text-lg"></i>
             </button>
             <div x-show="mobileActionsOpen" x-cloak @click.outside="mobileActionsOpen = false"
-                 @keydown.escape.window="mobileActionsOpen = false" class="blox-mobile-actions-menu">
+                 @keydown.escape.stop.prevent="mobileActionsOpen = false; $refs.mobileActionsToggle.focus()" class="blox-mobile-actions-menu">
 <?php if (!$isHomeBlox && !$templateId && ($pageType ?? '') === 'page'): ?>
                 <button type="button" @click="openPageFrame()"><i class="ti ti-layout"></i><?= e(__('blox_page_frame')) ?></button>
 <?php endif; ?>
@@ -817,13 +807,21 @@ declare(strict_types=1);
 <?php endif; ?>
 <?php endif; ?>
 <?php if ($canManageBloxDesign): ?>
-                <button type="button" @click="openDesignSystem(); mobileActionsOpen = false">
+                <button type="button" class="blox-secondary-action" @click="openDesignSystem(); mobileActionsOpen = false">
                     <i class="ti ti-palette"></i><?php echo e(__('blox_design_system')); ?>
                 </button>
-                <button type="button" @click="clearSiteCache(); mobileActionsOpen = false" :disabled="cacheClearing">
+                <button type="button" class="blox-secondary-action" @click="clearSiteCache(); mobileActionsOpen = false" :disabled="cacheClearing">
                     <i class="ti" :class="cacheClearing ? 'ti-loader-2 animate-spin' : 'ti-database-off'"></i><?php echo e(__('scache_clear_now')); ?>
                 </button>
 <?php endif; ?>
+<?php if (!BloxAreaDocument::isArea($templateType) && $templateType !== 'popup'): ?>
+                <button type="button" class="blox-secondary-action" @click="openPageCode(); mobileActionsOpen = false" data-testid="blox-mobile-page-code">
+                    <i class="ti ti-code" aria-hidden="true"></i><?= e(__('blox_page_code')) ?>
+                </button>
+<?php endif; ?>
+                <button type="button" class="blox-secondary-action" @click="restoreWorkspace(); mobileActionsOpen = false" data-testid="blox-mobile-workspace-restore">
+                    <i class="ti ti-layout-sidebar-right-expand" aria-hidden="true"></i><?= e(__('blox_workspace_restore')) ?>
+                </button>
                 <?php if ($frontPreviewUrl !== null): ?>
                 <a href="<?= e($frontPreviewUrl) ?>" <?= !$isHomeBlox && !$templateId ? ':href="pageFrontPreviewUrl()"' : '' ?> target="_blank" rel="noopener"
                    @click="mobileActionsOpen = false" data-testid="blox-mobile-front-preview">

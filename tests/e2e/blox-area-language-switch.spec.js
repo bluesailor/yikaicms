@@ -33,6 +33,7 @@ test('footer editor switches to another language version and guards unsaved edit
   await addTemporaryHeading(page);
   await expect(page.getByTestId('blox-dirty')).toBeVisible();
   page.once('dialog', (dialog) => dialog.dismiss());
+  if (await switcher.getAttribute('open') === null) await switcher.locator('summary').click();
   await target.click();
   await expect(page).toHaveURL(new RegExp(`template=${fixtures.blox_footer_template}`));
   await expect(current).toHaveAttribute('aria-current', 'page');
@@ -40,6 +41,7 @@ test('footer editor switches to another language version and guards unsaved edit
   // 放弃修改后切换：进入目标语言（编辑器或模板库多语言面板）
   page.once('dialog', (dialog) => dialog.accept());
   const targetLanguage = new URL(targetHref, 'http://yikaicms.local').searchParams.get('area_lang');
+  if (await switcher.getAttribute('open') === null) await switcher.locator('summary').click();
   await Promise.all([
     page.waitForURL((url) => url.searchParams.get('area_lang') === targetLanguage),
     target.click(),

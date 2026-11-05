@@ -1102,6 +1102,32 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
         .blox-mobile-toolbar,
         .blox-mobile-backdrop,
         .blox-mobile-actions { display: none; }
+        /* Keep languages readable without spending the toolbar on a scrolling strip. */
+        .blox-header-languages { position: relative; flex: 0 0 auto; }
+        .blox-header-languages > summary {
+            display: flex; align-items: center; gap: .375rem; min-height: 2rem;
+            padding: .25rem .5rem; border: 1px solid #374151; border-radius: .375rem;
+            background: #1f2937; color: #e5e7eb; font-size: .75rem; cursor: pointer; list-style: none;
+        }
+        .blox-header-languages > summary::-webkit-details-marker { display: none; }
+        .blox-language-menu {
+            position: absolute; inset-inline-start: 0; top: calc(100% + .5rem); z-index: 80;
+            width: 17rem; max-width: calc(100vw - 2rem); max-height: min(60vh, 25rem);
+            overflow-y: auto; overscroll-behavior: contain; padding: .375rem;
+            border: 1px solid #374151; border-radius: .5rem; background: #111827;
+            box-shadow: 0 12px 32px rgba(15,23,42,.25);
+        }
+        .blox-language-menu > a {
+            display: flex; align-items: center; gap: .625rem; min-height: 2.5rem;
+            padding: .5rem; border-radius: .25rem; color: #e5e7eb; font-size: .8125rem;
+        }
+        .blox-language-menu > a:hover { background: #374151; }
+        .blox-language-menu > a:focus-visible { outline-color: #fff; }
+        .blox-language-menu > a[aria-current="page"] { background: #1d4ed8; color: #fff; }
+        .blox-language-code { flex: 0 0 2rem; font-weight: 600; font-size: .75rem; }
+        .blox-language-label { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+        .blox-language-label small { display: block; font-size: .75rem; line-height: 1.4; color: #9ca3af; }
+        .blox-language-menu [aria-current="page"] small { color: #fff; }
         .blox-mobile-actions-menu {
             position: fixed;
             top: 3rem;
@@ -1109,6 +1135,9 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             z-index: 70;
             display: flex;
             width: 13rem;
+            max-height: calc(100dvh - 4.5rem - env(safe-area-inset-bottom));
+            overflow-y: auto;
+            overscroll-behavior: contain;
             flex-direction: column;
             gap: .25rem;
             padding: .5rem;
@@ -1190,6 +1219,31 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 cursor: not-allowed;
             }
             main { padding: .75rem .5rem calc(4.25rem + env(safe-area-inset-bottom)) !important; }
+        }
+        @media (min-width: 1024px) and (max-width: 1439px) {
+            .blox-mobile-panel.is-open.blox-property-panel { inset-inline-end: auto; width: 21rem !important; }
+            .blox-mobile-panel.is-open.blox-structure-panel { inset-inline-start: auto; width: 18rem !important; }
+            .blox-mobile-backdrop { display: none !important; }
+            body:has(.blox-property-panel.is-open) #blox-canvas-workspace { margin-inline-start: 21.5rem; }
+            body:has(.blox-structure-panel.is-open) #blox-canvas-workspace { margin-inline-end: 18.5rem; }
+            [data-testid="blox-preview-width-chip"] {
+                flex-direction: column; align-items: flex-start; gap: 0; max-width: 6rem; height: auto;
+                padding: .125rem .375rem; border-radius: .25rem; line-height: 1.25;
+            }
+            [data-testid="blox-preview-width-chip"] > span:nth-child(2) { display: none; }
+        }
+        @media (min-width: 1200px) and (max-width: 1439px) {
+            .blox-editor-header { gap: .25rem; padding-inline: .5rem; }
+            .blox-header-brand { gap: .375rem; flex: 1; min-width: 8rem; }
+            .blox-header-page { flex: 1; }
+            .blox-header-brand [data-testid="blox-editor-type-badge"] { display: none; }
+            .blox-header-actions { gap: .125rem; }
+            .blox-header-actions [data-testid="blox-dirty"] { max-width: 4rem; }
+            .blox-editor-header [data-testid^="blox-device-"] { width: 1.75rem; }
+            .blox-editor-header [data-testid="blox-preview-width-input"] { width: 3.5rem; }
+            .blox-header-actions :is([data-testid="blox-clear-cache"], [data-testid="blox-workspace-restore"], [data-testid="blox-design-open"], [data-testid="blox-page-code-open"]) { display: none; }
+            .blox-mobile-actions { display: block; }
+            .blox-mobile-actions-menu > :not(.blox-secondary-action) { display: none; }
         }
         @media (max-width: 1199px) {
             .blox-editor-header { padding-right: .5rem; padding-left: .5rem; gap: .25rem; }

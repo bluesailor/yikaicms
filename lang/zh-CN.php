@@ -9772,4 +9772,6 @@ voltage|电压|220V',
     'aipr_reason_element_bound' => '元素绑定了站点数据，内容不在页面里修改',
     'aipr_reason_value_too_long' => '提案内容超过该字段的长度上限',
     'admin_spec_name_required' => '请输入参数名',
+    'blox_editor_canvas_title' => '页面编辑画布',
+    'blox_more_actions' => '更多操作',
 ];

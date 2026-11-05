@@ -9846,4 +9846,6 @@ voltage|電圧|220V',
     'aipr_reason_element_bound' => '要素がサイトデータに連携されているため、ページ上では編集しません',
     'aipr_reason_value_too_long' => '提案した内容がこのフィールドの上限を超えています',
     'admin_spec_name_required' => '項目名を入力してください',
+    'blox_editor_canvas_title' => 'ページ編集キャンバス',
+    'blox_more_actions' => 'その他の操作',
 ];

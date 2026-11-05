@@ -9704,4 +9704,6 @@ e.g. steel|Stainless steel',
     'aipr_reason_element_bound' => 'The element is bound to site data, which is not edited on the page',
     'aipr_reason_value_too_long' => 'The proposed value is longer than this field allows',
     'admin_spec_name_required' => 'Enter a parameter name',
+    'blox_editor_canvas_title' => 'Page editing canvas',
+    'blox_more_actions' => 'More actions',
 ];

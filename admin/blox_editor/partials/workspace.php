@@ -47,7 +47,7 @@ declare(strict_types=1);
                     <div class="flex items-center gap-1.5">
                         <div class="relative flex-1 min-w-0">
                             <i class="ti ti-search text-sm text-gray-300 absolute left-2 top-1/2 -translate-y-1/2"></i>
-                            <input type="text" x-ref="libSearch" x-model="libQuery" placeholder="<?= e(__('blox_search_elements')) ?>"
+                            <input type="text" x-ref="libSearch" x-model="libQuery" placeholder="<?= e(__('blox_search_elements')) ?>" aria-label="<?= e(__('blox_search_elements')) ?>"
                                    class="w-full border border-gray-200 rounded pl-7 pr-2 py-1.5 text-xs">
                         </div>
                         <select x-model="libCategory" data-testid="blox-element-category"
@@ -298,7 +298,7 @@ declare(strict_types=1);
                 <div x-show="selEl && panelTab !== 'condition'" class="p-2 border-b border-gray-100 shrink-0 flex items-center gap-1">
                     <div class="relative flex-1">
                         <i class="ti ti-search text-sm text-gray-300 absolute left-2 top-1/2 -translate-y-1/2"></i>
-                        <input type="text" x-model="ctrlQuery" placeholder="<?= e(__('blox_search_settings')) ?>"
+                        <input type="text" x-model="ctrlQuery" placeholder="<?= e(__('blox_search_settings')) ?>" aria-label="<?= e(__('blox_search_settings')) ?>"
                                class="w-full border border-gray-200 rounded pl-7 pr-2 py-1.5 text-xs">
                     </div>
                     <button type="button" @click="modifiedOnly = !modifiedOnly" title="<?= e(__('blox_modified_only')) ?>" data-testid="blox-modified-only"
@@ -3204,7 +3204,7 @@ declare(strict_types=1);
                  :style="previewViewportStyle()"
                  class="flex-1 min-h-0 flex items-start justify-center p-3" @click.self="deselectAll()">
             <div class="relative" :style="previewShellStyle()">
-                <iframe x-ref="canvas" data-testid="blox-canvas"
+                <iframe x-ref="canvas" data-testid="blox-canvas" title="<?= e(__('blox_editor_canvas_title')) ?>"
                         class="bg-white shadow-xl border-0 rounded"
                         :style="previewFrameStyle()"></iframe>
                 <?php // 原生 HTML5 拖放无法可靠跨 iframe。拖动期间由父页面透明层接收事件，
