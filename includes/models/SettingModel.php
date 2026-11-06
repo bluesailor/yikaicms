@@ -9,16 +9,46 @@ class SettingModel extends Model
     protected string $primaryKey = 'id';
     protected string $defaultOrder = '`group` ASC, sort_order ASC';
 
-    /** 内存缓存 */
+    /**
+     * 首页发布历史：最多 10 版、每版可到 2MB，只有发布与回滚会读。
+     * 普通读取（config() → get()）不把它们带进内存，用到时单独读；getAll() 仍包含。
+     */
+    private const ON_DEMAND_KEYS = ['home_blox_history', 'home_layout_history'];
+
+    /** 内存缓存（不含 ON_DEMAND_KEYS） */
     private ?array $cache = null;
 
+    /** @var array<string,?string> 已读过的按需键；null 表示库里没有 */
+    private array $onDemand = [];
+
     /**
-     * 获取所有设置为 key => value 映射
+     * 获取所有设置为 key => value 映射（含按需键：导出、快照、还原要完整的表）
      */
     public function getAll(): array
     {
+        $all = $this->common();
+        foreach (self::ON_DEMAND_KEYS as $key) {
+            $value = $this->onDemand($key);
+            if ($value !== null) $all[$key] = $value;
+        }
+        return $all;
+    }
+
+    private function onDemand(string $key): ?string
+    {
+        if (!array_key_exists($key, $this->onDemand)) {
+            $value = db()->fetchColumn("SELECT `value` FROM {$this->tableName()} WHERE `key` = ?", [$key]);
+            $this->onDemand[$key] = $value === false || $value === null ? null : (string) $value;
+        }
+        return $this->onDemand[$key];
+    }
+
+    /** @return array<string,mixed> */
+    private function common(): array
+    {
         if ($this->cache === null) {
-            $rows = db()->fetchAll("SELECT `key`, `value` FROM {$this->tableName()}");
+            $skip = implode(', ', array_fill(0, count(self::ON_DEMAND_KEYS), '?'));
+            $rows = db()->fetchAll("SELECT `key`, `value` FROM {$this->tableName()} WHERE `key` NOT IN ({$skip})", self::ON_DEMAND_KEYS);
             $this->cache = [];
             foreach ($rows as $row) {
                 $this->cache[$row['key']] = $row['value'];
@@ -39,8 +69,8 @@ class SettingModel extends Model
      */
     public function get(string $key, mixed $default = ''): mixed
     {
-        $all = $this->getAll();
-        return $all[$key] ?? $default;
+        if (in_array($key, self::ON_DEMAND_KEYS, true)) return $this->onDemand($key) ?? $default;
+        return $this->common()[$key] ?? $default;
     }
 
     /**
@@ -48,7 +78,7 @@ class SettingModel extends Model
      */
     public function set(string $key, string $value, string $group = 'basic'): int
     {
-        $this->cache = null; // 清除缓存
+        $this->clearCache();
         $existing = db()->fetchOne(
             "SELECT id FROM {$this->tableName()} WHERE `key` = ?",
             [$key]
@@ -74,6 +104,7 @@ class SettingModel extends Model
     public function clearCache(): void
     {
         $this->cache = null;
+        $this->onDemand = [];
     }
 
     /** Read fresh: a request-local settings snapshot may predate a concurrent publication. */
@@ -201,7 +232,7 @@ class SettingModel extends Model
      */
     public function saveBatch(array $settings): void
     {
-        $this->cache = null;
+        $this->clearCache();
         $saved = [];
         try {
             foreach ($settings as $key => $value) {
