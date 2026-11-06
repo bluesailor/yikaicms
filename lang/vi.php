@@ -9669,4 +9669,9 @@ return [
     'admin_spec_name_required' => 'Nhập tên thông số.',
     'blox_editor_canvas_title' => 'Vùng chỉnh sửa trang',
     'blox_more_actions' => 'Thao tác khác',
+    'lse_conflict_source_changed' => 'Bản gốc đã thay đổi trong khi dịch; chưa lưu gì. Hãy dịch lại',
+    'lse_conflict_target_changed' => 'Có người đã sửa phiên bản ngôn ngữ này trong khi dịch; bản dịch chưa được lưu',
+    'lse_conflict_target_published' => 'Phiên bản ngôn ngữ này đã được xuất bản trong khi dịch; bản dịch chưa được lưu',
+    'lse_conflict_target_deleted' => 'Phiên bản ngôn ngữ này đã bị xóa trong khi dịch; bản dịch chưa được lưu',
+    'lse_conflict_view' => '(mở rộng để xem bản dịch đã tạo)',
 ];

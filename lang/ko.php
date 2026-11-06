@@ -9669,4 +9669,9 @@ return [
     'admin_spec_name_required' => '매개변수 이름을 입력하세요.',
     'blox_editor_canvas_title' => '페이지 편집 캔버스',
     'blox_more_actions' => '추가 작업',
+    'lse_conflict_source_changed' => '번역하는 동안 원문이 변경되어 번역문을 저장하지 않았습니다. 다시 번역하세요',
+    'lse_conflict_target_changed' => '번역하는 동안 다른 사람이 이 언어 버전을 수정하여 번역문을 저장하지 않았습니다',
+    'lse_conflict_target_published' => '번역하는 동안 이 언어 버전이 게시되어 번역문을 저장하지 않았습니다',
+    'lse_conflict_target_deleted' => '번역하는 동안 이 언어 버전이 삭제되어 번역문을 저장하지 않았습니다',
+    'lse_conflict_view' => '(생성된 번역문 보기)',
 ];

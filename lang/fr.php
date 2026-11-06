@@ -9669,4 +9669,9 @@ return [
     'admin_spec_name_required' => 'Saisissez le nom du paramètre.',
     'blox_editor_canvas_title' => 'Zone d’édition de la page',
     'blox_more_actions' => 'Autres actions',
+    'lse_conflict_source_changed' => 'L’original a changé pendant la traduction ; rien n’a été enregistré. Relancez la traduction',
+    'lse_conflict_target_changed' => 'Quelqu’un a modifié cette version linguistique pendant la traduction ; la traduction n’a pas été enregistrée',
+    'lse_conflict_target_published' => 'Cette version linguistique a été publiée pendant la traduction ; la traduction n’a pas été enregistrée',
+    'lse_conflict_target_deleted' => 'Cette version linguistique a été supprimée pendant la traduction ; la traduction n’a pas été enregistrée',
+    'lse_conflict_view' => '(développer pour voir la traduction générée)',
 ];

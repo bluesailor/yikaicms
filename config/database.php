@@ -145,6 +145,20 @@ class Database
     }
 
     /**
+     * 事务内的锁定读（$table 不带前缀）：MySQL 用 FOR UPDATE；
+     * SQLite 没有行锁，先做一次无害写取得库级写锁，再读最新值。
+     */
+    public function lockRow(string $table, int $id): ?array
+    {
+        $name = DB_PREFIX . $table;
+        if ($this->isSqlite()) {
+            $this->execute("UPDATE {$name} SET id = id WHERE id = ?", [$id]);
+            return $this->fetchOne("SELECT * FROM {$name} WHERE id = ?", [$id]);
+        }
+        return $this->fetchOne("SELECT * FROM {$name} WHERE id = ? FOR UPDATE", [$id]);
+    }
+
+    /**
      * 获取PDO对象
      */
     public function getPdo(): PDO

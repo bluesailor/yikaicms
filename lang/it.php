@@ -9669,4 +9669,9 @@ return [
     'admin_spec_name_required' => 'Inserisci un nome per il parametro.',
     'blox_editor_canvas_title' => 'Area di modifica della pagina',
     'blox_more_actions' => 'Altre azioni',
+    'lse_conflict_source_changed' => 'L\'originale è cambiato durante la traduzione; non è stato salvato nulla. Traduci di nuovo',
+    'lse_conflict_target_changed' => 'Qualcuno ha modificato questa versione linguistica durante la traduzione; la traduzione non è stata salvata',
+    'lse_conflict_target_published' => 'Questa versione linguistica è stata pubblicata durante la traduzione; la traduzione non è stata salvata',
+    'lse_conflict_target_deleted' => 'Questa versione linguistica è stata eliminata durante la traduzione; la traduzione non è stata salvata',
+    'lse_conflict_view' => '(espandi per vedere la traduzione generata)',
 ];

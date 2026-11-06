@@ -9670,4 +9670,9 @@ return [
     'admin_spec_name_required' => '請輸入引數名',
     'blox_editor_canvas_title' => '頁面編輯畫布',
     'blox_more_actions' => '更多操作',
+    'lse_conflict_source_changed' => '原文在翻譯期間被修改，譯文未寫入，請重新翻譯',
+    'lse_conflict_target_changed' => '該語言版本在翻譯期間被他人修改，譯文未寫入',
+    'lse_conflict_target_published' => '該語言版本在翻譯期間已被發佈，譯文未寫入',
+    'lse_conflict_target_deleted' => '該語言版本在翻譯期間已被刪除，譯文未寫入',
+    'lse_conflict_view' => '（展開檢視產生的譯文）',
 ];

@@ -9669,4 +9669,9 @@ return [
     'admin_spec_name_required' => 'Parametre adı girin.',
     'blox_editor_canvas_title' => 'Sayfa düzenleme alanı',
     'blox_more_actions' => 'Diğer işlemler',
+    'lse_conflict_source_changed' => 'Çeviri sırasında orijinal değişti; hiçbir şey kaydedilmedi. Yeniden çevirin',
+    'lse_conflict_target_changed' => 'Çeviri sırasında biri bu dil sürümünü düzenledi; çeviri kaydedilmedi',
+    'lse_conflict_target_published' => 'Bu dil sürümü çeviri sırasında yayımlandı; çeviri kaydedilmedi',
+    'lse_conflict_target_deleted' => 'Bu dil sürümü çeviri sırasında silindi; çeviri kaydedilmedi',
+    'lse_conflict_view' => '(oluşturulan çeviriyi görmek için genişletin)',
 ];

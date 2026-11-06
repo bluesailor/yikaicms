@@ -9669,4 +9669,9 @@ return [
     'admin_spec_name_required' => 'أدخل اسم المواصفة',
     'blox_editor_canvas_title' => 'لوحة تحرير الصفحة',
     'blox_more_actions' => 'المزيد من الإجراءات',
+    'lse_conflict_source_changed' => 'تغيّر النص الأصلي أثناء الترجمة، ولم يُحفظ شيء. أعد الترجمة',
+    'lse_conflict_target_changed' => 'عدّل شخص آخر هذه النسخة اللغوية أثناء الترجمة، ولم تُحفظ الترجمة',
+    'lse_conflict_target_published' => 'نُشرت هذه النسخة اللغوية أثناء الترجمة، ولم تُحفظ الترجمة',
+    'lse_conflict_target_deleted' => 'حُذفت هذه النسخة اللغوية أثناء الترجمة، ولم تُحفظ الترجمة',
+    'lse_conflict_view' => '(وسّع لعرض الترجمة المُنشأة)',
 ];

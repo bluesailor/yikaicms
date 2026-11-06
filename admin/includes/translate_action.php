@@ -86,7 +86,16 @@ if ($table === 'channels' && ($src['type'] ?? '') === 'page') {
 }
 $bodySource = $pageContent ?: $src;
 require_once ROOT_PATH . '/includes/content_translation.php';
+require_once ROOT_PATH . '/includes/TranslationWrite.php';
 $bodyField = translationBodyField($bodySource);
+// 调模型之前的状态：写库时逐行比对，期间有人改过就不覆盖（见 TranslationWrite）
+$translationRead = [
+    'table' => $table, 'model' => $model, 'lang' => $toLang, 'group_id' => $groupId,
+    'src' => ['translation_group_id' => $groupId] + $src, 'src_page' => $pageContent,
+    'target' => $target,
+    'target_page' => $target && $pageContent ? contentModel()->queryOne('SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? ORDER BY id DESC LIMIT 1', [(int) $target['id']]) : null,
+    'title_key' => $titleKey, 'summary_key' => $summKey, 'body_field' => $bodyField,
+];
 {
     require_once ROOT_PATH . '/includes/AiService.php';
     require_once ROOT_PATH . '/includes/content_translation.php';
@@ -160,62 +169,19 @@ if (!isset($translated['seo_description']) && array_key_exists('seo_description'
     $newData['seo_description'] = $translated['summary'];
 }
 
-db()->beginTransaction();
 try {
-if ($target) {
-    $changes = [$titleKey => $translated['title'], $summKey => $translated['summary']];
-    if (isset($translated['secondary_summary'])) $changes['summary'] = $translated['secondary_summary'];
-    foreach ($translated as $field => $value) {
-        if (!in_array($field, ['title', 'summary', 'content'], true) && array_key_exists($field, $target)) $changes[$field] = $value;
-    }
-    if (array_key_exists($bodyField, $target)) $changes[$bodyField] = $translated['content'];
-    if (array_key_exists('status', $target)) $changes['status'] = 0;
-    if (array_key_exists('updated_at', $target)) $changes['updated_at'] = time();
-    $revisionType = match ($table) {
-        'contents' => (string) ($src['type'] ?? 'article'),
-        'products' => 'product',
-        'channels' => 'page',
-        'jobs' => 'job',
-        'downloads' => 'download',
-        default => $table,
-    };
-    recordContentRevision($revisionType, (int) $target['id'], $toLang, [['table' => $table, 'id' => (int) $target['id'], 'fields' => array_intersect_key($target, $changes)]], (string) ($target[$titleKey] ?? ''));
-    $model->updateById((int) $target['id'], $changes);
-    $newId = (int) $target['id'];
-} else $newId = (int) $model->create($newData);
-if ($pageContent) {
-    $translatedPage = $pageContent;
-    unset($translatedPage['id']);
-    $translatedPage['channel_id'] = $newId;
-    $translatedPage['lang'] = $toLang;
-    $translatedPage['translation_group_id'] = (int) ($pageContent['translation_group_id'] ?: $pageContent['id']);
-    $translatedPage['title'] = $translated['title'];
-    $translatedPage['summary'] = $translated['summary'];
-    $translatedPage[$bodyField] = $translated['content'];
-    $translatedPage['status'] = 0;
-    $translatedPage['slug'] = resolveSlug('', (string) $translated['title'], 'contents');
-    $translatedPage['created_at'] = time();
-    $translatedPage['updated_at'] = time();
-    $existingPage = $target ? contentModel()->queryOne('SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? ORDER BY id DESC LIMIT 1', [$newId]) : null;
-    if ($existingPage) {
-        $pageChanges = ['title' => $translated['title'], 'summary' => $translated['summary'], $bodyField => $translated['content'], 'status' => 0, 'updated_at' => time()];
-        recordContentRevision('page', $newId, $toLang, [['table' => 'contents', 'id' => (int) $existingPage['id'], 'fields' => array_intersect_key($existingPage, $pageChanges)]], (string) $existingPage['title']);
-        contentModel()->updateById((int) $existingPage['id'], $pageChanges);
-    } else contentModel()->create($translatedPage);
-}
-// 扩展字段值随新语言版本带过去（2.0.4；之后各语言各自维护）
-$extOwner = match ($table) {
-    'products' => 'product',
-    'contents' => resolveExtFieldOwner((string) ($src['type'] ?? '')),
-    'channels' => 'channel',
-    'product_categories' => 'product_category',
-    default => '',
-};
-if ($extOwner !== '' && !$target) ExtFields::copyValues($extOwner, $srcId, $newId);
-adminLog('translate', 'create', "为 {$table}#{$srcId} 创建 {$toLang} 翻译 → #{$newId}");
-db()->commit();
+    $written = (new TranslationWrite(db()))->apply($translationRead, $translated, $newData);
 } catch (Throwable $exception) {
-    db()->rollback();
     error(__('lse_failed') . ': ' . $exception->getMessage());
 }
-success(['id' => $newId], '翻译已创建');
+// 同时有人建好了这一语言：与「已有该语言版本」一样，跳过去
+if ($written['conflict'] === 'target_exists') success(['id' => $written['id']], '已有该语言版本');
+// 模型请求期间内容被改过：一个字都不写，把生成的译文交还给编辑页，由人决定怎么用
+if ($written['conflict'] !== '') {
+    json(['code' => 409, 'msg' => __('lse_conflict_' . $written['conflict']), 'data' => [
+        'conflict' => $written['conflict'],
+        'id' => $written['id'],
+        'translation' => ['title' => (string) $translated['title'], 'summary' => (string) $translated['summary'], 'content' => (string) $translated['content']],
+    ]], 409);
+}
+success(['id' => $written['id']], '翻译已创建');

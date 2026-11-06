@@ -9669,4 +9669,9 @@ return [
     'admin_spec_name_required' => 'Geben Sie einen Parameternamen ein.',
     'blox_editor_canvas_title' => 'Bearbeitungsfläche der Seite',
     'blox_more_actions' => 'Weitere Aktionen',
+    'lse_conflict_source_changed' => 'Das Original wurde während der Übersetzung geändert; nichts wurde gespeichert. Bitte erneut übersetzen',
+    'lse_conflict_target_changed' => 'Jemand hat diese Sprachversion während der Übersetzung bearbeitet; die Übersetzung wurde nicht gespeichert',
+    'lse_conflict_target_published' => 'Diese Sprachversion wurde während der Übersetzung veröffentlicht; die Übersetzung wurde nicht gespeichert',
+    'lse_conflict_target_deleted' => 'Diese Sprachversion wurde während der Übersetzung gelöscht; die Übersetzung wurde nicht gespeichert',
+    'lse_conflict_view' => '(aufklappen, um die erzeugte Übersetzung anzuzeigen)',
 ];

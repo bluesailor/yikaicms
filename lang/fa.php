@@ -9669,4 +9669,9 @@ return [
     'admin_spec_name_required' => 'نام مشخصه را وارد کنید',
     'blox_editor_canvas_title' => 'بوم ویرایش صفحه',
     'blox_more_actions' => 'اقدام‌های بیشتر',
+    'lse_conflict_source_changed' => 'متن اصلی هنگام ترجمه تغییر کرد و چیزی ذخیره نشد. دوباره ترجمه کنید',
+    'lse_conflict_target_changed' => 'شخص دیگری این نسخهٔ زبانی را هنگام ترجمه ویرایش کرد و ترجمه ذخیره نشد',
+    'lse_conflict_target_published' => 'این نسخهٔ زبانی هنگام ترجمه منتشر شد و ترجمه ذخیره نشد',
+    'lse_conflict_target_deleted' => 'این نسخهٔ زبانی هنگام ترجمه حذف شد و ترجمه ذخیره نشد',
+    'lse_conflict_view' => '(برای دیدن ترجمهٔ تولیدشده باز کنید)',
 ];

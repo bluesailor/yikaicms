@@ -9669,4 +9669,9 @@ return [
     'admin_spec_name_required' => 'Masukkan nama parameter',
     'blox_editor_canvas_title' => 'Kanvas penyuntingan halaman',
     'blox_more_actions' => 'Tindakan lain',
+    'lse_conflict_source_changed' => 'Teks asal berubah semasa menterjemah; tiada apa-apa disimpan. Terjemah semula',
+    'lse_conflict_target_changed' => 'Seseorang menyunting versi bahasa ini semasa menterjemah; terjemahan tidak disimpan',
+    'lse_conflict_target_published' => 'Versi bahasa ini diterbitkan semasa menterjemah; terjemahan tidak disimpan',
+    'lse_conflict_target_deleted' => 'Versi bahasa ini dipadam semasa menterjemah; terjemahan tidak disimpan',
+    'lse_conflict_view' => '(kembangkan untuk melihat terjemahan yang dijana)',
 ];

@@ -135,6 +135,7 @@ async function createTranslation(toLang, langName, btn, retranslate = false) {
             btn.className = originalClass;
             btn.title = data.msg || <?php echo json_encode(__('lse_failed'), JSON_UNESCAPED_UNICODE); ?>;
             showMessage(data.msg || <?php echo json_encode(__('lse_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+            if (data.data && data.data.translation) showUnappliedTranslation(btn, data.msg, data.data.translation);
         }
     } catch(e) {
         btn.disabled = false;
@@ -143,6 +144,29 @@ async function createTranslation(toLang, langName, btn, retranslate = false) {
         btn.title = <?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>;
         showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
+}
+
+// 写库前发现内容已被改过时，生成的译文没有写入；放在语言条下面供查看、复制
+function showUnappliedTranslation(btn, message, translation) {
+    var bar = btn.closest('.flex-wrap');
+    var panel = document.getElementById('lseUnapplied');
+    if (!panel) {
+        panel = document.createElement('details');
+        panel.id = 'lseUnapplied';
+        panel.open = true;
+        panel.className = 'bg-amber-50 border border-amber-200 rounded-lg mb-4 px-5 py-3 text-sm';
+        bar.insertAdjacentElement('afterend', panel);
+    }
+    panel.replaceChildren();
+    var summary = document.createElement('summary');
+    summary.className = 'cursor-pointer text-amber-800';
+    summary.textContent = message + ' ' + <?php echo json_encode(__('lse_conflict_view'), JSON_UNESCAPED_UNICODE); ?>;
+    var text = document.createElement('textarea');
+    text.readOnly = true;
+    text.rows = 10;
+    text.className = 'w-full mt-2 border rounded p-2 font-mono text-xs';
+    text.value = [translation.title, translation.summary, translation.content].filter(Boolean).join('\n\n');
+    panel.append(summary, text);
 }
 </script>
 <?php endif; ?>

@@ -9669,4 +9669,9 @@ return [
     'admin_spec_name_required' => 'Introduce el nombre del parámetro.',
     'blox_editor_canvas_title' => 'Lienzo de edición de página',
     'blox_more_actions' => 'Más acciones',
+    'lse_conflict_source_changed' => 'El original cambió durante la traducción; no se guardó nada. Vuelva a traducir',
+    'lse_conflict_target_changed' => 'Alguien editó esta versión de idioma durante la traducción; la traducción no se guardó',
+    'lse_conflict_target_published' => 'Esta versión de idioma se publicó durante la traducción; la traducción no se guardó',
+    'lse_conflict_target_deleted' => 'Esta versión de idioma se eliminó durante la traducción; la traducción no se guardó',
+    'lse_conflict_view' => '(despliegue para ver la traducción generada)',
 ];

@@ -9669,4 +9669,9 @@ return [
     'admin_spec_name_required' => 'Informe o nome do parâmetro.',
     'blox_editor_canvas_title' => 'Área de edição da página',
     'blox_more_actions' => 'Mais ações',
+    'lse_conflict_source_changed' => 'O original mudou durante a tradução; nada foi salvo. Traduza novamente',
+    'lse_conflict_target_changed' => 'Alguém editou esta versão de idioma durante a tradução; a tradução não foi salva',
+    'lse_conflict_target_published' => 'Esta versão de idioma foi publicada durante a tradução; a tradução não foi salva',
+    'lse_conflict_target_deleted' => 'Esta versão de idioma foi excluída durante a tradução; a tradução não foi salva',
+    'lse_conflict_view' => '(expanda para ver a tradução gerada)',
 ];

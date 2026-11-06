@@ -637,11 +637,7 @@ final class AiProposalService
     /** MySQL 用锁定读；SQLite 用无害写取得库级写锁后再读最新值。 */
     private function lock(string $table, int $id): ?array
     {
-        if ($this->db->isSqlite()) {
-            $this->db->execute('UPDATE ' . DB_PREFIX . $table . ' SET id = id WHERE id = ?', [$id]);
-            return $this->db->fetchOne('SELECT * FROM ' . DB_PREFIX . $table . ' WHERE id = ?', [$id]);
-        }
-        return $this->db->fetchOne('SELECT * FROM ' . DB_PREFIX . $table . ' WHERE id = ? FOR UPDATE', [$id]);
+        return $this->db->lockRow($table, $id);
     }
 
     private function check(string $point): void
