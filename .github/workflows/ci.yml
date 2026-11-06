@@ -435,12 +435,11 @@ jobs:
           PHPUNIT_RESULT: ${{ needs.phpunit.result }}
         run: test "$PHPUNIT_RESULT" = success
 
-  # ─── 真实 N-1 包升级：从已发布的 v1.20.1 完整包安装旧站，再通过
-  # ─── prepare/batch/finalize 管道覆盖当前候选完整包并跑完迁移。
-  # ─── PHP 8.2（2.1.3 起的最低版）与 8.4 各跑一次。
+  # ─── 从已发布的完整包安装旧站，再用 prepare/batch/finalize 管道升级。
+  # ─── 保留 1.20.1 的历史跨度；8.4 数据库验证上一版 2.1.3 及升级数据保留。
   # ─── 这条专门覆盖源码树、全新安装和两文件回滚沙箱都看不到的客户升级路径。
   n-minus-one-upgrade:
-    name: PHP ${{ matrix.php }} MySQL ${{ matrix.mysql }} N-1 Package Upgrade
+    name: PHP ${{ matrix.php }} MySQL ${{ matrix.mysql }} Package Upgrade from ${{ matrix.from }}
     needs: free-package
     runs-on: ubuntu-latest
     timeout-minutes: 25
@@ -450,10 +449,16 @@ jobs:
         include:
           - php: '8.2'
             mysql: '5.7'
+            from: '1.20.1'
+            from_sha256: '03c894794cb463886ee7df15027f7c511d8ccf54e67fc9960c860a36da778756'
           - php: '8.4'
             mysql: '5.7'
+            from: '1.20.1'
+            from_sha256: '03c894794cb463886ee7df15027f7c511d8ccf54e67fc9960c860a36da778756'
           - php: '8.2'
             mysql: '8.4'
+            from: '2.1.3'
+            from_sha256: 'd457538627b858004fe72f3c2fbb87aac397fa4c9e4f8f892ca6d0425ecc4e59'
     services:
       mysql:
         image: mysql:${{ matrix.mysql }}
@@ -501,18 +506,24 @@ jobs:
           SHA="releases/yikaicms-v${VERSION}.sha256"
           sha256sum -c "$SHA"
 
-      - name: Fetch and verify published v1.20.1 package
+      - name: Fetch and verify published v${{ matrix.from }} package
+        env:
+          FROM_VERSION: ${{ matrix.from }}
+          FROM_SHA256: ${{ matrix.from_sha256 }}
         run: |
-          curl -fL --retry 3 -o /tmp/yikaicms-v1.20.1.zip \
-            https://github.com/bluesailor/yikaicms/releases/download/v1.20.1/yikaicms-v1.20.1.zip
-          echo "03c894794cb463886ee7df15027f7c511d8ccf54e67fc9960c860a36da778756  /tmp/yikaicms-v1.20.1.zip" | sha256sum -c -
+          PACKAGE="/tmp/yikaicms-v${FROM_VERSION}.zip"
+          curl -fL --retry 3 -o "$PACKAGE" \
+            "https://github.com/bluesailor/yikaicms/releases/download/v${FROM_VERSION}/yikaicms-v${FROM_VERSION}.zip"
+          printf '%s  %s\n' "$FROM_SHA256" "$PACKAGE" | sha256sum -c -
 
-      - name: Upgrade real v1.20.1 package to candidate
+      - name: Upgrade published v${{ matrix.from }} package to candidate
+        env:
+          FROM_VERSION: ${{ matrix.from }}
         run: >-
           php tests/smoke/package_upgrade.php
-          --from-package=/tmp/yikaicms-v1.20.1.zip
+          --from-package="/tmp/yikaicms-v${FROM_VERSION}.zip"
           --to-package=releases/yikaicms-v$(php -r "require 'config/version.php'; echo CMS_VERSION;").zip
-          --from=1.20.1 --to=$(php -r "require 'config/version.php'; echo CMS_VERSION;")
+          --from="$FROM_VERSION" --to=$(php -r "require 'config/version.php'; echo CMS_VERSION;")
           --db=mysql --db-host=127.0.0.1 --db-port=3306
           --db-user=root --db-pass=ci-root
           ${{ matrix.mysql == '8.4' && '--verify-preservation' || '' }}
