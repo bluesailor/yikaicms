@@ -783,6 +783,16 @@
                 "toggle_status"
             ]
         },
+        "admin/translation_tasks.php": {
+            "action_candidates": [
+                "cancel",
+                "create",
+                "pause",
+                "resume",
+                "retry",
+                "step"
+            ]
+        },
         "admin/upgrade.php": {
             "action_candidates": []
         },

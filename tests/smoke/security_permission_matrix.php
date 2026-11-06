@@ -56,7 +56,7 @@ $results=[]; $raw=[]; $jars=[]; $csrf=[]; $ownedUploadPaths=[];
 $check=static function(bool $ok,string $label) use(&$results):void {$results[]=['ok'=>$ok,'label'=>$label];echo($ok?'PASS ':'FAIL ').$label."\n";};
 $snapshot=static function() use($db,$root):string {
     $rows=[];
-    foreach(['settings','metas','media','channels','contents','blox_page_drafts','blox_templates','content_revisions','ai_proposals','ai_proposal_items','ai_change_log'] as $table) if($db->tableExists($table)) $rows[$table]=$db->fetchAll('SELECT * FROM yikai_'.$table.' ORDER BY id');
+    foreach(['settings','metas','media','channels','contents','blox_page_drafts','blox_templates','content_revisions','ai_proposals','ai_proposal_items','ai_change_log','translation_batches','translation_batch_items'] as $table) if($db->tableExists($table)) $rows[$table]=$db->fetchAll('SELECT * FROM yikai_'.$table.' ORDER BY id');
     $files=[];
     foreach(['uploads','storage/backups','storage/site-templates','storage/site_templates','storage/imports'] as $dir) {
         if(!is_dir($root.'/'.$dir))continue;
@@ -107,6 +107,8 @@ try {
         ['recipe-apply','POST','/admin/recipe.php',['action'=>'apply','slug'=>'business-site','plan_token'=>$plan['data']['token']??''],['admin']],
         ['proposal-preview','GET','/admin/ai_proposals.php?preview='.$item,null,['admin']],
         ['proposal-apply','POST','/admin/ai_proposals.php',['action'=>'apply','item_ids'=>[$item]],['admin']],
+        ['translation-batch-create','POST','/admin/translation_tasks.php',['action'=>'create','ids'=>[1],'langs'=>['en']],['admin']],
+        ['translation-batch-step','POST','/admin/translation_tasks.php',['action'=>'step','batch_id'=>1],['admin']],
     ];
     foreach($cases as [$name,$method,$url,$payload,$allowed])foreach(['anonymous','none','article','page','media','other'] as $actor) {
         if(in_array($actor,$allowed,true))continue;

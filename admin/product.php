@@ -337,11 +337,17 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
         </div>
 
         <div class="px-6 py-4 border-t flex flex-wrap gap-4 items-center justify-between">
-            <?php echo renderBulkBar([
+            <?php
+            // 批量翻译：站点启用了第二种语言才出现（只翻默认语言的产品）
+            $_tbtLangs = array_diff_key(enabledLanguages(), [(string) config('site_lang', 'zh-CN') => true]);
+            echo renderBulkBar([
                 'batch_publish'   => __('admin_published'),
                 'batch_unpublish' => __('admin_unpublished'),
                 'batch_delete'    => __('admin_move_to_trash'),
-            ]); ?>
+            ] + ($_tbtLangs !== [] ? ['batch_translate' => __('tbt_bulk')] : [])); ?>
+            <?php if ($_tbtLangs !== []): ?>
+            <a href="<?php echo e(BasePath::url('/admin/translation_tasks.php')); ?>" class="text-sm text-primary hover:underline"><?php echo e(__('tbt_title')); ?></a>
+            <?php endif; ?>
 
             <?php if ($total > $perPage): ?>
             <div class="flex items-center gap-2">
@@ -470,6 +476,10 @@ async function batchAction(action) {
         showMessage('<?php echo __('admin_please_select'); ?>', 'error');
         return;
     }
+    if (action === 'batch_translate') {
+        document.getElementById('tbtDialog').showModal();
+        return;
+    }
     const labels = {
         batch_publish: '<?php echo __('admin_published'); ?>',
         batch_unpublish: '<?php echo __('admin_unpublished'); ?>',
@@ -502,6 +512,34 @@ async function duplicateItem(id) {
         showMessage(data.msg, 'error');
     }
 }
+async function tbtCreate(form) {
+    const fd = new FormData(form);
+    fd.append('action', 'create');
+    document.querySelectorAll('input[name="ids[]"]:checked').forEach(el => fd.append('ids[]', el.value));
+    const response = await fetch(<?php echo json_encode(BasePath::url('/admin/translation_tasks.php'), JSON_UNESCAPED_SLASHES); ?>, { method: 'POST', body: fd });
+    const data = await safeJson(response);
+    if (data.code !== 0) { showMessage(data.msg, 'error'); return; }
+    showMessage(data.msg);
+    location.href = <?php echo json_encode(BasePath::url('/admin/translation_tasks.php?id='), JSON_UNESCAPED_SLASHES); ?> + data.data.id;
+}
 </script>
+
+<?php if ($_tbtLangs !== []): ?>
+<dialog id="tbtDialog" class="rounded-lg shadow-xl p-0 w-full max-w-sm" aria-labelledby="tbtDialogTitle">
+    <form method="dialog" class="p-5" onsubmit="event.preventDefault(); tbtCreate(this);">
+        <h2 id="tbtDialogTitle" class="font-semibold text-gray-800 mb-3"><?php echo e(__('tbt_pick_langs')); ?></h2>
+        <div class="grid grid-cols-2 gap-2 mb-4">
+            <?php foreach ($_tbtLangs as $_code => $_name): ?>
+            <label class="flex items-center gap-2 text-sm"><input type="checkbox" name="langs[]" value="<?php echo e((string) $_code); ?>"> <?php echo e((string) $_name); ?></label>
+            <?php endforeach; ?>
+        </div>
+        <p class="text-xs text-gray-500 mb-4"><?php echo e(__('tbt_intro')); ?></p>
+        <div class="flex justify-end gap-2">
+            <button type="button" onclick="this.closest('dialog').close()" class="border px-4 py-1.5 rounded text-sm"><?php echo e(__('admin_cancel')); ?></button>
+            <button type="submit" class="bg-primary text-white px-4 py-1.5 rounded text-sm"><?php echo e(__('tbt_start')); ?></button>
+        </div>
+    </form>
+</dialog>
+<?php endif; ?>
 
 <?php adminModuleEnd(); require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

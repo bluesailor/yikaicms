@@ -18,6 +18,94 @@ final class TranslationWrite
     {
     }
 
+    /**
+     * 交给模型的字段：标题、摘要按各表的列名取，正文取正文列（单页取栏目下的正文行）。
+     * @param array<string,mixed> $src @param array<string,mixed> $bodySource @return array<string,mixed>
+     */
+    public static function source(array $src, string $titleKey, string $summKey, array $bodySource, string $bodyField): array
+    {
+        $source = $src;
+        $source['title'] = (string) ($src[$titleKey] ?? '');
+        $source['summary'] = (string) ($src[$summKey] ?? '');
+        if ($summKey !== 'summary' && array_key_exists('summary', $src)) $source['secondary_summary'] = (string) $src['summary'];
+        $source['content'] = (string) ($bodySource[$bodyField] ?? '');
+        return $source;
+    }
+
+    /**
+     * 调模型翻译一条记录。整条有时间预算：单次服务商请求最长 60 秒，预算不够就不再发下一次。
+     * @param array<string,mixed> $source self::source() 的结果 @return array<string,mixed>
+     */
+    public static function generate(array $source, string $toLang, float $budgetSeconds = 120): array
+    {
+        require_once ROOT_PATH . '/includes/AiService.php';
+        require_once ROOT_PATH . '/includes/content_translation.php';
+        if (function_exists('set_time_limit')) @set_time_limit((int) $budgetSeconds + 60);
+        $deadline = microtime(true) + $budgetSeconds;
+        $model = trim((string) config('ai_translation_model', ''));
+        $ai = $model !== '' ? new AiService(null, null, $model) : aiService();
+        $chat = static function (string $prompt, string $system = '', float $temperature = 0.7, bool $jsonObject = false) use ($deadline, $ai): array {
+            if (microtime(true) + 61 >= $deadline) throw new RuntimeException('Translation time budget exceeded. The existing draft has not been changed.');
+            return $ai->chat($prompt, $system, $temperature, $jsonObject);
+        };
+        return translateContentFields($source, $toLang, $chat, true);
+    }
+
+    /**
+     * 目标语言还没有时要新建的整行：拷贝源行，换上译文。
+     * @param array<string,mixed> $src @param array<string,mixed> $translated @return array<string,mixed>
+     */
+    public static function newRow(string $table, array $src, array $translated, string $toLang, int $groupId, string $titleKey, string $summKey, string $bodyField): array
+    {
+        $newData = $src;
+        unset($newData['id']);
+        $newData['lang'] = $toLang;
+        $newData['translation_group_id'] = $groupId;
+        $newData[$titleKey] = $translated['title'];
+        $newData[$summKey] = $translated['summary'];
+        if (isset($translated['secondary_summary'])) $newData['summary'] = $translated['secondary_summary'];
+        foreach ($translated as $field => $value) {
+            if ($field !== 'title' && $field !== 'summary' && $field !== 'content' && array_key_exists($field, $src)) $newData[$field] = $value;
+        }
+        if (array_key_exists($bodyField, $src)) $newData[$bodyField] = $translated['content'];
+        $newData['created_at'] = time();
+        if (array_key_exists('updated_at', $src)) $newData['updated_at'] = time();
+
+        // 机器翻译先落草稿：整行拷贝会连 status 一起继承，源是已发布时译文就直接上线了，
+        // 没有任何人看过那段 AI 译文。发布必须是明确的下一步动作（复审 R01）。
+        if (array_key_exists('status', $newData)) {
+            $newData['status'] = 0;
+        }
+
+        // slug 加语言后缀避免 uk_slug 冲突（仅当源有 slug 字段且非空）
+        if (!empty($newData['slug'])) {
+            $newData['slug'] = $newData['slug'] . '-' . $toLang;
+            // 防御：万一 slug-{lang} 已存在（如先前手工建过），加随机后缀
+            if (db()->fetchOne('SELECT id FROM ' . DB_PREFIX . $table . ' WHERE slug = ?', [$newData['slug']])) {
+                $newData['slug'] .= '-' . substr(md5((string) microtime(true)), 0, 6);
+            }
+        }
+
+        // 内容/产品类有 channel_id —— 重映射到目标语言频道（如已存在）
+        if (isset($newData['channel_id']) && (int) $newData['channel_id'] > 0) {
+            $mapped = findTranslatedChannelId((int) $newData['channel_id'], $toLang);
+            if ($mapped > 0) $newData['channel_id'] = $mapped;
+        }
+        if ($table === 'channels' && (int) ($newData['parent_id'] ?? 0) > 0) {
+            $mappedParent = findTranslatedChannelId((int) $newData['parent_id'], $toLang);
+            if ($mappedParent > 0) $newData['parent_id'] = $mappedParent;
+        }
+
+        // SEO 字段同步翻译（如存在）
+        if (!isset($translated['seo_title']) && array_key_exists('seo_title', $newData) && $newData['seo_title']) {
+            $newData['seo_title'] = $translated['title'];
+        }
+        if (!isset($translated['seo_description']) && array_key_exists('seo_description', $newData) && $newData['seo_description']) {
+            $newData['seo_description'] = $translated['summary'];
+        }
+        return $newData;
+    }
+
     /** 整行指纹（去掉计数列）。null 表示「当时没有这一行」。 */
     public static function fingerprint(?array $row): string
     {

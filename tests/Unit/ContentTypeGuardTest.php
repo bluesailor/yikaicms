@@ -108,12 +108,13 @@ final class ContentTypeGuardTest extends TestCase
             $handler
         );
         // 判权必须排在 AI 调用与写库之前
-        $aiPosition = strpos($handler, 'translateContentFields(');
+        $aiPosition = strpos($handler, 'TranslationWrite::generate(');
         $permissionPosition = strpos($handler, 'requireTranslationPermission(');
         self::assertNotFalse($aiPosition);
         self::assertNotFalse($permissionPosition);
         self::assertLessThan($aiPosition, $permissionPosition, 'Authorization must precede the AI call');
-        self::assertStringContainsString("\$newData['status'] = 0;", $handler, '译文默认落草稿');
+        self::assertStringContainsString("\$newData['status'] = 0;", $this->source('includes/TranslationWrite.php'), '译文默认落草稿');
+        self::assertStringContainsString('TranslationWrite::newRow(', $handler);
         self::assertStringContainsString("'content_type' => 'article'", $this->source('admin/article_edit.php'));
     }
 

@@ -3025,6 +3025,35 @@ CREATE TABLE "yikai_ai_proposal_items" (
 CREATE UNIQUE INDEX "uk_ai_proposal_items_public_yikai_ai_proposal_items" ON "yikai_ai_proposal_items" ("public_id");
 CREATE INDEX "idx_ai_proposal_items_proposal_yikai_ai_proposal_items" ON "yikai_ai_proposal_items" ("proposal_id", "seq");
 CREATE INDEX "idx_ai_proposal_items_owner_yikai_ai_proposal_items" ON "yikai_ai_proposal_items" ("owner_id", "status");
+DROP TABLE IF EXISTS "yikai_translation_batches";
+CREATE TABLE "yikai_translation_batches" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "admin_id" INTEGER NOT NULL DEFAULT 0,
+  "content_type" TEXT NOT NULL,
+  "langs" TEXT NOT NULL DEFAULT '',
+  "status" TEXT NOT NULL DEFAULT 'running',
+  "total" INTEGER NOT NULL DEFAULT 0,
+  "created_at" INTEGER NOT NULL,
+  "updated_at" INTEGER NOT NULL
+);
+CREATE INDEX "idx_translation_batches_created_yikai_translation_batches" ON "yikai_translation_batches" ("created_at");
+DROP TABLE IF EXISTS "yikai_translation_batch_items";
+CREATE TABLE "yikai_translation_batch_items" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "batch_id" INTEGER NOT NULL,
+  "source_id" INTEGER NOT NULL,
+  "lang" TEXT NOT NULL,
+  "status" TEXT NOT NULL DEFAULT 'pending',
+  "attempts" INTEGER NOT NULL DEFAULT 0,
+  "target_id" INTEGER NOT NULL DEFAULT 0,
+  "source_fp" TEXT NOT NULL DEFAULT '',
+  "result_json" TEXT,
+  "error" TEXT NOT NULL DEFAULT '',
+  "lease_until" INTEGER NOT NULL DEFAULT 0,
+  "updated_at" INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX "uk_translation_batch_items_yikai_translation_batch_items" ON "yikai_translation_batch_items" ("batch_id", "source_id", "lang");
+CREATE INDEX "idx_translation_batch_items_status_yikai_translation_batch_items" ON "yikai_translation_batch_items" ("batch_id", "status");
 DROP TABLE IF EXISTS "yikai_ai_change_log";
 CREATE TABLE "yikai_ai_change_log" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,

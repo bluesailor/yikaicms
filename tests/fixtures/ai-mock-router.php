@@ -36,6 +36,17 @@ if (str_starts_with($path, '/strict/') && isset($body['response_format'])) {
     echo json_encode(['error' => ['message' => 'response_format json_object is not supported by this model']]);
     return true;
 }
+// 翻译请求（批量翻译 e2e）：按提示里的 Input JSON 逐键回 ASCII 译文；校对轮原样交回 translation
+if (str_contains($path, '/translate/')) {
+    $messages = is_array($body['messages'] ?? null) ? $body['messages'] : [];
+    $prompt = (string) (end($messages)['content'] ?? '');
+    $input = json_decode(explode('Input: ', $prompt, 2)[1] ?? '', true);
+    $input = is_array($input) ? $input : [];
+    $reply = isset($input['translation']) && is_array($input['translation']) ? $input['translation']
+        : array_map(static fn (mixed $text): mixed => is_string($text) && trim($text) !== '' ? 'Translated ' . crc32($text) : $text, $input);
+    echo json_encode(['choices' => [['message' => ['content' => json_encode($reply)]]], 'usage' => ['prompt_tokens' => 3, 'completion_tokens' => 2, 'total_tokens' => 5]]);
+    return true;
+}
 if (str_ends_with($path, '/messages')) {
     echo json_encode(['content' => [['type' => 'text', 'text' => "OK {$path} {$model}"]], 'usage' => ['input_tokens' => 3, 'output_tokens' => 2]]);
     return true;

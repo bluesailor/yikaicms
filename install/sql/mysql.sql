@@ -2027,6 +2027,37 @@ CREATE TABLE `yikai_ai_proposal_items` (
   KEY `idx_ai_proposal_items_proposal` (`proposal_id`, `seq`),
   KEY `idx_ai_proposal_items_owner` (`owner_id`, `status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='AI 文章草稿提案项';
+DROP TABLE IF EXISTS `yikai_translation_batches`;
+CREATE TABLE `yikai_translation_batches` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `admin_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `content_type` varchar(20) NOT NULL,
+  `langs` varchar(255) NOT NULL DEFAULT '',
+  `status` varchar(16) NOT NULL DEFAULT 'running',
+  `total` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `created_at` int(11) UNSIGNED NOT NULL,
+  `updated_at` int(11) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_translation_batches_created` (`created_at`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='批量翻译任务';
+DROP TABLE IF EXISTS `yikai_translation_batch_items`;
+CREATE TABLE `yikai_translation_batch_items` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `batch_id` int(11) UNSIGNED NOT NULL,
+  `source_id` int(11) UNSIGNED NOT NULL,
+  `lang` varchar(10) NOT NULL,
+  `status` varchar(16) NOT NULL DEFAULT 'pending',
+  `attempts` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `target_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `source_fp` varchar(64) NOT NULL DEFAULT '',
+  `result_json` mediumtext NULL,
+  `error` varchar(255) NOT NULL DEFAULT '',
+  `lease_until` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `updated_at` int(11) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_translation_batch_items` (`batch_id`, `source_id`, `lang`),
+  KEY `idx_translation_batch_items_status` (`batch_id`, `status`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='批量翻译任务项';
 DROP TABLE IF EXISTS `yikai_ai_change_log`;
 CREATE TABLE `yikai_ai_change_log` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,

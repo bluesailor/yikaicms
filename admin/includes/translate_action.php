@@ -77,9 +77,6 @@ if ($existing && !$retranslate) {
 $target = $existing ? $model->find((int) $existing['id']) : null;
 if ($target) requireTranslationPermission($table, $target, (string) ($langSwitcher['content_type'] ?? ''));
 
-// AI 翻译短字段
-$srcTitle = (string) ($src[$titleKey] ?? '');
-$srcSumm  = (string) ($src[$summKey]  ?? '');
 $pageContent = null;
 if ($table === 'channels' && ($src['type'] ?? '') === 'page') {
     $pageContent = contentModel()->queryOne('SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? ORDER BY is_top DESC, id DESC LIMIT 1', [$srcId]);
@@ -96,78 +93,12 @@ $translationRead = [
     'target_page' => $target && $pageContent ? contentModel()->queryOne('SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? ORDER BY id DESC LIMIT 1', [(int) $target['id']]) : null,
     'title_key' => $titleKey, 'summary_key' => $summKey, 'body_field' => $bodyField,
 ];
-{
-    require_once ROOT_PATH . '/includes/AiService.php';
-    require_once ROOT_PATH . '/includes/content_translation.php';
-    try {
-        $translationSource = $src;
-        $translationSource['title'] = $srcTitle;
-        $translationSource['summary'] = $srcSumm;
-        if ($summKey !== 'summary' && array_key_exists('summary', $src)) $translationSource['secondary_summary'] = (string) $src['summary'];
-        $translationSource['content'] = (string) ($bodySource[$bodyField] ?? '');
-        if (function_exists('set_time_limit')) @set_time_limit(180);
-        $translationDeadline = microtime(true) + 120;
-        $translationModel = trim((string) config('ai_translation_model', ''));
-        $translationAi = $translationModel !== '' ? new AiService(null, null, $translationModel) : aiService();
-        $translationChat = static function (string $prompt, string $system = '', float $temperature = 0.7, bool $jsonObject = false) use ($translationDeadline, $translationAi): array {
-            // Each provider request may take up to 60 seconds; leave room to return a JSON error.
-            if (microtime(true) + 61 >= $translationDeadline) throw new RuntimeException('Translation time budget exceeded. The existing draft has not been changed.');
-            return $translationAi->chat($prompt, $system, $temperature, $jsonObject);
-        };
-        $translated = translateContentFields($translationSource, $toLang, $translationChat, true);
-    } catch (Throwable $exception) {
-        error(__('lse_failed') . ': ' . $exception->getMessage());
-    }
+try {
+    $translated = TranslationWrite::generate(TranslationWrite::source($src, $titleKey, $summKey, $bodySource, $bodyField), $toLang);
+} catch (Throwable $exception) {
+    error(__('lse_failed') . ': ' . $exception->getMessage());
 }
-
-// 拷贝源行所有列
-$newData = $src;
-unset($newData['id']);
-$newData['lang']                 = $toLang;
-$newData['translation_group_id'] = $groupId;
-$newData[$titleKey]              = $translated['title'];
-$newData[$summKey]               = $translated['summary'];
-if (isset($translated['secondary_summary'])) $newData['summary'] = $translated['secondary_summary'];
-foreach ($translated as $field => $value) {
-    if ($field !== 'title' && $field !== 'summary' && $field !== 'content' && array_key_exists($field, $src)) $newData[$field] = $value;
-}
-if (array_key_exists($bodyField, $src)) $newData[$bodyField] = $translated['content'];
-$newData['created_at']           = time();
-if (array_key_exists('updated_at', $src)) $newData['updated_at'] = time();
-
-// 机器翻译先落草稿：整行拷贝会连 status 一起继承，源是已发布时译文就直接上线了，
-// 没有任何人看过那段 AI 译文。发布必须是明确的下一步动作（复审 R01）。
-if (array_key_exists('status', $newData)) {
-    $newData['status'] = 0;
-}
-
-// slug 加语言后缀避免 uk_slug 冲突（仅当源有 slug 字段且非空）
-if (!empty($newData['slug'])) {
-    $newData['slug'] = $newData['slug'] . '-' . $toLang;
-    // 防御：万一 slug-{lang} 已存在（如先前手工建过），加随机后缀
-    $exists = db()->fetchOne("SELECT id FROM {$tName} WHERE slug = ?", [$newData['slug']]);
-    if ($exists) {
-        $newData['slug'] .= '-' . substr(md5((string) microtime(true)), 0, 6);
-    }
-}
-
-// 内容/产品类有 channel_id —— 重映射到目标语言频道（如已存在）
-if (isset($newData['channel_id']) && (int) $newData['channel_id'] > 0) {
-    $mapped = findTranslatedChannelId((int) $newData['channel_id'], $toLang);
-    if ($mapped > 0) $newData['channel_id'] = $mapped;
-}
-if ($table === 'channels' && (int) ($newData['parent_id'] ?? 0) > 0) {
-    $mappedParent = findTranslatedChannelId((int) $newData['parent_id'], $toLang);
-    if ($mappedParent > 0) $newData['parent_id'] = $mappedParent;
-}
-
-// SEO 字段同步翻译（如存在）
-if (!isset($translated['seo_title']) && array_key_exists('seo_title', $newData) && $newData['seo_title']) {
-    $newData['seo_title'] = $translated['title'];
-}
-if (!isset($translated['seo_description']) && array_key_exists('seo_description', $newData) && $newData['seo_description']) {
-    $newData['seo_description'] = $translated['summary'];
-}
+$newData = TranslationWrite::newRow($table, $src, $translated, $toLang, $groupId, $titleKey, $summKey, $bodyField);
 
 try {
     $written = (new TranslationWrite(db()))->apply($translationRead, $translated, $newData);
