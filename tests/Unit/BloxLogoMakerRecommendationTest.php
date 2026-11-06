@@ -55,9 +55,7 @@ final class BloxLogoMakerRecommendationTest extends TestCase
     private function source(string $path): string
     {
         $file = ROOT_PATH . '/' . $path;
-        if (!is_file($file)) {
-            self::markTestSkipped('Blox source is not available: ' . $path);
-        }
+        self::assertFileExists($file, 'Blox 编辑器源码 2026-08-21 起就在主仓里；缺失说明检出不完整');
         return (string) file_get_contents($file);
     }
 }

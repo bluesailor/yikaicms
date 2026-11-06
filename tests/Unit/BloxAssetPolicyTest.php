@@ -198,7 +198,10 @@ final class BloxAssetPolicyTest extends TestCase
         self::assertStringContainsString('sha256sum -c "$SHA"', $workflow);
         self::assertStringContainsString('php bin/blox-assets.php verify-free "$PACKAGE_ROOT"', $workflow);
         self::assertStringContainsString('name: yikaicms-free-${{ github.sha }}', $workflow);
-        self::assertSame(3, substr_count($workflow, 'bash .github/scripts/inject-blox.sh'));
+        // Blox 源码在主仓里：三处都要求它在场，缺了失败，不再从私库注入、也不再「跳过」
+        self::assertSame(0, substr_count($workflow, 'inject-blox.sh'));
+        self::assertStringNotContainsString('SKIPPED, not failed', $workflow);
+        self::assertSame(3, substr_count($workflow, 'test -f admin/blox_editor.php'));
 
         self::assertStringContainsString('node tests/e2e/run-shard.js ${{ matrix.shard }}', $workflow);
         self::assertStringContainsString('BLOX_E2E_ARTIFACT_ROOT:', $workflow);

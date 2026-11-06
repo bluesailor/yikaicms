@@ -2,7 +2,7 @@
 /**
  * Yikai CMS - 安装向导
  *
- * PHP 8.0+
+ * PHP 8.2+（硬地板见 includes/RuntimeRequirements.php）
  */
 
 declare(strict_types=1);

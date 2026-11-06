@@ -71,23 +71,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Blox 已在主仓；兼容旧仓的注入也集中到 8.2，避免另起一轮相同的全量单测。
-      - name: Inject Blox paid sources
-        if: matrix.php == '8.2'
-        env:
-          BLOX_DEPLOY_KEY: ${{ secrets.BLOX_DEPLOY_KEY }}
-        run: bash .github/scripts/inject-blox.sh
-
-      - name: Check Blox source presence
+      # Blox 编辑器源码 2026-08-21 起就在主仓里：缺了是检出不完整，直接失败，不再「跳过」。
+      - name: Require Blox sources
         if: matrix.php == '8.2'
         id: blox_src
         run: |
-          if [ -f admin/blox_editor.php ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=Blox suite skipped::paid sources not injected (no BLOX_DEPLOY_KEY). SKIPPED, not failed."
-          fi
+          test -f admin/blox_editor.php || { echo "::error::admin/blox_editor.php missing from checkout"; exit 1; }
+          echo "present=true" >> "$GITHUB_OUTPUT"
 
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
@@ -528,7 +518,7 @@ jobs:
           --db-user=root --db-pass=ci-root
           ${{ matrix.mysql == '8.4' && '--verify-preservation' || '' }}
 
-  # ─── 真实免费发行包：不能只在源工作树上验证资产分类。注入完整源码后运行
+  # ─── 真实免费发行包：不能只在源工作树上验证资产分类。用仓库里的完整源码运行
   # ─── build.sh，校验 ZIP 哈希，再解包对最终产物执行 verify-free。
   free-package:
     name: Blox Free Package
@@ -541,20 +531,11 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Inject Blox paid sources
-        env:
-          BLOX_DEPLOY_KEY: ${{ secrets.BLOX_DEPLOY_KEY }}
-        run: bash .github/scripts/inject-blox.sh
-
-      - name: Check Blox source presence
+      - name: Require Blox sources
         id: blox_src
         run: |
-          if [ -f admin/blox_editor.php ]; then
-            echo "present=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "present=false" >> "$GITHUB_OUTPUT"
-            echo "::notice title=Blox free package skipped::paid sources not injected (no BLOX_DEPLOY_KEY). SKIPPED, not failed."
-          fi
+          test -f admin/blox_editor.php || { echo "::error::admin/blox_editor.php missing from checkout"; exit 1; }
+          echo "present=true" >> "$GITHUB_OUTPUT"
 
       - name: Setup PHP
         if: steps.blox_src.outputs.present == 'true'
@@ -655,12 +636,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Inject Blox paid sources
-        env:
-          BLOX_DEPLOY_KEY: ${{ secrets.BLOX_DEPLOY_KEY }}
-        run: bash .github/scripts/inject-blox.sh
-
-      - name: Check Blox source presence
+      - name: Require Blox sources
         run: |
           test -f admin/blox_editor.php || {
             echo "::error title=Blox browser baseline unavailable::planned browser shard is missing admin/blox_editor.php"

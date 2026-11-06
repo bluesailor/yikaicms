@@ -127,7 +127,7 @@
 
 | 项目 | 要求 |
 |------|------|
-| PHP | >= 8.2（建议 8.3+） |
+| PHP | >= 8.2（建议 8.3+）；每次提交在 8.2 / 8.3 / 8.4 上跑完整单元测试，8.5 目前只做语法检查 |
 | 数据库 | MySQL 5.7 / 8.0 / 8.4 LTS（utf8mb4）或 SQLite 3 |
 | Web 服务器 | Apache（启用 `mod_rewrite`）或 Nginx |
 | PHP 扩展（必需） | pdo、json、mbstring、fileinfo、dom |

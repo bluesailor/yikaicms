@@ -47,7 +47,11 @@ function run(command, options = {}) {
 test('Blox assertions share the PHP 8.2 suite and the retained check fails closed', () => {
   const suite = job('phpunit');
   assert.match(suite, /php: \['8\.2', '8\.3', '8\.4'\]/);
-  assert.match(step(suite, 'Inject Blox paid sources'), /if: matrix\.php == '8\.2'/);
+  // Blox 源码在主仓里：缺了直接失败，不再注入、不再「跳过」
+  const required = step(suite, 'Require Blox sources');
+  assert.match(required, /if: matrix\.php == '8\.2'/);
+  assert.match(required, /test -f admin\/blox_editor\.php \|\| \{[^}]*exit 1; \}/);
+  assert.doesNotMatch(workflow, /inject-blox|SKIPPED, not failed/);
   for (const name of ['Verify Blox paid asset composition', 'Blox i18n gate (strict scope incl. paid sources)']) {
     assert.match(step(suite, name), /if: matrix\.php == '8\.2' && steps\.blox_src\.outputs\.present == 'true'/);
   }

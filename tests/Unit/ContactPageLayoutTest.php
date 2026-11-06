@@ -163,10 +163,7 @@ final class ContactPageLayoutTest extends TestCase
 
     public function testBloxContactModeSeedsEmptyDocumentsAndExposesDataManagers(): void
     {
-        if (!is_file(ROOT_PATH . '/admin/blox_editor.php')) {
-            // 付费 Blox 源码不随公开仓库分发；无注入的 CI 矩阵跳过，注入 job 与本地全量执行。
-            self::markTestSkipped('付费 Blox 源码未注入：admin/blox_editor.php');
-        }
+        self::assertFileExists(ROOT_PATH . '/admin/blox_editor.php', 'Blox 编辑器源码 2026-08-21 起就在主仓里；缺失说明检出不完整');
         $editorSource = bloxEditorSourceForTest();
         $workspaceSource = (string) file_get_contents(ROOT_PATH . '/admin/blox_editor/partials/workspace.php');
 

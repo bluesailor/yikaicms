@@ -165,10 +165,7 @@ final class BloxMultiSelectContractTest extends TestCase
     private function source(string $path): string
     {
         $file = ROOT_PATH . '/' . $path;
-        if (!is_file($file) && str_starts_with($path, 'admin/blox_editor')) {
-            // 付费 Blox 源码不随公开仓库分发；无注入的 CI 矩阵跳过，注入 job 与本地全量执行。
-            self::markTestSkipped('付费 Blox 源码未注入：' . $path);
-        }
+        self::assertFileExists($file, 'Blox 编辑器源码 2026-08-21 起就在主仓里；缺失说明检出不完整');
         return $path === 'admin/blox_editor.php' ? bloxEditorSourceForTest() : (string) file_get_contents($file);
     }
 }

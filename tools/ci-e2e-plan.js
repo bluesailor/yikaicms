@@ -27,7 +27,7 @@ function shardsForPath(input, root = path.resolve(__dirname, '..')) {
 
   // Runner, fixture, browser config, CSS and installation changes invalidate
   // every browser lane because they change the disposable site or its runtime.
-  if (/^(?:\.github\/workflows\/ci\.yml|\.github\/scripts\/(?:inject-blox|install-playwright-chromium)\.sh|playwright\.config\.js|package(?:-lock)?\.json|tests\/smoke\/(?:setup|fixtures)\.php|tools\/ci-e2e-plan\.js)$/i.test(file)) {
+  if (/^(?:\.github\/workflows\/ci\.yml|\.github\/scripts\/(?:install-playwright-chromium)\.sh|playwright\.config\.js|package(?:-lock)?\.json|tests\/smoke\/(?:setup|fixtures)\.php|tools\/ci-e2e-plan\.js)$/i.test(file)) {
     return new Set(ALL);
   }
   // 其余 tests/e2e 文件都是支撑件：runner、helper、夹具、假站点页面，以及
