@@ -10,6 +10,12 @@ if ! [[ "$attempts" =~ ^[1-9][0-9]*$ && "$timeout_seconds" =~ ^[1-9][0-9]*$ && "
   exit 2
 fi
 
+# Hosted runners sometimes run apt-get in the background; wait for the dpkg lock
+# instead of failing immediately. Kept below the per-attempt timeout.
+if [[ -d /etc/apt/apt.conf.d ]] && sudo -n true 2>/dev/null; then
+  echo 'DPkg::Lock::Timeout "300";' | sudo tee /etc/apt/apt.conf.d/99-dpkg-lock-timeout >/dev/null
+fi
+
 for ((attempt = 1; attempt <= attempts; attempt++)); do
   echo "::group::Install Chromium (attempt ${attempt}/${attempts})"
   set +e
