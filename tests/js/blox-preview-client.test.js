@@ -346,6 +346,41 @@ async function run() {
     cancelPending.resolve(response("cancelled"));
     assert.equal(await cancelled, false);
 
+    // 文档有区块、响应的内容区却是空的（CI 42187217171）：不换上画布，同一份文档重发一次；
+    // 重发仍为空才接受（如引用的块库区块已删除）。
+    {
+        const emptyFrame = fakeFrame();
+        const emptyBodies = [];
+        const emptyDiagnostics = [];
+        const emptyPage = '<!doctype html><body><header>H</header><main><div class="yk-canvas-region" data-yk-region="content" data-yk-preview-label="Page"></div></main></body>';
+        const fullPage = '<!doctype html><body><main><div data-yk-region="content"><section data-yk-sec="0"></section></div></main></body>';
+        const replies = [emptyPage, fullPage, emptyPage, emptyPage];
+        const emptyClient = new global.BloxPreviewClient({
+            endpoint: "/preview",
+            csrf: "token",
+            delay: 0,
+            quickDelay: 0,
+            getFrame: function () { return emptyFrame; },
+            getHost: function () { return host; },
+            getDocument: function () { return { schema: 1, settings: {}, sections: [{ id: "s1" }] }; },
+            onDiagnostic: function (item) { emptyDiagnostics.push(item.reason); },
+            fetch: function (url, request) { emptyBodies.push(request.body); return Promise.resolve(response(replies.shift())); },
+        });
+        assert.equal(await emptyClient.refresh(), false, "a contentless render of a non-empty document is not applied");
+        assert.equal(emptyFrame.srcdoc, "", "the canvas keeps its previous content");
+        assert.deepEqual(emptyDiagnostics, ["empty-render"]);
+        await new Promise(function (resolve) { setTimeout(resolve, 5); });
+        assert.equal(emptyBodies.length, 2, "the same document is requested once more");
+        assert.equal(emptyFrame.srcdoc, fullPage);
+
+        emptyFrame.srcdoc = "";
+        emptyFrame.fireLoad();
+        assert.equal(await emptyClient.refresh(), false);
+        await new Promise(function (resolve) { setTimeout(resolve, 5); });
+        assert.equal(emptyBodies.length, 4);
+        assert.equal(emptyFrame.srcdoc, emptyPage, "a second empty render of the same document is accepted");
+    }
+
     // ── 滚动恢复产品级修复（r16-r17 终审裁决落地）────────────────────────
     // 场景 A：srcdoc 重建把宿主夹到 0 的窗口内，另一轮响应采样必须用
     // 最后稳定值兜底，settled 后滚动不得被恢复为 0。

@@ -40,6 +40,7 @@
         // 此窗口内到达的新响应若直接采样会拿到假 0（CI r16-r17 五轮实证）。
         this.rebuilding = false;
         this.lastGoodScroll = null;
+        this.emptyRetryJson = null;
     }
 
     BloxPreviewClient.prototype.schedule = function () {
@@ -408,6 +409,13 @@
         });
     };
 
+    /** 文档有区块，但整页响应里的页面内容区是空的（只剩页头页脚）。 */
+    BloxPreviewClient.prototype.rendersNoSections = function (document, html) {
+        var sections = Array.isArray(document) ? document : (document && document.sections);
+        return Array.isArray(sections) && sections.length > 0
+            && /\sdata-yk-region="content"[^>]*><\/div>/.test(html);
+    };
+
     BloxPreviewClient.prototype.refresh = function () {
         var self = this;
         clearTimeout(this.timer);
@@ -468,6 +476,19 @@
                     matches[0].replaceWith(source.importNode(replacement, true));
                     html = '<!doctype html>' + source.documentElement.outerHTML;
                     mode = 'element-ssr';
+                }
+                // 文档有区块、服务端却回了一页一个区块都没有的画布：先不换上去，否则画布变成
+                // 「空文档」起步卡，结构树却还列着全部区块（CI 42187217171 实测）。同一份文档
+                // 只重发一次；重发仍为空才当作真实结果（如引用的块库区块已删除）。
+                if (!partialId && self.rendersNoSections(document, html)) {
+                    if (self.emptyRetryJson !== json) {
+                        self.emptyRetryJson = json;
+                        self.onDiagnostic({sequence: sequence, mode: 'retry', reason: 'empty-render', elapsed: Date.now() - started});
+                        self.pending = true;
+                        return false;
+                    }
+                } else {
+                    self.emptyRetryJson = null;
                 }
                 var scrollState = self.captureScroll(frame);
                 if (self.rebuilding) self.patchReason = 'load-in-progress';

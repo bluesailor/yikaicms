@@ -224,11 +224,15 @@ final class HomeBloxRenderer
             $renderSections[] = $renderSection;
         }
 
+        // 旧区块模板输出里混进一个非 UTF-8 字节，不能让整页首页静默变成空白：替换掉坏字节照常渲染，
+        // 仍编码失败则记日志（以前这里静默返回空串，画布与前台只剩页头页脚，无任何线索）。
         $json = json_encode(
             $renderSections,
             JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT
+                | JSON_INVALID_UTF8_SUBSTITUTE
         );
         if (!is_string($json)) {
+            error_log('[HomeBloxRenderer] Could not encode ' . count($renderSections) . ' home sections: ' . json_last_error_msg());
             return '';
         }
 

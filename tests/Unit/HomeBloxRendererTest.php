@@ -31,6 +31,19 @@ final class HomeBloxRendererTest extends TestCase
         $this->assertStringContainsString('background-color:var(--yk-color-surface)', HomeBloxRenderer::render([$section], $render));
     }
 
+    public function testInvalidUtf8FromLegacyBlockDoesNotBlankTheHomePage(): void
+    {
+        $sections = [
+            ['settings' => [], 'columns' => [['elements' => [['type' => 'home-block', 'data' => ['block_type' => 'channel', 'enabled' => true]]]]]],
+            ['settings' => [], 'columns' => [['elements' => [['type' => 'heading', 'data' => ['text' => 'After the legacy block']]]]]],
+        ];
+
+        $html = HomeBloxRenderer::render($sections, static fn (array $element): string => "<p>\xE6\x97 cut</p>");
+
+        $this->assertStringContainsString('After the legacy block', $html);
+        $this->assertStringContainsString("\u{FFFD} cut", $html);
+    }
+
     protected function tearDown(): void
     {
         BlockRenderer::$showHidden = false;
