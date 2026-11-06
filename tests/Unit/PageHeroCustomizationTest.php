@@ -100,7 +100,8 @@ final class PageHeroCustomizationTest extends TestCase
     {
         $canvas = $this->source('includes/builder/BloxCanvasPreview.php');
         $editor = $this->source('admin/blox_editor.php')
-            . $this->source('admin/blox_editor/partials/overlays.php');
+            . $this->source('admin/blox_editor/partials/overlays.php')
+            . $this->source('admin/blox_editor/partials/page-hero-dialog.php');
         $api = $this->source('admin/blox_page_api.php');
         $bridge = $this->source('assets/js/yikay-canvas-bridge.js');
 
@@ -122,7 +123,7 @@ final class PageHeroCustomizationTest extends TestCase
         $this->assertStringContainsString('data-testid="blox-page-hero-color-picker"', $editor);
         $this->assertStringContainsString("applyPageHeroPreset('minimal')", $editor);
         $this->assertStringContainsString('copyPageHeroToSelf()', $editor);
-        $this->assertStringContainsString('restorePageHeroInheritance()', $editor);
+        $this->assertStringContainsString('data-testid="blox-page-hero-mode-global"', $editor);
         $this->assertStringContainsString('data-testid="blox-page-hero-effective-source"', $editor);
         $this->assertStringContainsString('pageHeroPreviewHeight()', $editor);
         $this->assertStringContainsString('x-model.number="pageHero.style_options.focal_x"', $editor);

@@ -5,11 +5,14 @@ declare(strict_types=1);
 $breadcrumbOptions = $breadcrumbOptions ?? 'pageHero.style_options';
 $breadcrumbDisabled = $breadcrumbDisabled ?? "pageHero.style_source !== 'self'";
 $breadcrumbEffective = $breadcrumbEffective ?? 'pageHeroPreviewOptions()';
+$breadcrumbInPageHero = $breadcrumbInPageHero ?? false;
 ?>
 <fieldset :disabled="<?= e($breadcrumbDisabled) ?>" class="space-y-4" data-testid="blox-breadcrumb-settings">
-    <legend class="mb-2 text-sm font-medium text-gray-800"><?= e(__('blox_breadcrumb_layout')) ?></legend>
+    <legend class="mb-2 text-sm font-medium text-gray-800"><?= e(__($breadcrumbInPageHero ? 'blox_page_hero_dialog_layout' : 'blox_breadcrumb_layout')) ?></legend>
     <div class="blox-hero-mode-choices">
-        <?php foreach (['banner' => 'blox_breadcrumb_banner', 'compact' => 'blox_breadcrumb_compact'] as $value => $label): ?>
+        <?php foreach (($breadcrumbInPageHero
+            ? ['banner' => 'blox_page_hero_dialog_banner', 'compact' => 'blox_page_hero_dialog_compact']
+            : ['banner' => 'blox_breadcrumb_banner', 'compact' => 'blox_breadcrumb_compact']) as $value => $label): ?>
         <label class="blox-hero-mode-choice" :data-selected="(<?= e($breadcrumbEffective) ?>.layout || 'banner') === '<?= e($value) ?>'">
             <input type="radio" name="blox-hero-layout" :checked="(<?= e($breadcrumbEffective) ?>.layout || 'banner') === '<?= e($value) ?>'" @change="<?= e($breadcrumbOptions) ?>.layout = '<?= e($value) ?>'" value="<?= e($value) ?>" data-testid="blox-page-hero-layout-<?= e($value) ?>">
             <i class="ti <?= $value === 'banner' ? 'ti-layout-navbar' : 'ti-route' ?>" aria-hidden="true"></i>
@@ -17,6 +20,11 @@ $breadcrumbEffective = $breadcrumbEffective ?? 'pageHeroPreviewOptions()';
         </label>
         <?php endforeach; ?>
     </div>
+    <?php if ($breadcrumbInPageHero): ?>
+    <details x-show="<?= e($breadcrumbEffective) ?>.layout === 'compact'" class="blox-hero-details">
+        <summary><?= e(__('blox_page_hero_dialog_breadcrumb_details')) ?></summary>
+        <div class="p-3">
+    <?php endif; ?>
     <div x-show="<?= e($breadcrumbEffective) ?>.layout === 'compact'" class="space-y-4" data-testid="blox-breadcrumb-compact-controls">
         <fieldset>
             <legend class="mb-2 text-xs font-medium text-gray-600"><?= e(__('blox_breadcrumb_style')) ?></legend>
@@ -51,5 +59,9 @@ $breadcrumbEffective = $breadcrumbEffective ?? 'pageHeroPreviewOptions()';
             </fieldset>
         </div>
     </div>
+    <?php if ($breadcrumbInPageHero): ?>
+        </div>
+    </details>
+    <?php endif; ?>
 </fieldset>
 <?php unset($breadcrumbOptions, $breadcrumbDisabled, $breadcrumbEffective); ?>

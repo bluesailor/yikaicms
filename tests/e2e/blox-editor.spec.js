@@ -3226,7 +3226,14 @@ test('page title area presets preview safely and inheritance is read only @ci', 
 
   const dialog = page.getByTestId('blox-page-hero-dialog');
   await expect(dialog).toBeVisible();
+  const details = dialog.getByTestId('blox-page-hero-details');
+  const background = dialog.locator('#blox-page-hero-bg');
+  const originalBackground = await background.inputValue();
+  await expect(background).toBeHidden();
   await dialog.getByTestId('blox-page-hero-preset-minimal').click();
+  await details.locator('summary').click();
+  await background.fill('/assets/images/demo/banner-1.svg');
+  await expect(dialog.locator('#blox-page-hero-overlay')).toBeVisible();
   await expect(dialog.locator('#blox-page-hero-overlay')).toHaveValue('0');
   await expect(dialog.getByTestId('blox-page-hero-style-preview').locator('.h-20')).toBeVisible();
 
@@ -3236,15 +3243,16 @@ test('page title area presets preview safely and inheritance is read only @ci', 
   await expect(page.getByTestId('blox-editor-color-picker')).toBeHidden();
 
   await dialog.getByTestId('blox-page-hero-mode-global').click();
-  await expect(dialog.getByTestId('blox-page-hero-preset-standard')).toBeDisabled();
-  await expect(dialog.getByTestId('blox-page-hero-color-picker')).toBeDisabled();
+  await expect(dialog.getByTestId('blox-page-hero-preset-standard')).toBeHidden();
+  await expect(dialog.getByTestId('blox-page-hero-color-picker')).toBeHidden();
+  await expect(dialog.getByTestId('blox-page-hero-style-preview')).toBeVisible();
   await dialog.getByTestId('blox-page-hero-mode-self').click();
   await expect(dialog.getByTestId('blox-page-hero-preset-standard')).toBeEnabled();
   await dialog.getByTestId('blox-page-hero-preview-mobile').click();
   await expect(dialog.getByTestId('blox-page-hero-preview-mobile')).toHaveAttribute('aria-pressed', 'true');
   const previewFrame = dialog.getByTestId('blox-page-hero-preview-frame');
   await expect.poll(() => previewFrame.evaluate((node) => node.offsetWidth)).toBeLessThanOrEqual(390);
-  await dialog.locator('#blox-page-hero-bg').fill('/assets/images/demo/banner-1.svg');
+  await expect(background).toHaveValue('/assets/images/demo/banner-1.svg');
   await dialog.getByTestId('blox-page-hero-focus-x').fill('0');
   await dialog.getByTestId('blox-page-hero-focus-y').fill('100');
   await expect(dialog.getByTestId('blox-page-hero-style-preview').locator('.relative.bg-cover')).toHaveAttribute(
@@ -3254,5 +3262,9 @@ test('page title area presets preview safely and inheritance is read only @ci', 
 
   await dialog.getByRole('button', { name: '取消' }).click();
   await expect(dialog).toBeHidden();
+  await pointerClick(page, contentFrame.locator('[data-yk-page-hero-action]'));
+  await expect(background).toHaveValue(originalBackground);
+  await expect(background).toBeHidden();
+  await dialog.getByRole('button', { name: '取消' }).click();
   await expectClean(page);
 });

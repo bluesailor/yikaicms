@@ -1264,6 +1264,35 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 width: auto;
             }
         }
+        .blox-hero-dialog-card { width: 880px; max-height: calc(100dvh - 2rem); }
+        .blox-hero-dialog-body { display: grid; align-content: start; gap: 16px; }
+        .blox-hero-toggle { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 12px 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; cursor: pointer; }
+        .blox-hero-dialog-grid { display: grid; gap: 16px; }
+        .blox-hero-source-choices, .blox-hero-presets { display: grid; gap: 6px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .blox-hero-source-choices[data-has-parent="true"] { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+        .blox-hero-source-choice { display: flex; align-items: center; justify-content: center; min-height: 40px; padding: 6px; text-align: center; border-radius: 6px; cursor: pointer; }
+        .blox-hero-source-choice:has(input:focus-visible),
+        .blox-hero-dialog-card label:has(> input.sr-only:focus-visible) { outline: 2px solid #2563eb; outline-offset: 2px; }
+        .blox-hero-source-note { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 12px; margin-top: 4px; }
+        .blox-hero-text-action, .blox-hero-image-button { display: inline-flex; min-height: 36px; align-items: center; gap: 6px; color: #1d4ed8; font-size: .8125rem; font-weight: 500; }
+        .blox-hero-text-action:hover { text-decoration: underline; }
+        .blox-hero-image-button { padding-inline: 10px; border: 1px solid #bfdbfe; border-radius: 6px; background: #eff6ff; }
+        .blox-hero-image-button:hover { background: #dbeafe; }
+        .blox-hero-custom { border-top: 1px solid #e2e8f0; padding-top: 14px; }
+        .blox-hero-details { border: 1px solid #e2e8f0; border-radius: 8px; min-width: 0; }
+        .blox-hero-details > summary { padding: 10px 12px; cursor: pointer; color: #334155; font-size: .875rem; font-weight: 500; }
+        .blox-hero-details[open] > summary { border-bottom: 1px solid #e2e8f0; }
+        .blox-hero-dialog-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px 16px; }
+        .blox-hero-dialog-footer > p { flex: 1 1 230px; }
+        .blox-hero-dialog-footer > div { margin-inline-start: auto; }
+        @media (min-width: 800px) {
+            .blox-hero-dialog-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: auto 1fr; gap: 14px 20px; align-items: start; }
+            .blox-hero-preview-pane { grid-column: 2; grid-row: 1 / 3; position: sticky; top: 0; padding: 12px; border: 1px solid #e2e8f0; border-radius: 8px; }
+            .blox-hero-custom { grid-column: 1; }
+        }
+        @media (max-width: 479px) {
+            .blox-hero-source-choice { padding-inline: 4px; font-size: .75rem; }
+        }
     </style>
 </head>
 <body class="bg-gray-100 text-gray-800" x-data="bloxEditor()" x-cloak
@@ -1301,6 +1330,7 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
             sections: <?php echo $initBlocks; ?>,
             pageHero: <?php echo json_encode($pageHero, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
             pageHeroOpen: false,
+            pageHeroBeforeEdit: null,
             pageHeroSaving: false,
             pageCoverNoticeDismissed: false,
             pageHeroPreviewDevice: "desktop",

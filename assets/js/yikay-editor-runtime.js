@@ -3962,7 +3962,11 @@
             },
 
             openPageHeroSettings() {
-                if (!this.pageHero.available) return;
+                if (!this.pageHero.available || this.pageHeroOpen || this.pageHeroSaving) return;
+                this.pageHeroBeforeEdit = JSON.parse(JSON.stringify(this.pageHero));
+                this.$refs.pageHeroDialog.querySelectorAll("details[open]").forEach(function (details) {
+                    details.open = false;
+                });
                 this.pageHeroOpen = true;
                 this.focusDialog(this.$refs.pageHeroDialog, "[data-dialog-initial]");
             },
@@ -3970,6 +3974,8 @@
             closePageHeroSettings() {
                 if (!this.pageHeroOpen || this.pageHeroSaving) return;
                 var root = this.$refs.pageHeroDialog;
+                if (this.pageHeroBeforeEdit) this.pageHero = this.pageHeroBeforeEdit;
+                this.pageHeroBeforeEdit = null;
                 this.pageHeroOpen = false;
                 this.releaseDialog(root);
             },
@@ -4019,6 +4025,7 @@
                             self.pageHero.source_channel_name = String(result.data.source_channel_name || "");
                             if (typeof result.data.show_cover !== "undefined") self.pageHero.show_cover = !!result.data.show_cover;
                         }
+                        self.pageHeroBeforeEdit = null;
                         self.pageHeroOpen = false;
                         self.releaseDialog(self.$refs.pageHeroDialog);
                         self.refreshPreview();
