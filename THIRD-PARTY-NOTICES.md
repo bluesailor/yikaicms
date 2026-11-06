@@ -117,6 +117,7 @@ Psalm、PHP-Parser 等只用于开发与测试，见 `composer.json` 的 `requir
   随包只保留运行时文件（*.min.js、皮肤、插件数据），语言包沿用原 zh_CN / ja 两份并改挂
   `hugerte.addI18n`。`assets/tinymce/` 整目录删除；`window.tinymce` 作为别名保留给第三方插件。
 
+- **2026-11-06（v2.2.0 核对）**：本周期没有新增第三方组件；`composer.json` / `composer.lock` 与 `package.json` / `package-lock.json` 自 v2.1.3 起无变化；`assets/` 没有新增或删除文件，只改了本项目源码 `yikay-editor-runtime.js`、`yikay-page-settings.js` 与 `tailwind.css` 产物。外部 AI 接入（MCP）按公开协议自行实现，不引入 SDK；密钥加密沿用 PHP 自带的 OpenSSL。反向核对：本周期未删除任何组件的加载点。
 - **2026-10-29（v2.1.3 核对）**：本周期没有新增第三方组件；`composer.json` / `composer.lock` 只调整核心 PHP 下限，未新增或升级生产依赖；`package.json` / `package-lock.json` 无变化。`assets/` 新增的 `yikay-editor-runtime.js` 与 `yikay-richtext-loader.js` 均为本项目源码，HugeRTE 仅改为按需加载，既有组件与许可未变；`assets/` 无第三方目录删除。
 - **2026-10-24（v2.1.2 核对）**：本周期没有新增第三方组件；`composer.json` / `composer.lock` 与 `package.json` 自 v2.1.1 起无变化；`assets/` 没有新增或删除文件（只改了本项目的 `tailwind.css` 产物）。新增的 AI 服务商是按各家公开接口直接调用，不引入 SDK；`config/translation_terms.json` 是本项目编写的翻译术语表。
 - **2026-10-20（v2.1.1 核对）**：本周期没有新增第三方组件；`composer.json` / `composer.lock` 与 `package.json` 生产依赖自 v2.1.0 起无变化；`assets/` 只新增本项目源码 `assets/js/admin-error-report.js`，没有删除文件。产品导入插件读 zip 用 PHP 自带的 `ZipArchive`，不引入新库。
