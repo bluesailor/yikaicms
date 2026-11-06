@@ -21,7 +21,7 @@ final class BloxPageSwitcherCreateTest extends TestCase
         $header = self::source('admin/blox_editor/partials/header.php');
 
         self::assertStringNotContainsString("__('blox_home_draft')", $header);
-        self::assertSame(2, substr_count($header, "\$isHomeBlox ? __('blox_page_switch_home') : \$page['name']"));
+        self::assertStringContainsString("e(\$isHomeBlox ? __('blox_page_switch_home') : \$page['name'])", $header);
     }
 
     public function testSwitcherCreatesPagesThroughThePageManager(): void

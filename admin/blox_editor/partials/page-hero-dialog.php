@@ -1,4 +1,6 @@
 <?php
+declare(strict_types=1);
+
 // Share the canvas breadcrumb hierarchy; the preview shows labels without navigable links.
 $pageHeroBreadcrumbParents = $pageHero['available'] ? array_column(array_slice(getBreadcrumb((int) $pageHero['id']), 0, -1), 'name') : [];
 ?>

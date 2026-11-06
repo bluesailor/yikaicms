@@ -56,7 +56,7 @@ final class ScriptBasePathContractTest extends TestCase
             'product.php' => ["array_map([BasePath::class, 'url'], array_values(\$productImages))", "BasePath::imageData(\$v['main'])", "BasePath::url('/captcha.php')"],
             'detail.php' => ["array_map([BasePath::class, 'url'], array_values(\$galleryImages))"],
             'includes/partials/album-lightbox.php' => ["BasePath::url((string) \$p['image'])"],
-            'assets/js/yikay-page-settings.js' => ['(root.YK_BASE || "") + url.pathname'],
+            'assets/js/yikay-page-settings.js' => ['(root.YK_BASE || "") + "/admin/draft_preview.php?type=channels&id="'],
             'admin/blox_editor/partials/overlays.php' => [':href="pageHref()"'],
         ];
         foreach ($expect as $file => $needles) {

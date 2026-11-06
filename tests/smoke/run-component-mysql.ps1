@@ -110,7 +110,7 @@ try {
     $negativeReport=Join-Path $OutDir 'wrong-datadir.json'
     & $Php (Join-Path $root 'tools\component-site-roundtrip.php') '--db=mysql' @webArgs "--port=$HttpPort" "--report=$negativeReport" > (Join-Path $OutDir 'wrong-datadir.txt')
     $negativeExit=$LASTEXITCODE
-    $negative=Get-Content -LiteralPath $negativeReport -Raw | ConvertFrom-Json
+    $negative=Get-Content -LiteralPath $negativeReport -Raw -Encoding UTF8 | ConvertFrom-Json
     if ($negativeExit -eq 0 -or $negative.passed -or $negative.database_cleanup -or $negative.error -notlike '*datadir/port mismatch*') { throw 'Wrong-datadir guard did not fail closed' }
     $result['wrong_datadir_rejected']=$true
 
@@ -126,7 +126,7 @@ try {
     }
     $gateExit=$LASTEXITCODE
     Get-Content -LiteralPath (Join-Path $OutDir ($reportName+'.txt')) -Tail 4
-    $gate=Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
+    $gate=Get-Content -LiteralPath $reportPath -Raw -Encoding UTF8 | ConvertFrom-Json
     $result['gate_exit']=$gateExit; $result['assertions']=$gate.assertions; $result['failed']=$gate.failed
     $remaining = & $mysql @client --execute="SELECT COUNT(*) FROM information_schema.schemata WHERE schema_name REGEXP '^yk_cmp_rt_[a-f0-9]{20}_(source|target)$' OR schema_name REGEXP '^yikaicms_upgrade_test_[a-f0-9]{8}$'"
     if ($LASTEXITCODE -ne 0 -or [int]$remaining -ne 0) { throw 'Temporary source/target database cleanup incomplete' }
