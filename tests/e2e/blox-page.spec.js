@@ -210,7 +210,8 @@ test('page draft stays private until explicit publish @ci', async ({ page }, tes
   await expect(page.getByTestId('blox-publish-page')).toBeEnabled();
   await expect(page.getByTestId('blox-publish-page')).not.toContainText('已发布');
   await expect(page.getByTestId('blox-front-preview')).toContainText('预览草稿');
-  await expect(page.getByTestId('blox-front-preview')).toHaveAttribute('href', /preview=draft/);
+  // 草稿预览走后台私有预览页（需登录），不再是带 preview=draft 的前台地址
+  await expect(page.getByTestId('blox-front-preview')).toHaveAttribute('href', /\/admin\/draft_preview\.php\?type=channels&id=\d+$/);
 
   page.once('dialog', (dialog) => dialog.accept());
   const publishResponse = page.waitForResponse((candidate) => {

@@ -70,7 +70,10 @@ test('Blox assertions share the PHP 8.2 suite and the retained check fails close
 test('both upgrade runtimes consume the verified package and do not hide download failures', () => {
   const upgrade = job('n-minus-one-upgrade');
   assert.match(upgrade, /needs: free-package/);
-  assert.match(upgrade, /php: \['8\.2', '8\.4'\]/);
+  // Both supported runtimes upgrade from the oldest kept baseline; MySQL 8.4 upgrades from the last release.
+  assert.match(upgrade, /- php: '8\.2'\s+mysql: '5\.7'\s+from: '1\.20\.1'/);
+  assert.match(upgrade, /- php: '8\.4'\s+mysql: '5\.7'\s+from: '1\.20\.1'/);
+  assert.match(upgrade, /- php: '8\.2'\s+mysql: '8\.4'\s+from: '2\.1\.3'\s+from_sha256: '[0-9a-f]{64}'/);
   const download = step(upgrade, 'Download verified current package');
   assert.match(download, /if: needs\.free-package\.outputs\.has_package == 'true'/);
   assert.match(download, /uses: actions\/download-artifact@v4/);
@@ -129,7 +132,8 @@ test('artifact lifetimes are bounded without dropping release validation or fail
 test('existing compatibility, database, browser and language checks remain bounded and blocking', () => {
   assert.match(job('lint'), /php: \['8\.0', '8\.1', '8\.2', '8\.3', '8\.4', '8\.5'\]/);
   assert.match(job('smoke'), /php: '8\.2'[\s\S]*lang: 'zh-CN'[\s\S]*php: '8\.4'[\s\S]*lang: 'zh-CN'[\s\S]*php: '8\.2'[\s\S]*lang: 'en'/);
-  assert.match(job('mysql57'), /image: mysql:5\.7/);
+  assert.match(job('mysql57'), /mysql: \['5\.7', '8\.4'\]/);
+  assert.match(job('mysql57'), /image: mysql:\$\{\{ matrix\.mysql \}\}/);
   assert.match(job('e2e_shards'), /run: node tests\/e2e\/run-shard\.js \$\{\{ matrix\.shard \}\}/);
   for (const name of ['lint', 'phpunit', 'smoke', 'mysql57', 'blox-suite', 'n-minus-one-upgrade', 'free-package', 'e2e_plan', 'e2e_shards', 'e2e', 'psalm', 'js-tests', 'lang-keys']) {
     const body = job(name);

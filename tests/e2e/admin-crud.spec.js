@@ -122,10 +122,13 @@ test('product named specification list preserves labels through rename delete ad
   await page.locator('#specsList .spec-val').first().fill('IGW-200');
   await page.locator('#specsList .spec-val').first().press('Tab');
   await page.locator('#specsList button').nth(1).click();
-  page.once('dialog', dialog => dialog.accept('功率'));
+  // 新增参数用页内表单（不再弹 prompt）：填名称和值，回车提交
   await page.locator('button[onclick="addSpecRow()"]').click();
-  await page.locator('#specsList .spec-val').last().fill('0');
-  await page.locator('#specsList .spec-val').last().press('Tab');
+  await page.locator('#newSpecKey').fill('功率');
+  await page.locator('#newSpecValue').fill('0');
+  await page.locator('#newSpecValue').press('Enter');
+  await expect(page.locator('#specForm')).toBeHidden();
+  await expect(page.locator('#specsList .spec-key').last()).toHaveValue('功率');
   await save(page, 'product');
   await page.goto(`/admin/product_edit.php?id=${id}`);
   const expected = [{ name: '设备型号', value: 'IGW-200' }, { name: '材质', value: 'Aluminum' }, { name: '功率', value: '0' }];
