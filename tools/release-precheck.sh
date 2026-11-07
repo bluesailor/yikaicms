@@ -65,7 +65,7 @@ if ! [[ "$REMOTE_NAME" =~ ^[A-Za-z0-9][A-Za-z0-9._/-]*$ ]]; then
 fi
 
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
-WORKSPACE_DIR="$(cd "$ROOT_DIR/.." && pwd)"
+WORKSPACE_DIR="${YK_RELEASE_WORKSPACE_DIR:-$(cd "$ROOT_DIR/.." && pwd)}"
 cd "$ROOT_DIR"
 
 # Windows-created worktrees store a Windows path in .git. Native WSL Git cannot
