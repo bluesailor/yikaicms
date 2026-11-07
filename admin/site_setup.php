@@ -164,7 +164,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <h2 id="setup-content" class="flex items-center gap-2 text-lg font-bold text-gray-800"><?= e(__('setup_content')) ?>
                 <span class="rounded-full px-2.5 py-0.5 text-xs font-medium <?= $doneChecks === count($checks) ? 'bg-green-50 text-green-700' : 'bg-amber-50 text-amber-700' ?>"
                       data-testid="setup-content-progress" aria-label="<?= e(__('setup_content_progress', ['done' => (string) $doneChecks, 'total' => (string) count($checks)])) ?>"><?= $doneChecks ?>/<?= count($checks) ?></span></h2>
-            <a class="text-sm text-primary hover:underline" href="/admin/site_content_check.php"><?= e(__('sc_title')) ?></a>
+            <span class="flex flex-wrap gap-4 text-sm">
+                <a class="text-primary hover:underline" href="/admin/site_content_check.php"><?= e(__('sc_title')) ?></a>
+                <a class="text-primary hover:underline" href="/admin/delivery_check.php" data-testid="setup-delivery-link"><?= e(__('dlv_title')) ?></a>
+            </span>
         </div>
         <p class="text-gray-600 mt-1 text-sm"><?= e(__('setup_check_hint')) ?></p>
         <ul class="divide-y mt-3">

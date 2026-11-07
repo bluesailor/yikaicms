@@ -326,6 +326,13 @@
                 "restore"
             ]
         },
+        "admin/delivery_check.php": {
+            "action_candidates": [
+                "accept",
+                "revoke",
+                "run"
+            ]
+        },
         "admin/download.php": {
             "action_candidates": [
                 "batch_delete",

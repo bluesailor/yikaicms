@@ -111,6 +111,8 @@ try {
         ['translation-batch-step','POST','/admin/translation_tasks.php',['action'=>'step','batch_id'=>1],['admin']],
         ['translation-status','GET','/admin/translation_status.php',null,['admin']],
         ['translation-review','POST','/admin/product_edit.php?id=1',['action'=>'translation_mark_reviewed','target_id'=>1],['admin']],
+        ['delivery-check','GET','/admin/delivery_check.php',null,['admin']],
+        ['delivery-accept','POST','/admin/delivery_check.php',['action'=>'accept','key'=>'handover'],['admin']],
     ];
     foreach($cases as [$name,$method,$url,$payload,$allowed])foreach(['anonymous','none','article','page','media','other'] as $actor) {
         if(in_array($actor,$allowed,true))continue;
