@@ -64,7 +64,8 @@ for (const [type, kind, id] of [['product-catalog', 'product', fixtures.product_
         await detail.locator('input[name="title"]').fill(changedTitle);
         const saved = detail.waitForResponse(res => res.request().method() === 'POST'
             && new URL(res.url()).pathname === `/admin/${kind}_edit.php`);
-        await detail.locator('#editForm button[type="submit"]').click();
+        await detail.locator(kind === 'product'
+            ? '#editForm button[name="product_save"][value="apply"]' : '#editForm button[type="submit"]').click();
         expect(Number((await (await saved).json()).code)).toBe(0);
         await detail.close();
         await page.bringToFront();

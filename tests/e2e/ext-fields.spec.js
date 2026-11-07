@@ -11,7 +11,7 @@ test('custom fields are filled in on the product page, site options and category
   const ids = JSON.parse(fixture('setup'));
   const saveProduct = async () => {
     const response = page.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname === '/admin/product_edit.php');
-    await page.locator('#editForm button[type=submit]').first().click();
+    await page.locator('#editForm button[name="product_save"][value="apply"]').click();
     return (await (await response).json());
   };
   try {

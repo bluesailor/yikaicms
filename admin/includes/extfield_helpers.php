@@ -8,7 +8,7 @@ if (!defined('ROOT_PATH')) exit('Access Denied');
 
 /**
  * 渲染一个归属的字段区（各编辑页统一入口；变量只活在本函数里，不污染调用页）。
- * @param array{term_id?:int,term_input?:string,bare?:bool,no_scripts?:bool} $options
+ * @param array{term_id?:int,term_input?:string,bare?:bool,no_scripts?:bool,values?:?array} $options
  * @psalm-suppress UnusedVariable 变量由 extfield_render.php 读取
  */
 function efRenderFields(string $owner, int $ownerId, array $options = []): void
@@ -19,6 +19,7 @@ function efRenderFields(string $owner, int $ownerId, array $options = []): void
     $extFieldTermInput = (string) ($options['term_input'] ?? '');
     $extFieldBare = !empty($options['bare']);
     $extFieldNoScripts = !empty($options['no_scripts']);
+    $extFieldValueOverride = $options['values'] ?? null;
     require __DIR__ . '/extfield_render.php';
 }
 

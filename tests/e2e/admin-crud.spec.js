@@ -28,7 +28,7 @@ async function checkVisitor(browser, baseURL, kind, id, title, content, deleted 
 async function save(page, kind) {
   const responsePromise = page.waitForResponse(r => r.request().method() === 'POST'
     && new URL(r.url()).pathname === `/admin/${kind}_edit.php`);
-  await page.locator('#editForm button[type="submit"]').click();
+  await page.locator(kind === 'product' ? '#editForm button[name="product_save"][value="apply"]' : '#editForm button[type="submit"]').click();
   const response = await responsePromise;
   expect(response.status()).toBe(200);
   expect(response.headers()['content-type']).toContain('application/json');

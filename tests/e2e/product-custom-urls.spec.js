@@ -11,7 +11,8 @@ test('custom product and category URLs save, search, paginate and resolve anonym
   const publicPage = await visitor.newPage();
   const save = async (endpoint, expected = 0) => {
     const response = page.waitForResponse(r => r.request().method() === 'POST' && new URL(r.url()).pathname === endpoint);
-    await page.locator('#editForm button[type=submit]').click();
+    await page.locator(endpoint === '/admin/product_edit.php'
+      ? '#editForm button[name="product_save"][value="apply"]' : '#editForm button[type=submit]').click();
     const result = await (await response).json();
     if (expected === 0) expect(result.code, JSON.stringify(result)).toBe(0);
     else expect(result.code).not.toBe(0);

@@ -29,6 +29,7 @@ final class ProductDetailController extends DetailController
         if (!$product) {
             return null;
         }
+        if ($preview) $product = array_replace($product, $preview);
         $id = (int) $product['id'];
 
         // 副作用：每次渲染自增一次浏览量。

@@ -17,7 +17,8 @@
 if (empty($langSwitcher)) return;
 if (!empty($langSwitcher['item']['id']) && in_array($langSwitcher['table'], ['contents', 'products', 'channels', 'product_categories', 'jobs', 'downloads'], true)) {
     echo '<a class="inline-flex items-center gap-2 mb-4 text-primary hover:underline" target="_blank" rel="noopener" href="'
-        . e('/admin/draft_preview.php?type=' . rawurlencode($langSwitcher['table']) . '&id=' . (int) $langSwitcher['item']['id'])
+        . e('/admin/draft_preview.php?type=' . rawurlencode($langSwitcher['table']) . '&id=' . (int) $langSwitcher['item']['id']
+            . (!empty($langSwitcher['preview_edit_draft']) && $langSwitcher['table'] === 'products' ? '&edit_draft=1' : ''))
         . '">' . e(__('admin_draft_preview')) . '</a>';
 }
 $_ls_enabledRaw = trim((string) config('enabled_languages', ''));

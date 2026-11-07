@@ -4425,6 +4425,11 @@ function extFieldOwnerTypes(): array
  */
 function getMeta(string $ownerType, int $ownerId, string $key, mixed $default = null): mixed
 {
+    if ($ownerType === 'product' && defined('YK_ADMIN_DRAFT_PREVIEW') && !empty($_SESSION['admin_id'])
+        && YK_ADMIN_DRAFT_PREVIEW['table'] === 'products' && (int) YK_ADMIN_DRAFT_PREVIEW['row']['id'] === $ownerId
+        && array_key_exists($key, YK_ADMIN_DRAFT_PREVIEW['product_meta'] ?? [])) {
+        return YK_ADMIN_DRAFT_PREVIEW['product_meta'][$key];
+    }
     try {
         if (!db()->tableExists('metas')) return $default;
         return metaModel()->get($ownerType, $ownerId, $key, $default);

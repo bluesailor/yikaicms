@@ -55,7 +55,7 @@ async function saveProduct(page, id, title, body) {
   await page.evaluate((html) => { window.editor = null; document.getElementById('contentInput').value = html; }, body);
   await page.locator('input[name="title"]').fill(title);
   const response = page.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/admin/product_edit.php');
-  await page.locator('#editForm button[type=submit]').click();
+  await page.locator('#editForm button[name="product_save"][value="apply"]').click();
   const result = await (await response).json();
   expect(result.code, JSON.stringify(result)).toBe(0);
 }

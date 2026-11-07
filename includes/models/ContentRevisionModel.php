@@ -51,17 +51,56 @@ class ContentRevisionModel extends Model
         if ($targetId <= 0 || $clean === []) {
             return;
         }
-        db()->insert($this->table, [
+        $this->insertSnapshot($type, $targetId, $lang, ['targets' => $clean], $summary, $adminId, $adminName);
+        $this->pruneRows($type, $targetId);
+    }
+
+    /** Product editor snapshots are restored through the product editor, including its route and metadata. */
+    public function recordProductEdit(int $id, string $lang, array $snapshot, bool $draft): void
+    {
+        $type = $draft ? 'product_edit_draft' : 'product_edit';
+        $rowId = $this->insertSnapshot($type, $id, $lang, $snapshot, (string) $snapshot['fields']['title'],
+            (int) ($_SESSION['admin_id'] ?? 0), (string) ($_SESSION['admin_username'] ?? ''));
+        if ($draft) {
+            db()->delete($this->table, 'target_type = ? AND target_id = ? AND id <> ?', [$type, $id, $rowId]);
+        } else {
+            $this->pruneRows($type, $id);
+        }
+    }
+
+    public function productEditDraft(int $id): ?array
+    {
+        return db()->fetchOne("SELECT id, snapshot, created_at FROM {$this->tableName()} WHERE target_type = ? AND target_id = ? ORDER BY id DESC LIMIT 1",
+            ['product_edit_draft', $id]);
+    }
+
+    public function clearProductEditDraft(int $id): void
+    {
+        db()->delete($this->table, 'target_type = ? AND target_id = ?', ['product_edit_draft', $id]);
+    }
+
+    /** Only read the IDs for the current admin list, never load draft bodies into the list. */
+    public function productEditDraftIds(array $ids): array
+    {
+        if ($ids === []) return [];
+        $places = implode(',', array_fill(0, count($ids), '?'));
+        $rows = db()->fetchAll("SELECT DISTINCT target_id FROM {$this->tableName()} WHERE target_type = ? AND target_id IN ({$places})",
+            array_merge(['product_edit_draft'], array_map('intval', $ids)));
+        return array_fill_keys(array_column($rows, 'target_id'), true);
+    }
+
+    private function insertSnapshot(string $type, int $targetId, string $lang, array $snapshot, string $summary, int $adminId, string $adminName): int
+    {
+        return (int) db()->insert($this->table, [
             'target_type' => $type,
             'target_id'   => $targetId,
             'lang'        => $lang,
-            'snapshot'    => json_encode(['targets' => $clean], JSON_UNESCAPED_UNICODE),
+            'snapshot'    => json_encode($snapshot, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
             'summary'     => mb_substr($summary, 0, 200),
             'admin_id'    => $adminId,
             'admin_name'  => mb_substr($adminName, 0, 50),
             'created_at'  => time(),
         ]);
-        $this->pruneRows($type, $targetId);
     }
 
     /** 最近版本列表（不含 snapshot 大字段）。表缺失返回 [] */

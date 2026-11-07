@@ -137,6 +137,7 @@ $filters = array_filter([
 $result = productModel()->getAdminList($filters, $perPage, $offset);
 $total = $result['total'];
 $products = $result['items'];
+$productDraftIds = contentRevisionModel()->productEditDraftIds(array_column($products, 'id'));
 require_once ROOT_PATH . '/includes/ScheduledPublish.php';
 $productTimes = ScheduledPublish::productTimes(array_column(array_filter($products, static fn($p) => (int) $p['status'] === 3), 'id'));
 
@@ -251,6 +252,9 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
                                 <div>
                                     <div class="font-medium flex items-center gap-2">
                                         <?php echo e(cutStr($item['title'], 30)); ?>
+                                        <?php if (isset($productDraftIds[(int) $item['id']])): ?>
+                                        <a class="text-xs text-primary underline" href="/admin/product_edit.php?id=<?php echo (int) $item['id']; ?>"><?php echo e(__('prod_edit_resume')); ?></a>
+                                        <?php endif; ?>
                                         <?php if (getLang() === 'ja'): ?>
                                         <?php $pt = $item['product_type'] ?? 'custom'; ?>
                                         <?php if ($pt === 'standard'): ?>

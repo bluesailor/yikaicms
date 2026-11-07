@@ -24,6 +24,7 @@ $langSwitcher = [
 ];
 require_once ROOT_PATH . '/admin/includes/translate_action.php';
 require_once ROOT_PATH . '/includes/ScheduledPublish.php';
+require_once ROOT_PATH . '/includes/ProductEditDraft.php';
 
 $id = getInt('id');
 $product = null;
@@ -38,6 +39,8 @@ if ($id > 0) {
 
 // 处理保存
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $saveMode = (string) post('product_save', 'apply');
+    if (!in_array($saveMode, ['apply', 'draft', 'restore'], true)) error(__('admin_bad_params'));
     $postedType = post('product_type', 'custom');
     if (!in_array($postedType, ['standard', 'custom'], true)) $postedType = 'custom';
     $data = [
@@ -49,7 +52,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'cover' => post('cover'),
         'images' => post('images'),
         'summary' => post('summary'),
-        'content' => $_POST['content'] ?? '',
+        'content' => is_string($_POST['content'] ?? null) ? $_POST['content'] : '',
         'specs' => post('specs'),
         'tags' => post('tags'),
         'product_type' => $postedType,
@@ -63,53 +66,41 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'updated_at' => time(),
     ];
 
-    if (empty($data['title'])) {
-        error(__('prod_name_required'));
-    }
-    $missingField = ExtFields::missingRequired('product', (array) ($_POST['ext_fields'] ?? []), (int) $data['category_id']);
-    if ($missingField !== null) {
-        error(sprintf(__('ef_required_missing'), $missingField));
-    }
-
-    // 定时上架：与文章同一套规则（上架即上线；定时到点上架，时间已过则直接上架）。
-    // 上架时间存在 metas（见 ScheduledPublish），保存产品后写入。
-    try {
-        $sched = ScheduledPublish::normalize((int) $data['status'], (string) post('publish_time'), ScheduledPublish::productTime($id));
-    } catch (InvalidArgumentException) {
-        error(__('prod_scheduled_time_required'));
-    }
-    $data['status'] = $sched['status'];
-
     // 仅在开启价格显示时更新价格字段
     if (config('show_price', '0') === '1') {
         $data['price'] = (float)($_POST['price'] ?? 0);
         $data['market_price'] = (float)($_POST['market_price'] ?? 0);
     }
 
-    $data['slug'] = resolveSlug($data['slug'], $data['title'], 'products', $id);
-
-    if ($id > 0) {
-        try {
-            $id = productRouteModel()->saveEntity('product', $id, $data, post('custom_url', productRouteModel()->pathFor('product', $id)));
-        } catch (InvalidArgumentException $e) { error(__($e->getMessage())); }
-        adminLog('product', 'update', "更新产品ID: $id");
-    } else {
+    $isExisting = $id > 0;
+    if (!$isExisting) {
         $data['created_at'] = time();
         $data['admin_id'] = $_SESSION['admin_id'];
-        // 显式写入语言：取当前编辑视图语言（?lang= 或站点默认），不依赖数据库列默认
-        // （老库列默认可能残留 'ja'，导致新内容语言错乱、后台/前台按 zh-CN 过滤时不显示）
         $data['lang'] = (string) get('lang', (string) config('site_lang', 'zh-CN'));
-        try {
-            $id = productRouteModel()->saveEntity('product', 0, $data, post('custom_url'));
-        } catch (InvalidArgumentException $e) { error(__($e->getMessage())); }
-        adminLog('product', 'create', "创建产品ID: $id");
     }
-    // 只在定时期间保存上架时间：上架后不再需要，普通保存也不往 metas 写行
-    ScheduledPublish::setProductTime((int) $id, $sched['status'] === ScheduledPublish::STATUS ? $sched['publish_time'] : 0);
-    // 扩展字段（2.0.4 起产品页也能填；按字段类型校验，见 ExtFields）
-    ExtFields::save('product', (int) $id, (array) ($_POST['ext_fields'] ?? []));
-
+    try {
+        $id = ProductEditDraft::save($id, $data, (array) ($_POST['ext_fields'] ?? []), $saveMode, postInt('restore_revision'));
+    } catch (InvalidArgumentException $e) {
+        $key = $e->getMessage();
+        error(__($key), in_array($key, ['prod_edit_draft_conflict', 'prod_edit_draft_stale'], true) ? 409 : 1);
+    } catch (DomainException $e) {
+        error($e->getMessage());
+    }
+    if ($saveMode === 'apply') {
+        adminLog('product', $isExisting ? 'update' : 'create', 'Save product #' . $id);
+    }
     success(['id' => $id]);
+}
+
+$productLive = $product;
+$liveForm = $product ? ProductEditDraft::live($product) : null;
+$draftRecord = $product ? contentRevisionModel()->productEditDraft($id) : null;
+$activeDraft = $draftRecord && getInt('live') !== 1 ? ProductEditDraft::snapshot($draftRecord) : null;
+$liveVersion = $liveForm ? ProductEditDraft::fingerprint($liveForm) : '';
+$draftStale = $activeDraft && $activeDraft['base'] !== $liveVersion;
+$productHistory = $product ? contentRevisionModel()->listFor('product_edit', $id) : [];
+if ($activeDraft) {
+    $product = array_replace($product, $activeDraft['fields']);
 }
 
 // 预置规格参数（产品设置里配置，每行 键|显示名|默认值）：新建预填、编辑可一键补齐
@@ -149,8 +140,9 @@ $recentTags = array_slice($recentTags, 0, 10);
 $pageTitle = $product ? __('prod_edit') : __('prod_add');
 $currentMenu = 'product';
 
-$langSwitcher['item']     = $product;
+$langSwitcher['item']     = $productLive;
 $langSwitcher['edit_url'] = '/admin/product_edit.php';
+$langSwitcher['preview_edit_draft'] = $draftRecord !== null;
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
@@ -158,6 +150,20 @@ require_once ROOT_PATH . '/admin/includes/header.php';
 <?php require ROOT_PATH . '/admin/includes/lang_switcher_edit.php'; ?>
 
 <form id="editForm" class="space-y-6">
+    <?php if ($productLive): ?>
+    <input type="hidden" name="product_live_version" value="<?php echo e($liveVersion); ?>">
+    <input type="hidden" name="product_draft_version" value="<?php echo (int) ($draftRecord['id'] ?? 0); ?>">
+    <input type="hidden" name="product_editing_draft" value="<?php echo $activeDraft ? 1 : 0; ?>">
+    <?php if ($draftRecord): ?>
+        <div class="bg-white border rounded p-4" role="status">
+            <?php echo e(__($activeDraft ? ($draftStale ? 'prod_edit_draft_stale' : 'prod_edit_draft_open') : 'prod_edit_draft_available')); ?>
+            <span class="text-sm text-gray-500"><?php echo e(date('Y-m-d H:i', (int) $draftRecord['created_at'])); ?></span>
+            <a class="ms-2 underline" href="/admin/product_edit.php?id=<?php echo $id; ?><?php echo $activeDraft ? '&amp;live=1' : ''; ?>">
+                <?php echo e(__($activeDraft ? 'prod_edit_current' : 'prod_edit_resume')); ?>
+            </a>
+        </div>
+    <?php endif; ?>
+    <?php endif; ?>
     <div class="flex flex-col lg:flex-row gap-6">
         <?php /* 主内容区 */ ?>
         <div class="flex-1 min-w-0 space-y-6">
@@ -273,7 +279,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php /* 扩展字段（2.0.4：产品也能填；按产品分类挂载的字段随分类切换显隐） */ ?>
             <?php
             require_once ROOT_PATH . '/admin/includes/extfield_helpers.php';
-            efRenderFields('product', (int) $id, ['term_id' => (int) ($product['category_id'] ?? 0), 'term_input' => '#categoryIdInput']);
+            efRenderFields('product', (int) $id, ['term_id' => (int) ($product['category_id'] ?? 0), 'term_input' => '#categoryIdInput', 'values' => $activeDraft['ext'] ?? null]);
             ?>
         </div>
 
@@ -324,7 +330,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <input type="text" name="slug" value="<?php echo e($product['slug'] ?? ''); ?>"
                                class="w-full border rounded px-4 py-2" placeholder="<?php echo e(__('prod_slug_ph')); ?>">
                         <label for="productCustomUrl" class="block text-gray-700 mt-4 mb-1"><?php echo e(__('product_url_label')); ?></label>
-                        <input type="text" id="productCustomUrl" name="custom_url" value="<?php echo e(productRouteModel()->pathFor('product', $id)); ?>"
+                        <input type="text" id="productCustomUrl" name="custom_url" value="<?php echo e($activeDraft['route'] ?? $liveForm['route'] ?? ''); ?>"
                                class="w-full border rounded px-4 py-2" placeholder="/footmaster/gd-60/" maxlength="1500">
                         <p class="text-xs text-gray-500 mt-1"><?php echo e(__('product_url_hint')); ?></p>
                     </div>
@@ -395,11 +401,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </select>
                     </div>
 
-                    <?php $__productTime = ScheduledPublish::productTime((int) ($product['id'] ?? 0)); ?>
                     <div id="productPublishTimeBox">
                         <label class="block text-gray-700 mb-1"><?php echo __('prod_publish_time'); ?></label>
                         <input type="datetime-local" name="publish_time" id="productPublishTime" data-testid="product-publish-time"
-                               value="<?php echo $__productTime > 0 ? date('Y-m-d\TH:i', $__productTime) : ''; ?>"
+                               value="<?php echo e($activeDraft['time'] ?? $liveForm['time'] ?? ''); ?>"
                                class="w-full border rounded px-4 py-2">
                         <p id="productPublishHint" class="text-xs text-orange-500 mt-1 hidden" data-testid="product-schedule-hint"
                            data-scheduled="<?php echo e(__('prod_scheduled_hint')); ?>"
@@ -540,17 +545,44 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
     </div>
 
+    <?php if ($productHistory !== []): ?>
+    <details class="bg-white border rounded p-4">
+        <summary><?php echo e(__('revision_history')); ?></summary>
+        <ul class="space-y-2 mt-3">
+            <?php foreach ($productHistory as $version): ?>
+            <li class="flex flex-wrap items-center gap-3">
+                <span><?php echo e(date('Y-m-d H:i:s', (int) $version['created_at'])); ?></span>
+                <span><?php echo e((string) $version['summary']); ?></span>
+                <a class="underline" target="_blank" rel="noopener" href="/admin/draft_preview.php?type=products&amp;id=<?php echo $id; ?>&amp;revision=<?php echo (int) $version['id']; ?>"><?php echo e(__('revision_preview')); ?></a>
+                <button type="submit" name="restore_revision" value="<?php echo (int) $version['id']; ?>" formnovalidate class="border rounded px-3 py-1">
+                    <?php echo e(__('prod_edit_restore_draft')); ?>
+                </button>
+            </li>
+            <?php endforeach; ?>
+        </ul>
+    </details>
+    <?php endif; ?>
     <?php /* 底部 sticky 操作栏 */ ?>
     <div class="sticky bottom-0 z-30 -mx-6 -mb-6 mt-8 bg-white border-t shadow-[0_-4px_12px_rgba(0,0,0,0.05)] px-6 py-3">
-        <div class="flex gap-3 justify-end items-center">
-            <span class="text-xs text-gray-400 mr-auto hidden sm:inline"><?php echo e(__('prod_confirm_before_save')); ?></span>
+        <div class="flex flex-wrap gap-3 justify-end items-center">
+            <span class="text-xs text-gray-400 mr-auto hidden sm:inline"><?php echo e(__($productLive ? 'prod_edit_draft_tip' : 'prod_confirm_before_save')); ?></span>
             <a href="/admin/product.php" class="px-5 py-2 border rounded hover:bg-gray-100 transition inline-flex items-center gap-1 text-sm">
                 <i class="ti ti-arrow-left text-base"></i>
                 <?php echo __('admin_back'); ?>
             </a>
-            <button type="submit" class="px-8 py-2 bg-primary hover:bg-secondary text-white rounded transition inline-flex items-center gap-1 text-sm font-medium">
+            <?php if ($draftRecord): ?>
+            <a href="/admin/draft_preview.php?type=products&amp;id=<?php echo $id; ?>&amp;edit_draft=1" target="_blank" rel="noopener" class="px-5 py-2 border rounded">
+                <?php echo e(__('prod_edit_preview_draft')); ?>
+            </a>
+            <?php endif; ?>
+            <?php if ($productLive): ?>
+            <button type="submit" name="product_save" value="draft" formnovalidate class="px-5 py-2 bg-primary text-white rounded">
+                <?php echo e(__('prod_edit_save_draft')); ?>
+            </button>
+            <?php endif; ?>
+            <button type="submit" name="product_save" value="apply" <?php echo $draftStale ? 'disabled' : ''; ?> class="px-5 py-2 border rounded transition inline-flex items-center gap-1 text-sm font-medium">
                 <i class="ti ti-check text-base"></i>
-                <?php echo __("btn_save"); ?>
+                <?php echo e(__($activeDraft ? 'prod_edit_apply_draft' : ($productLive ? 'prod_edit_update_current' : 'btn_save'))); ?>
             </button>
         </div>
     </div>
@@ -790,7 +822,7 @@ function appendSpecValue(row, key, label, showLabel) {
     valueInput.dataset.key = key;
     valueInput.placeholder = <?php echo json_encode(__('admin_spec_val_ph'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>;
     valueInput.setAttribute('aria-label', label + ' ' + <?php echo json_encode(__('admin_spec_value'), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT); ?>);
-    valueInput.addEventListener('change', function () { updateSpecVal(valueInput); });
+    valueInput.addEventListener('input', function () { updateSpecVal(valueInput); });
     row.appendChild(valueInput);
     if (showLabel) {
         var hint = document.createElement('span');
@@ -1059,17 +1091,35 @@ try {
 
 document.getElementById("editForm").addEventListener("submit", async function(e) {
     e.preventDefault();
+    const form = this;
+    if (form.dataset.saving === "1") return;
+    document.querySelectorAll("#specsList .spec-val").forEach(updateSpecVal);
     try { document.getElementById("contentInput").value = editor.getHtml(); } catch(ex) {}
 
-    const formData = new FormData(this);
-    const response = await fetch("", { method: "POST", body: formData });
-    const data = await safeJson(response);
-
-    if (data.code === 0) {
-        showMessage("' . addslashes(__('msg_save_success')) . '");
-        setTimeout(function() { location.href = (window.YK_BASE || "") + "/admin/product.php"; }, 1000);
-    } else {
-        showMessage(data.msg, "error");
+    const restore = e.submitter?.name === "restore_revision";
+    const mode = restore ? "restore" : (e.submitter?.value || (form.elements.product_live_version ? "draft" : "apply"));
+    const formData = new FormData(form);
+    // The legacy editor adapter also creates a content textarea. Submit the current editor value once.
+    formData.set("content", document.getElementById("contentInput").value);
+    formData.set("product_save", mode);
+    if (restore) formData.set("restore_revision", e.submitter.value);
+    form.dataset.saving = "1";
+    let saved = false;
+    try {
+        const response = await fetch("", { method: "POST", body: formData });
+        const data = await safeJson(response);
+        if (data.code === 0) {
+            saved = true;
+            showMessage("' . addslashes(__('msg_save_success')) . '");
+            const next = mode === "apply" ? "/admin/product.php" : "/admin/product_edit.php?id=" + data.data.id;
+            setTimeout(function() { location.href = (window.YK_BASE || "") + next; }, 350);
+        } else {
+            showMessage(data.msg, "error");
+        }
+    } catch (error) {
+        showMessage(' . json_encode(__('operation_failed'), JSON_HEX_TAG | JSON_HEX_AMP) . ', "error");
+    } finally {
+        if (!saved) delete form.dataset.saving;
     }
 });
 </script>';

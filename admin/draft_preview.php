@@ -35,8 +35,25 @@ if ($previewType === 'channels' && (int) ($previewRow['parent_id'] ?? 0) === 0) 
 if ($previewType === 'channels' && (($previewRow['type'] ?? '') === 'page'
     || ($bloxLandingPreview && hasPermission('blox_edit') && hasPermission('edit_page')))) requirePermission('edit_page');
 else requireTranslationPermission($previewType, $previewRow);
+$productEditPreview = null;
+if ($previewType === 'products' && (getInt('edit_draft') === 1 || getInt('revision') > 0)) {
+    require_once ROOT_PATH . '/includes/ScheduledPublish.php';
+    require_once ROOT_PATH . '/includes/ProductEditDraft.php';
+    if (getInt('revision') > 0) {
+        $productEditPreview = ProductEditDraft::historyVersion((int) $previewRow['id'], getInt('revision'));
+    } else {
+        $savedDraft = contentRevisionModel()->productEditDraft((int) $previewRow['id']);
+        $productEditPreview = $savedDraft ? ProductEditDraft::snapshot($savedDraft) : null;
+    }
+    if (!$productEditPreview) {
+        http_response_code(404);
+        exit(e(__('error_content_not_found')));
+    }
+    $previewRow = array_replace($previewRow, $productEditPreview['fields']);
+}
 define('SITE_LANG', (string) $previewRow['lang']);
 $previewContext = ['table' => $previewType, 'row' => $previewRow];
+if ($productEditPreview) $previewContext['product_meta'] = $productEditPreview['ext'];
 $GLOBALS['_LANG_DATA'] = null;
 $_GET = array_merge(array_intersect_key($_GET, array_flip(['sort', 'keyword', 'page', 'brand', 'tag', 'pmin', 'pmax'])), ['id' => (int) $previewRow['id'], 'preview' => 'admin']);
 // Reuse the authenticated Blox draft protocol, not the channel's legacy HTML fallback.

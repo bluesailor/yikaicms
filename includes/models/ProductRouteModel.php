@@ -183,14 +183,15 @@ final class ProductRouteModel extends Model
         if ($id > 0 && $old === null) throw new InvalidArgumentException('product_url_missing');
         $lang = (string) ($old['lang'] ?? $data['lang'] ?? config('site_lang', 'zh-CN'));
         $path = $this->validate($kind, $id, $input, $lang);
-        db()->beginTransaction();
+        $ownsTransaction = !db()->getPdo()->inTransaction();
+        if ($ownsTransaction) db()->beginTransaction();
         try {
             if ($id > 0) $model->updateById($id, $data);
             else $id = (int) $model->create($data);
             if ($this->available()) $this->write($kind, $id, $path);
-            db()->commit();
+            if ($ownsTransaction) db()->commit();
         } catch (Throwable $e) {
-            db()->rollback();
+            if ($ownsTransaction && db()->getPdo()->inTransaction()) db()->rollback();
             $this->clearCache();
             if ($e instanceof PDOException && in_array((string) $e->getCode(), ['23000', '23505', '19'], true)) {
                 throw new InvalidArgumentException('product_url_conflict', 0, $e);
@@ -198,7 +199,9 @@ final class ProductRouteModel extends Model
             throw $e;
         }
         $this->clearCache();
-        if (function_exists('do_action')) do_action('data_changed', $this->table, $id);
+        if (function_exists('do_action')) {
+            db()->afterCommit(fn() => do_action('data_changed', $this->table, $id));
+        }
         return $id;
     }
 

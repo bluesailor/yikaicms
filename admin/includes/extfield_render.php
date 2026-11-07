@@ -33,6 +33,9 @@ if ($extFields === []) {
     return;
 }
 $extValues = $extFieldOwnerId > 0 || $extFieldOwnerType === 'site' ? getAllMeta($extFieldOwnerType, $extFieldOwnerId) : [];
+if (isset($extFieldValueOverride)) {
+    $extValues = array_replace($extValues, $extFieldValueOverride);
+}
 
 require_once __DIR__ . '/extfield_helpers.php';
 
