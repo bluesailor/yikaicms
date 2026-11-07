@@ -35,8 +35,9 @@ $importReview = null;
 /** 读取检查页提交的设计映射：结构化数组不经 post()（其 trim 会破坏数组）。 */
 function blox_import_style_options_from_post(): array
 {
-    $options = ['style_mode' => is_string($_POST['style_mode'] ?? null) ? $_POST['style_mode'] : 'keep'];
-    if (!in_array($options['style_mode'], ['keep', 'detach'], true)) {
+    $options = ['style_mode' => is_string($_POST['style_mode'] ?? null) ? $_POST['style_mode'] : 'keep',
+        'scale_mode' => is_string($_POST['scale_mode'] ?? null) ? $_POST['scale_mode'] : 'site'];
+    if (!in_array($options['style_mode'], ['keep', 'detach'], true) || !in_array($options['scale_mode'], BloxDesignDependencies::SCALE_MODES, true)) {
         throw new RuntimeException(__('blox_import_design_invalid'));
     }
     foreach (['tokens', 'styles'] as $kind) {
@@ -460,6 +461,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'requirements' => $importReviewMeta['requirements'],
                 'design_diagnostics' => $importReviewMeta['design_diagnostics'],
                 'class_diagnostics' => $importReviewMeta['class_diagnostics'],
+                'scale_review' => $importReviewMeta['scale_review'],
                 // 评审上下文随检查结果一起交给确认页渲染（partial 不读全局）。
                 'review_meta' => $importReviewMeta,
             ];
@@ -512,6 +514,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         ];
                         $submitted = [
                             'style_mode' => is_string($_POST['style_mode'] ?? null) ? $_POST['style_mode'] : 'keep',
+                            'scale_mode' => is_string($_POST['scale_mode'] ?? null) ? $_POST['scale_mode'] : 'site',
                             'tokens' => is_array($_POST['design_tokens'] ?? null) ? $_POST['design_tokens'] : [],
                             'styles' => is_array($_POST['design_styles'] ?? null) ? $_POST['design_styles'] : [],
                         ];
@@ -520,6 +523,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             'type' => $prepared['type'],
                             'requirements' => $prepared['requirements'],
                             'design_diagnostics' => $prepared['design_diagnostics'],
+                            'class_diagnostics' => $prepared['class_diagnostics'],
+                            'scale_review' => $prepared['scale_review'],
                             'review_meta' => $importReviewMeta,
                             'review_selected' => $submitted,
                         ];

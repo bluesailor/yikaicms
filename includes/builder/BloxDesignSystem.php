@@ -484,7 +484,7 @@ final class BloxDesignSystem
     }
 
     /**
-     * 模板导入带来的刻度（BloxDesignDependencies::planScaleImport 的结果）：只新增本站没有的 id，不改已有项。
+     * 模板导入带来的刻度（BloxDesignDependencies::planScales 的 plan）：只新增本站没有的 id，不改已有项。
      * 与模板草稿同一事务调用；计划为空时不写库。
      * @param array<string,list<array<string,mixed>>> $plan
      */

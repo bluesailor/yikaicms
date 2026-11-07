@@ -6,10 +6,18 @@ use PHPUnit\Framework\TestCase;
 final class BloxTemplateDesignImportTest extends TestCase
 {
     private mixed $previousConfig;
+    private bool $ownComponentTable = false;
 
     protected function setUp(): void
     {
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';
+        // 导出要查组件目录（blox_templates）。这里是共享内存库，之前全靠别的用例留下的组件目录缓存才没查库，
+        // 单独跑或换了用例顺序就报「no such table」。表不在就临时建一张空的，tearDown 删掉，不影响其他用例自己建表。
+        $this->ownComponentTable = !db()->tableExists('blox_templates');
+        if ($this->ownComponentTable) {
+            db()->execute('CREATE TABLE blox_templates (id INTEGER PRIMARY KEY, type TEXT, name TEXT, status INTEGER DEFAULT 0, published_data TEXT, metadata TEXT)');
+        }
+        BloxComponents::resetForTests();
         $this->previousConfig = $GLOBALS['_test_config'] ?? [];
         $GLOBALS['_test_config'] = ['blox_design_system' => json_encode([
             'tokens' => [['id' => 'local_color', 'name' => 'Brand', 'value' => '#123456']],
@@ -24,6 +32,8 @@ final class BloxTemplateDesignImportTest extends TestCase
     protected function tearDown(): void
     {
         $GLOBALS['_test_config'] = $this->previousConfig;
+        if ($this->ownComponentTable) db()->execute('DROP TABLE blox_templates');
+        BloxComponents::resetForTests();
     }
 
     private function package(): array

@@ -12,6 +12,16 @@ $isRemoteReview = $importReviewMeta !== null && !empty($importReviewMeta['review
 $selected = is_array($importReview['review_selected'] ?? null) ? $importReview['review_selected'] : [];
 $selectedMode = in_array((string) ($selected['style_mode'] ?? 'keep'), ['keep', 'detach'], true)
     ? (string) ($selected['style_mode'] ?? 'keep') : 'keep';
+$selectedScaleMode = in_array((string) ($selected['scale_mode'] ?? 'site'), BloxDesignDependencies::SCALE_MODES, true)
+    ? (string) ($selected['scale_mode'] ?? 'site') : 'site';
+$scaleReview = is_array($importReview['scale_review'] ?? null) ? $importReview['scale_review'] : [];
+$scaleKinds = BloxDesignScale::KINDS + ['type' => 'typography'];
+// 排版刻度的值是结构（字号 / 行高…），检查页只显示桌面字号与行高
+$scaleText = static function (string $kind, string $value): string {
+    if ($kind !== 'type') return $value;
+    $item = json_decode($value, true);
+    return is_array($item) ? trim((string) ($item['size']['d'] ?? '') . ' / ' . (string) ($item['line_height'] ?? ''), ' /') : '';
+};
 $selectedMap = static function (string $kind, string $reference) use ($selected): string {
     $map = is_array($selected[$kind] ?? null) ? $selected[$kind] : [];
     $value = $map[$reference] ?? '';
@@ -41,7 +51,7 @@ $confirmLabel = $isRemoteReview ? ($confirmLabels[$operation] ?? __('blox_import
         <?php endif; ?>
         <p class="mt-1 text-sm text-gray-600"><?= e(__('blox_import_design_hint')) ?></p>
     </div>
-    <form method="post" class="min-w-0 p-5 space-y-4" x-data="{ styleMode: <?= e($selectedMode) ?> }">
+    <form method="post" class="min-w-0 p-5 space-y-4" x-data="{ styleMode: <?= e(json_encode($selectedMode)) ?>, scaleMode: <?= e(json_encode($selectedScaleMode)) ?> }">
         <?= csrfField() ?>
         <input type="hidden" name="action" value="<?= $isRemoteReview ? 'import_review_confirm' : 'import_confirm' ?>">
         <?php if ($isRemoteReview): ?>
@@ -86,6 +96,36 @@ $confirmLabel = $isRemoteReview ? ($confirmLabels[$operation] ?? __('blox_import
                         <?= e(__('blox_class_import_missing', ['count' => count($classDiagnostic['missing'])])) ?>
                     </p>
                 <?php endif; ?>
+            </div>
+        <?php endif; ?>
+        <?php // 设计刻度（T07）：逐项说明新增 / 沿用 / 用本站值 / 改名；本站有同 id 不同值的项时才让用户选模式 ?>
+        <?php if ($scaleReview !== []): ?>
+            <div class="min-w-0 space-y-2 text-sm" data-testid="blox-import-scales">
+                <p class="font-medium text-gray-900"><?= e(__('blox_import_scales')) ?></p>
+                <p class="text-gray-600"><?= e(__('blox_import_scale_hint')) ?></p>
+                <?php if (array_filter($scaleReview, static fn(array $row): bool => $row['action'] === 'substitute') !== []): ?>
+                    <fieldset class="min-w-0">
+                        <legend class="mb-1 text-gray-700"><?= e(__('blox_import_scale_mode_hint')) ?></legend>
+                        <label class="mr-4 inline-flex items-center gap-2"><input type="radio" name="scale_mode" value="site" x-model="scaleMode"<?= $selectedScaleMode === 'site' ? ' checked' : '' ?>><?= e(__('blox_import_scale_mode_site')) ?></label>
+                        <label class="inline-flex items-center gap-2"><input type="radio" name="scale_mode" value="template" x-model="scaleMode"<?= $selectedScaleMode === 'template' ? ' checked' : '' ?>><?= e(__('blox_import_scale_mode_template')) ?></label>
+                    </fieldset>
+                <?php endif; ?>
+                <ul class="space-y-1">
+                    <?php foreach ($scaleReview as $row): ?>
+                        <?php $kindLabel = __('blox_design_' . ($scaleKinds[$row['kind']] ?? $row['kind'])); $local = $scaleText($row['kind'], $row['local']); $source = $scaleText($row['kind'], $row['source']); ?>
+                        <li class="break-words <?= in_array($row['action'], ['substitute', 'rename', 'missing', 'limit'], true) ? 'text-amber-700' : 'text-gray-600' ?>" data-testid="blox-import-scale" data-action="<?= e($row['action']) ?>">
+                            <?= e($kindLabel) ?> · <code><?= e($row['id']) ?></code>:
+                            <?php if ($row['action'] === 'substitute'): ?>
+                                <span x-show="scaleMode === 'site'"><?= e(__('blox_import_scale_substitute', ['local' => $local, 'source' => $source])) ?></span>
+                                <span x-show="scaleMode === 'template'" x-cloak><?= e(__('blox_import_scale_rename', ['to' => $row['to'], 'source' => $source])) ?></span>
+                            <?php elseif ($row['action'] === 'rename'): ?>
+                                <?= e(__('blox_import_scale_rename', ['to' => $row['to'], 'source' => $source])) ?>
+                            <?php else: ?>
+                                <?= e(__('blox_import_scale_' . $row['action'])) ?><?= $row['action'] === 'add' && $source !== '' ? ' (' . e($source) . ')' : '' ?>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
             </div>
         <?php endif; ?>
         <fieldset class="min-w-0">

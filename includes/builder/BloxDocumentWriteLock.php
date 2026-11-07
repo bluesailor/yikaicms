@@ -107,6 +107,13 @@ final class BloxDocumentWriteLock
     private static function transaction(callable $lock, callable $assert, callable $write): mixed
     {
         $database = db();
+        // 调用方已开事务（如模板导入把刻度与模板草稿放在同一事务里）：并入它，锁与比对照做，提交/回滚交给调用方。
+        // PDO 不支持嵌套事务，另开会直接报「already an active transaction」。
+        if ($database->getPdo()->inTransaction()) {
+            $lock();
+            $assert();
+            return $write();
+        }
         $database->beginTransaction();
         try {
             $lock();

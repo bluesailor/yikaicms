@@ -157,6 +157,7 @@ final class BloxDesignDependencies
 
     /**
      * 模板包要带的刻度定义：文档引用到的、本站存在的刻度（出厂刻度各站都有，也一并带上，导入端按 id 判断要不要补）。
+     * 别名刻度（值写 {id}）沿别名链把被引用的刻度一并带上（T07），否则对方站点只拿到一个落空的别名。
      * @param array<string,list<string>> $references @return array<string,list<array<string,mixed>>>
      */
     public static function exportScales(array $references): array
@@ -167,37 +168,187 @@ final class BloxDesignDependencies
         foreach ($references as $kind => $ids) {
             $bucket = $buckets[$kind] ?? null;
             if ($bucket === null) continue;
+            if ($kind !== 'type') {
+                $catalog = array_column($snapshot[$bucket] ?? [], null, 'id');
+                for ($depth = 0, $pending = $ids; $pending !== [] && $depth < self::ALIAS_DEPTH; $depth++) {
+                    $next = [];
+                    foreach ($pending as $id) {
+                        $ref = self::aliasTarget((string) ($catalog[$id]['value'] ?? ''));
+                        if ($ref !== null && isset($catalog[$ref]) && !in_array($ref, $ids, true)) $next[] = $ids[] = $ref;
+                    }
+                    $pending = $next;
+                }
+            }
             $items = array_values(array_filter($snapshot[$bucket] ?? [], static fn (array $item): bool => in_array($item['id'], $ids, true)));
             if ($items !== []) $out[$kind] = array_map(static fn (array $item): array => array_diff_key($item, ['locked' => 1, 'version' => 1, 'status' => 1]), $items);
         }
         return $out;
     }
 
+    /** 导入模式（T07）：site = 沿用本站设计（默认，本站已有同 id 的刻度不动）；template = 保留模板外观（值不同就改名新增并改写引用） */
+    public const SCALE_MODES = ['site', 'template'];
+    private const ALIAS_DEPTH = 4;
+    private const ALIAS = '/^\{([a-z0-9][a-z0-9_-]{0,47})\}$/';
+
     /**
-     * 导入计划：包里定义了、本站没有的刻度，按原 id 新增（不覆盖本站已有的同 id 刻度——那是本站的设计决定）。
+     * 刻度导入计划（T07）。默认模式只按原 id 补本站没有的刻度，不覆盖本站已有的同 id 刻度（那是本站的设计决定）。
+     * 每个被文档引用的刻度给出一个结果（review），并给出要新增的项（plan）与要改写的引用（map）：
+     *   add        本站没有，按原 id 新增（别名：site 模式留别名并补上被引用项，template 模式展平为具体值）
+     *   same       本站有且有效值相同，沿用
+     *   substitute 本站有、值不同，用本站值（site 模式）
+     *   rename     本站有、值不同，改名新增并改写引用（template 模式）；改名 id 由来源值决定，重复导入得到同一个
+     *   local      包里没定义、本站有，沿用
+     *   missing    包里没定义、本站也没有（或别名解析不出值），走回退值
+     *   limit      本站该类已满，不新增（也不改写引用）
+     * review 里的 to 在 substitute 时也给出：检查页据此说明换成另一种模式会怎样。
      * @param array<string,list<string>> $references @param mixed $definitions 包里 design.scales
-     * @return array<string,list<array<string,mixed>>>
+     * @return array{plan:array<string,list<array<string,mixed>>>,map:array<string,array<string,string>>,review:list<array{kind:string,id:string,action:string,to:string,local:string,source:string}>}
      */
-    public static function planScaleImport(array $references, mixed $definitions, ?array $snapshot = null): array
+    public static function planScales(array $references, mixed $definitions, string $mode = 'site', ?array $snapshot = null): array
     {
+        if (!in_array($mode, self::SCALE_MODES, true)) throw new InvalidArgumentException('scale_mode');
         $snapshot ??= BloxDesignSystem::snapshot();
         $buckets = BloxDesignScale::KINDS + ['type' => 'typography'];
-        $plan = [];
+        $out = ['plan' => [], 'map' => [], 'review' => []];
         foreach ($references as $kind => $ids) {
             $bucket = $buckets[$kind] ?? null;
-            $source = is_array($definitions) && is_array($definitions[$kind] ?? null) ? $definitions[$kind] : [];
-            if ($bucket === null || $source === []) continue;
+            if ($bucket === null) continue;
             $local = array_column($snapshot[$bucket] ?? [], null, 'id');
-            foreach ($source as $item) {
-                $id = is_array($item) ? (string) ($item['id'] ?? '') : '';
-                if ($id === '' || isset($local[$id]) || !in_array($id, $ids, true)) continue;
+            $source = [];
+            foreach (is_array($definitions) && is_array($definitions[$kind] ?? null) ? $definitions[$kind] : [] as $item) {
                 $normalized = $kind === 'type' ? BloxDesignType::normalizeItem($item) : BloxDesignScale::normalizeItem($kind, $item);
-                // 引用别的刻度的（{id}）不随包新建：对方站点的被引用项未必在这里
-                if ($normalized === null || ($kind !== 'type' && str_starts_with((string) $normalized['value'], '{'))) continue;
-                $plan[$kind][] = $normalized;
+                if ($normalized !== null) $source[$normalized['id']] = $normalized;
             }
+            $room = ($kind === 'type' ? BloxDesignType::MAX_ITEMS : BloxDesignScale::MAX_ITEMS) - count($local);
+            $adds = [];
+            $add = static function (array $item) use (&$adds, &$room): bool {
+                if (isset($adds[$item['id']])) return true;
+                if ($room <= 0) return false;
+                $adds[$item['id']] = $item;
+                $room--;
+                return true;
+            };
+            foreach ($ids as $id) {
+                $row = ['kind' => $kind, 'id' => $id, 'action' => '', 'to' => '', 'local' => '', 'source' => ''];
+                $item = $source[$id] ?? null;
+                $mine = $local[$id] ?? null;
+                if ($mine !== null) $row['local'] = self::scaleValue($kind, $mine, $local);
+                if ($item === null) {
+                    $out['review'][] = ['action' => $mine !== null ? 'local' : 'missing'] + $row;
+                    continue;
+                }
+                $value = self::scaleValue($kind, $item, $source);
+                $row['source'] = $value;
+                if ($mine === null) {
+                    $ref = $kind === 'type' ? null : self::aliasTarget((string) $item['value']);
+                    if ($ref !== null && ($mode === 'template' || (!isset($local[$ref]) && (!isset($source[$ref]) || !$add(self::flatten($kind, $source[$ref], $source)))))) {
+                        // 保留外观、或被引用项本站没有也补不上：展平为具体值；解析不出值就只能回退
+                        if ($value === '') {
+                            $out['review'][] = ['action' => 'missing'] + $row;
+                            continue;
+                        }
+                        $item['value'] = $value;
+                    }
+                    $out['review'][] = ['action' => $add($item) ? 'add' : 'limit'] + $row;
+                    continue;
+                }
+                if ($row['local'] === $value) {
+                    $out['review'][] = ['action' => 'same'] + $row;
+                    continue;
+                }
+                $row['to'] = self::renamedId($kind, $id, $value, $local, $adds);
+                if ($mode === 'site') {
+                    $out['review'][] = ['action' => 'substitute'] + $row;
+                    continue;
+                }
+                $copy = ['id' => $row['to']] + self::flatten($kind, $item, $source);
+                $reuse = isset($local[$row['to']]);
+                if ($reuse || $add($copy)) {
+                    $out['map'][$kind][$id] = $row['to'];
+                    $out['review'][] = ['action' => 'rename'] + $row;
+                } else {
+                    $out['review'][] = ['action' => 'limit'] + $row;
+                }
+            }
+            if ($adds !== []) $out['plan'][$kind] = array_values($adds);
         }
-        return $plan;
+        return $out;
+    }
+
+    /**
+     * 把文档里的刻度引用按改名表改写（template 模式）。键与 scaleReferences() 认的一致。
+     * @param array<int,mixed> $sections @param array<string,array<string,string>> $map 类别 → 原 id → 新 id
+     * @return array<int,mixed>
+     */
+    public static function remapScaleReferences(array $sections, array $map): array
+    {
+        if ($map === []) return $sections;
+        $walk = static function (mixed $node) use (&$walk, $map): mixed {
+            if (!is_array($node)) return $node;
+            foreach ($node as $key => $value) {
+                if (is_string($key) && isset(self::SCALE_KEYS[$key]) && is_string($value) && isset($map[self::SCALE_KEYS[$key]][$value])) {
+                    $node[$key] = $map[self::SCALE_KEYS[$key]][$value];
+                    continue;
+                }
+                if (is_string($key) && (str_starts_with($key, 'style_margin') || str_starts_with($key, 'style_padding') || $key === 'max_width')) {
+                    $kind = $key === 'max_width' ? 'container' : 'space';
+                    $swap = static fn (mixed $tier): mixed => is_string($tier) && preg_match('/^token:([a-z0-9][a-z0-9_-]{0,47})$/', $tier, $m) === 1 && isset($map[$kind][$m[1]])
+                        ? 'token:' . $map[$kind][$m[1]] : $tier;
+                    if (!is_array($value)) {
+                        $node[$key] = $swap($value);
+                        continue;
+                    }
+                    $value = array_map($swap, $value);
+                }
+                $node[$key] = is_array($value) ? $walk($value) : $value;
+            }
+            return $node;
+        };
+        return $walk($sections);
+    }
+
+    private static function aliasTarget(string $value): ?string
+    {
+        return preg_match(self::ALIAS, $value, $m) === 1 ? $m[1] : null;
+    }
+
+    /**
+     * 有效值：别名沿链解析到具体值（解析不出返回空串）；排版比字号、行高、字距、字重，不比名称。
+     * @param array<string,mixed> $item @param array<string,array<string,mixed>> $catalog 同类 id → 项
+     */
+    private static function scaleValue(string $kind, array $item, array $catalog): string
+    {
+        if ($kind === 'type') {
+            return (string) json_encode(array_intersect_key($item, array_flip(['size', 'line_height', 'letter_spacing', 'weight'])), JSON_UNESCAPED_SLASHES);
+        }
+        $value = (string) ($item['value'] ?? '');
+        for ($depth = 0; ($ref = self::aliasTarget($value)) !== null; $depth++) {
+            if ($depth >= self::ALIAS_DEPTH || !isset($catalog[$ref])) return '';
+            $value = (string) ($catalog[$ref]['value'] ?? '');
+        }
+        return $value;
+    }
+
+    /** 别名展平为具体值的副本（排版项原样） @param array<string,mixed> $item @param array<string,array<string,mixed>> $catalog @return array<string,mixed> */
+    private static function flatten(string $kind, array $item, array $catalog): array
+    {
+        if ($kind !== 'type' && self::aliasTarget((string) $item['value']) !== null) $item['value'] = self::scaleValue($kind, $item, $catalog);
+        return $item;
+    }
+
+    /**
+     * 改名用的 id：原 id 截短 + 来源有效值的哈希。同一份模板重复导入得到同一个 id；
+     * 本站碰巧已有这个 id 但值不同（极少）时再加序号。
+     * @param array<string,array<string,mixed>> $local @param array<string,array<string,mixed>> $adds
+     */
+    private static function renamedId(string $kind, string $id, string $value, array $local, array $adds): string
+    {
+        $base = substr($id, 0, 40) . '-' . substr(hash('crc32b', $kind . '|' . $value), 0, 6);
+        for ($n = 1, $candidate = $base; $n < 10; $candidate = substr($base, 0, 45) . '-' . ++$n) {
+            $taken = $local[$candidate] ?? $adds[$candidate] ?? null;
+            if ($taken === null || self::scaleValue($kind, $taken, $local + $adds) === $value) return $candidate;
+        }
+        return $candidate;
     }
 
     /** @return array{tokens:array<string,array{count:int,sources:list<array<string,mixed>>}>,styles:array<string,array{count:int,sources:list<array<string,mixed>>}>} */

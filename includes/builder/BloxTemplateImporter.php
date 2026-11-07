@@ -303,6 +303,7 @@ final class BloxTemplateImporter
      *   class_plan:list<array{class_id:string,name:string,settings:array<string,mixed>}>,
      *   class_diagnostics:array{reused:list<string>,created:list<string>,renamed:list<array{from:string,to:string}>,missing:list<string>},
      *   scale_plan:array<string,list<array<string,mixed>>>,
+     *   scale_review:list<array{kind:string,id:string,action:string,to:string,local:string,source:string}>,
      *   media:list<array{path:string,target:string,mime:string,sha256:string,bytes:string}>,
      *   components:list<array<string,mixed>>
      * }
@@ -337,6 +338,11 @@ final class BloxTemplateImporter
 
         $rawSections = BloxDocumentPipeline::extractSections($package['document']);
         self::assertNoLibraryReferences($rawSections);
+        // 设计刻度导入模式（T07）：默认沿用本站设计；保留模板外观时值不同的刻度改名新增并改写引用
+        $scaleMode = $designOptions['scale_mode'] ?? 'site';
+        if (!is_string($scaleMode) || !in_array($scaleMode, BloxDesignDependencies::SCALE_MODES, true)) {
+            throw new RuntimeException(__('blox_import_design_invalid'));
+        }
         // 2.1.0：包里带的母版。每个按单独的组件包校验；本站没有组件授权时不装母版，改用它们把实例展开成普通结构
         $bundled = [];
         foreach (array_slice(is_array($package['components'] ?? null) ? array_values($package['components']) : [], 0, self::MAX_BUNDLED_COMPONENTS) as $componentPackage) {
@@ -344,7 +350,7 @@ final class BloxTemplateImporter
                 continue;
             }
             unset($componentPackage['components']);
-            $prepared = self::prepare(json_encode($componentPackage, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR));
+            $prepared = self::prepare(json_encode($componentPackage, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR), ['scale_mode' => $scaleMode]);
             if (BloxComponents::validUuid($prepared['metadata']['component']['uuid'] ?? null)) {
                 $bundled[] = $prepared;
             }
@@ -435,6 +441,8 @@ final class BloxTemplateImporter
             is_array($designOptions['tokens'] ?? null) ? $designOptions['tokens'] : []
         ));
         $rawSections = BloxGlobalClasses::remapSections($rawSections, $classPlan['map']);
+        $scales = BloxDesignDependencies::planScales(BloxDesignDependencies::scaleReferences($rawSections), $definitions['scales'] ?? null, $scaleMode);
+        $rawSections = BloxDesignDependencies::remapScaleReferences($rawSections, $scales['map']);
         // 组件母版的属性按节点 id 指向字段：保留 id，否则导入后属性全部失效（模板母版 id 只在本文档内唯一）
         $withoutIds = $type === BloxComponents::TYPE ? $rawSections : BloxDocumentPipeline::withoutNodeIds($rawSections);
         // 文档级 settings（如 header 的 sticky）随模板包走 v1 信封进出，不在提取 sections 时丢失
@@ -484,10 +492,25 @@ final class BloxTemplateImporter
             'design_diagnostics' => $designDiagnostic,
             'class_plan' => $classPlan['create'],
             'class_diagnostics' => $classPlan['diagnostics'],
-            'scale_plan' => BloxDesignDependencies::planScaleImport(BloxDesignDependencies::scaleReferences($rawSections), $definitions['scales'] ?? null),
+            'scale_plan' => $scales['plan'],
+            // 检查页逐项说明每个刻度的去向；包里的组件母版各自规划，合在一起列出（同一刻度只列一次）
+            'scale_review' => self::mergeScaleReviews($scales['review'], ...array_column($bundled, 'scale_review')),
             'media' => $media,
             'components' => $bundled,
         ];
+    }
+
+    /**
+     * @param list<array<string,string>> ...$reviews
+     * @return list<array{kind:string,id:string,action:string,to:string,local:string,source:string}>
+     */
+    private static function mergeScaleReviews(array ...$reviews): array
+    {
+        $out = [];
+        foreach ($reviews as $review) {
+            foreach ($review as $row) $out[$row['kind'] . "\0" . $row['id']] ??= $row;
+        }
+        return array_values($out);
     }
 
     /** @param array<int,mixed> $sections @param array<string,mixed> $options @param array<string,mixed> $definitions @return array<int,mixed> */

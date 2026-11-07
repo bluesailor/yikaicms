@@ -176,6 +176,29 @@ final class BloxDesignScaleTest extends TestCase
         self::assertSame(2, $stored['revision']);
     }
 
+    /**
+     * 模板导入在自己的事务里调用 applyScaleImport（与模板草稿同一事务）。设置写锁曾另开事务，
+     * 只要模板带来新刻度就报「already an active transaction」、整个导入失败（T07 发现）。
+     */
+    public function testScaleImportJoinsTheCallersTransaction(): void
+    {
+        $GLOBALS['_test_config'][BloxDesignSystem::SETTING_KEY] = json_encode(['tokens' => [], 'spaces' => [['id' => 'md', 'name' => 'M', 'value' => '20px']]], JSON_THROW_ON_ERROR);
+        $hero = ['space' => [['id' => 'sp_hero', 'name' => 'Hero', 'value' => '72px', 'status' => 'active', 'locked' => false, 'version' => 1]]];
+        $stored = static fn (): array => array_column(json_decode((string) (db()->fetchColumn("SELECT value FROM settings WHERE \"key\" = ?", [BloxDesignSystem::SETTING_KEY]) ?: '{}'), true)['spaces'] ?? [], 'value', 'id');
+
+        db()->beginTransaction();
+        BloxDesignSystem::applyScaleImport($hero);
+        self::assertTrue(db()->getPdo()->inTransaction(), '并入调用方事务，不提前提交');
+        self::assertSame('72px', $stored()['sp_hero'] ?? null);
+        db()->rollback();
+        self::assertArrayNotHasKey('sp_hero', $stored(), '调用方回滚时刻度一并撤回');
+
+        db()->beginTransaction();
+        BloxDesignSystem::applyScaleImport($hero);
+        db()->commit();
+        self::assertSame('72px', $stored()['sp_hero'] ?? null);
+    }
+
     public function testMutationsKeepColorTokensAndValidateReferences(): void
     {
         $GLOBALS['_test_config'][BloxDesignSystem::SETTING_KEY] = json_encode([
