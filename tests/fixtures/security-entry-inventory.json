@@ -783,6 +783,9 @@
                 "toggle_status"
             ]
         },
+        "admin/translation_status.php": {
+            "action_candidates": []
+        },
         "admin/translation_tasks.php": {
             "action_candidates": [
                 "cancel",

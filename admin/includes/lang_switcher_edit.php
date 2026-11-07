@@ -70,6 +70,57 @@ if ($_ls_item) {
         }
     }
 }
+
+// 译文状态（T04）：与生成/审阅时比，原文改没改、译文有没有人改过、有没有待审的新译文
+$_ls_states = [];
+$_ls_proposal = null;
+$_ls_source = $_ls_currentLang === $_ls_defaultLang ? $_ls_item : ($_ls_translations[$_ls_defaultLang] ?? null);
+if ($_ls_item && $_ls_source && db()->tableExists('translation_links')) {
+    require_once ROOT_PATH . '/includes/TranslationWrite.php';
+    require_once ROOT_PATH . '/includes/content_translation.php';
+    $_ls_titleKey = (string) ($langSwitcher['title_field'] ?? 'title');
+    $_ls_summaryKey = (string) ($langSwitcher['summary_field'] ?? 'summary');
+    $_ls_pageOf = static fn (array $row): ?array => $_ls_table === 'channels' && ($row['type'] ?? '') === 'page'
+        ? contentModel()->queryOne('SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? ORDER BY id DESC LIMIT 1', [(int) $row['id']]) : null;
+    $_ls_text = static fn (mixed $value): string => is_scalar($value) || $value === null ? (string) $value : (string) json_encode($value, JSON_UNESCAPED_UNICODE);
+    // 比较用：JSON 文本（参数表）按解析后的值比，「{}」与「[]」这类写法差异不算改动
+    $_ls_same = static function (mixed $a, mixed $b) use ($_ls_text): bool {
+        $norm = static function (mixed $value) use ($_ls_text): string {
+            $decoded = is_string($value) ? json_decode($value, true) : $value;
+            return is_array($decoded) ? (string) json_encode($decoded, JSON_UNESCAPED_UNICODE) : $_ls_text($value);
+        };
+        return $norm($a) === $norm($b);
+    };
+    $_ls_sourceFp = TranslationState::rowFingerprint($_ls_source, $_ls_titleKey, $_ls_summaryKey, $_ls_pageOf($_ls_source));
+    $_ls_targets = $_ls_translations;
+    unset($_ls_targets[$_ls_defaultLang]);
+    if ($_ls_currentLang !== $_ls_defaultLang) $_ls_targets[$_ls_currentLang] = $_ls_item;
+    $_ls_links = (new TranslationState(db()))->links($_ls_table, array_map(static fn (array $row): int => (int) $row['id'], array_values($_ls_targets)));
+    foreach ($_ls_targets as $lc => $row) {
+        $page = $_ls_pageOf($row);
+        $link = $_ls_links[(int) $row['id']] ?? null;
+        $_ls_states[$lc] = TranslationState::status($link, $_ls_sourceFp, TranslationState::rowFingerprint($row, $_ls_titleKey, $_ls_summaryKey, $page));
+        $proposed = $lc === $_ls_currentLang && $link !== null ? json_decode((string) ($link['proposal_json'] ?? ''), true) : null;
+        if (is_array($proposed)) {
+            // 只列与现有译文不同、且这一行确有对应列的字段
+            $body = $page ?? $row;
+            $current = TranslationWrite::source($row, $_ls_titleKey, $_ls_summaryKey, $body, translationBodyField($body));
+            $_ls_proposal = ['at' => (int) $link['proposal_at'], 'fields' => []];
+            foreach (TranslationState::TRACKED as $field) {
+                if (!array_key_exists($field, $proposed) || !array_key_exists($field, $current)) continue;
+                if (!$_ls_same($proposed[$field], $current[$field])) $_ls_proposal['fields'][$field] = [$_ls_text($current[$field]), $_ls_text($proposed[$field])];
+            }
+        }
+    }
+}
+$_ls_badge = static function (array $state): array {
+    if ($state['proposal']) return ['lse_state_proposal', 'bg-blue-100 text-blue-700'];
+    if ($state['outdated']) return ['lse_state_outdated', 'bg-amber-100 text-amber-700'];
+    if ($state['state'] === 'untracked') return ['lse_state_untracked', 'bg-gray-100 text-gray-600'];
+    if ($state['reviewed']) return ['lse_state_reviewed', 'bg-green-100 text-green-700'];
+    if ($state['edited']) return ['lse_state_edited', 'bg-green-100 text-green-700'];
+    return ['lse_state_current', 'bg-green-100 text-green-700'];
+};
 ?>
 
 <?php if ($_ls_item): ?>
@@ -89,6 +140,9 @@ if ($_ls_item) {
            class="px-3 py-1 rounded-full text-xs bg-green-100 text-green-700 hover:bg-green-200 transition" title="<?php echo e(__('lse_last_edited')); ?>: <?php echo date('Y-m-d H:i', (int)($transItem['updated_at'] ?? 0)); ?>">
             <?php echo e($ll); ?> ✓
         </a>
+        <?php if (isset($_ls_states[$lc])): [$_ls_key, $_ls_cls] = $_ls_badge($_ls_states[$lc]); ?>
+        <span class="px-2 py-0.5 rounded text-xs <?php echo $_ls_cls; ?>" data-translation-state="<?php echo e($lc); ?>" title="<?php echo e(__($_ls_key . '_hint')); ?>"><?php echo e(__($_ls_key)); ?></span>
+        <?php endif; ?>
         <?php if ($lc !== $_ls_defaultLang): ?>
         <button type="button" class="border rounded px-2 py-1 text-xs" onclick="createTranslation('<?php echo e($lc); ?>', '<?php echo e($ll); ?>', this, true)" aria-label="<?php echo e(__('lse_retranslate') . ' ' . $ll); ?>"><?php echo e(__('lse_retranslate')); ?></button>
         <?php endif; ?>
@@ -102,9 +156,45 @@ if ($_ls_item) {
 
     <?php if ($_ls_currentLang !== $_ls_defaultLang): ?>
     <button type="button" class="border rounded px-2 py-1 text-xs" onclick="createTranslation('<?php echo e($_ls_currentLang); ?>', '<?php echo e($_ls_allLangs[$_ls_currentLang]); ?>', this, true)" aria-label="<?php echo e(__('lse_retranslate') . ' ' . $_ls_allLangs[$_ls_currentLang]); ?>"><?php echo e(__('lse_retranslate')); ?></button>
-    <span class="text-xs text-amber-500 ml-1"><?php echo str_replace(':lang', e($_ls_allLangs[$_ls_defaultLang]), e(__('lse_translated_from'))); ?><span class="hidden"></span>
+    <span class="text-xs text-amber-500 ml-1"><?php echo str_replace(':lang', e($_ls_allLangs[$_ls_defaultLang]), e(__('lse_translated_from'))); ?></span>
+    <?php if (isset($_ls_states[$_ls_currentLang])): $_ls_state = $_ls_states[$_ls_currentLang]; [$_ls_key, $_ls_cls] = $_ls_badge($_ls_state); ?>
+    <span class="px-2 py-0.5 rounded text-xs <?php echo $_ls_cls; ?>" data-translation-state="<?php echo e($_ls_currentLang); ?>" title="<?php echo e(__($_ls_key . '_hint')); ?>"><?php echo e(__($_ls_key)); ?></span>
+    <?php if (!$_ls_state['reviewed'] || $_ls_state['outdated'] || $_ls_state['edited']): ?>
+    <button type="button" class="border rounded px-2 py-1 text-xs" id="lseMarkReviewed" onclick="translationReview('translation_mark_reviewed', [], this)" title="<?php echo e(__('lse_mark_reviewed_hint')); ?>"><?php echo e(__('lse_mark_reviewed')); ?></button>
+    <?php endif; ?>
+    <?php endif; ?>
     <?php endif; ?>
 </div>
+
+<?php if ($_ls_proposal !== null): ?>
+<div class="bg-blue-50 border border-blue-200 rounded-lg mb-4 px-5 py-4 text-sm" id="lseProposal">
+    <p class="font-medium text-blue-900 mb-1"><?php echo e(__('lse_proposal_title')); ?></p>
+    <p class="text-blue-800 mb-3"><?php echo e(str_replace(':time', date('Y-m-d H:i', $_ls_proposal['at']), __('lse_proposal_hint'))); ?></p>
+    <?php if ($_ls_proposal['fields'] === []): ?>
+    <p class="text-blue-800 mb-3"><?php echo e(__('lse_proposal_same')); ?></p>
+    <?php endif; ?>
+    <?php foreach ($_ls_proposal['fields'] as $_ls_field => [$_ls_now, $_ls_new]): ?>
+    <fieldset class="border-t border-blue-200 py-3">
+        <label class="flex items-center gap-2 font-medium mb-2">
+            <input type="checkbox" name="lse_fields[]" value="<?php echo e($_ls_field); ?>" checked>
+            <?php echo e(in_array($_ls_field, ['title', 'summary', 'content', 'specs', 'seo_title', 'seo_keywords', 'seo_description'], true) ? __('lse_field_' . $_ls_field) : $_ls_field); ?>
+        </label>
+        <div class="grid gap-2 md:grid-cols-2">
+            <div><span class="text-xs text-gray-500"><?php echo e(__('lse_proposal_current')); ?></span>
+                <textarea readonly rows="4" class="w-full border rounded p-2 text-xs bg-white"><?php echo e($_ls_now); ?></textarea></div>
+            <div><span class="text-xs text-gray-500"><?php echo e(__('lse_proposal_new')); ?></span>
+                <textarea readonly rows="4" class="w-full border rounded p-2 text-xs bg-white"><?php echo e($_ls_new); ?></textarea></div>
+        </div>
+    </fieldset>
+    <?php endforeach; ?>
+    <div class="flex gap-2 pt-2">
+        <?php if ($_ls_proposal['fields'] !== []): ?>
+        <button type="button" class="bg-primary text-white px-4 py-1.5 rounded text-sm" id="lseAccept" onclick="translationReview('translation_accept', Array.from(document.querySelectorAll('#lseProposal input[type=checkbox]:checked')).map(function (box) { return box.value; }), this)"><?php echo e(__('lse_proposal_accept')); ?></button>
+        <?php endif; ?>
+        <button type="button" class="border px-4 py-1.5 rounded text-sm" id="lseDiscard" onclick="translationReview('translation_discard', [], this)"><?php echo e(__('lse_proposal_discard')); ?></button>
+    </div>
+</div>
+<?php endif; ?>
 
 <script>
 async function createTranslation(toLang, langName, btn, retranslate = false) {
@@ -142,6 +232,29 @@ async function createTranslation(toLang, langName, btn, retranslate = false) {
         btn.textContent = originalText;
         btn.className = originalClass;
         btn.title = <?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>;
+        showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+    }
+}
+
+// 译文审阅（T04）：标为已审 / 采用所选字段 / 放弃待审译文，成功后重载本页
+async function translationReview(action, fields, btn) {
+    if (!btn || btn.disabled) return;
+    if (action === 'translation_accept' && fields.length === 0) {
+        showMessage(<?php echo json_encode(__('lse_accept_nothing_selected'), JSON_UNESCAPED_UNICODE); ?>, 'error');
+        return;
+    }
+    btn.disabled = true;
+    var fd = new FormData();
+    fd.append('action', action);
+    fd.append('target_id', <?php echo (int) $_ls_item['id']; ?>);
+    fields.forEach(function (field) { fd.append('fields[]', field); });
+    try {
+        var data = await safeJson(await fetch(location.pathname, { method: 'POST', body: fd }));
+        showMessage(data.msg || '', data.code === 0 ? 'success' : 'error');
+        if (data.code === 0) setTimeout(function () { location.reload(); }, 600);
+        else btn.disabled = false;
+    } catch (e) {
+        btn.disabled = false;
         showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 }

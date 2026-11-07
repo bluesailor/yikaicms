@@ -76,6 +76,14 @@ if (str_starts_with($scenario, 'page_')) {
 }
 db()->execute("UPDATE yikai_{$table} SET translation_group_id = id WHERE id = ?", [$srcId]);
 if ($srcPageId > 0) db()->execute('UPDATE yikai_contents SET translation_group_id = id WHERE id = ?', [$srcPageId]);
+// 已有译文按「机器写入、没人改过」登记（T04）：这里测的是并发，不是受保护译文
+if ($targetId > 0) {
+    $summaryKey = $table === 'channels' ? 'description' : 'summary';
+    $titleField = $table === 'channels' ? 'name' : 'title';
+    (new TranslationState(db()))->recordMachine($table, $targetId, $srcId, 'en',
+        TranslationState::rowFingerprint($model->find($srcId), $titleField, $summaryKey, $srcPageId > 0 ? contentModel()->find($srcPageId) : null),
+        TranslationState::rowFingerprint($model->find($targetId), $titleField, $summaryKey, $targetPageId > 0 ? contentModel()->find($targetPageId) : null), $now);
+}
 
 // 调模型之前读到的状态（与 translate_action.php 相同）
 $titleKey = $table === 'channels' ? 'name' : 'title';

@@ -73,8 +73,9 @@
                 <!-- 2.2 AI 外部访问与提案审核页：$currentMenu/$pageTitle 供后台 header 使用 -->
                 <file name="admin/ai_access.php" />
                 <file name="admin/ai_proposals.php" />
-                <!-- T03 批量翻译任务页：同上 -->
+                <!-- T03 批量翻译任务页、T04 翻译状态页：同上 -->
                 <file name="admin/translation_tasks.php" />
+                <file name="admin/translation_status.php" />
                 <!-- Variables consumed by ignored editor partials through require scope. -->
                 <file name="admin/blox_design.php" />
                 <file name="plugins/seo/admin.php" />
@@ -147,8 +148,9 @@
                 <!-- 2.2 新增独立入口（AI 外部访问、提案审核） -->
                 <file name="admin/ai_access.php" />
                 <file name="admin/ai_proposals.php" />
-                <!-- T03 批量翻译任务页 -->
+                <!-- T03 批量翻译任务页、T04 翻译状态页 -->
                 <file name="admin/translation_tasks.php" />
+                <file name="admin/translation_status.php" />
                 <!-- 2.0.3 新增独立入口（技术支持临时访问） -->
                 <file name="admin/support_access.php" />
                 <file name="admin/support_login.php" />

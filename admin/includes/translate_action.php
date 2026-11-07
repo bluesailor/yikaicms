@@ -23,10 +23,13 @@
 
 declare(strict_types=1);
 
-if (empty($langSwitcher) || ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST'
-    || (($_POST['action'] ?? '') !== 'create_translation')) {
+if (empty($langSwitcher) || ($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') return;
+// 译文审阅（T04）：标为已审、逐字段采用或放弃待审译文
+if (in_array($_POST['action'] ?? '', ['translation_mark_reviewed', 'translation_accept', 'translation_discard'], true)) {
+    require ROOT_PATH . '/admin/includes/translation_review_action.php';
     return;
 }
+if (($_POST['action'] ?? '') !== 'create_translation') return;
 
 verifyCsrf();
 
@@ -101,7 +104,13 @@ try {
 $newData = TranslationWrite::newRow($table, $src, $translated, $toLang, $groupId, $titleKey, $summKey, $bodyField);
 
 try {
-    $written = (new TranslationWrite(db()))->apply($translationRead, $translated, $newData);
+    $writer = new TranslationWrite(db());
+    $written = $writer->apply($translationRead, $translated, $newData);
+    // 人改过、审过或来历不明的译文不整份覆盖：存为待审，到译文编辑页逐字段决定（T04）
+    if ($written['conflict'] === 'target_protected') {
+        $written = $writer->propose($translationRead, $translated);
+        if ($written['conflict'] === '') success(['id' => $written['id'], 'proposal' => true], __('lse_proposal_saved'));
+    }
 } catch (Throwable $exception) {
     error(__('lse_failed') . ': ' . $exception->getMessage());
 }

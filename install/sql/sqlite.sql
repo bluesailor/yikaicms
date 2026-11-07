@@ -3054,6 +3054,27 @@ CREATE TABLE "yikai_translation_batch_items" (
 );
 CREATE UNIQUE INDEX "uk_translation_batch_items_yikai_translation_batch_items" ON "yikai_translation_batch_items" ("batch_id", "source_id", "lang");
 CREATE INDEX "idx_translation_batch_items_status_yikai_translation_batch_items" ON "yikai_translation_batch_items" ("batch_id", "status");
+DROP TABLE IF EXISTS "yikai_translation_links";
+CREATE TABLE "yikai_translation_links" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "table_name" TEXT NOT NULL,
+  "target_id" INTEGER NOT NULL,
+  "source_id" INTEGER NOT NULL,
+  "lang" TEXT NOT NULL,
+  "source_fp" TEXT NOT NULL DEFAULT '',
+  "target_fp" TEXT NOT NULL DEFAULT '',
+  "state" TEXT NOT NULL DEFAULT 'machine',
+  "reviewed_by" INTEGER NOT NULL DEFAULT 0,
+  "reviewed_at" INTEGER NOT NULL DEFAULT 0,
+  "proposal_json" TEXT,
+  "proposal_source_fp" TEXT NOT NULL DEFAULT '',
+  "proposal_target_fp" TEXT NOT NULL DEFAULT '',
+  "proposal_at" INTEGER NOT NULL DEFAULT 0,
+  "created_at" INTEGER NOT NULL,
+  "updated_at" INTEGER NOT NULL
+);
+CREATE UNIQUE INDEX "uk_translation_links_target_yikai_translation_links" ON "yikai_translation_links" ("table_name", "target_id");
+CREATE INDEX "idx_translation_links_source_yikai_translation_links" ON "yikai_translation_links" ("table_name", "source_id");
 DROP TABLE IF EXISTS "yikai_ai_change_log";
 CREATE TABLE "yikai_ai_change_log" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,

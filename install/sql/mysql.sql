@@ -2058,6 +2058,28 @@ CREATE TABLE `yikai_translation_batch_items` (
   UNIQUE KEY `uk_translation_batch_items` (`batch_id`, `source_id`, `lang`),
   KEY `idx_translation_batch_items_status` (`batch_id`, `status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='批量翻译任务项';
+DROP TABLE IF EXISTS `yikai_translation_links`;
+CREATE TABLE `yikai_translation_links` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `table_name` varchar(40) NOT NULL,
+  `target_id` int(11) UNSIGNED NOT NULL,
+  `source_id` int(11) UNSIGNED NOT NULL,
+  `lang` varchar(10) NOT NULL,
+  `source_fp` varchar(64) NOT NULL DEFAULT '',
+  `target_fp` varchar(64) NOT NULL DEFAULT '',
+  `state` varchar(16) NOT NULL DEFAULT 'machine',
+  `reviewed_by` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `reviewed_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `proposal_json` mediumtext NULL,
+  `proposal_source_fp` varchar(64) NOT NULL DEFAULT '',
+  `proposal_target_fp` varchar(64) NOT NULL DEFAULT '',
+  `proposal_at` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `created_at` int(11) UNSIGNED NOT NULL,
+  `updated_at` int(11) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uk_translation_links_target` (`table_name`, `target_id`),
+  KEY `idx_translation_links_source` (`table_name`, `source_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='译文来源与审阅状态';
 DROP TABLE IF EXISTS `yikai_ai_change_log`;
 CREATE TABLE `yikai_ai_change_log` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,

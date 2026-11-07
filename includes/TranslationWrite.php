@@ -9,6 +9,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/TranslationState.php';
+
 final class TranslationWrite
 {
     /** 前台访问随时会 +1 的计数列：不算内容改动 */
@@ -106,6 +108,146 @@ final class TranslationWrite
         return $newData;
     }
 
+    /**
+     * 译文字段 → 目标行的列：标题、摘要按各表的列名，正文写正文列，其余同名列照写。
+     * @param array<string,mixed> $translated @param array<string,mixed> $target @return array<string,mixed>
+     */
+    public static function changes(array $translated, array $target, string $titleKey, string $summKey, string $bodyField): array
+    {
+        $changes = [];
+        if (array_key_exists('title', $translated)) $changes[$titleKey] = $translated['title'];
+        if (array_key_exists('summary', $translated)) $changes[$summKey] = $translated['summary'];
+        if (isset($translated['secondary_summary'])) $changes['summary'] = $translated['secondary_summary'];
+        foreach ($translated as $field => $value) {
+            if (!in_array($field, ['title', 'summary', 'content', 'secondary_summary'], true) && array_key_exists($field, $target)) $changes[$field] = $value;
+        }
+        if (array_key_exists('content', $translated) && array_key_exists($bodyField, $target)) $changes[$bodyField] = $translated['content'];
+        return $changes;
+    }
+
+    /**
+     * 受保护的译文：新译文只存为待审结果，不动内容（T04）。同样先锁行重读，期间有变化照样报冲突。
+     * @param array<string,mixed> $read 同 apply() @param array<string,mixed> $translated
+     * @return array{id:int,conflict:string}
+     */
+    public function propose(array $read, array $translated): array
+    {
+        $this->db->beginTransaction();
+        try {
+            $current = $this->recheck($read);
+            $target = $current['target'];
+            if ($current['conflict'] !== '' || $target === null) {
+                $this->db->rollback();
+                return ['id' => $current['id'], 'conflict' => $current['conflict'] !== '' ? $current['conflict'] : 'target_deleted'];
+            }
+            $id = (int) $target['id'];
+            (new TranslationState($this->db))->propose($read['table'], $id, (int) $read['src']['id'], $read['lang'], $translated, self::sourceFingerprint($read),
+                TranslationState::rowFingerprint($target, $read['title_key'], $read['summary_key'], $current['target_page']), time());
+            adminLog('translate', 'propose', "为 {$read['table']}#{$id} 生成待审 {$read['lang']} 译文");
+            $this->db->commit();
+        } catch (Throwable $exception) {
+            $this->db->rollback();
+            throw $exception;
+        }
+        return ['id' => $id, 'conflict' => ''];
+    }
+
+    /**
+     * 逐字段采用待审结果。待审生成以来译文被改过就整笔不写，请人重新生成。
+     * 不改发布状态：这是人看过之后的决定。写完链接记为已审，对应生成待审结果时的原文。
+     * @param array{table:string,model:Model,target_id:int,title_key:string,summary_key:string,has_page:bool} $ctx
+     * @param list<string> $fields 采用的字段（source() 形状里的键）
+     * @return string 冲突代码；空串表示已写入
+     */
+    public function accept(array $ctx, array $fields, int $adminId): string
+    {
+        require_once ROOT_PATH . '/includes/content_translation.php';
+        $table = $ctx['table'];
+        $id = $ctx['target_id'];
+        $titleKey = $ctx['title_key'];
+        $summKey = $ctx['summary_key'];
+        $states = new TranslationState($this->db);
+        $this->db->beginTransaction();
+        try {
+            $target = $this->db->lockRow($table, $id);
+            if ($target === null || !empty($target['deleted_at'])) return $this->abort('target_deleted');
+            $page = $ctx['has_page'] ? $this->pageRow($id, true) : null;
+            $link = $states->link($table, $id);
+            $proposal = json_decode((string) ($link['proposal_json'] ?? ''), true);
+            if ($link === null || !is_array($proposal)) return $this->abort('no_proposal');
+            if (TranslationState::rowFingerprint($target, $titleKey, $summKey, $page) !== (string) $link['proposal_target_fp']) return $this->abort('target_changed');
+            $chosen = array_intersect_key($proposal, array_flip(array_intersect($fields, TranslationState::TRACKED)));
+            if ($chosen === []) return $this->abort('nothing_selected');
+
+            $bodyField = translationBodyField($page ?? $target);
+            $changes = self::changes($page !== null ? array_diff_key($chosen, ['content' => true]) : $chosen, $target, $titleKey, $summKey, $bodyField);
+            if ($changes !== [] && array_key_exists('updated_at', $target)) $changes['updated_at'] = time();
+            if ($changes !== []) {
+                $this->recordRevision(self::revisionType($table, $target), $id, (string) ($target['lang'] ?? ''),
+                    [['table' => $table, 'id' => $id, 'fields' => array_intersect_key($target, $changes)]], (string) ($target[$titleKey] ?? ''));
+                $ctx['model']->updateById($id, $changes);
+            }
+            if ($page !== null) {
+                $pageChanges = array_filter(['title' => $chosen['title'] ?? null, 'summary' => $chosen['summary'] ?? null, $bodyField => $chosen['content'] ?? null],
+                    static fn (mixed $value): bool => $value !== null);
+                if ($pageChanges !== []) {
+                    $this->recordRevision('page', $id, (string) ($page['lang'] ?? ''), [['table' => 'contents', 'id' => (int) $page['id'], 'fields' => array_intersect_key($page, $pageChanges)]], (string) $page['title']);
+                    contentModel()->updateById((int) $page['id'], $pageChanges + ['updated_at' => time()]);
+                }
+            }
+            $after = $this->db->fetchOne('SELECT * FROM ' . DB_PREFIX . $table . ' WHERE id = ?', [$id]) ?? $target;
+            $states->markReviewed($table, $id, (int) $link['source_id'], (string) $link['lang'], (string) $link['proposal_source_fp'],
+                TranslationState::rowFingerprint($after, $titleKey, $summKey, $page !== null ? $this->pageRow($id, false) : null), $adminId, time());
+            $states->discardProposal($table, $id, time());
+            adminLog('translate', 'accept', "{$table}#{$id} 采用待审译文字段：" . implode(',', array_keys($chosen)));
+            $this->db->commit();
+        } catch (Throwable $exception) {
+            $this->db->rollback();
+            throw $exception;
+        }
+        return '';
+    }
+
+    /** @param array<string,mixed> $read 同 apply()：源（单页含正文行）的可翻译字段指纹 */
+    public static function sourceFingerprint(array $read): string
+    {
+        return TranslationState::rowFingerprint($read['src'], $read['title_key'], $read['summary_key'], $read['src_page']);
+    }
+
+    /** @param array<string,mixed> $read */
+    private function targetFingerprint(array $read, int $id): string
+    {
+        $row = $this->db->fetchOne('SELECT * FROM ' . DB_PREFIX . $read['table'] . ' WHERE id = ?', [$id]) ?? [];
+        return TranslationState::rowFingerprint($row, $read['title_key'], $read['summary_key'], $read['src_page'] !== null ? $this->pageRow($id, false) : null);
+    }
+
+    /** @return array<string,mixed>|null 单页栏目下的正文行 */
+    private function pageRow(int $channelId, bool $lock): ?array
+    {
+        $page = $this->db->fetchOne('SELECT id FROM ' . DB_PREFIX . 'contents WHERE channel_id = ? ORDER BY id DESC LIMIT 1', [$channelId]);
+        if (!$page) return null;
+        return $lock ? $this->db->lockRow('contents', (int) $page['id']) : $this->db->fetchOne('SELECT * FROM ' . DB_PREFIX . 'contents WHERE id = ?', [(int) $page['id']]);
+    }
+
+    private function abort(string $conflict): string
+    {
+        $this->db->rollback();
+        return $conflict;
+    }
+
+    /** @param array<string,mixed> $row */
+    private static function revisionType(string $table, array $row): string
+    {
+        return match ($table) {
+            'contents' => (string) ($row['type'] ?? 'article'),
+            'products' => 'product',
+            'channels' => 'page',
+            'jobs' => 'job',
+            'downloads' => 'download',
+            default => $table,
+        };
+    }
+
     /** 整行指纹（去掉计数列）。null 表示「当时没有这一行」。 */
     public static function fingerprint(?array $row): string
     {
@@ -121,9 +263,10 @@ final class TranslationWrite
      *        调模型之前读到的状态
      * @param array<string,mixed> $translated translateContentFields() 的结果
      * @param array<string,mixed> $newData 目标语言不存在时要新建的整行
-     * @return array{id:int,conflict:string} conflict 为空表示已写入
+     * @param bool $draftOnly 已发布的译文也不覆盖（批量更新用：不把在线内容改回草稿）
+     * @return array{id:int,conflict:string} conflict 为空表示已写入；target_protected 表示应转为待审结果
      */
-    public function apply(array $read, array $translated, array $newData): array
+    public function apply(array $read, array $translated, array $newData, bool $draftOnly = false): array
     {
         $table = $read['table'];
         $model = $read['model'];
@@ -145,23 +288,17 @@ final class TranslationWrite
             // 历史版本存写入前一刻（已锁定）的内容，而不是调模型前读到的
             $target = $current['target'];
             if ($target) {
-                $changes = [$titleKey => $translated['title'], $summKey => $translated['summary']];
-                if (isset($translated['secondary_summary'])) $changes['summary'] = $translated['secondary_summary'];
-                foreach ($translated as $field => $value) {
-                    if (!in_array($field, ['title', 'summary', 'content'], true) && array_key_exists($field, $target)) $changes[$field] = $value;
+                // 人改过、审过或来历不明的译文不整份覆盖（T04）：交给调用方转成待审结果
+                $state = TranslationState::status((new TranslationState($this->db))->link($table, (int) $target['id']),
+                    self::sourceFingerprint($read), TranslationState::rowFingerprint($target, $titleKey, $summKey, $current['target_page']));
+                if ($state['protected'] || ($draftOnly && (int) ($target['status'] ?? 0) !== 0)) {
+                    $this->db->rollback();
+                    return ['id' => (int) $target['id'], 'conflict' => 'target_protected'];
                 }
-                if (array_key_exists($bodyField, $target)) $changes[$bodyField] = $translated['content'];
+                $changes = self::changes($translated, $target, $titleKey, $summKey, $bodyField);
                 if (array_key_exists('status', $target)) $changes['status'] = 0;
                 if (array_key_exists('updated_at', $target)) $changes['updated_at'] = time();
-                $revisionType = match ($table) {
-                    'contents' => (string) ($src['type'] ?? 'article'),
-                    'products' => 'product',
-                    'channels' => 'page',
-                    'jobs' => 'job',
-                    'downloads' => 'download',
-                    default => $table,
-                };
-                $this->recordRevision($revisionType, (int) $target['id'], $toLang, [['table' => $table, 'id' => (int) $target['id'], 'fields' => array_intersect_key($target, $changes)]], (string) ($target[$titleKey] ?? ''));
+                $this->recordRevision(self::revisionType($table, $src),(int) $target['id'], $toLang, [['table' => $table, 'id' => (int) $target['id'], 'fields' => array_intersect_key($target, $changes)]], (string) ($target[$titleKey] ?? ''));
                 $model->updateById((int) $target['id'], $changes);
                 $newId = (int) $target['id'];
             } else $newId = (int) $model->create($newData);
@@ -194,6 +331,7 @@ final class TranslationWrite
                 default => '',
             };
             if ($extOwner !== '' && !$target) ExtFields::copyValues($extOwner, $srcId, $newId);
+            (new TranslationState($this->db))->recordMachine($table, $newId, $srcId, $toLang, self::sourceFingerprint($read), $this->targetFingerprint($read, $newId), time());
             adminLog('translate', 'create', "为 {$table}#{$srcId} 创建 {$toLang} 翻译 → #{$newId}");
             $this->db->commit();
         } catch (Throwable $exception) {

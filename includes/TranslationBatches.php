@@ -6,8 +6,10 @@
  *   pending → generating（领取、带租约）→ generated（模型结果已落库）→ applied
  *   失败计次，满 3 次 failed；写库时源已变 → conflict；目标语言已有 → exists。
  * 生成结果先落库再写内容：写库失败或进程中断后重试不再调模型；租约过期的项可被重新领取。
- * 只新建缺的译文（草稿），不覆盖已有译文——覆盖已审内容留给 T04。
- * 设计：yikaicms-docs/T03-持久化翻译任务-设计-20261107.md
+ * 两种批次：「翻译缺失项」只新建缺的译文（草稿），已有译文记 exists；
+ * 「更新过期译文」（T04）只收原文改过的已有译文：建批时就带上 target_id——pending 且 target_id>0 即「更新这一条」。
+ * 更新时机器写入、没人改过的草稿直接覆盖；已发布、人改过或审过的不覆盖，存为待审译文（proposed），由人逐字段采用。
+ * 设计：yikaicms-docs/T03-持久化翻译任务-设计-20261107.md、T04-源变更追踪与译文保护-设计-20261107.md
  */
 
 declare(strict_types=1);
@@ -31,12 +33,12 @@ final class TranslationBatches
     }
 
     /**
-     * 建一批。源必须是站点默认语言的产品；已有该语言版本的项记 exists，
-     * 已在别的未完成批次里的组合不再重复排队。
+     * 建一批。源必须是站点默认语言的产品；已在别的未完成批次里的组合不再重复排队。
+     * missing：已有该语言版本的项记 exists。update：只收已有且原文改过的译文，其余跳过（不建项）。
      * @param list<int> $productIds @param list<string> $langs 已校验过的目标语言
-     * @return array{batch_id:int,total:int,queued_elsewhere:int,not_source:int}
+     * @return array{batch_id:int,total:int,queued_elsewhere:int,not_source:int,not_outdated:int}
      */
-    public function create(int $adminId, array $productIds, array $langs, string $defaultLang, int $now): array
+    public function create(int $adminId, array $productIds, array $langs, string $defaultLang, int $now, string $mode = 'missing'): array
     {
         $langs = array_values(array_unique(array_filter($langs, static fn (string $lang): bool => $lang !== '' && $lang !== $defaultLang)));
         $productIds = array_values(array_unique(array_filter(array_map('intval', $productIds), static fn (int $id): bool => $id > 0)));
@@ -48,7 +50,7 @@ final class TranslationBatches
                 'admin_id' => $adminId, 'content_type' => 'product', 'langs' => json_encode($langs, JSON_THROW_ON_ERROR),
                 'status' => 'running', 'total' => 0, 'created_at' => $now, 'updated_at' => $now,
             ]);
-            $total = $elsewhere = $notSource = 0;
+            $total = $elsewhere = $notSource = $notOutdated = 0;
             foreach ($productIds as $id) {
                 $src = $this->product($id);
                 if ($src === null || (string) $src['lang'] !== $defaultLang) {
@@ -63,6 +65,17 @@ final class TranslationBatches
                         continue;
                     }
                     $existing = $this->existingTarget($id, $lang);
+                    if ($mode === 'update') {
+                        if ($existing === 0 || !$this->outdated($src, $existing)) {
+                            $notOutdated++;
+                            continue;
+                        }
+                        $this->db->insert('translation_batch_items', [
+                            'batch_id' => $batchId, 'source_id' => $id, 'lang' => $lang, 'status' => 'pending', 'target_id' => $existing, 'updated_at' => $now,
+                        ]);
+                        $total++;
+                        continue;
+                    }
                     $this->db->insert('translation_batch_items', [
                         'batch_id' => $batchId, 'source_id' => $id, 'lang' => $lang,
                         'status' => $existing > 0 ? 'exists' : 'pending', 'target_id' => $existing, 'updated_at' => $now,
@@ -77,7 +90,7 @@ final class TranslationBatches
             throw $error;
         }
         $this->finishIfDone($batchId, $now);
-        return ['batch_id' => $batchId, 'total' => $total, 'queued_elsewhere' => $elsewhere, 'not_source' => $notSource];
+        return ['batch_id' => $batchId, 'total' => $total, 'queued_elsewhere' => $elsewhere, 'not_source' => $notSource, 'not_outdated' => $notOutdated];
     }
 
     /**
@@ -192,7 +205,13 @@ final class TranslationBatches
             return null;
         }
         $existing = $this->existingTarget((int) $src['id'], (string) $item['lang']);
-        if ($existing > 0) {
+        if ((int) $item['target_id'] > 0) {
+            // 更新项：译文在排队后被删掉了就不再生成
+            if ($existing !== (int) $item['target_id']) {
+                $this->mark($id, 'failed', ['error' => 'target_missing'], $now);
+                return null;
+            }
+        } elseif ($existing > 0) {
             $this->mark($id, 'exists', ['target_id' => $existing], $now);
             return null;
         }
@@ -235,13 +254,30 @@ final class TranslationBatches
         $lang = (string) $row['lang'];
         $groupId = (int) ($src['translation_group_id'] ?: $src['id']);
         $bodyField = translationBodyField($src);
+        $target = null;
+        if ((int) $row['target_id'] > 0) {
+            $target = $this->product((int) $row['target_id']);
+            if ($target === null) {
+                $this->mark($id, 'failed', ['error' => 'target_missing'], $now);
+                return;
+            }
+        }
         $read = [
             'table' => 'products', 'model' => productModel(), 'lang' => $lang, 'group_id' => $groupId,
-            'src' => $src, 'src_page' => null, 'target' => null, 'target_page' => null,
+            'src' => $src, 'src_page' => null, 'target' => $target, 'target_page' => null,
             'title_key' => 'title', 'summary_key' => 'summary', 'body_field' => $bodyField,
         ];
         try {
-            $written = (new TranslationWrite($this->db))->apply($read, $translated, TranslationWrite::newRow('products', $src, $translated, $lang, $groupId, 'title', 'summary', $bodyField));
+            $writer = new TranslationWrite($this->db);
+            // 更新已有译文：已发布的也不覆盖（不把在线内容改回草稿），与受保护的一样存为待审
+            $written = $writer->apply($read, $translated, TranslationWrite::newRow('products', $src, $translated, $lang, $groupId, 'title', 'summary', $bodyField), $target !== null);
+            if ($written['conflict'] === 'target_protected') {
+                $written = $writer->propose($read, $translated);
+                if ($written['conflict'] === '') {
+                    $this->mark($id, 'proposed', ['target_id' => $written['id'], 'error' => ''], $now);
+                    return;
+                }
+            }
         } catch (Throwable $error) {
             // 结果还在，下一轮直接重试写库，不再调模型
             $this->mark($id, 'generated', ['error' => mb_substr($error->getMessage(), 0, 250)], $now);
@@ -289,6 +325,15 @@ final class TranslationBatches
     {
         $groupId = (int) ($this->db->fetchColumn('SELECT translation_group_id FROM ' . DB_PREFIX . 'products WHERE id = ?', [$sourceId]) ?: $sourceId);
         return (int) ($this->db->fetchColumn('SELECT id FROM ' . DB_PREFIX . 'products WHERE translation_group_id = ? AND lang = ? AND id <> ? AND deleted_at IS NULL LIMIT 1', [$groupId, $lang, $sourceId]) ?: 0);
+    }
+
+    /** 已有译文的原文在生成/审阅之后改过（未追踪的译文不知道来历，不算） @param array<string,mixed> $src */
+    private function outdated(array $src, int $targetId): bool
+    {
+        $link = (new TranslationState($this->db))->link('products', $targetId);
+        $target = $this->product($targetId);
+        if ($link === null || $target === null) return false;
+        return TranslationState::status($link, TranslationState::rowFingerprint($src, 'title', 'summary'), TranslationState::rowFingerprint($target, 'title', 'summary'))['outdated'];
     }
 
     private function openElsewhere(int $sourceId, string $lang): bool

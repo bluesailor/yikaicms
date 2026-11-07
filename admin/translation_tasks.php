@@ -3,7 +3,8 @@
  * Yikai CMS - 批量翻译任务（评审 T03，第一条切片：产品）
  *
  * 产品列表勾选 → 选语言 → 在这里逐项用 AI 翻成草稿。页面按批调用 step，关掉即停，
- * 回来点「继续」接着跑；生成结果先落库，中断后不重新调模型。只新建缺的译文，不覆盖已有译文。
+ * 回来点「继续」接着跑；生成结果先落库，中断后不重新调模型。「翻译缺失项」只新建缺的译文；
+ * 「更新过期译文」（T04）只覆盖机器写入、没人改过的草稿，其余存为待审译文。
  * 状态机与恢复规则见 includes/TranslationBatches.php。
  */
 
@@ -32,7 +33,7 @@ $itemView = static function (array $item) use ($languages): array {
         'id' => (int) $item['id'], 'source_id' => (int) $item['source_id'], 'source_title' => (string) ($item['source_title'] ?? ''),
         'lang' => (string) $item['lang'], 'lang_name' => (string) ($languages[$item['lang']] ?? $item['lang']),
         'status' => (string) $item['status'], 'attempts' => (int) $item['attempts'], 'target_id' => (int) $item['target_id'],
-        'note' => in_array($error, ['source_missing', 'source_changed'], true) ? __('tbt_err_' . $error) : $error,
+        'note' => in_array($error, ['source_missing', 'source_changed', 'target_missing'], true) ? __('tbt_err_' . $error) : $error,
     ];
 };
 
@@ -50,14 +51,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (!aiService()->isConfigured()) error(__('tbt_err_ai'));
         $ids = array_slice(array_map('intval', (array) ($_POST['ids'] ?? [])), 0, 500);
         try {
-            $created = $service->create(getAdminId(), $ids, $langs, $defaultLang, $now);
+            $created = $service->create(getAdminId(), $ids, $langs, $defaultLang, $now, ($_POST['mode'] ?? '') === 'update' ? 'update' : 'missing');
         } catch (InvalidArgumentException) {
             error(__('tbt_err_empty'));
         }
-        if ($created['total'] === 0) error(__('tbt_err_empty'));
+        if ($created['total'] === 0) error(__($created['not_outdated'] > 0 ? 'tss_nothing_outdated' : 'tbt_err_empty'));
         adminLog('translate', 'batch_create', "批量翻译 #{$created['batch_id']}：{$created['total']} 项");
         success(['id' => $created['batch_id']], __('tbt_created', [
-            'total' => (string) $created['total'], 'elsewhere' => (string) $created['queued_elsewhere'], 'skipped' => (string) $created['not_source'],
+            'total' => (string) $created['total'], 'elsewhere' => (string) $created['queued_elsewhere'], 'skipped' => (string) ($created['not_source'] + $created['not_outdated']),
         ]));
     }
 
@@ -89,7 +90,7 @@ $batchId = (int) ($_GET['id'] ?? 0);
 $batch = $tablesReady && $batchId > 0 ? $service->batch($batchId) : null;
 $batches = $tablesReady && $batch === null ? $service->recent(30) : [];
 $statusLabels = [];
-foreach (['pending', 'generating', 'generated', 'applied', 'exists', 'conflict', 'failed', 'cancelled', 'running', 'paused', 'done'] as $status) {
+foreach (['pending', 'generating', 'generated', 'applied', 'proposed', 'exists', 'conflict', 'failed', 'cancelled', 'running', 'paused', 'done'] as $status) {
     $statusLabels[$status] = __('tbt_st_' . $status);
 }
 $langNames = static fn (string $json): string => implode(', ', array_map(static fn (string $lang): string => (string) ($languages[$lang] ?? $lang), (array) json_decode($json, true)));
@@ -101,6 +102,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-800"><?php echo e(__('tbt_title')); ?></h1>
         <p class="text-sm text-gray-500 mt-1 max-w-3xl"><?php echo e(__('tbt_intro')); ?></p>
+        <p class="text-sm mt-1"><a class="text-primary hover:underline" href="<?php echo e(BasePath::url('/admin/translation_status.php')); ?>"><?php echo e(__('tss_title')); ?></a></p>
     </div>
 
     <?php if (!$tablesReady): ?>
@@ -165,7 +167,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
     <script>
     const tbtLabels = <?php echo json_encode($statusLabels, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;
-    const tbtText = <?php echo json_encode(['open' => __('tbt_open'), 'running' => __('tbt_running')], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;
+    const tbtText = <?php echo json_encode(['open' => __('tbt_open'), 'review' => __('tbt_review'), 'running' => __('tbt_running')], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;
     const tbtEditUrl = <?php echo json_encode(BasePath::url('/admin/product_edit.php?id='), JSON_UNESCAPED_SLASHES); ?>;
     const tbtOpen = ['pending', 'generating', 'generated'];
     let tbtState = { status: <?php echo json_encode((string) $batch['status']); ?>, counts: <?php echo json_encode((object) $service->counts((int) $batch['id'])); ?>, items: <?php echo json_encode(array_map($itemView, $service->items((int) $batch['id'])), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?> };
@@ -190,7 +192,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 tbtCell(item.source_title || ('#' + item.source_id), tbtEditUrl + item.source_id),
                 tbtCell(item.lang_name),
                 tbtCell(tbtLabels[item.status] || item.status),
-                item.target_id ? tbtCell(tbtText.open, tbtEditUrl + item.target_id) : tbtCell(item.note || ''),
+                item.target_id && !tbtOpen.includes(item.status) ? tbtCell(item.status === 'proposed' ? tbtText.review : tbtText.open, tbtEditUrl + item.target_id) : tbtCell(item.note || ''),
             );
             return tr;
         }));

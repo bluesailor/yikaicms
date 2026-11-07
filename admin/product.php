@@ -346,6 +346,7 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
                 'batch_delete'    => __('admin_move_to_trash'),
             ] + ($_tbtLangs !== [] ? ['batch_translate' => __('tbt_bulk')] : [])); ?>
             <?php if ($_tbtLangs !== []): ?>
+            <a href="<?php echo e(BasePath::url('/admin/translation_status.php')); ?>" class="text-sm text-primary hover:underline"><?php echo e(__('tss_title')); ?></a>
             <a href="<?php echo e(BasePath::url('/admin/translation_tasks.php')); ?>" class="text-sm text-primary hover:underline"><?php echo e(__('tbt_title')); ?></a>
             <?php endif; ?>
 

@@ -38,6 +38,28 @@ async function saveLanguages(page, enabled) {
   expect((await response.json()).code).toBe(0);
 }
 
+async function useMockAi(page) {
+  await page.goto('/admin/setting_ai.php');
+  await page.locator('#aiProfileName').fill('Mock translate');
+  await page.locator('input[name="ai_provider"][value="custom_openai"]').check({ force: true });
+  await page.locator('#aiApiKey').fill('key-translate-1');
+  await page.locator('#aiModelInput').fill('model-t');
+  await page.locator('#aiTranslationModel').fill('');
+  await page.locator('#aiBaseUrl').fill(`${mockBase}/translate/v1`);
+  await page.getByTestId('ai-profile-save').click();
+  await page.waitForURL(/\?profile=\d+/);
+}
+async function saveProduct(page, id, title, body) {
+  await page.goto(`/admin/product_edit.php?id=${id}`);
+  // 提交时正文取自编辑器；隔离站点里编辑器不一定加载得出来，这里绕过它、明确给出正文
+  await page.evaluate((html) => { window.editor = null; document.getElementById('contentInput').value = html; }, body);
+  await page.locator('input[name="title"]').fill(title);
+  const response = page.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname === '/admin/product_edit.php');
+  await page.locator('#editForm button[type=submit]').click();
+  const result = await (await response).json();
+  expect(result.code, JSON.stringify(result)).toBe(0);
+}
+
 test.beforeAll(async () => {
   const port = await freePort();
   mockLog = path.join(os.tmpdir(), `ai-mock-tbt-${process.pid}-${Date.now()}.jsonl`);
@@ -59,15 +81,7 @@ test('batch translation turns selected products into draft translations', async 
   await saveLanguages(page, ['zh-CN', 'en']);
   try {
     // 主 API 指向模拟上游
-    await page.goto('/admin/setting_ai.php');
-    await page.locator('#aiProfileName').fill('Mock translate');
-    await page.locator('input[name="ai_provider"][value="custom_openai"]').check({ force: true });
-    await page.locator('#aiApiKey').fill('key-translate-1');
-    await page.locator('#aiModelInput').fill('model-t');
-    await page.locator('#aiTranslationModel').fill('');
-    await page.locator('#aiBaseUrl').fill(`${mockBase}/translate/v1`);
-    await page.getByTestId('ai-profile-save').click();
-    await page.waitForURL(/\?profile=\d+/);
+    await useMockAi(page);
 
     // 复制两个产品：副本没有任何译文
     await page.goto('/admin/product.php?lang=zh-CN');
@@ -109,6 +123,65 @@ test('batch translation turns selected products into draft translations', async 
 
     const translateCalls = fs.readFileSync(mockLog, 'utf8').split('\n').filter((line) => line.includes('/translate/v1/chat/completions'));
     expect(translateCalls.length).toBeGreaterThan(0);
+  } finally {
+    await saveLanguages(page, ['zh-CN']);
+  }
+});
+
+// T04：原文改了 → 状态页标过期 → 人改过的译文批量更新时转待审 → 逐字段采用 → 已审
+test('outdated translations are flagged and edited ones are reviewed field by field', async ({ page }, info) => {
+  test.skip(info.project.name !== 'desktop-1440', 'one viewport is enough');
+  test.setTimeout(180000);
+
+  await saveLanguages(page, ['zh-CN', 'en']);
+  try {
+    await useMockAi(page);
+    await page.goto('/admin/product.php?lang=zh-CN');
+    const firstId = await page.locator('input[name="ids[]"]').first().getAttribute('value');
+    const copy = String((await (await page.request.post('/admin/product.php', { multipart: { action: 'duplicate', id: firstId, _token: await csrf(page) } })).json()).data.id);
+
+    const created = await (await page.request.post('/admin/translation_tasks.php', { multipart: { action: 'create', 'ids[]': copy, 'langs[]': 'en', _token: await csrf(page) } })).json();
+    expect(created.code).toBe(0);
+    await page.goto(`/admin/translation_tasks.php?id=${created.data.id}`);
+    await page.locator('#tbtRun').click();
+    await expect(page.locator('#tbtRows')).toContainText(/已存为草稿|Saved as draft/, { timeout: 60000 });
+    const target = new URL(await page.locator('#tbtRows a', { hasText: /打开译文|Open translation/ }).getAttribute('href'), page.url()).searchParams.get('id');
+
+    const cell = page.locator(`tr[data-source="${copy}"] td[data-lang="en"]`);
+    await page.goto('/admin/translation_status.php');
+    await expect(cell).toContainText(/最新|Up to date/);
+
+    // 原文改标题 → 过期；有人手改了译文标题 → 受保护
+    await saveProduct(page, copy, `T04 source ${copy} v2`, '<p>Stable body</p>');
+    await saveProduct(page, target, 'Hand edited title', '<p>Hand edited body</p>');
+    await page.goto('/admin/translation_status.php?filter=outdated');
+    await expect(cell).toContainText(/原文已改|Original changed/);
+
+    await page.locator(`tr[data-source="${copy}"] input[type=checkbox]`).check();
+    await page.locator('#tssUpdate').click();
+    await page.waitForURL(/translation_tasks\.php\?id=\d+/);
+    await page.locator('#tbtRun').click();
+    await expect(page.locator('#tbtRows')).toContainText(/已存为待审|Saved for review/, { timeout: 60000 });
+
+    // 只采用标题；其余字段保持
+    await page.locator('#tbtRows a', { hasText: /去审阅|Review/ }).click();
+    const panel = page.locator('#lseProposal');
+    await expect(panel).toBeVisible();
+    // 原文正文换过：新译文的正文有内容，人改过的正文作为「现有」并列（下面不采用它）
+    const body = panel.locator('fieldset', { has: page.locator('input[value="content"]') }).locator('textarea');
+    await expect(body.nth(0)).toHaveValue('<p>Hand edited body</p>');
+    await expect(body.nth(1)).toHaveValue(/Translated \d+/);
+    await info.attach('translation-proposal-panel', { body: await panel.screenshot(), contentType: 'image/png' });
+    for (const box of await panel.locator('input[type=checkbox]').all()) {
+      if ((await box.getAttribute('value')) !== 'title') await box.uncheck();
+    }
+    await page.locator('#lseAccept').click();
+    await expect(panel).toBeHidden({ timeout: 15000 });
+    await expect(page.locator('input[name="title"]')).toHaveValue(/^Translated \d+/);
+    await expect(page.locator('[data-translation-state="en"]')).toContainText(/已审|Reviewed/);
+
+    await page.goto('/admin/translation_status.php');
+    await expect(cell).toContainText(/已审|Reviewed/);
   } finally {
     await saveLanguages(page, ['zh-CN']);
   }
