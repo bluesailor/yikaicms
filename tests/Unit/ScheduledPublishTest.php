@@ -36,12 +36,17 @@ final class ScheduledPublishTest extends TestCase
         self::assertSame(['status' => 1, 'publish_time' => strtotime($future)], ScheduledPublish::normalize(1, $future, 1_700_000_000, self::NOW));
     }
 
-    /** 三个编辑页（文章、产品、通用内容）共用这一条规则，不各写一份 */
+    /** 编辑页及产品草稿服务共用规则，同时检查委托入口，防止校验链断开。 */
     public function testEveryEditorUsesTheSharedRule(): void
     {
-        foreach (['admin/article_edit.php', 'admin/product_edit.php', 'admin/content_edit.php'] as $file) {
+        foreach ([
+            'admin/article_edit.php' => 'ScheduledPublish::normalize(',
+            'admin/content_edit.php' => 'ScheduledPublish::normalize(',
+            'admin/product_edit.php' => 'ProductEditDraft::save(',
+            'includes/ProductEditDraft.php' => 'ScheduledPublish::normalize(',
+        ] as $file => $rule) {
             $src = (string) file_get_contents(ROOT_PATH . '/' . $file);
-            self::assertStringContainsString('ScheduledPublish::normalize(', $src, $file);
+            self::assertStringContainsString($rule, $src, $file);
             self::assertDoesNotMatchRegularExpression("/\\\$data\\['status'\\]\\s*=\\s*3\\s*;/", $src, "{$file} 不应自己把状态改成定时");
         }
     }

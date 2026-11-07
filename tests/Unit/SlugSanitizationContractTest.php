@@ -19,14 +19,15 @@ use PHPUnit\Framework\TestCase;
 final class SlugSanitizationContractTest extends TestCase
 {
     /**
-     * 会把 slug 落库的后台入口 => 该文件里必须出现的净化调用之一。
+     * slug 写入入口及其委托服务 => 必须出现的净化调用或下一级服务。
      * 新增写 slug 的入口时，一并在此登记（登记即自查：它真的净化了吗）。
      */
     private const SLUG_WRITERS = [
         'admin/channel.php'           => ['normalizeSlugInput(', 'resolveSlug('],
         'admin/content_edit.php'      => ['resolveSlug('],
         'admin/article_edit.php'      => ['resolveSlug('],
-        'admin/product_edit.php'      => ['resolveSlug('],
+        'admin/product_edit.php'      => ['ProductEditDraft::save('],
+        'includes/ProductEditDraft.php' => ['resolveSlug('],
         'admin/product_category.php'  => ['resolveSlug('],
         'admin/product_brand.php'     => ['normalizeSlugInput(', 'resolveSlug('],
         'admin/product_tag.php'       => ['normalizeSlugInput(', 'resolveSlug('],
