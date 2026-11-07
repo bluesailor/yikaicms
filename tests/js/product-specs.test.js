@@ -87,10 +87,10 @@ test('array-form translated specs retain names and values when appending, editin
     keyInput.listeners.change();
     const valueInput = e.ids.specsList.children[1].children[1];
     valueInput.value = '-20 ～ +60 °C';
-    valueInput.listeners.change();
+    valueInput.listeners.input();
     data = JSON.parse(e.ids.specsInput.value);
     assert.equal(data[1].name, 'Operating temperature');
-    assert.equal(data[1].value, '-20 ～ +60 °C');
+    assert.equal(data[1].value, '-20 ～ +60 °C', 'typing must update the saved value before blur');
     e.ids.specsList.children[0].children.at(-1).listeners.click();
     assert.equal(JSON.parse(e.ids.specsInput.value).length, 1);
 });
