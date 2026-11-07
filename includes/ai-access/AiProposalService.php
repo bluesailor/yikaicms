@@ -6,10 +6,11 @@ require_once __DIR__ . '/AiAccessAuthContext.php';
 require_once __DIR__ . '/AiArticleDraftRules.php';
 require_once __DIR__ . '/AiPageContentRules.php';
 require_once __DIR__ . '/AiPageDocumentSource.php';
+require_once __DIR__ . '/AiProductContentRules.php';
 require_once dirname(__DIR__) . '/models/autoload.php';
 
 /**
- * 文章草稿提案与单页内容提案（S5-03）的唯一事务所有者（ADR-002）：提案写入、应用、撤销各开恰好一个事务。
+ * 文章草稿提案、单页内容提案（S5-03）与产品内容提案（T05）的唯一事务所有者（ADR-002）：提案写入、应用、撤销各开恰好一个事务。
  * 锁顺序固定为 令牌 → 用户 → 角色 → 提案项 → 变更日志 → 目标文章/栏目。
  * 单页提案应用时锁栏目行（与编辑器保存 BloxDocumentWriteLock::channel 同一把锁），只写草稿行，不碰已发布内容。
  * 原型依赖预建表；本类不建表、不调用模型生成、不访问网络。
@@ -98,6 +99,69 @@ final class AiProposalService
                 'SELECT id, public_id, payload_hash FROM ' . DB_PREFIX . 'ai_proposals WHERE owner_id = ? AND source_ns = ? AND tool = ? AND idempotency_key = ?',
                 [$source['owner'], $source['ns'], $tool, $idempotencyKey]
             );
+            if ($existing === null) throw $this->infrastructure($error);
+            return $this->replay($existing, $hash);
+        } catch (Throwable $error) {
+            throw $this->infrastructure($error);
+        }
+    }
+
+    /**
+     * 产品内容提案（T05）：只改草稿产品的摘要、详情与 SEO 文案。提交时就核对每个目标：
+     * 必须是同语言草稿、base_revision 必须等于当前指纹（客户端按旧版本写的文案不入队）。
+     * @param list<mixed> $items
+     */
+    public function proposeProductFromToken(AiAccessAuthContext $context, string $idempotencyKey, array $items, int $now): array
+    {
+        $source = ['owner' => $context->actorId, 'token' => $context->tokenId, 'ns' => 'token:' . $context->tokenId];
+        if (preg_match('/^[A-Za-z0-9._:-]{8,128}$/D', $idempotencyKey) !== 1 || $source['owner'] < 1) throw new RuntimeException('ai_proposal_invalid_input', 400);
+        $normalized = AiProductContentRules::normalizeItems($items);
+        $hash = AiProductContentRules::payloadHash($normalized);
+        $tool = AiProductContentRules::TOOL;
+        $find = fn (): ?array => $this->db->fetchOne(
+            'SELECT id, public_id, payload_hash FROM ' . DB_PREFIX . 'ai_proposals WHERE owner_id = ? AND source_ns = ? AND tool = ? AND idempotency_key = ?',
+            [$source['owner'], $source['ns'], $tool, $idempotencyKey]
+        );
+        try {
+            return $this->transaction(function () use ($source, $idempotencyKey, $normalized, $hash, $now, $tool, $find): array {
+                $verdict = $this->lockSource($source['owner'], $source['token'], $now, $tool);
+                $this->check('propose.locked');
+                if ($verdict !== null) throw new RuntimeException('ai_proposal_source_denied', 403);
+                $existing = $find();
+                if ($existing !== null) return $this->replay($existing, $hash);
+                $pending = (int) $this->db->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . "ai_proposal_items WHERE owner_id = ? AND status = 'pending'", [$source['owner']]);
+                if ($pending + count($normalized) > self::MAX_PENDING_ITEMS) throw new RuntimeException('ai_proposal_quota_exceeded', 429);
+                foreach ($normalized as $item) {
+                    $row = $this->db->fetchOne('SELECT * FROM ' . DB_PREFIX . 'products WHERE id = ?', [(int) $item['id']]);
+                    if (!AiProductContentRules::acceptsUpdate($this->db, $row, (string) $item['lang'])) throw new RuntimeException('ai_proposal_invalid_target', 422);
+                    if (!hash_equals(AiProductContentRules::fingerprint((array) $row, AiProductContentRules::metas($this->db, (int) $item['id'])), (string) $item['base_revision'])) {
+                        throw new RuntimeException('ai_proposal_stale_revision', 409);
+                    }
+                }
+                $setPublic = bin2hex(random_bytes(16));
+                $this->db->execute(
+                    'INSERT INTO ' . DB_PREFIX . 'ai_proposals (public_id, owner_id, source_ns, token_id, tool, idempotency_key, payload_hash, contract_version, created_at, expires_at)'
+                    . ' VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)',
+                    [$setPublic, $source['owner'], $source['ns'], $source['token'], $tool, $idempotencyKey, $hash, AiProductContentRules::CONTRACT, $now, $now + self::TTL]
+                );
+                $setId = (int) $this->db->getPdo()->lastInsertId();
+                $out = [];
+                foreach ($normalized as $seq => $item) {
+                    $itemPublic = bin2hex(random_bytes(16));
+                    $json = json_encode($item, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE);
+                    $this->db->execute(
+                        'INSERT INTO ' . DB_PREFIX . 'ai_proposal_items (public_id, proposal_id, seq, owner_id, operation, target_id, lang, channel_id, input_json, input_hash, base_revision, contract_version, status, created_at)'
+                        . " VALUES (?, ?, ?, ?, ?, ?, ?, 0, ?, ?, ?, ?, 'pending', ?)",
+                        [$itemPublic, $setId, $seq, $source['owner'], AiProductContentRules::OPERATION, (int) $item['id'], $item['lang'], $json, hash('sha256', $json),
+                            $item['base_revision'], AiProductContentRules::CONTRACT, $now]
+                    );
+                    $out[] = ['item_id' => $itemPublic, 'op' => AiProductContentRules::OPERATION, 'status' => 'pending'];
+                }
+                return ['proposal_id' => $setPublic, 'items' => $out, 'replayed' => false];
+            });
+        } catch (PDOException $error) {
+            if ((string) $error->getCode() !== '23000') throw $this->infrastructure($error);
+            $existing = $find();
             if ($existing === null) throw $this->infrastructure($error);
             return $this->replay($existing, $hash);
         } catch (Throwable $error) {
@@ -199,9 +263,10 @@ final class AiProposalService
         // 他人提案与不存在同样处理，不泄漏存在性。
         if ($pre === null || (int) $pre['owner_id'] !== $adminId) throw new RuntimeException('ai_proposal_not_found', 404);
         $page = (string) $pre['tool'] === AiPageContentRules::TOOL;
+        $product = (string) $pre['tool'] === AiProductContentRules::TOOL;
         $logId = 0;
         try {
-            return $this->transaction(function () use ($pre, $itemId, $now, $page, &$logId): array {
+            return $this->transaction(function () use ($pre, $itemId, $now, $page, $product, &$logId): array {
                 $verdict = $this->lockSource((int) $pre['owner_id'], (int) $pre['token_id'], $now, (string) $pre['tool']);
                 $item = $this->lock('ai_proposal_items', (int) $pre['id']);
                 $this->check('apply.locked');
@@ -218,12 +283,13 @@ final class AiProposalService
                 }
                 $input = json_decode((string) $item['input_json'], true, 8, JSON_THROW_ON_ERROR);
                 if (!is_array($input) || !hash_equals((string) $item['input_hash'], hash('sha256', (string) $item['input_json']))
-                    || $item['contract_version'] !== ($page ? AiPageContentRules::CONTRACT : AiArticleDraftRules::CONTRACT)
-                    || ($input['op'] === AiPageContentRules::OPERATION) !== $page) {
+                    || $item['contract_version'] !== ($page ? AiPageContentRules::CONTRACT : ($product ? AiProductContentRules::CONTRACT : AiArticleDraftRules::CONTRACT))
+                    || ($input['op'] === AiPageContentRules::OPERATION) !== $page || ($input['op'] === AiProductContentRules::OPERATION) !== $product) {
                     return $this->decide($item, 'conflicted', 'contract_changed', $now);
                 }
                 $write = match (true) {
                     $page => $this->applyPage($item, $input, $now),
+                    $product => $this->applyProduct($item, $input, $now),
                     $input['op'] === 'create' => $this->applyCreate($item, $input, $now),
                     default => $this->applyUpdate($item, $input, $now),
                 };
@@ -233,15 +299,15 @@ final class AiProposalService
                 $this->db->execute(
                     'INSERT INTO ' . DB_PREFIX . 'ai_change_log (admin_id, admin_name, ability, target, summary, before_json, input_json, created_at, undone, undone_at,'
                     . ' proposal_item_id, source_ns, target_type, target_id, operation, after_revision, undone_by) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, ?, ?, ?, ?, ?, ?, 0)',
-                    [(int) $item['owner_id'], (string) ($owner['username'] ?? ''), $page ? AiPageContentRules::TOOL : self::TOOL, ($page ? 'page#' : 'contents#') . $write['id'],
+                    [(int) $item['owner_id'], (string) ($owner['username'] ?? ''), (string) $pre['tool'], ($page ? 'page#' : ($product ? 'products#' : 'contents#')) . $write['id'],
                         mb_substr($input['op'] . ': ' . $write['title'], 0, 200),
                         $write['before'] === null ? null : json_encode($write['before'], JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE),
                         json_encode(['proposal_item' => $itemId], JSON_THROW_ON_ERROR), $now,
-                        (int) $item['id'], (string) $pre['source_ns'], $page ? 'page' : 'article', $write['id'], $input['op'], $write['after']]
+                        (int) $item['id'], (string) $pre['source_ns'], $page ? 'page' : ($product ? 'product' : 'article'), $write['id'], $input['op'], $write['after']]
                 );
                 $logId = (int) $this->db->getPdo()->lastInsertId();
-                // 单页结果不是文章：result_content_id 留 0，页面编号在 target_id 上
-                $contentId = $page ? 0 : $write['id'];
+                // 单页、产品的结果不是文章：result_content_id 留 0，页面/产品编号在 target_id 上
+                $contentId = $page || $product ? 0 : $write['id'];
                 $this->db->execute(
                     'UPDATE ' . DB_PREFIX . "ai_proposal_items SET status = 'applied', status_reason = '', result_content_id = ?, result_revision = ?, change_log_id = ?, decided_by = ?, decided_at = ? WHERE id = ? AND status = 'pending'",
                     [$contentId, $write['after'], $logId, (int) $item['owner_id'], $now, (int) $item['id']]
@@ -355,6 +421,7 @@ final class AiProposalService
         $pre = $this->db->fetchOne('SELECT id, admin_id, proposal_item_id, target_type FROM ' . DB_PREFIX . 'ai_change_log WHERE id = ?', [$logId]);
         if ($pre === null || (int) $pre['admin_id'] !== $adminId || (int) $pre['proposal_item_id'] < 1) throw new RuntimeException('ai_proposal_not_found', 404);
         if ((string) $pre['target_type'] === 'page') return $this->undoPage($adminId, $pre, $now);
+        if ((string) $pre['target_type'] === 'product') return $this->undoProduct($adminId, $pre, $now);
         // 未知目标类型绝不按文章处理：页面编号当文章编号回写会改错行。
         if ((string) $pre['target_type'] !== 'article') throw new RuntimeException('ai_proposal_undo_unsupported', 409);
         try {
@@ -493,6 +560,77 @@ final class AiProposalService
         }
     }
 
+    /**
+     * 产品内容提案的写入（T05）：锁产品行后重算指纹（含 SEO metas），必须仍等于提案基线且仍是同语言草稿；
+     * 只写提案里出现的字段，不碰标题、型号、参数、价格、状态。改前值进变更日志，供条件撤销。
+     * @return array{id:int,title:string,before:?array,after:string}|array{conflict:string}
+     */
+    private function applyProduct(array $item, array $input, int $now): array
+    {
+        $id = (int) $input['id'];
+        $row = $this->lock('products', $id);
+        if ($row === null || $row['deleted_at'] !== null) return ['conflict' => 'product_deleted'];
+        $metas = AiProductContentRules::metas($this->db, $id);
+        if (!hash_equals((string) $item['base_revision'], AiProductContentRules::fingerprint($row, $metas))) {
+            return ['conflict' => (int) $row['status'] !== 0 ? 'product_published' : 'product_changed'];
+        }
+        if (!AiProductContentRules::acceptsUpdate($this->db, $row, (string) $input['lang'])) return ['conflict' => 'product_not_draft'];
+        $rowFields = array_intersect_key($input, array_flip(AiProductContentRules::ROW_FIELDS));
+        $metaFields = array_intersect_key($input, array_flip(AiProductContentRules::META_FIELDS));
+        $before = array_map(static fn (mixed $value): string => (string) $value, array_intersect_key($row, $rowFields) + array_intersect_key($metas, $metaFields));
+        $this->db->update('products', $rowFields + ['updated_at' => $now], 'id = ?', [$id]);
+        foreach ($metaFields as $key => $value) $this->setProductMeta($id, (string) $key, (string) $value, $now);
+        $after = $this->lock('products', $id);
+        if ($after === null) throw new RuntimeException('ai_proposal_unavailable', 503);
+        return ['id' => $id, 'title' => (string) $after['title'], 'before' => $before, 'after' => AiProductContentRules::fingerprint($after, AiProductContentRules::metas($this->db, $id))];
+    }
+
+    /**
+     * 产品提案的撤销：只有产品仍等于应用后的版本（行与 SEO metas 都没再动过）才写回改前值；
+     * 之后的人工编辑、发布、删除一律冲突，不覆盖。按后台当前身份要求 edit_product。
+     * @param array<string,mixed> $pre
+     */
+    private function undoProduct(int $adminId, array $pre, int $now): array
+    {
+        try {
+            return $this->transaction(function () use ($adminId, $pre, $now): array {
+                $verdict = $this->lockSource($adminId, 0, $now, AiProductContentRules::TOOL);
+                $item = $this->lock('ai_proposal_items', (int) $pre['proposal_item_id']);
+                $log = $this->lock('ai_change_log', (int) $pre['id']);
+                $this->check('undo.locked');
+                if ($verdict !== null) throw new RuntimeException('ai_proposal_actor_denied', 403);
+                if ($item === null || $log === null) throw new RuntimeException('ai_proposal_not_found', 404);
+                if ((int) $log['undone'] === 1) return ['log_id' => (int) $log['id'], 'status' => 'reverted', 'replayed' => true];
+                $id = (int) $log['target_id'];
+                $row = $this->lock('products', $id);
+                if ($row === null || !hash_equals((string) $log['after_revision'], AiProductContentRules::fingerprint($row, AiProductContentRules::metas($this->db, $id)))) {
+                    throw new RuntimeException('ai_proposal_undo_conflict', 409);
+                }
+                $before = json_decode((string) $log['before_json'], true, 8, JSON_THROW_ON_ERROR);
+                if (!is_array($before) || $before === []) throw new RuntimeException('ai_proposal_undo_conflict', 409);
+                $this->db->update('products', array_intersect_key($before, array_flip(AiProductContentRules::ROW_FIELDS)) + ['updated_at' => $now], 'id = ?', [$id]);
+                foreach (array_intersect_key($before, array_flip(AiProductContentRules::META_FIELDS)) as $key => $value) $this->setProductMeta($id, (string) $key, (string) $value, $now);
+                $this->db->execute('UPDATE ' . DB_PREFIX . 'ai_change_log SET undone = 1, undone_at = ?, undone_by = ? WHERE id = ? AND undone = 0', [$now, $adminId, (int) $log['id']]);
+                $this->db->execute('UPDATE ' . DB_PREFIX . "ai_proposal_items SET status = 'reverted', status_reason = 'undone' WHERE id = ? AND status = 'applied'", [(int) $item['id']]);
+                $this->check('undo.before_commit');
+                return ['log_id' => (int) $log['id'], 'status' => 'reverted', 'replayed' => false];
+            });
+        } catch (Throwable $error) {
+            throw $this->infrastructure($error);
+        }
+    }
+
+    /** 产品 SEO meta 写入（metas 有 owner_type+owner_id+meta_key 唯一键）：有则改、无则建 */
+    private function setProductMeta(int $productId, string $key, string $value, int $now): void
+    {
+        $where = "owner_type = 'product' AND owner_id = ? AND meta_key = ?";
+        if ($this->db->fetchOne('SELECT id FROM ' . DB_PREFIX . "metas WHERE {$where}", [$productId, $key]) !== null) {
+            $this->db->execute('UPDATE ' . DB_PREFIX . "metas SET meta_value = ?, updated_at = ? WHERE {$where}", [$value, $now, $productId, $key]);
+            return;
+        }
+        $this->db->insert('metas', ['owner_type' => 'product', 'owner_id' => $productId, 'meta_key' => $key, 'meta_value' => $value, 'created_at' => $now, 'updated_at' => $now]);
+    }
+
     /** @return array{id:int,title:string,before:?array,after:string}|array{conflict:string} */
     private function applyCreate(array $item, array $input, int $now): array
     {
@@ -594,6 +732,7 @@ final class AiProposalService
         if (in_array('*', $permissions, true)) return null;
         // 无令牌的后台动作（撤销）：单页提案要单页编辑权限，文章提案要文章编辑权限
         if ($tool === AiPageContentRules::TOOL) return in_array('blox_edit', $permissions, true) && in_array('edit_page', $permissions, true) ? null : 'owner_permission_removed';
+        if ($tool === AiProductContentRules::TOOL) return in_array('edit_product', $permissions, true) ? null : 'owner_permission_removed';
         return in_array('edit_article', $permissions, true) ? null : 'owner_permission_removed';
     }
 

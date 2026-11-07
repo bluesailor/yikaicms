@@ -6,9 +6,10 @@ require_once __DIR__ . '/AiAccessAuthContext.php';
 require_once __DIR__ . '/AiArticleDraftRules.php';
 require_once __DIR__ . '/AiProposalService.php';
 require_once __DIR__ . '/AiBloxPageReader.php';
+require_once __DIR__ . '/AiProductContentRules.php';
 
 /**
- * v2.2.0 拟定的六个外部工具（规划 §7.3）的原型实现，加 S5-02 的单页只读工具 page_list/page_read。只读查询加一个只写提案表的工具；
+ * v2.2.0 拟定的六个外部工具（规划 §7.3）的原型实现，加 S5-02 的单页只读工具 page_list/page_read、T05 的产品工具。只读查询加只写提案表的工具；
  * 不调用 Abilities 注册表、模型或站点 AI 供应商，也不经过 AiService 的模型循环。
  * 工具清单按调用身份过滤（scope × 角色权限），顺序固定。
  */
@@ -48,6 +49,9 @@ final class AiMcpTools
             'page_list' => $this->pages($args),
             'page_read' => $this->page($args, $context),
             'page_content_propose' => $this->proposePage($args, $context),
+            'product_list' => $this->products($args),
+            'product_read' => $this->product($args),
+            'product_content_propose' => $this->proposeProduct($args, $context),
             default => throw new RuntimeException('ai_mcp_invalid_arguments', 400),
         };
     }
@@ -144,6 +148,84 @@ final class AiMcpTools
         unset($args['idempotency_key']);
         $result = $this->proposals->proposePageFromToken($context, $key, $args, ($this->clock)());
         return $result + ['next_step' => 'An editor reviews this proposal in the admin; the page is not changed until then, and an approved proposal only updates the unpublished draft. Use proposal_status to follow it.'];
+    }
+
+    /** 产品摘要，按 id 倒序键集分页；回收站不列。 */
+    private function products(array $args): array
+    {
+        $lang = $this->langArg($args['lang'] ?? null);
+        $limit = $args['limit'] ?? self::LIST_DEFAULT;
+        if (!is_int($limit) || $limit < 1 || $limit > self::LIST_MAX) throw new RuntimeException('ai_mcp_invalid_arguments', 400);
+        $where = 'deleted_at IS NULL AND lang = ?';
+        $params = [$lang];
+        if (array_key_exists('category_id', $args)) {
+            if (!is_int($args['category_id']) || $args['category_id'] < 1) throw new RuntimeException('ai_mcp_invalid_arguments', 400);
+            $where .= ' AND category_id = ?';
+            $params[] = $args['category_id'];
+        }
+        $status = $args['status'] ?? 'any';
+        if (!in_array($status, ['any', 'draft', 'published'], true)) throw new RuntimeException('ai_mcp_invalid_arguments', 400);
+        if ($status !== 'any') $where .= $status === 'draft' ? ' AND status = 0' : ' AND status = 1';
+        if (array_key_exists('cursor', $args)) {
+            if (!is_string($args['cursor']) || preg_match('/^r([1-9][0-9]{0,9})$/D', $args['cursor'], $m) !== 1) throw new RuntimeException('ai_mcp_invalid_arguments', 400);
+            $where .= ' AND id < ?';
+            $params[] = (int) $m[1];
+        }
+        $rows = $this->db->fetchAll('SELECT id, lang, category_id, title, model, status, updated_at FROM ' . DB_PREFIX . "products WHERE {$where} ORDER BY id DESC LIMIT " . ($limit + 1), $params);
+        $more = count($rows) > $limit;
+        $items = array_map(static fn(array $r): array => ['id' => (int) $r['id'], 'lang' => (string) $r['lang'], 'category_id' => (int) $r['category_id'],
+            'title' => (string) $r['title'], 'model' => (string) $r['model'], 'status' => (int) $r['status'] === 1 ? 'published' : 'draft',
+            'updated_at' => (int) $r['updated_at']], array_slice($rows, 0, $limit));
+        $out = ['lang' => $lang, 'items' => $items];
+        if ($more && $items !== []) $out['next_cursor'] = 'r' . $items[count($items) - 1]['id'];
+        return $out;
+    }
+
+    /**
+     * 一个产品：facts 只读（标题、型号、参数等事实字段），editable 是可提案的文案字段，base_revision 交给提案。
+     * 价格、图片、后台字段不返回。详情分段，同 article_read。
+     */
+    private function product(array $args): array
+    {
+        $id = $args['id'] ?? null;
+        $offset = $args['content_offset'] ?? 0;
+        if (!is_int($id) || $id < 1 || !is_int($offset) || $offset < 0) throw new RuntimeException('ai_mcp_invalid_arguments', 400);
+        $row = $this->db->fetchOne('SELECT * FROM ' . DB_PREFIX . 'products WHERE id = ? AND deleted_at IS NULL', [$id]);
+        if ($row === null || !in_array((string) $row['lang'], $this->languages(), true)) throw new RuntimeException('ai_mcp_not_found', 404);
+        $metas = AiProductContentRules::metas($this->db, $id);
+        $category = (int) $row['category_id'] > 0 ? $this->db->fetchOne('SELECT name FROM ' . DB_PREFIX . 'product_categories WHERE id = ?', [(int) $row['category_id']]) : null;
+        $specs = json_decode((string) ($row['specs'] ?? ''), true);
+        $content = (string) ($row['content'] ?? '');
+        if ($offset > strlen($content)) throw new RuntimeException('ai_mcp_invalid_arguments', 400);
+        $draft = (int) $row['status'] === 0;
+        $base = ['id' => $id, 'lang' => (string) $row['lang'], 'status' => $draft ? 'draft' : 'published', 'updated_at' => (int) $row['updated_at'],
+            'translation_group_id' => (int) $row['translation_group_id'],
+            'base_revision' => AiProductContentRules::fingerprint($row, $metas),
+            // 只有草稿能提案：已发布产品给出原因，客户端不用试错
+            'proposable' => $draft, 'editable_fields' => AiProductContentRules::editable(),
+            'facts' => ['title' => (string) $row['title'], 'subtitle' => (string) $row['subtitle'], 'model' => (string) $row['model'],
+                'category_id' => (int) $row['category_id'], 'category' => (string) ($category['name'] ?? ''),
+                'specs' => is_array($specs) ? $specs : (string) ($row['specs'] ?? ''), 'tags' => (string) $row['tags'],
+                'material' => (string) $row['material'], 'scene' => (string) $row['scene']],
+            'summary' => (string) ($row['summary'] ?? ''), 'seo_title' => $metas['seo_title'], 'seo_keywords' => $metas['seo_keywords'], 'seo_description' => $metas['seo_description'],
+            'content_offset' => $offset, 'content_bytes' => strlen($content)];
+        $max = self::CONTENT_CHUNK_BYTES;
+        do {
+            $chunk = self::utf8Chunk($content, $offset, $max);
+            $out = $base + ['content' => $chunk];
+            if ($offset + strlen($chunk) < strlen($content)) $out['content_next_offset'] = $offset + strlen($chunk);
+            $max = intdiv($max, 2);
+        } while (self::encodedSize($out) > self::MAX_RESULT_BYTES - 4096 && $max >= 1024);
+        return $out;
+    }
+
+    private function proposeProduct(array $args, AiAccessAuthContext $context): array
+    {
+        $key = $args['idempotency_key'] ?? null;
+        $items = $args['items'] ?? null;
+        if (!is_string($key) || !is_array($items)) throw new RuntimeException('ai_mcp_invalid_arguments', 400);
+        $result = $this->proposals->proposeProductFromToken($context, $key, $items, ($this->clock)());
+        return $result + ['next_step' => 'An editor reviews this proposal in the admin; the product is not changed until then, and only unpublished products can be changed. Use proposal_status to follow it.'];
     }
 
     private function status(array $args, AiAccessAuthContext $context): array
@@ -319,6 +401,25 @@ final class AiMcpTools
                             'element_id' => ['type' => 'string', 'pattern' => '^[A-Za-z0-9_-]{1,64}$'],
                             'field' => ['type' => 'string', 'enum' => ['text', 'html', 'alt'], 'description' => 'text: heading; html: text element; alt: image'],
                             'value' => ['type' => 'string']]]]]],
+                'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false]],
+            'product_list' => ['title' => 'List products', 'description' => 'Product summaries in one language, newest first; excludes the recycle bin. Follow next_cursor for more.',
+                'inputSchema' => ['type' => 'object', 'additionalProperties' => false, 'required' => ['lang'], 'properties' => [
+                    'lang' => $lang, 'category_id' => ['type' => 'integer', 'minimum' => 1],
+                    'status' => ['type' => 'string', 'enum' => ['any', 'draft', 'published']],
+                    'limit' => ['type' => 'integer', 'minimum' => 1, 'maximum' => self::LIST_MAX], 'cursor' => ['type' => 'string']]], 'annotations' => $readOnly],
+            'product_read' => ['title' => 'Read product', 'description' => 'One product. facts (title, model, specifications, category) are read-only; summary, content and the seo_* fields can be proposed. Prices are not returned. Content comes in chunks; pass content_next_offset as content_offset to continue. Keep base_revision for product_content_propose.',
+                'inputSchema' => ['type' => 'object', 'additionalProperties' => false, 'required' => ['id'], 'properties' => [
+                    'id' => ['type' => 'integer', 'minimum' => 1], 'content_offset' => ['type' => 'integer', 'minimum' => 0]]], 'annotations' => $readOnly],
+            'product_content_propose' => ['title' => 'Propose product copy', 'description' => 'Submit new summary, description (content, HTML sanitized on the server) or SEO text for unpublished products, for editor review. Titles, models, specifications, prices and status cannot be changed. base_revision must be the value product_read returned; if the product changed, read it again. Nothing is saved to products by this call. Reuse the same idempotency_key when retrying the same submission.',
+                'inputSchema' => ['type' => 'object', 'additionalProperties' => false, 'required' => ['idempotency_key', 'items'], 'properties' => [
+                    'idempotency_key' => ['type' => 'string', 'pattern' => '^[A-Za-z0-9._:-]{8,128}$'],
+                    'items' => ['type' => 'array', 'minItems' => 1, 'maxItems' => AiProductContentRules::MAX_ITEMS, 'items' => ['type' => 'object', 'additionalProperties' => false,
+                        'required' => ['id', 'lang', 'base_revision'], 'properties' => [
+                            'id' => ['type' => 'integer', 'minimum' => 1], 'lang' => $lang,
+                            'base_revision' => ['type' => 'string', 'pattern' => '^[0-9a-f]{64}$'],
+                            'summary' => ['type' => 'string', 'maxLength' => 2000], 'content' => ['type' => 'string', 'description' => 'HTML; sanitized on the server'],
+                            'seo_title' => ['type' => 'string', 'maxLength' => 255], 'seo_keywords' => ['type' => 'string', 'maxLength' => 255],
+                            'seo_description' => ['type' => 'string', 'maxLength' => 500]]]]]],
                 'annotations' => ['readOnlyHint' => false, 'destructiveHint' => false, 'idempotentHint' => true, 'openWorldHint' => false]],
             'proposal_status' => ['title' => 'Proposal status', 'description' => 'Review status of one of your own proposals.',
                 'inputSchema' => ['type' => 'object', 'additionalProperties' => false, 'required' => ['proposal_id'], 'properties' => [

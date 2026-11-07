@@ -5,6 +5,7 @@ declare(strict_types=1);
 require_once __DIR__ . '/AiArticleDraftRules.php';
 require_once __DIR__ . '/AiPageContentRules.php';
 require_once __DIR__ . '/AiPageDocumentSource.php';
+require_once __DIR__ . '/AiProductContentRules.php';
 
 /**
  * 提案审核页的只读视图（S3）：列出本人的提案集与项目，算出“当前 → 提案”的逐字段对照。
@@ -59,6 +60,7 @@ final class AiProposalReview
         $input = json_decode((string) $item['input_json'], true);
         $input = is_array($input) ? $input : [];
         if ($item['operation'] === AiPageContentRules::OPERATION) return $this->pageView($item, $input);
+        if ($item['operation'] === AiProductContentRules::OPERATION) return $this->productView($item, $input);
         $current = null;
         $channel = null;
         if ($item['operation'] === 'update') {
@@ -156,6 +158,39 @@ final class AiProposalReview
             'stale' => $item['status'] === 'pending' && $stale,
             'fields' => $fields,
             'content' => null,
+        ];
+    }
+
+    /**
+     * 产品文案提案（T05）：摘要与 SEO 逐字段对照，详情按段落对照；当前值取产品行与 SEO metas。
+     * 产品在提案后被改过、发布或删除时标为过期（应用必然冲突）。
+     * @return array<string,mixed>
+     */
+    private function productView(array $item, array $input): array
+    {
+        $id = (int) $item['target_id'];
+        $row = $this->db->fetchOne('SELECT * FROM ' . DB_PREFIX . 'products WHERE id = ?', [$id]);
+        $metas = AiProductContentRules::metas($this->db, $id);
+        $current = $row === null ? [] : ['summary' => (string) ($row['summary'] ?? '')] + $metas;
+        $fields = [];
+        foreach (['summary', ...AiProductContentRules::META_FIELDS] as $field) {
+            if (!array_key_exists($field, $input)) continue;
+            $before = (string) ($current[$field] ?? '');
+            $fields[] = ['field' => $field, 'label' => __('aipr_field_product_' . $field), 'before' => $before, 'after' => (string) $input[$field], 'changed' => $before !== (string) $input[$field]];
+        }
+        $content = null;
+        if (array_key_exists('content', $input)) {
+            $before = self::paragraphs((string) ($row['content'] ?? ''));
+            $after = self::paragraphs((string) $input['content']);
+            $content = ['diff' => self::diff($before, $after), 'changed' => $before !== $after];
+        }
+        return [
+            'item' => $item,
+            'title' => (string) ($row['title'] ?? ('#' . $id)),
+            'channel' => null,
+            'stale' => $item['status'] === 'pending' && ($row === null || !hash_equals((string) $item['base_revision'], AiProductContentRules::fingerprint($row, $metas))),
+            'fields' => $fields,
+            'content' => $content,
         ];
     }
 

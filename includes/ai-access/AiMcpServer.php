@@ -217,9 +217,10 @@ final class AiMcpServer
         return match ($tool) {
             'article_read' => 'article:' . (is_int($arguments['id'] ?? null) ? $arguments['id'] : '?'),
             'page_read' => 'page:' . (is_int($arguments['id'] ?? null) ? $arguments['id'] : '?'),
+            'product_read' => 'product:' . (is_int($arguments['id'] ?? null) ? $arguments['id'] : '?'),
             'page_content_propose' => 'page:' . (is_int($arguments['page_id'] ?? null) ? $arguments['page_id'] : '?') . ' changes:' . (is_array($arguments['changes'] ?? null) ? count($arguments['changes']) : 0),
-            'article_list', 'article_channel_list', 'page_list' => 'lang:' . (is_string($arguments['lang'] ?? null) ? substr($arguments['lang'], 0, 10) : '?'),
-            'article_draft_propose' => 'items:' . (is_array($arguments['items'] ?? null) ? count($arguments['items']) : 0),
+            'article_list', 'article_channel_list', 'page_list', 'product_list' => 'lang:' . (is_string($arguments['lang'] ?? null) ? substr($arguments['lang'], 0, 10) : '?'),
+            'article_draft_propose', 'product_content_propose' => 'items:' . (is_array($arguments['items'] ?? null) ? count($arguments['items']) : 0),
             default => '',
         };
     }

@@ -163,7 +163,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <?php endif; ?>
         </header>
 
-        <?php foreach ($set['items'] as $view): $item = $view['item']; $status = (string) $item['status']; $isPage = $item['operation'] === 'page_edit'; $hasCurrent = $isPage || $item['operation'] === 'update'; ?>
+        <?php foreach ($set['items'] as $view): $item = $view['item']; $status = (string) $item['status']; $isPage = $item['operation'] === 'page_edit'; $isProduct = $item['operation'] === 'product_update'; $hasCurrent = $isPage || $isProduct || $item['operation'] === 'update'; ?>
         <article class="px-6 py-4 border-b last:border-0" data-testid="aipr-item" data-item="<?php echo e((string) $item['public_id']); ?>" data-status="<?php echo e($status); ?>">
             <div class="flex flex-wrap items-start gap-3">
                 <?php if ($status === 'pending'): ?>
@@ -171,7 +171,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                 <?php endif; ?>
                 <div class="min-w-0 flex-1">
                     <div class="flex flex-wrap items-center gap-2">
-                        <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700"><?php echo e(__($isPage ? 'aipr_op_page' : ($item['operation'] === 'create' ? 'aipr_op_create' : 'aipr_op_update'))); ?></span>
+                        <span class="text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700"><?php echo e(__($isPage ? 'aipr_op_page' : ($isProduct ? 'aipr_op_product' : ($item['operation'] === 'create' ? 'aipr_op_create' : 'aipr_op_update')))); ?></span>
                         <span class="font-medium text-gray-800 break-words"><?php echo e($view['title']); ?></span>
                         <span class="text-xs px-2 py-0.5 rounded <?php echo $statusClass($status); ?>"><?php echo e(__('aipr_status_' . $status)); ?></span>
                     </div>
@@ -180,6 +180,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <?php if ($view['channel'] !== null): ?> · <?php echo e((string) $view['channel']['name']); ?><?php endif; ?>
                         <?php if ($item['operation'] === 'update'): ?> · <?php echo e(__('aipr_target', ['id' => (int) $item['target_id']])); ?><?php endif; ?>
                         <?php if ($isPage): ?> · <?php echo e(__('aipr_target_page', ['id' => (int) $item['target_id']])); ?><?php endif; ?>
+                        <?php if ($isProduct): ?> · <?php echo e(__('aipr_target_product', ['id' => (int) $item['target_id']])); ?><?php endif; ?>
                         <?php if ((string) $item['status_reason'] !== '' && $status !== 'reverted'): ?> · <?php echo e($reasonText((string) $item['status_reason'])); ?><?php endif; ?>
                     </div>
                     <?php if ($view['stale']): ?>
@@ -196,6 +197,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <?php endif; ?>
                     <?php if (in_array($status, ['applied', 'reverted'], true) && (int) $item['result_content_id'] > 0): ?>
                     <a class="text-primary hover:underline" href="article_edit.php?id=<?php echo (int) $item['result_content_id']; ?>"><?php echo e(__('aipr_open_draft')); ?></a>
+                    <?php endif; ?>
+                    <?php if ($isProduct && in_array($status, ['pending', 'applied', 'reverted'], true)): ?>
+                    <a class="text-primary hover:underline" href="product_edit.php?id=<?php echo (int) $item['target_id']; ?>"><?php echo e(__('aipr_open_product')); ?></a>
                     <?php endif; ?>
                     <?php if ($isPage && $status === 'applied'): ?>
                     <a class="text-primary hover:underline" href="blox_editor.php?id=<?php echo (int) $item['target_id']; ?>"><?php echo e(__('aipr_open_page_draft')); ?></a>
