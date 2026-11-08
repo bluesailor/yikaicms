@@ -61,6 +61,7 @@ $read = static fn (int $src, int $target): array => [
 $ctx = static fn (int $target): array => ['table' => 'products', 'model' => productModel(), 'target_id' => $target, 'title_key' => 'title', 'summary_key' => 'summary', 'has_page' => false];
 $row = static fn (int $id): array => db()->fetchOne('SELECT title, summary, content, status FROM yikai_products WHERE id = ?', [$id]) ?? [];
 $writer = new TranslationWrite(db());
+$rev = static fn (int $target): string => TranslationState::proposalRevision($states->link('products', $target));
 $out = [];
 
 switch ((string) ($argv[1] ?? '')) {
@@ -89,12 +90,12 @@ switch ((string) ($argv[1] ?? '')) {
         $out['after_apply'] = $row($t);
         $out['propose'] = $writer->propose($read($a, $t), $translated);
         $out['with_proposal'] = $status($a, $t);
-        $out['accept_none'] = $writer->accept($ctx($t), ['not_a_field'], 7);
-        $out['accept'] = $writer->accept($ctx($t), ['title', 'not_a_field'], 7);
+        $out['accept_none'] = $writer->accept($ctx($t), ['not_a_field'], 7, $rev($t));
+        $out['accept'] = $writer->accept($ctx($t), ['title', 'not_a_field'], 7, $rev($t));
         $out['after_accept'] = $row($t);
         $out['link'] = $states->link('products', $t);
         $out['accepted_status'] = $status($a, $t);
-        $out['accept_again'] = $writer->accept($ctx($t), ['title'], 7);
+        $out['accept_again'] = $writer->accept($ctx($t), ['title'], 7, $rev($t));
         break;
 
     case 'accept_after_change':
@@ -103,7 +104,7 @@ switch ((string) ($argv[1] ?? '')) {
         db()->execute("UPDATE yikai_products SET content = '<p>HUMAN</p>' WHERE id = ?", [$t]);
         $writer->propose($read($a, $t), ['title' => 'Proposed', 'summary' => 'S', 'content' => '<p>P</p>']);
         db()->execute("UPDATE yikai_products SET content = '<p>HUMAN 2</p>' WHERE id = ?", [$t]);
-        $out['accept'] = $writer->accept($ctx($t), ['title', 'content'], 7);
+        $out['accept'] = $writer->accept($ctx($t), ['title', 'content'], 7, $rev($t));
         $out['after'] = $row($t);
         break;
 
@@ -136,6 +137,84 @@ switch ((string) ($argv[1] ?? '')) {
         foreach ($ids as $name => $id) $out['rows'][$name] = $row($t[$id]) + ['state' => $status($id, $t[$id])];
         // 已覆盖的 A 不再过期；待审的 B 仍过期，可以再排队重新生成
         $out['again'] = $batches->create(1, [$ids['A'], $ids['B']], ['en'], 'zh-CN', $now, 'update');
+        break;
+
+    case 'retranslate_live':
+        // 评审 F01：机器译文没人改过，在列表里批量发布（只改 status，不记已审），然后单条「重新翻译」
+        $a = $product('液压泵');
+        $t = $translate([$a])[$a];
+        db()->execute('UPDATE yikai_products SET status = 1 WHERE id = ?', [$t]);
+        $out['before'] = $row($t) + ['state' => $status($a, $t)];
+        $translated = ['title' => 'Retranslated', 'summary' => 'S2', 'content' => '<p>New</p>'];
+        // 与 translate_action.php 同样的调用：不带任何额外参数
+        $out['apply'] = $writer->apply($read($a, $t), $translated, []);
+        $out['after_apply'] = $row($t);
+        $out['propose'] = $writer->propose($read($a, $t), $translated);
+        $out['after_propose'] = $row($t);
+        $out['proposal_title'] = json_decode((string) ($states->link('products', $t)['proposal_json'] ?? ''), true)['title'] ?? null;
+        $out['live'] = TranslationWrite::isLive(productModel()->find($t));
+        $out['draft_live'] = TranslationWrite::isLive(['status' => 0]);
+        $out['scheduled_live'] = TranslationWrite::isLive(['status' => 2]);
+        $out['page_live'] = TranslationWrite::isLive(['status' => 0], ['status' => 1]);
+        break;
+
+    case 'category_map':
+        // 评审 F02：中文分类 → 德语分类在同一翻译组；英语没有对应分类；嵌套分类按自身的组映射
+        $cat = static fn (string $name, string $lang, int $group = 0, int $parent = 0): int => (int) db()->insert('product_categories', [
+            'name' => $name, 'slug' => 'c-' . bin2hex(random_bytes(3)), 'lang' => $lang, 'translation_group_id' => $group, 'parent_id' => $parent, 'created_at' => $now,
+        ]);
+        $zh = $cat('泵', 'zh-CN');
+        $zhChild = $cat('液压泵', 'zh-CN', 0, $zh);
+        $de = $cat('Pumpen', 'de', $zh);
+        $deChild = $cat('Hydraulikpumpen', 'de', $zhChild, $de);
+        $a = $product('液压泵');
+        db()->execute('UPDATE yikai_products SET category_id = ? WHERE id = ?', [$zhChild, $a]);
+        $src = productModel()->find($a);
+        $translated = ['title' => 'X', 'summary' => 'S', 'content' => '<p>B</p>'];
+        $deRow = TranslationWrite::newRow('products', $src, $translated, 'de', $a, 'title', 'summary', 'content');
+        $enRow = TranslationWrite::newRow('products', $src, $translated, 'en', $a, 'title', 'summary', 'content');
+        $out['ids'] = ['zh' => $zh, 'zh_child' => $zhChild, 'de' => $de, 'de_child' => $deChild];
+        $out['de_category'] = (int) $deRow['category_id'];
+        $out['en_category'] = (int) $enRow['category_id'];
+        $out['de_unmapped'] = TranslationWrite::categoryUnmapped('products', $src, $deRow);
+        $out['en_unmapped'] = TranslationWrite::categoryUnmapped('products', $src, $enRow);
+        // 批量翻译走同一条 newRow：建出的德语产品落在德语分类下
+        $created = $batches->create(1, [$a], ['de'], 'zh-CN', $now);
+        $batches->step($created['batch_id'], 30, static fn (): int => $now);
+        $out['batch_de_category'] = (int) db()->fetchColumn("SELECT category_id FROM yikai_products WHERE translation_group_id = ? AND lang = 'de'", [$a]);
+        break;
+
+    case 'stale_review':
+        // 评审 F04：A 打开待审 P1；B 又生成 P2（译文没动）；A 在旧页面上采用 / 放弃 / 标为已审
+        $a = $product('液压泵');
+        $t = $translate([$a])[$a];
+        db()->execute("UPDATE yikai_products SET content = '<p>HUMAN</p>', status = 1 WHERE id = ?", [$t]);
+        $writer->propose($read($a, $t), ['title' => 'P1 title', 'summary' => 'S', 'content' => '<p>P1</p>']);
+        $rev1 = $rev($t);
+        $writer->propose($read($a, $t), ['title' => 'P2 title', 'summary' => 'S', 'content' => '<p>P2</p>']);
+        $rev2 = $rev($t);
+        $out['revisions_differ'] = $rev1 !== $rev2 && $rev1 !== '' && $rev2 !== '';
+        $out['accept_stale'] = $writer->accept($ctx($t), ['title'], 7, $rev1);
+        $out['after_accept_stale'] = $row($t);
+        $out['discard_stale'] = $writer->discard('products', $t, $rev1);
+        $out['proposal_after_discard_stale'] = json_decode((string) ($states->link('products', $t)['proposal_json'] ?? ''), true)['title'] ?? null;
+        $out['accept_missing_rev'] = $writer->accept($ctx($t), ['title'], 7, '');
+        $out['accept_current'] = $writer->accept($ctx($t), ['title'], 7, $rev2);
+        $out['after_accept_current'] = $row($t);
+        // 标为已审：带回页面打开时的指纹
+        $fp = static fn (int $id): string => TranslationState::rowFingerprint(productModel()->find($id), 'title', 'summary');
+        $reviewCtx = ['table' => 'products', 'target_id' => $t, 'title_key' => 'title', 'summary_key' => 'summary', 'has_page' => false];
+        $seenSrc = $fp($a);
+        $seenTarget = $fp($t);
+        db()->execute("UPDATE yikai_products SET title = '液压泵 V2' WHERE id = ?", [$a]);
+        $out['review_after_source_edit'] = $writer->markReviewed($reviewCtx, $a, $seenSrc, $seenTarget, 7);
+        $out['outdated_after_stale_review'] = $status($a, $t)['outdated'];
+        $out['review_current'] = $writer->markReviewed($reviewCtx, $a, $fp($a), $fp($t), 7);
+        $out['state_after_review'] = $status($a, $t);
+        // 放弃：页面上的版本对得上才放弃
+        $writer->propose($read($a, $t), ['title' => 'P3 title', 'summary' => 'S', 'content' => '<p>P3</p>']);
+        $out['discard_current'] = $writer->discard('products', $t, $rev($t));
+        $out['proposal_after_discard'] = $states->link('products', $t)['proposal_json'] ?? null;
         break;
 
     default:

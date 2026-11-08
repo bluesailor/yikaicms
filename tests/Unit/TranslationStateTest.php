@@ -96,4 +96,47 @@ final class TranslationStateTest extends TestCase
         self::assertSame('[en] 泵E', $r['rows']['E']['title']);
         self::assertSame(1, $r['again']['total'], '已更新的不再排队，待审的仍过期可再排');
     }
+    public function testRetranslatingALiveMachineTranslationOnlyProposes(): void
+    {
+        $r = $this->probe("retranslate_live");
+        self::assertFalse($r["before"]["state"]["protected"], "前提：没人改过、没审过，按链接状态不受保护");
+        self::assertSame("target_protected", $r["apply"]["conflict"], "已上线的译文不整份覆盖（评审 F01）");
+        self::assertSame($r["before"]["title"], $r["after_apply"]["title"]);
+        self::assertSame(1, (int) $r["after_apply"]["status"], "不改回草稿");
+        self::assertSame("", $r["propose"]["conflict"]);
+        self::assertSame(1, (int) $r["after_propose"]["status"]);
+        self::assertSame($r["before"]["content"], $r["after_propose"]["content"]);
+        self::assertSame("Retranslated", $r["proposal_title"]);
+        self::assertSame([true, false, true, true], [$r["live"], $r["draft_live"], $r["scheduled_live"], $r["page_live"]]);
+    }
+
+    public function testNewProductTranslationUsesTheTargetLanguageCategory(): void
+    {
+        $r = $this->probe("category_map");
+        self::assertSame($r["ids"]["de_child"], $r["de_category"], "按分类的翻译组换成目标语言的分类（评审 F02）");
+        self::assertSame(0, $r["en_category"], "目标语言没有对应分类：放未分类，不沿用原语言分类");
+        self::assertFalse($r["de_unmapped"]);
+        self::assertTrue($r["en_unmapped"]);
+        self::assertSame($r["ids"]["de_child"], $r["batch_de_category"], "批量翻译同一规则");
+    }
+
+    public function testReviewActionsFromAStalePageDoNotTouchANewerProposal(): void
+    {
+        $r = $this->probe("stale_review");
+        self::assertTrue($r["revisions_differ"]);
+        self::assertSame("proposal_changed", $r["accept_stale"], "旧页面不能采用用户没看过的新待审译文（评审 F04）");
+        self::assertSame("[en] 液压泵", $r["after_accept_stale"]["title"]);
+        self::assertSame("proposal_changed", $r["discard_stale"], "旧页面不能放弃新待审译文");
+        self::assertSame("P2 title", $r["proposal_after_discard_stale"]);
+        self::assertSame("proposal_changed", $r["accept_missing_rev"], "不带版本的请求一律拒绝");
+        self::assertSame("", $r["accept_current"]);
+        self::assertSame(["P2 title", 1], [$r["after_accept_current"]["title"], (int) $r["after_accept_current"]["status"]]);
+        self::assertSame("review_stale", $r["review_after_source_edit"], "原文在页面打开后改过，不能直接标为已审");
+        self::assertTrue($r["outdated_after_stale_review"], "被拒的标记不改状态");
+        self::assertSame("", $r["review_current"]);
+        self::assertTrue($r["state_after_review"]["reviewed"]);
+        self::assertFalse($r["state_after_review"]["outdated"]);
+        self::assertSame("", $r["discard_current"]);
+        self::assertNull($r["proposal_after_discard"]);
+    }
 }

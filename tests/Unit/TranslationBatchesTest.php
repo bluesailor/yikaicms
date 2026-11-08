@@ -103,4 +103,31 @@ final class TranslationBatchesTest extends TestCase
         self::assertSame(0, $r['calls_cancelled']);
         self::assertSame('cancelled', $r['batch']);
     }
+    public function testCancellationDuringGenerationWinsOverTheLateResult(): void
+    {
+        foreach (["cancel_during_generation", "cancel_then_provider_error"] as $scenario) {
+            $r = $this->probe($scenario);
+            self::assertSame(["cancelled" => 2], $r["counts"], "{$scenario}：晚到的结果或报错都不能让项目复活（评审 F03）");
+            self::assertSame("cancelled", $r["batch"]);
+            self::assertSame(0, $r["en_rows"], "{$scenario}：不写译文");
+            self::assertSame(0, $r["links"], "{$scenario}：不记译文来源");
+            self::assertSame(["cancelled" => 2], $r["again"]);
+            self::assertCount(1, $r["calls"]);
+        }
+    }
+
+    public function testAResultFromAnExpiredLeaseDoesNotOverwriteTheNewHolder(): void
+    {
+        $r = $this->probe("stale_lease_holder");
+        self::assertSame($r["rival"], array_intersect_key($r["items"][0], $r["rival"]), "新领取者的状态、次数、租约原样保留");
+        self::assertNull($r["result_saved"], "旧结果不落库");
+        self::assertSame(0, $r["en_rows"]);
+    }
+
+    public function testCancellingAfterAnItemWasWrittenLeavesItApplied(): void
+    {
+        $r = $this->probe("cancel_after_apply");
+        self::assertSame("applied", $r["items"][0]["status"]);
+        self::assertSame(1, $r["en_rows"]);
+    }
 }

@@ -122,6 +122,18 @@ final class TranslationState
         $this->upsert($table, $targetId, $fields, $now);
     }
 
+    /**
+     * 待审译文的版本：内容、生成时的原文与译文指纹、生成时间一起算。重新生成一份就是新版本，
+     * 审阅页把它带回来，采用或放弃时对不上就是页面打开后有人又生成了一份（评审 F04）。没有待审译文返回空串。
+     * @param array<string,mixed>|null $link
+     */
+    public static function proposalRevision(?array $link): string
+    {
+        $json = (string) ($link['proposal_json'] ?? '');
+        if ($json === '') return '';
+        return hash('sha256', implode("\n", [$json, (string) ($link['proposal_source_fp'] ?? ''), (string) ($link['proposal_target_fp'] ?? ''), (string) ($link['proposal_at'] ?? '0')]));
+    }
+
     public function discardProposal(string $table, int $targetId, int $now): void
     {
         $this->db->execute('UPDATE ' . DB_PREFIX . "translation_links SET proposal_json = NULL, proposal_source_fp = '', proposal_target_fp = '', proposal_at = 0, updated_at = ?"

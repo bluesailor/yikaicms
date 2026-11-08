@@ -75,6 +75,7 @@ if ($_ls_item) {
 // 译文状态（T04）：与生成/审阅时比，原文改没改、译文有没有人改过、有没有待审的新译文
 $_ls_states = [];
 $_ls_proposal = null;
+$_ls_reviewBase = ['source_fp' => '', 'target_fp' => '', 'proposal_rev' => ''];
 $_ls_source = $_ls_currentLang === $_ls_defaultLang ? $_ls_item : ($_ls_translations[$_ls_defaultLang] ?? null);
 if ($_ls_item && $_ls_source && db()->tableExists('translation_links')) {
     require_once ROOT_PATH . '/includes/TranslationWrite.php';
@@ -100,7 +101,10 @@ if ($_ls_item && $_ls_source && db()->tableExists('translation_links')) {
     foreach ($_ls_targets as $lc => $row) {
         $page = $_ls_pageOf($row);
         $link = $_ls_links[(int) $row['id']] ?? null;
-        $_ls_states[$lc] = TranslationState::status($link, $_ls_sourceFp, TranslationState::rowFingerprint($row, $_ls_titleKey, $_ls_summaryKey, $page));
+        $_ls_targetFp = TranslationState::rowFingerprint($row, $_ls_titleKey, $_ls_summaryKey, $page);
+        $_ls_states[$lc] = TranslationState::status($link, $_ls_sourceFp, $_ls_targetFp);
+        // 审阅动作带回页面打开时的版本，服务端对不上就拒绝（评审 F04）
+        if ($lc === $_ls_currentLang) $_ls_reviewBase = ['source_fp' => $_ls_sourceFp, 'target_fp' => $_ls_targetFp, 'proposal_rev' => TranslationState::proposalRevision($link)];
         $proposed = $lc === $_ls_currentLang && $link !== null ? json_decode((string) ($link['proposal_json'] ?? ''), true) : null;
         if (is_array($proposed)) {
             // 只列与现有译文不同、且这一行确有对应列的字段
@@ -219,7 +223,7 @@ async function createTranslation(toLang, langName, btn, retranslate = false) {
             setTimeout(function() {
                 var sep = '<?php echo $_ls_editSep; ?>', p = '<?php echo e($_ls_editParam); ?>';
                 location.href = '<?php echo e(BasePath::url($_ls_editUrl)); ?>' + sep + p + '=' + data.data.id;
-            }, 800);
+            }, data.data.category_unmapped || data.data.proposal ? 2500 : 800); // 有提示要读时多停一会儿
         } else {
             btn.disabled = false;
             btn.textContent = originalText;
@@ -249,6 +253,9 @@ async function translationReview(action, fields, btn) {
     fd.append('action', action);
     fd.append('target_id', <?php echo (int) $_ls_item['id']; ?>);
     fields.forEach(function (field) { fd.append('fields[]', field); });
+    // 页面打开时看到的版本：之后有人又生成或改过，服务端返回 409，请刷新重看
+    var base = <?php echo json_encode($_ls_reviewBase, JSON_UNESCAPED_SLASHES | JSON_HEX_TAG); ?>;
+    Object.keys(base).forEach(function (key) { fd.append(key, base[key]); });
     try {
         var data = await safeJson(await fetch(location.pathname, { method: 'POST', body: fd }));
         showMessage(data.msg || '', data.code === 0 ? 'success' : 'error');

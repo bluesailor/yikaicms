@@ -97,6 +97,11 @@ final class TranslationWrite
             $mappedParent = findTranslatedChannelId((int) $newData['parent_id'], $toLang);
             if ($mappedParent > 0) $newData['parent_id'] = $mappedParent;
         }
+        // 产品分类按分类的翻译组换成目标语言那一个（评审 F02）。目标语言还没有这个分类就放「未分类」，
+        // 不沿用原语言分类：那样目标语言的分类页查不到它，面包屑还会混语言。调用方据此提示用户
+        if ($table === 'products' && (int) ($newData['category_id'] ?? 0) > 0) {
+            $newData['category_id'] = self::translatedCategoryId((int) $newData['category_id'], $toLang);
+        }
 
         // SEO 字段同步翻译（如存在）
         if (!isset($translated['seo_title']) && array_key_exists('seo_title', $newData) && $newData['seo_title']) {
@@ -106,6 +111,27 @@ final class TranslationWrite
             $newData['seo_description'] = $translated['summary'];
         }
         return $newData;
+    }
+
+    /** 源产品分类在目标语言的对应分类 id；没有返回 0 */
+    public static function translatedCategoryId(int $categoryId, string $toLang): int
+    {
+        $table = DB_PREFIX . 'product_categories';
+        $category = db()->fetchOne("SELECT id, lang, translation_group_id FROM {$table} WHERE id = ?", [$categoryId]);
+        if (!$category) return 0;
+        if ((string) $category['lang'] === $toLang) return (int) $category['id'];
+        $groupId = (int) ($category['translation_group_id'] ?: $category['id']);
+        $mapped = db()->fetchOne("SELECT id FROM {$table} WHERE lang = ? AND (translation_group_id = ? OR id = ?) ORDER BY id LIMIT 1", [$toLang, $groupId, $groupId]);
+        return $mapped ? (int) $mapped['id'] : 0;
+    }
+
+    /**
+     * 新建的产品译文没能对上分类：源有分类，目标语言却还没有对应的分类。
+     * @param array<string,mixed> $src @param array<string,mixed> $newData newRow() 的结果
+     */
+    public static function categoryUnmapped(string $table, array $src, array $newData): bool
+    {
+        return $table === 'products' && (int) ($src['category_id'] ?? 0) > 0 && (int) ($newData['category_id'] ?? 0) === 0;
     }
 
     /**
@@ -128,9 +154,10 @@ final class TranslationWrite
     /**
      * 受保护的译文：新译文只存为待审结果，不动内容（T04）。同样先锁行重读，期间有变化照样报冲突。
      * @param array<string,mixed> $read 同 apply() @param array<string,mixed> $translated
+     * @param null|Closure():string $guard 同 apply() @param null|Closure(int,string):void $onWritten 同 apply()
      * @return array{id:int,conflict:string}
      */
-    public function propose(array $read, array $translated): array
+    public function propose(array $read, array $translated, ?Closure $guard = null, ?Closure $onWritten = null): array
     {
         $this->db->beginTransaction();
         try {
@@ -141,9 +168,15 @@ final class TranslationWrite
                 return ['id' => $current['id'], 'conflict' => $current['conflict'] !== '' ? $current['conflict'] : 'target_deleted'];
             }
             $id = (int) $target['id'];
+            $refused = $guard !== null ? $guard() : '';
+            if ($refused !== '') {
+                $this->db->rollback();
+                return ['id' => $id, 'conflict' => $refused];
+            }
             (new TranslationState($this->db))->propose($read['table'], $id, (int) $read['src']['id'], $read['lang'], $translated, self::sourceFingerprint($read),
                 TranslationState::rowFingerprint($target, $read['title_key'], $read['summary_key'], $current['target_page']), time());
             adminLog('translate', 'propose', "为 {$read['table']}#{$id} 生成待审 {$read['lang']} 译文");
+            if ($onWritten !== null) $onWritten($id, 'proposed');
             $this->db->commit();
         } catch (Throwable $exception) {
             $this->db->rollback();
@@ -157,9 +190,11 @@ final class TranslationWrite
      * 不改发布状态：这是人看过之后的决定。写完链接记为已审，对应生成待审结果时的原文。
      * @param array{table:string,model:Model,target_id:int,title_key:string,summary_key:string,has_page:bool} $ctx
      * @param list<string> $fields 采用的字段（source() 形状里的键）
+     * @param string $expectedRevision 审阅页打开时的待审版本（TranslationState::proposalRevision）。
+     *        之后有人又生成了一份就对不上，整笔不写：不能把用户没看过的那份写进（可能已上线的）译文（评审 F04）
      * @return string 冲突代码；空串表示已写入
      */
-    public function accept(array $ctx, array $fields, int $adminId): string
+    public function accept(array $ctx, array $fields, int $adminId, string $expectedRevision): string
     {
         require_once ROOT_PATH . '/includes/content_translation.php';
         $table = $ctx['table'];
@@ -175,6 +210,7 @@ final class TranslationWrite
             $link = $states->link($table, $id);
             $proposal = json_decode((string) ($link['proposal_json'] ?? ''), true);
             if ($link === null || !is_array($proposal)) return $this->abort('no_proposal');
+            if (!hash_equals(TranslationState::proposalRevision($link), $expectedRevision)) return $this->abort('proposal_changed');
             if (TranslationState::rowFingerprint($target, $titleKey, $summKey, $page) !== (string) $link['proposal_target_fp']) return $this->abort('target_changed');
             $chosen = array_intersect_key($proposal, array_flip(array_intersect($fields, TranslationState::TRACKED)));
             if ($chosen === []) return $this->abort('nothing_selected');
@@ -203,6 +239,58 @@ final class TranslationWrite
             $this->db->commit();
         } catch (Throwable $exception) {
             $this->db->rollback();
+            throw $exception;
+        }
+        return '';
+    }
+
+    /**
+     * 放弃待审结果：只放弃审阅页上看到的那一份，之后新生成的不动（评审 F04）。
+     * @return string 冲突代码；空串表示已放弃
+     */
+    public function discard(string $table, int $targetId, string $expectedRevision): string
+    {
+        $states = new TranslationState($this->db);
+        $this->db->beginTransaction();
+        try {
+            $target = $this->db->lockRow($table, $targetId);
+            if ($target === null || !empty($target['deleted_at'])) return $this->abort('target_deleted');
+            $link = $states->link($table, $targetId);
+            $revision = TranslationState::proposalRevision($link);
+            if ($revision === '') return $this->abort('no_proposal');
+            if (!hash_equals($revision, $expectedRevision)) return $this->abort('proposal_changed');
+            $states->discardProposal($table, $targetId, time());
+            $this->db->commit();
+        } catch (Throwable $exception) {
+            if ($this->db->getPdo()->inTransaction()) $this->db->rollback();
+            throw $exception;
+        }
+        return '';
+    }
+
+    /**
+     * 人确认译文对应原文。只认审阅页打开时的原文与译文：之后任一方又被改过，就要重新看过再确认（评审 F04）。
+     * @param array{table:string,target_id:int,title_key:string,summary_key:string,has_page:bool} $ctx
+     * @return string 冲突代码；空串表示已标为已审
+     */
+    public function markReviewed(array $ctx, int $sourceId, string $expectedSourceFp, string $expectedTargetFp, int $adminId): string
+    {
+        $table = $ctx['table'];
+        $id = $ctx['target_id'];
+        $this->db->beginTransaction();
+        try {
+            $source = $this->db->lockRow($table, $sourceId);
+            $target = $this->db->lockRow($table, $id);
+            if ($target === null || !empty($target['deleted_at'])) return $this->abort('target_deleted');
+            if ($source === null || !empty($source['deleted_at'])) return $this->abort('review_stale');
+            $sourceFp = TranslationState::rowFingerprint($source, $ctx['title_key'], $ctx['summary_key'], $ctx['has_page'] ? $this->pageRow($sourceId, true) : null);
+            $targetFp = TranslationState::rowFingerprint($target, $ctx['title_key'], $ctx['summary_key'], $ctx['has_page'] ? $this->pageRow($id, true) : null);
+            if (!hash_equals($sourceFp, $expectedSourceFp) || !hash_equals($targetFp, $expectedTargetFp)) return $this->abort('review_stale');
+            (new TranslationState($this->db))->markReviewed($table, $id, $sourceId, (string) ($target['lang'] ?? ''), $sourceFp, $targetFp, $adminId, time());
+            adminLog('translate', 'review', "{$table}#{$id} 标为已审");
+            $this->db->commit();
+        } catch (Throwable $exception) {
+            if ($this->db->getPdo()->inTransaction()) $this->db->rollback();
             throw $exception;
         }
         return '';
@@ -248,6 +336,17 @@ final class TranslationWrite
         };
     }
 
+    /**
+     * 译文已上线（已发布、定时发布等任何非草稿状态）：AI 生成的新译文不能直接写进去。
+     * 单页的正文行另有状态，任一非草稿都算。
+     * @param array<string,mixed> $target @param array<string,mixed>|null $page
+     */
+    public static function isLive(array $target, ?array $page = null): bool
+    {
+        if (array_key_exists('status', $target) && (int) $target['status'] !== 0) return true;
+        return $page !== null && array_key_exists('status', $page) && (int) $page['status'] !== 0;
+    }
+
     /** 整行指纹（去掉计数列）。null 表示「当时没有这一行」。 */
     public static function fingerprint(?array $row): string
     {
@@ -263,10 +362,12 @@ final class TranslationWrite
      *        调模型之前读到的状态
      * @param array<string,mixed> $translated translateContentFields() 的结果
      * @param array<string,mixed> $newData 目标语言不存在时要新建的整行
-     * @param bool $draftOnly 已发布的译文也不覆盖（批量更新用：不把在线内容改回草稿）
+     * @param null|Closure():string $guard 锁定重读之后、写任何东西之前调用（同一事务内）；返回非空串就整笔不写，作为冲突代码返回。
+     *        批量任务用它在事务里确认这一项没被取消、租约仍归自己（评审 F03）
+     * @param null|Closure(int,string):void $onWritten 写完、提交前调用（同一事务内）：参数为目标 id 与 'applied' / 'proposed'
      * @return array{id:int,conflict:string} conflict 为空表示已写入；target_protected 表示应转为待审结果
      */
-    public function apply(array $read, array $translated, array $newData, bool $draftOnly = false): array
+    public function apply(array $read, array $translated, array $newData, ?Closure $guard = null, ?Closure $onWritten = null): array
     {
         $table = $read['table'];
         $model = $read['model'];
@@ -285,13 +386,19 @@ final class TranslationWrite
                 $this->db->rollback();
                 return ['id' => $current['id'], 'conflict' => $current['conflict']];
             }
+            $refused = $guard !== null ? $guard() : '';
+            if ($refused !== '') {
+                $this->db->rollback();
+                return ['id' => $current['id'], 'conflict' => $refused];
+            }
             // 历史版本存写入前一刻（已锁定）的内容，而不是调模型前读到的
             $target = $current['target'];
             if ($target) {
-                // 人改过、审过或来历不明的译文不整份覆盖（T04）：交给调用方转成待审结果
+                // 人改过、审过或来历不明的译文不整份覆盖（T04）；已上线的也不覆盖（评审 F01）：
+                // 整份写入会把它改回草稿、从前台消失。都交给调用方转成待审结果，单条与批量入口同一规则
                 $state = TranslationState::status((new TranslationState($this->db))->link($table, (int) $target['id']),
                     self::sourceFingerprint($read), TranslationState::rowFingerprint($target, $titleKey, $summKey, $current['target_page']));
-                if ($state['protected'] || ($draftOnly && (int) ($target['status'] ?? 0) !== 0)) {
+                if ($state['protected'] || self::isLive($target, $current['target_page'])) {
                     $this->db->rollback();
                     return ['id' => (int) $target['id'], 'conflict' => 'target_protected'];
                 }
@@ -333,6 +440,7 @@ final class TranslationWrite
             if ($extOwner !== '' && !$target) ExtFields::copyValues($extOwner, $srcId, $newId);
             (new TranslationState($this->db))->recordMachine($table, $newId, $srcId, $toLang, self::sourceFingerprint($read), $this->targetFingerprint($read, $newId), time());
             adminLog('translate', 'create', "为 {$table}#{$srcId} 创建 {$toLang} 翻译 → #{$newId}");
+            if ($onWritten !== null) $onWritten($newId, 'applied');
             $this->db->commit();
         } catch (Throwable $exception) {
             $this->db->rollback();

@@ -22,6 +22,8 @@ final class TranslationBatches
     public const MAX_ATTEMPTS = 3;
     /** 还没做完、会被 step() 继续处理的状态 */
     public const OPEN = ['pending', 'generating', 'generated'];
+    /** 写库时发现这一项已不归本请求（被取消或被重新领取） */
+    private const LEASE_LOST = 'lease_lost';
 
     /** @var Closure(array<string,mixed>, string): array<string,mixed> */
     private Closure $generator;
@@ -137,8 +139,17 @@ final class TranslationBatches
     /** 取消：未开始的项不再处理；已经写进去的译文不撤（它们是普通草稿） */
     public function cancel(int $batchId, int $now): void
     {
-        $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET status = 'cancelled', updated_at = ? WHERE id = ? AND status IN ('running', 'paused')", [$now, $batchId]);
-        $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batch_items SET status = 'cancelled', lease_until = 0, updated_at = ? WHERE batch_id = ? AND status IN ('pending', 'generating', 'generated')", [$now, $batchId]);
+        // 正在写库的那一项持有项目行锁（见 applyItem），这里的 UPDATE 会等它提交：
+        // 它先写完就是 applied，不再改；它还没开始写，就看到 cancelled、一个字都不写（评审 F03）
+        $this->db->beginTransaction();
+        try {
+            $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET status = 'cancelled', updated_at = ? WHERE id = ? AND status IN ('running', 'paused')", [$now, $batchId]);
+            $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batch_items SET status = 'cancelled', lease_until = 0, updated_at = ? WHERE batch_id = ? AND status IN ('pending', 'generating', 'generated')", [$now, $batchId]);
+            $this->db->commit();
+        } catch (Throwable $error) {
+            if ($this->db->getPdo()->inTransaction()) $this->db->rollback();
+            throw $error;
+        }
     }
 
     /** @return array<string,mixed>|null */
@@ -201,18 +212,18 @@ final class TranslationBatches
         $id = (int) $item['id'];
         $src = $this->product((int) $item['source_id']);
         if ($src === null) {
-            $this->mark($id, 'failed', ['error' => 'source_missing'], $now);
+            $this->markHeld($item, 'failed', ['error' => 'source_missing'], $now);
             return null;
         }
         $existing = $this->existingTarget((int) $src['id'], (string) $item['lang']);
         if ((int) $item['target_id'] > 0) {
             // 更新项：译文在排队后被删掉了就不再生成
             if ($existing !== (int) $item['target_id']) {
-                $this->mark($id, 'failed', ['error' => 'target_missing'], $now);
+                $this->markHeld($item, 'failed', ['error' => 'target_missing'], $now);
                 return null;
             }
         } elseif ($existing > 0) {
-            $this->mark($id, 'exists', ['target_id' => $existing], $now);
+            $this->markHeld($item, 'exists', ['target_id' => $existing], $now);
             return null;
         }
         require_once ROOT_PATH . '/includes/content_translation.php';
@@ -220,14 +231,16 @@ final class TranslationBatches
             $translated = ($this->generator)(TranslationWrite::source($src, 'title', 'summary', $src, translationBodyField($src)), (string) $item['lang']);
         } catch (Throwable $error) {
             $status = (int) $item['attempts'] >= self::MAX_ATTEMPTS ? 'failed' : 'pending';
-            $this->mark($id, $status, ['error' => mb_substr($error->getMessage(), 0, 250)], $now);
+            $this->markHeld($item, $status, ['error' => mb_substr($error->getMessage(), 0, 250)], $now);
             return null;
         }
-        // 租约留着：本请求接着写库，别的页面这时领不走它
-        $this->mark($id, 'generated', [
+        // 租约留着：本请求接着写库，别的页面这时领不走它。
+        // 调模型期间被取消、或租约过期被别的页面重新领走，这份结果就作废，不落库（评审 F03）
+        $kept = $this->markHeld($item, 'generated', [
             'result_json' => json_encode($translated, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
             'source_fp' => TranslationWrite::fingerprint($src), 'error' => '',
         ], $now, (int) $item['lease_until']);
+        if (!$kept) return null;
         return $this->db->fetchOne('SELECT * FROM ' . DB_PREFIX . 'translation_batch_items WHERE id = ?', [$id]);
     }
 
@@ -236,18 +249,19 @@ final class TranslationBatches
     {
         $id = (int) $item['id'];
         $row = $this->db->fetchOne('SELECT * FROM ' . DB_PREFIX . 'translation_batch_items WHERE id = ?', [$id]);
+        if ($row === null || !self::stillHeld($row, $item)) return;
         $translated = json_decode((string) ($row['result_json'] ?? ''), true);
         if (!is_array($translated)) {
-            $this->mark($id, 'pending', ['error' => 'result_unreadable'], $now);
+            $this->markHeld($item, 'pending', ['error' => 'result_unreadable'], $now);
             return;
         }
         $src = $this->product((int) $row['source_id']);
         if ($src === null) {
-            $this->mark($id, 'failed', ['error' => 'source_missing'], $now);
+            $this->markHeld($item, 'failed', ['error' => 'source_missing'], $now);
             return;
         }
         if (TranslationWrite::fingerprint($src) !== (string) $row['source_fp']) {
-            $this->mark($id, 'conflict', ['error' => 'source_changed'], $now);
+            $this->markHeld($item, 'conflict', ['error' => 'source_changed'], $now);
             return;
         }
         require_once ROOT_PATH . '/includes/content_translation.php';
@@ -258,7 +272,7 @@ final class TranslationBatches
         if ((int) $row['target_id'] > 0) {
             $target = $this->product((int) $row['target_id']);
             if ($target === null) {
-                $this->mark($id, 'failed', ['error' => 'target_missing'], $now);
+                $this->markHeld($item, 'failed', ['error' => 'target_missing'], $now);
                 return;
             }
         }
@@ -267,33 +281,52 @@ final class TranslationBatches
             'src' => $src, 'src_page' => null, 'target' => $target, 'target_page' => null,
             'title_key' => 'title', 'summary_key' => 'summary', 'body_field' => $bodyField,
         ];
+        // 写内容与记「已写入」在同一事务里：先锁住这一项再确认没被取消、租约仍是自己的。
+        // 取消要改这一行，会排在这次写库之后；只在写库前读一次状态不够，读完到写入之间仍可能被取消（评审 F03）
+        $guard = function () use ($item): string {
+            $locked = $this->db->lockRow('translation_batch_items', (int) $item['id']);
+            return $locked !== null && self::stillHeld($locked, $item) ? '' : self::LEASE_LOST;
+        };
+        $settle = function (int $targetId, string $outcome) use ($id, $now): void {
+            $this->db->update('translation_batch_items', ['status' => $outcome, 'target_id' => $targetId, 'error' => '', 'lease_until' => 0, 'updated_at' => $now], 'id = ?', [$id]);
+        };
         try {
             $writer = new TranslationWrite($this->db);
-            // 更新已有译文：已发布的也不覆盖（不把在线内容改回草稿），与受保护的一样存为待审
-            $written = $writer->apply($read, $translated, TranslationWrite::newRow('products', $src, $translated, $lang, $groupId, 'title', 'summary', $bodyField), $target !== null);
+            // 已有译文已发布、人改过或审过的不覆盖（写库层统一规则，见 TranslationWrite::apply），存为待审
+            $written = $writer->apply($read, $translated, TranslationWrite::newRow('products', $src, $translated, $lang, $groupId, 'title', 'summary', $bodyField), $guard, $settle);
             if ($written['conflict'] === 'target_protected') {
-                $written = $writer->propose($read, $translated);
-                if ($written['conflict'] === '') {
-                    $this->mark($id, 'proposed', ['target_id' => $written['id'], 'error' => ''], $now);
-                    return;
-                }
+                $written = $writer->propose($read, $translated, $guard, $settle);
             }
         } catch (Throwable $error) {
             // 结果还在，下一轮直接重试写库，不再调模型
-            $this->mark($id, 'generated', ['error' => mb_substr($error->getMessage(), 0, 250)], $now);
+            // 提交之后才抛错（例如提交后的回调）时这一项已是 applied，markHeld 对不上就不会把它改回去
+            $this->markHeld($item, 'generated', ['error' => mb_substr($error->getMessage(), 0, 250)], $now);
             return;
         }
         match ($written['conflict']) {
-            '' => $this->mark($id, 'applied', ['target_id' => $written['id'], 'error' => ''], $now),
-            'target_exists' => $this->mark($id, 'exists', ['target_id' => $written['id'], 'error' => ''], $now),
-            default => $this->mark($id, 'conflict', ['error' => $written['conflict']], $now),
+            '', self::LEASE_LOST => null,   // 已在事务里记好；或这一项已不归本请求，什么都不动
+            'target_exists' => $this->markHeld($item, 'exists', ['target_id' => $written['id'], 'error' => ''], $now),
+            default => $this->markHeld($item, 'conflict', ['error' => $written['conflict']], $now),
         };
     }
 
-    /** @param array<string,mixed> $fields */
-    private function mark(int $id, string $status, array $fields, int $now, int $leaseUntil = 0): void
+    /**
+     * 只改仍归本请求的项：状态、租约到期时间、尝试次数都与领取时一致（评审 F03）。
+     * 被取消、租约过期后被别的页面重新领取（尝试次数或租约变了）的，一律不动，返回 false。
+     * @param array<string,mixed> $held 领取（或生成完）时读到的项 @param array<string,mixed> $fields
+     */
+    private function markHeld(array $held, string $status, array $fields, int $now, int $leaseUntil = 0): bool
     {
-        $this->db->update('translation_batch_items', ['status' => $status, 'lease_until' => $leaseUntil, 'updated_at' => $now] + $fields, 'id = ?', [$id]);
+        return $this->db->update('translation_batch_items', ['status' => $status, 'lease_until' => $leaseUntil, 'updated_at' => $now] + $fields,
+            'id = ? AND status = ? AND lease_until = ? AND attempts = ?',
+            [(int) $held['id'], (string) $held['status'], (int) $held['lease_until'], (int) $held['attempts']]) === 1;
+    }
+
+    /** @param array<string,mixed> $row 现在库里的项 @param array<string,mixed> $held */
+    private static function stillHeld(array $row, array $held): bool
+    {
+        return (string) $row['status'] === (string) $held['status'] && (int) $row['lease_until'] === (int) $held['lease_until']
+            && (int) $row['attempts'] === (int) $held['attempts'];
     }
 
     private function finishIfDone(int $batchId, int $now): void

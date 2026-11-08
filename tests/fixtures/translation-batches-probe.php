@@ -168,6 +168,56 @@ switch ((string) ($argv[1] ?? '')) {
         $out['batch'] = $svc->batch($created['batch_id'])['status'];
         break;
 
+    case 'cancel_during_generation':
+    case 'cancel_then_provider_error':
+        // 评审 F03：模型请求进行中，另一个页面取消了整批；之后模型返回结果（或报错）
+        $a = $product('液压泵');
+        $b = $product('齿轮泵');
+        $svc = null;
+        $batchId = 0;
+        $fails = $argv[1] === 'cancel_then_provider_error';
+        $svc = new TranslationBatches(db(), $generator(static function () use (&$svc, &$batchId, $now, $fails): void {
+            $svc->cancel($batchId, $now);
+            if ($fails) throw new RuntimeException('provider 503');
+        }));
+        $created = $svc->create(1, [$a, $b], ['en'], 'zh-CN', $now);
+        $batchId = $created['batch_id'];
+        $out['counts'] = $svc->step($batchId, 30, static fn (): int => $now);
+        $out['items'] = $items($batchId);
+        $out['batch'] = $svc->batch($batchId)['status'];
+        $out['en_rows'] = (int) db()->fetchColumn("SELECT COUNT(*) FROM yikai_products WHERE lang = 'en'");
+        $out['links'] = (int) db()->fetchColumn('SELECT COUNT(*) FROM yikai_translation_links');
+        // 再跑也不复活
+        $out['again'] = $svc->step($batchId, 30, static fn (): int => $now + 400);
+        break;
+
+    case 'stale_lease_holder':
+        // 评审 F03：本请求调模型太久，租约过期，另一个页面重新领走了这一项（尝试次数 +1、新租约）；之后旧结果才回来
+        $a = $product('液压泵');
+        $rival = [];
+        $svc = new TranslationBatches(db(), $generator(static function () use ($now, &$rival): void {
+            db()->execute("UPDATE yikai_translation_batch_items SET attempts = attempts + 1, lease_until = ?, updated_at = ? WHERE status = 'generating'", [$now + 900, $now + 600]);
+            $rival = db()->fetchOne('SELECT status, attempts, lease_until FROM yikai_translation_batch_items');
+        }));
+        $created = $svc->create(1, [$a], ['en'], 'zh-CN', $now);
+        $svc->step($created['batch_id'], 30, static fn (): int => $now);
+        $out['rival'] = $rival;
+        $out['items'] = $items($created['batch_id']);
+        $out['result_saved'] = db()->fetchColumn('SELECT result_json FROM yikai_translation_batch_items');
+        $out['en_rows'] = (int) db()->fetchColumn("SELECT COUNT(*) FROM yikai_products WHERE lang = 'en'");
+        break;
+
+    case 'cancel_after_apply':
+        // 已经写进去的项不被取消改掉（它们是普通草稿）
+        $a = $product('液压泵');
+        $svc = new TranslationBatches(db(), $generator());
+        $created = $svc->create(1, [$a], ['en'], 'zh-CN', $now);
+        $svc->step($created['batch_id'], 30, static fn (): int => $now);
+        $svc->cancel($created['batch_id'], $now + 1);
+        $out['items'] = $items($created['batch_id']);
+        $out['en_rows'] = (int) db()->fetchColumn("SELECT COUNT(*) FROM yikai_products WHERE lang = 'en'");
+        break;
+
     default:
         fwrite(STDERR, "unknown scenario\n");
         exit(2);

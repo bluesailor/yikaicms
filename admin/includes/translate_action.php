@@ -106,10 +106,12 @@ $newData = TranslationWrite::newRow($table, $src, $translated, $toLang, $groupId
 try {
     $writer = new TranslationWrite(db());
     $written = $writer->apply($translationRead, $translated, $newData);
-    // 人改过、审过或来历不明的译文不整份覆盖：存为待审，到译文编辑页逐字段决定（T04）
+    // 人改过、审过、来历不明或已上线的译文不整份覆盖：存为待审，到译文编辑页逐字段决定（T04、评审 F01）
     if ($written['conflict'] === 'target_protected') {
         $written = $writer->propose($translationRead, $translated);
-        if ($written['conflict'] === '') success(['id' => $written['id'], 'proposal' => true], __('lse_proposal_saved'));
+        // apply() 已锁行确认目标与调模型前一致，这里读到的发布状态就是当下的
+        $live = $target !== null && TranslationWrite::isLive($target, $translationRead['target_page']);
+        if ($written['conflict'] === '') success(['id' => $written['id'], 'proposal' => true], __($live ? 'lse_proposal_saved_live' : 'lse_proposal_saved'));
     }
 } catch (Throwable $exception) {
     error(__('lse_failed') . ': ' . $exception->getMessage());
@@ -123,5 +125,9 @@ if ($written['conflict'] !== '') {
         'id' => $written['id'],
         'translation' => ['title' => (string) $translated['title'], 'summary' => (string) $translated['summary'], 'content' => (string) $translated['content']],
     ]], 409);
+}
+// 新建的产品译文找不到目标语言分类时放在「未分类」，明说出来，免得以为已经归好类（评审 F02）
+if ($target === null && TranslationWrite::categoryUnmapped($table, $src, $newData)) {
+    success(['id' => $written['id'], 'category_unmapped' => true], __('lse_category_unmapped'));
 }
 success(['id' => $written['id']], '翻译已创建');
