@@ -110,6 +110,15 @@ final class TranslationStateTest extends TestCase
         self::assertSame([true, false, true, true], [$r["live"], $r["draft_live"], $r["scheduled_live"], $r["page_live"]]);
     }
 
+    public function testEntryWithoutReviewUiKeepsLiveTargetsLiveAndRefusesEditedOnes(): void
+    {
+        $r = $this->probe("no_review_ui");
+        self::assertSame("", $r["untouched"]["conflict"], "没有审阅界面时不存看不到的待审结果");
+        self::assertSame(["Retranslated", 1], [$r["untouched_row"]["title"], (int) $r["untouched_row"]["status"]], "照写文字但保持启用");
+        self::assertSame("target_protected", $r["edited"]["conflict"], "人改过的仍不覆盖");
+        self::assertSame("<p>HUMAN</p>", $r["edited_row"]["content"]);
+    }
+
     public function testNewProductTranslationUsesTheTargetLanguageCategory(): void
     {
         $r = $this->probe("category_map");

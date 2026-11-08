@@ -158,6 +158,20 @@ switch ((string) ($argv[1] ?? '')) {
         $out['page_live'] = TranslationWrite::isLive(['status' => 0], ['status' => 1]);
         break;
 
+    case 'no_review_ui':
+        // 没有审阅界面的入口（产品分类列表）：已启用、没人碰过的译文照写但保持启用；人改过的拒绝
+        $a = $product('液压泵');
+        $b = $product('齿轮泵');
+        $t = $translate([$a, $b]);
+        db()->execute('UPDATE yikai_products SET status = 1 WHERE id IN (?, ?)', [$t[$a], $t[$b]]);
+        db()->execute("UPDATE yikai_products SET content = '<p>HUMAN</p>' WHERE id = ?", [$t[$b]]);
+        $translated = ['title' => 'Retranslated', 'summary' => 'S2', 'content' => '<p>New</p>'];
+        $out['untouched'] = $writer->apply(['review_ui' => false] + $read($a, $t[$a]), $translated, []);
+        $out['untouched_row'] = $row($t[$a]);
+        $out['edited'] = $writer->apply(['review_ui' => false] + $read($b, $t[$b]), $translated, []);
+        $out['edited_row'] = $row($t[$b]);
+        break;
+
     case 'category_map':
         // 评审 F02：中文分类 → 德语分类在同一翻译组；英语没有对应分类；嵌套分类按自身的组映射
         $cat = static fn (string $name, string $lang, int $group = 0, int $parent = 0): int => (int) db()->insert('product_categories', [

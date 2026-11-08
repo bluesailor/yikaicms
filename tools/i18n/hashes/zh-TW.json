@@ -6842,6 +6842,7 @@
     "lang/zh-TW.php|lse_conflict_source_changed": "939875fb1cfa",
     "lang/zh-TW.php|lse_conflict_target_changed": "d5e85e54f41d",
     "lang/zh-TW.php|lse_conflict_target_deleted": "ba2be383e1ae",
+    "lang/zh-TW.php|lse_conflict_target_protected": "cedaef9b87b2",
     "lang/zh-TW.php|lse_conflict_target_published": "623cf44a9d1e",
     "lang/zh-TW.php|lse_conflict_view": "f7abcf97d48e",
     "lang/zh-TW.php|lse_create_confirm": "c7f0ac94d52d",

@@ -9673,6 +9673,7 @@ return [
     'lse_conflict_target_changed' => 'Alguém editou esta versão de idioma durante a tradução; a tradução não foi salva',
     'lse_conflict_target_published' => 'Esta versão de idioma foi publicada durante a tradução; a tradução não foi salva',
     'lse_conflict_target_deleted' => 'Esta versão de idioma foi excluída durante a tradução; a tradução não foi salva',
+    'lse_conflict_target_protected' => 'Esta tradução foi editada ou revisada, por isso a nova não foi escrita. Edite essa versão de idioma manualmente.',
     'lse_conflict_view' => '(expanda para ver a tradução gerada)',
     'tbt_title' => 'Tradução em lote',
     'tbt_intro' => 'Cada produto selecionado é traduzido por IA para os idiomas escolhidos e salvo como rascunho. Se fechar esta página, volte e clique em Continuar; o que já terminou não é refeito e traduções existentes nunca são sobrescritas.',

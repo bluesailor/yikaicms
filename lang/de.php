@@ -9673,6 +9673,7 @@ return [
     'lse_conflict_target_changed' => 'Jemand hat diese Sprachversion während der Übersetzung bearbeitet; die Übersetzung wurde nicht gespeichert',
     'lse_conflict_target_published' => 'Diese Sprachversion wurde während der Übersetzung veröffentlicht; die Übersetzung wurde nicht gespeichert',
     'lse_conflict_target_deleted' => 'Diese Sprachversion wurde während der Übersetzung gelöscht; die Übersetzung wurde nicht gespeichert',
+    'lse_conflict_target_protected' => 'Diese Übersetzung wurde bearbeitet oder geprüft, deshalb wurde die neue Übersetzung nicht geschrieben. Bearbeiten Sie diese Sprachversion von Hand.',
     'lse_conflict_view' => '(aufklappen, um die erzeugte Übersetzung anzuzeigen)',
     'tbt_title' => 'Stapelübersetzung',
     'tbt_intro' => 'Jedes ausgewählte Produkt wird per KI in die gewählten Sprachen übersetzt und als Entwurf gespeichert. Wenn Sie die Seite schließen, kommen Sie zurück und klicken auf Fortsetzen; Erledigtes wird nicht wiederholt und vorhandene Übersetzungen werden nie überschrieben.',

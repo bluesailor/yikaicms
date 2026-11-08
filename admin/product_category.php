@@ -22,6 +22,8 @@ $langSwitcher = [
     'model'         => productCategoryModel(),
     'title_field'   => 'name',
     'summary_field' => 'description',
+    // 列表页没有逐字段审阅界面：已启用的分类重译时保持启用；人改过的拒绝并提示（见 TranslationWrite::apply）
+    'review_ui'     => false,
 ];
 require_once ROOT_PATH . '/admin/includes/translate_action.php';
 

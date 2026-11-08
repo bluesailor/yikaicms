@@ -9674,6 +9674,7 @@ return [
     'lse_conflict_target_changed' => '該語言版本在翻譯期間被他人修改，譯文未寫入',
     'lse_conflict_target_published' => '該語言版本在翻譯期間已被發佈，譯文未寫入',
     'lse_conflict_target_deleted' => '該語言版本在翻譯期間已被刪除，譯文未寫入',
+    'lse_conflict_target_protected' => '這條譯文有人改過或審過，新譯文沒有寫入。請到該語言版本裡手工修改',
     'lse_conflict_view' => '（展開檢視產生的譯文）',
     'tbt_title' => '批次翻譯任務',
     'tbt_intro' => '選取的產品逐一用 AI 譯成所選語言，存為草稿。關閉頁面後回來點「繼續」接著執行，已完成的不會重做；已有的譯文不會被覆蓋。',

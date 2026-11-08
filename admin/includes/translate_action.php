@@ -95,6 +95,8 @@ $translationRead = [
     'target' => $target,
     'target_page' => $target && $pageContent ? contentModel()->queryOne('SELECT * FROM ' . contentModel()->tableName() . ' WHERE channel_id = ? ORDER BY id DESC LIMIT 1', [(int) $target['id']]) : null,
     'title_key' => $titleKey, 'summary_key' => $summKey, 'body_field' => $bodyField,
+    // 调用页有没有逐字段审阅界面（lang_switcher_edit）。没有的（产品分类列表）不存看不到的待审结果
+    'review_ui' => ($langSwitcher['review_ui'] ?? true) !== false,
 ];
 try {
     $translated = TranslationWrite::generate(TranslationWrite::source($src, $titleKey, $summKey, $bodySource, $bodyField), $toLang);
@@ -107,7 +109,8 @@ try {
     $writer = new TranslationWrite(db());
     $written = $writer->apply($translationRead, $translated, $newData);
     // 人改过、审过、来历不明或已上线的译文不整份覆盖：存为待审，到译文编辑页逐字段决定（T04、评审 F01）
-    if ($written['conflict'] === 'target_protected') {
+    // 没有审阅界面时不转待审：落到下面的 409，把生成的译文交还给页面（lse_conflict_target_protected）
+    if ($written['conflict'] === 'target_protected' && $translationRead['review_ui']) {
         $written = $writer->propose($translationRead, $translated);
         // apply() 已锁行确认目标与调模型前一致，这里读到的发布状态就是当下的
         $live = $target !== null && TranslationWrite::isLive($target, $translationRead['target_page']);

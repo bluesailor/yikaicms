@@ -9673,6 +9673,7 @@ return [
     'lse_conflict_target_changed' => 'Quelqu’un a modifié cette version linguistique pendant la traduction ; la traduction n’a pas été enregistrée',
     'lse_conflict_target_published' => 'Cette version linguistique a été publiée pendant la traduction ; la traduction n’a pas été enregistrée',
     'lse_conflict_target_deleted' => 'Cette version linguistique a été supprimée pendant la traduction ; la traduction n’a pas été enregistrée',
+    'lse_conflict_target_protected' => 'Cette traduction a été modifiée ou relue : la nouvelle n’a pas été écrite. Modifiez cette version linguistique à la main.',
     'lse_conflict_view' => '(développer pour voir la traduction générée)',
     'tbt_title' => 'Traduction par lot',
     'tbt_intro' => 'Chaque produit sélectionné est traduit par l’IA dans les langues choisies et enregistré comme brouillon. Si vous fermez cette page, revenez et cliquez sur Continuer : ce qui est terminé n’est pas refait et les traductions existantes ne sont jamais écrasées.',

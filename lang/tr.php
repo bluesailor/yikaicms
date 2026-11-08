@@ -9673,6 +9673,7 @@ return [
     'lse_conflict_target_changed' => 'Çeviri sırasında biri bu dil sürümünü düzenledi; çeviri kaydedilmedi',
     'lse_conflict_target_published' => 'Bu dil sürümü çeviri sırasında yayımlandı; çeviri kaydedilmedi',
     'lse_conflict_target_deleted' => 'Bu dil sürümü çeviri sırasında silindi; çeviri kaydedilmedi',
+    'lse_conflict_target_protected' => 'Bu çeviri düzenlenmiş ya da gözden geçirilmiş; bu yüzden yeni çeviri yazılmadı. O dil sürümünü elle düzenleyin.',
     'lse_conflict_view' => '(oluşturulan çeviriyi görmek için genişletin)',
     'tbt_title' => 'Toplu çeviri',
     'tbt_intro' => 'Seçilen her ürün yapay zekâ ile seçilen dillere çevrilir ve taslak olarak kaydedilir. Sayfayı kapatırsanız geri gelip Devam et\'e tıklayın; bitenler yeniden yapılmaz ve mevcut çeviriler asla üzerine yazılmaz.',

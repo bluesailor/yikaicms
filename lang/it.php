@@ -9673,6 +9673,7 @@ return [
     'lse_conflict_target_changed' => 'Qualcuno ha modificato questa versione linguistica durante la traduzione; la traduzione non è stata salvata',
     'lse_conflict_target_published' => 'Questa versione linguistica è stata pubblicata durante la traduzione; la traduzione non è stata salvata',
     'lse_conflict_target_deleted' => 'Questa versione linguistica è stata eliminata durante la traduzione; la traduzione non è stata salvata',
+    'lse_conflict_target_protected' => 'Questa traduzione è stata modificata o revisionata, quindi la nuova non è stata scritta. Modifica a mano quella versione linguistica.',
     'lse_conflict_view' => '(espandi per vedere la traduzione generata)',
     'tbt_title' => 'Traduzione in blocco',
     'tbt_intro' => 'Ogni prodotto selezionato viene tradotto con l\'AI nelle lingue scelte e salvato come bozza. Se chiudi la pagina, torna e fai clic su Continua: ciò che è finito non viene rifatto e le traduzioni esistenti non vengono mai sovrascritte.',

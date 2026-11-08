@@ -9673,6 +9673,7 @@ return [
     'lse_conflict_target_changed' => 'Có người đã sửa phiên bản ngôn ngữ này trong khi dịch; bản dịch chưa được lưu',
     'lse_conflict_target_published' => 'Phiên bản ngôn ngữ này đã được xuất bản trong khi dịch; bản dịch chưa được lưu',
     'lse_conflict_target_deleted' => 'Phiên bản ngôn ngữ này đã bị xóa trong khi dịch; bản dịch chưa được lưu',
+    'lse_conflict_target_protected' => 'Bản dịch này đã được chỉnh sửa hoặc duyệt, nên bản dịch mới không được ghi. Hãy sửa thủ công phiên bản ngôn ngữ đó.',
     'lse_conflict_view' => '(mở rộng để xem bản dịch đã tạo)',
     'tbt_title' => 'Dịch hàng loạt',
     'tbt_intro' => 'Từng sản phẩm đã chọn được AI dịch sang các ngôn ngữ đã chọn và lưu thành bản nháp. Nếu đóng trang, hãy quay lại và bấm Tiếp tục; mục đã xong không làm lại và bản dịch có sẵn không bao giờ bị ghi đè.',

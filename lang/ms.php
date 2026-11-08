@@ -9673,6 +9673,7 @@ return [
     'lse_conflict_target_changed' => 'Seseorang menyunting versi bahasa ini semasa menterjemah; terjemahan tidak disimpan',
     'lse_conflict_target_published' => 'Versi bahasa ini diterbitkan semasa menterjemah; terjemahan tidak disimpan',
     'lse_conflict_target_deleted' => 'Versi bahasa ini dipadam semasa menterjemah; terjemahan tidak disimpan',
+    'lse_conflict_target_protected' => 'Terjemahan ini telah disunting atau disemak, jadi terjemahan baharu tidak ditulis. Sunting versi bahasa itu secara manual.',
     'lse_conflict_view' => '(kembangkan untuk melihat terjemahan yang dijana)',
     'tbt_title' => 'Terjemahan pukal',
     'tbt_intro' => 'Setiap produk yang dipilih diterjemah oleh AI ke bahasa pilihan dan disimpan sebagai draf. Jika halaman ditutup, kembali dan klik Teruskan; yang sudah siap tidak diulang dan terjemahan sedia ada tidak akan ditimpa.',

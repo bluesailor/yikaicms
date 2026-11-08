@@ -6819,6 +6819,7 @@
     "lang/ko.php|lse_accept_proposal_changed": "fcd7570df1b8",
     "lang/ko.php|lse_accept_review_stale": "377c259e2a21",
     "lang/ko.php|lse_category_unmapped": "743c0e41bbc6",
+    "lang/ko.php|lse_conflict_target_protected": "cedaef9b87b2",
     "lang/ko.php|lse_create_confirm": "c7f0ac94d52d",
     "lang/ko.php|lse_create_version": "4f656159cb0c",
     "lang/ko.php|lse_created_edit": "61709c311c94",

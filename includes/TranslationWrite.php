@@ -358,8 +358,8 @@ final class TranslationWrite
     }
 
     /**
-     * @param array{table:string,model:Model,lang:string,group_id:int,src:array<string,mixed>,src_page:?array<string,mixed>,target:?array<string,mixed>,target_page:?array<string,mixed>,title_key:string,summary_key:string,body_field:string} $read
-     *        调模型之前读到的状态
+     * @param array{table:string,model:Model,lang:string,group_id:int,src:array<string,mixed>,src_page:?array<string,mixed>,target:?array<string,mixed>,target_page:?array<string,mixed>,title_key:string,summary_key:string,body_field:string,review_ui?:bool} $read
+     *        调模型之前读到的状态；review_ui=false 表示调用页没有逐字段审阅界面
      * @param array<string,mixed> $translated translateContentFields() 的结果
      * @param array<string,mixed> $newData 目标语言不存在时要新建的整行
      * @param null|Closure():string $guard 锁定重读之后、写任何东西之前调用（同一事务内）；返回非空串就整笔不写，作为冲突代码返回。
@@ -398,12 +398,16 @@ final class TranslationWrite
                 // 整份写入会把它改回草稿、从前台消失。都交给调用方转成待审结果，单条与批量入口同一规则
                 $state = TranslationState::status((new TranslationState($this->db))->link($table, (int) $target['id']),
                     self::sourceFingerprint($read), TranslationState::rowFingerprint($target, $titleKey, $summKey, $current['target_page']));
-                if ($state['protected'] || self::isLive($target, $current['target_page'])) {
+                // 没有审阅界面的入口（产品分类列表，$read['review_ui'] = false）存了待审也没人看得到、采用不了：
+                // 没人碰过的已上线译文照写文字但保持上线；人改过、审过的照样拒绝，由调用方明说
+                $live = self::isLive($target, $current['target_page']);
+                $keepLive = $live && ($read['review_ui'] ?? true) === false;
+                if ($state['protected'] || ($live && !$keepLive)) {
                     $this->db->rollback();
                     return ['id' => (int) $target['id'], 'conflict' => 'target_protected'];
                 }
                 $changes = self::changes($translated, $target, $titleKey, $summKey, $bodyField);
-                if (array_key_exists('status', $target)) $changes['status'] = 0;
+                if (array_key_exists('status', $target) && !$keepLive) $changes['status'] = 0;
                 if (array_key_exists('updated_at', $target)) $changes['updated_at'] = time();
                 $this->recordRevision(self::revisionType($table, $src),(int) $target['id'], $toLang, [['table' => $table, 'id' => (int) $target['id'], 'fields' => array_intersect_key($target, $changes)]], (string) ($target[$titleKey] ?? ''));
                 $model->updateById((int) $target['id'], $changes);

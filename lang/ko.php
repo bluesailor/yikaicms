@@ -9673,6 +9673,7 @@ return [
     'lse_conflict_target_changed' => '번역하는 동안 다른 사람이 이 언어 버전을 수정하여 번역문을 저장하지 않았습니다',
     'lse_conflict_target_published' => '번역하는 동안 이 언어 버전이 게시되어 번역문을 저장하지 않았습니다',
     'lse_conflict_target_deleted' => '번역하는 동안 이 언어 버전이 삭제되어 번역문을 저장하지 않았습니다',
+    'lse_conflict_target_protected' => '이 번역은 수정 또는 검토되어 새 번역을 쓰지 않았습니다. 해당 언어 버전에서 직접 수정하세요',
     'lse_conflict_view' => '(생성된 번역문 보기)',
     'tbt_title' => '일괄 번역',
     'tbt_intro' => '선택한 상품을 AI로 선택한 언어로 하나씩 번역해 초안으로 저장합니다. 페이지를 닫아도 돌아와서 「계속」을 누르면 이어서 진행하며, 완료된 항목은 다시 하지 않고 기존 번역은 덮어쓰지 않습니다.',
