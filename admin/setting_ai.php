@@ -271,6 +271,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     <?php if (!SecretStore::available()): // 加密不可用时新密钥存不进去，原因在站点健康里 ?>
                     <p class="text-xs text-amber-700 mt-1" data-testid="secret-store-unavailable-notice"><i class="ti ti-alert-triangle" aria-hidden="true"></i> <?php echo e(__('secret_store_unavailable_notice')); ?></p>
                     <?php endif; ?>
+                    <?php if (!AiService::transportAvailable()): // AI 请求只走 cURL，没有退路（评审 F06） ?>
+                    <p class="text-xs text-amber-700 mt-1" data-testid="ai-curl-missing-notice"><i class="ti ti-alert-triangle" aria-hidden="true"></i> <?php echo e(__('ai_needs_curl')); ?></p>
+                    <?php endif; ?>
                 </div>
                 <?php // 官方接口用授权码调用，无需填 Key；这里显示授权状态代替输入框 ?>
                 <div id="yikaiKeyInfo" class="hidden">
