@@ -211,7 +211,7 @@ final class TranslationWrite
             $proposal = json_decode((string) ($link['proposal_json'] ?? ''), true);
             if ($link === null || !is_array($proposal)) return $this->abort('no_proposal');
             if (!hash_equals(TranslationState::proposalRevision($link), $expectedRevision)) return $this->abort('proposal_changed');
-            if (TranslationState::rowFingerprint($target, $titleKey, $summKey, $page) !== (string) $link['proposal_target_fp']) return $this->abort('target_changed');
+            if (!TranslationState::same((string) $link['proposal_target_fp'], TranslationState::rowPrint($target, $titleKey, $summKey, $page))) return $this->abort('target_changed');
             $chosen = array_intersect_key($proposal, array_flip(array_intersect($fields, TranslationState::TRACKED)));
             if ($chosen === []) return $this->abort('nothing_selected');
 
@@ -397,7 +397,7 @@ final class TranslationWrite
                 // 人改过、审过或来历不明的译文不整份覆盖（T04）；已上线的也不覆盖（评审 F01）：
                 // 整份写入会把它改回草稿、从前台消失。都交给调用方转成待审结果，单条与批量入口同一规则
                 $state = TranslationState::status((new TranslationState($this->db))->link($table, (int) $target['id']),
-                    self::sourceFingerprint($read), TranslationState::rowFingerprint($target, $titleKey, $summKey, $current['target_page']));
+                    TranslationState::rowPrint($read['src'], $titleKey, $summKey, $read['src_page']), TranslationState::rowPrint($target, $titleKey, $summKey, $current['target_page']));
                 // 没有审阅界面的入口（产品分类列表，$read['review_ui'] = false）存了待审也没人看得到、采用不了：
                 // 没人碰过的已上线译文照写文字但保持上线；人改过、审过的照样拒绝，由调用方明说
                 $live = self::isLive($target, $current['target_page']);
@@ -501,6 +501,20 @@ final class TranslationWrite
      */
     private function recordRevision(string $type, int $targetId, string $lang, array $targets, string $summary): void
     {
+        // 产品不在通用快照的白名单里（recordStrict 会静默跳过），改用产品编辑器自己的整份快照：
+        // 在产品编辑页的历史里能看到、能恢复（评审 F09）。insertSnapshot 失败即抛，随本事务回滚
+        $productTarget = null;
+        foreach ($targets as $target) {
+            if ($target['table'] === 'products') $productTarget = (int) $target['id'];
+        }
+        if ($productTarget !== null) {
+            require_once __DIR__ . '/ScheduledPublish.php';
+            require_once __DIR__ . '/ProductEditDraft.php';
+            $row = $this->db->fetchOne('SELECT * FROM ' . DB_PREFIX . 'products WHERE id = ?', [$productTarget]);
+            if ($row !== null) contentRevisionModel()->recordProductEdit($productTarget, (string) ($row['lang'] ?? $lang), ProductEditDraft::live($row), false);
+            $targets = array_values(array_filter($targets, static fn (array $target): bool => $target['table'] !== 'products'));
+            if ($targets === []) return;
+        }
         contentRevisionModel()->recordStrict($type, $targetId, $lang, $targets, $summary,
             (int) ($_SESSION['admin_id'] ?? 0), (string) ($_SESSION['admin_username'] ?? ''));
     }

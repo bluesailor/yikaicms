@@ -43,6 +43,11 @@ final class TranslateActionRaceTest extends TestCase
         $r = $this->probe('plain');
         self::assertSame('', $r['ok']['conflict']);
         self::assertSame('<p>Specifications</p>', $this->row($r, 'products', $r['target'])['content']);
+        // 评审 F09：被覆盖的产品译文存进产品编辑器自己的历史（product_edit），可在产品编辑页恢复
+        self::assertCount(1, $r['revisions']);
+        self::assertSame(['product_edit', $r['target']], [$r['revisions'][0]['target_type'], (int) $r['revisions'][0]['target_id']]);
+        $saved = json_decode($r['revisions'][0]['snapshot'], true)['fields'];
+        self::assertSame(['Old pump', 'Old', '<p>Old</p>'], [$saved['title'], $saved['summary'], $saved['content']]);
     }
 
     public function testSinglePageRetranslationKeepsTheOverwrittenTextInHistory(): void
