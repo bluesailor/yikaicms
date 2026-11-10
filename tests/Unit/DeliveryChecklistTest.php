@@ -17,12 +17,19 @@ final class DeliveryChecklistTest extends TestCase
     {
         return [
             "CREATE TABLE settings (id INTEGER PRIMARY KEY AUTOINCREMENT, \"group\" TEXT DEFAULT 'basic', \"key\" TEXT UNIQUE, value TEXT, type TEXT DEFAULT 'text', name TEXT DEFAULT '', tip TEXT DEFAULT '', options TEXT, sort_order INT DEFAULT 0)",
-            'CREATE TABLE products (id INTEGER PRIMARY KEY AUTOINCREMENT, lang TEXT, translation_group_id INTEGER DEFAULT 0, title TEXT, status INTEGER DEFAULT 1, deleted_at INTEGER DEFAULT NULL)',
+            "CREATE TABLE products (id INTEGER PRIMARY KEY AUTOINCREMENT, lang TEXT, translation_group_id INTEGER DEFAULT 0, title TEXT, summary TEXT DEFAULT '', content TEXT DEFAULT '', status INTEGER DEFAULT 1, deleted_at INTEGER DEFAULT NULL)",
         ];
     }
 
-    /** @return array<string,mixed> */
-    private static function facts(bool $multilingual = false, array $missing = ['en' => 0]): array
+    private function createTranslationLinks(): void
+    {
+        db()->execute("CREATE TABLE translation_links (id INTEGER PRIMARY KEY AUTOINCREMENT, table_name TEXT NOT NULL, target_id INTEGER NOT NULL, source_id INTEGER NOT NULL, lang TEXT NOT NULL,
+            source_fp TEXT NOT NULL DEFAULT '', target_fp TEXT NOT NULL DEFAULT '', state TEXT NOT NULL DEFAULT 'machine', reviewed_by INTEGER NOT NULL DEFAULT 0, reviewed_at INTEGER NOT NULL DEFAULT 0,
+            proposal_json TEXT, proposal_source_fp TEXT NOT NULL DEFAULT '', proposal_target_fp TEXT NOT NULL DEFAULT '', proposal_at INTEGER NOT NULL DEFAULT 0, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)");
+    }
+
+    /** @param array<string,array{missing:int,draft:int,outdated:int}> $missing @return array<string,mixed> */
+    private static function facts(bool $multilingual = false, array $missing = ['en' => ['missing' => 0, 'draft' => 0, 'outdated' => 0]]): array
     {
         return [
             'setup' => [
@@ -31,7 +38,7 @@ final class DeliveryChecklistTest extends TestCase
             ],
             'description' => false,
             'languages' => $multilingual ? ['en' => 'English'] : [],
-            'missing_translations' => $multilingual ? $missing : [],
+            'translation_gaps' => $multilingual ? $missing : [],
             'latest_inquiry' => 0,
         ];
     }
@@ -112,20 +119,34 @@ final class DeliveryChecklistTest extends TestCase
         self::assertSame(6, $list['open'], '交付已确认，其他未完成项照样计数');
     }
 
-    public function testMultilingualSitesListMissingTranslationsPerLanguage(): void
+    public function testMultilingualSitesCountMissingUnpublishedAndOutdatedTranslations(): void
     {
         db()->execute("INSERT INTO products (id, lang, translation_group_id, title, status) VALUES (1, 'zh-CN', 0, 'A', 1), (2, 'zh-CN', 2, 'B', 1), (3, 'zh-CN', 0, 'Draft', 0)");
         db()->execute("INSERT INTO products (id, lang, translation_group_id, title, status) VALUES (4, 'en', 1, 'A en', 0), (5, 'ja', 2, 'B ja', 1), (6, 'ja', 1, 'A ja (deleted)', 1)");
         db()->execute('UPDATE products SET deleted_at = 1 WHERE id = 6');
-        self::assertSame(['en' => 1, 'ja' => 1], DeliveryChecklist::missingTranslations('zh-CN', ['en', 'ja']),
-            '已发布源产品才算；草稿译文也算有译文；回收站里的译文不算');
+        // 程序已更新、数据库还没升级（没有来源追踪表）：照常算缺失与未发布
+        self::assertSame([
+            'en' => ['missing' => 1, 'draft' => 1, 'outdated' => 0],
+            'ja' => ['missing' => 1, 'draft' => 0, 'outdated' => 0],
+        ], DeliveryChecklist::translationGaps('zh-CN', ['en', 'ja']),
+            '只看已发布的源产品；草稿译文前台看不到，不算就绪（路线图 CORE-02）；回收站里的译文不算');
 
-        $facts = self::facts(true, ['en' => 0]);
+        // 原文在机器翻译之后改过：已发布的译文算过期；来历不明的旧译文不算
+        $this->createTranslationLinks();
+        (new \TranslationState(db()))->recordMachine('products', 5, 2, 'ja', 'fingerprint-of-an-older-source',
+            \TranslationState::rowFingerprint(productModel()->find(5), 'title', 'summary'), 1800000000);
+        self::assertSame(['missing' => 1, 'draft' => 0, 'outdated' => 1], DeliveryChecklist::translationGaps('zh-CN', ['ja'])['ja']);
+
+        $facts = self::facts(true);
         self::assertSame('done', self::byKey(DeliveryChecklist::evaluate($facts, ['accept' => [], 'run' => []])['data'])['translations']['status']);
-        $facts['missing_translations'] = ['en' => 3];
+        $facts['translation_gaps'] = ['en' => ['missing' => 0, 'draft' => 2, 'outdated' => 1]];
         $list = DeliveryChecklist::evaluate($facts, ['accept' => [], 'run' => []]);
         $row = self::byKey($list['data'])['translations'];
-        self::assertSame(['todo', '/admin/translation_status.php?filter=missing', 'English 3'], [$row['status'], $row['url'], $row['params']['list']]);
+        self::assertSame(['todo', '/admin/translation_status.php?filter=draft', 'dlv_translations_gaps', 'English 0/2/1'],
+            [$row['status'], $row['url'], $row['detail'], $row['params']['list']], '只有草稿和过期也不算完成；入口指向最先要处理的一类');
+        $facts['translation_gaps'] = ['en' => ['missing' => 3, 'draft' => 2, 'outdated' => 0]];
+        $row = self::byKey(DeliveryChecklist::evaluate($facts, ['accept' => [], 'run' => []])['data'])['translations'];
+        self::assertSame('/admin/translation_status.php?filter=missing', $row['url']);
         self::assertContains('language_review', array_column($list['accept'], 'key'));
     }
 }
