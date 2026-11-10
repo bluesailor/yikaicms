@@ -69,9 +69,10 @@ if ((int) $src['translation_group_id'] === 0) {
     db()->execute("UPDATE {$tName} SET translation_group_id = ? WHERE id = ?", [$src['id'], $src['id']]);
 }
 
-// 已存在该语言翻译则直接返回
+// 已存在该语言翻译则直接返回。回收站里的旧译文不算（评审 F05）：与写库层 recheck()、批量任务 existingTarget() 同一规则，
+// 否则「创建译文」会把人带到一条已删除的记录。回收站里的旧译文与新建的不会同时在用：还原时若已有在用的同语言译文会被拒绝（admin/recycle.php）
 $existing = db()->fetchOne(
-    "SELECT id FROM {$tName} WHERE translation_group_id = ? AND lang = ? LIMIT 1",
+    "SELECT id FROM {$tName} WHERE translation_group_id = ? AND lang = ?" . (array_key_exists('deleted_at', $src) ? ' AND deleted_at IS NULL' : '') . ' LIMIT 1',
     [$groupId, $toLang]
 );
 if ($existing && !$retranslate) {

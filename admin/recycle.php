@@ -85,6 +85,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'restore') {
         $id = postInt('id');
+        // 删掉一份译文后又新建了同语言的译文：再还原旧的就会同时有两份（评审 F05）。不自动合并或删除哪一份，让人先处理在用的那份
+        $row = db()->fetchOne('SELECT * FROM ' . $model->tableName() . ' WHERE id = ?', [$id]);
+        if ($row && (int) ($row['translation_group_id'] ?? 0) > 0 && (int) $row['translation_group_id'] !== $id && isset($row['lang'])) {
+            $live = db()->fetchOne('SELECT id FROM ' . $model->tableName() . ' WHERE translation_group_id = ? AND lang = ? AND id <> ? AND deleted_at IS NULL LIMIT 1',
+                [(int) $row['translation_group_id'], (string) $row['lang'], $id]);
+            if ($live) error(__('recycle_translation_exists', ['id' => (string) (int) $live['id']]));
+        }
         $model->restore($id);
         adminLog('recycle', 'restore', "还原 {$type} ID：" . $id);
         // 删栏目时内容整体进了回收站：原栏目已不存在时，还原回来的内容在列表里找不到，
