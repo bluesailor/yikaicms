@@ -171,6 +171,8 @@ final class BeginnerOnboardingContractTest extends TestCase
         self::assertLessThan(strpos($setup, 'SiteTemplateMarket::request()'), strpos($setup, 'session_write_close();', $endpoint), '取目录前先释放会话锁');
         self::assertLessThan(strpos($setup, "require_once ROOT_PATH . '/admin/includes/header.php';"), strpos($setup, 'SiteTemplateMarket::request()'), '只在接口里取目录');
         self::assertStringContainsString("fetch(base + '/admin/site_setup.php?catalog=1'", $setup, '异步地址带子目录前缀');
+        self::assertStringNotContainsString('http_response_code(503)', $setup, '目录连不上是预期情况：回 200 + code，页面收起推荐区，不在控制台留网络错误');
+        self::assertStringContainsString("if (json && json.code === 0) render(json.data); else hide();", $setup);
         $dashboard = $this->source('admin/index.php');
         self::assertStringContainsString('$onbTemplateOffer = (new SiteTemplateService(ROOT_PATH))->canApply();', $dashboard);
         self::assertStringContainsString("__(\$onbTemplateOffer ? 'onb_start_title_choice' : 'onb_start_title')", $dashboard);
