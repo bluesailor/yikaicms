@@ -60,6 +60,68 @@ final class DatabaseAfterCommitTest extends TestCase
         self::assertSame(1, $committed);
     }
 
+    /** 评审 F07：提交之后的副作用出错，不能让调用方以为写库失败，也不能被「没有活动事务」盖掉 */
+    public function testSideEffectFailureAfterCommitDoesNotMaskTheCommittedWrite(): void
+    {
+        db()->execute('CREATE TABLE IF NOT EXISTS f07_probe (id INTEGER PRIMARY KEY, v TEXT)');
+        db()->execute('DELETE FROM f07_probe');
+        $ran = [];
+        db()->beginTransaction();
+        try {
+            db()->execute("INSERT INTO f07_probe (v) VALUES ('saved')");
+            db()->afterCommit(static function (): void { throw new RuntimeException('cache generation write failed'); });
+            db()->afterCommit(static function () use (&$ran): void { $ran[] = 'second'; });
+            self::assertTrue(db()->commit(), '数据已提交：commit 报成功');
+        } catch (Throwable $e) {
+            db()->rollback();
+            self::fail('提交后的副作用异常不该抛给写库的调用方：' . $e->getMessage());
+        }
+        self::assertSame(['second'], $ran, '一个回调失败不影响其余的');
+        self::assertSame('saved', db()->fetchColumn('SELECT v FROM f07_probe'));
+        self::assertFalse(db()->getPdo()->inTransaction());
+    }
+
+    public function testRollbackWithoutAnActiveTransactionKeepsTheOriginalError(): void
+    {
+        db()->beginTransaction();
+        db()->commit();
+        $rolledBack = 0;
+        self::assertFalse(db()->rollback(), '没有活动事务：什么都不做，不抛异常');
+        try {
+            db()->beginTransaction();
+            db()->afterCommit(static fn () => null, static function () use (&$rolledBack): void { $rolledBack++; });
+            throw new DomainException('original');
+        } catch (DomainException $e) {
+            db()->rollback();
+            db()->rollback();   // 外层 catch 再回滚一次也不该盖掉原错误
+            self::assertSame('original', $e->getMessage());
+        }
+        self::assertSame(1, $rolledBack);
+    }
+
+    public function testFailedGenerationRotationStillDeletesCachedFiles(): void
+    {
+        $file = $this->cacheDir . '/f07-probe.html';
+        file_put_contents($file, 'cached');
+        // 有表但缺列：换代写入会失败。别的用例建的 settings 表先挪开，结束后原样放回
+        $hadSettings = db()->tableExists('settings');
+        if ($hadSettings) db()->execute('ALTER TABLE settings RENAME TO settings_f07_saved');
+        db()->execute('CREATE TABLE settings (id INTEGER PRIMARY KEY)');
+        if (function_exists('settingModel')) settingModel()->clearCache();
+        try {
+            HtmlCache::invalidate();
+            self::fail('换代失败要让调用方知道');
+        } catch (\PHPUnit\Framework\AssertionFailedError $e) {
+            throw $e;
+        } catch (Throwable) {
+            self::assertFileDoesNotExist($file, '换代失败时仍删掉旧缓存文件');
+        } finally {
+            db()->execute('DROP TABLE settings');
+            if ($hadSettings) db()->execute('ALTER TABLE settings_f07_saved RENAME TO settings');
+            if (function_exists('settingModel')) settingModel()->clearCache();
+        }
+    }
+
     public function testPageCacheInvalidationIsCoalescedUntilCommit(): void
     {
         require_once ROOT_PATH . '/includes/HtmlCache.php';

@@ -293,28 +293,69 @@ class Database
      */
     public function commit(): bool
     {
-        $ok = $this->pdo->commit();
+        // 先取走回调：提交本身失败抛异常时，也不能把这批回调留给下一个事务
         $callbacks = $this->afterCommit;
         $this->afterCommit = [];
-        foreach ($callbacks as [$onCommit, $onRollback]) {
-            $ok ? $onCommit() : ($onRollback !== null ? $onRollback() : null);
+        try {
+            $ok = $this->pdo->commit();
+        } catch (Throwable $e) {
+            self::runRollbackCallbacks($callbacks);
+            throw $e;
         }
-        return $ok;
+        if (!$ok) {
+            self::runRollbackCallbacks($callbacks);
+            return false;
+        }
+        // 数据已经提交。之后的副作用（缓存失效等）出错不能再抛给调用方：调用方会当成写库失败去回滚，
+        // 回滚又因没有活动事务再抛一次，把原错误盖掉，用户看到「失败」而数据其实存了（评审 F07）。
+        // 逐个执行、记日志，一个失败不影响其余的
+        foreach ($callbacks as [$onCommit]) {
+            try {
+                $onCommit();
+            } catch (Throwable $e) {
+                self::reportAfterCommitFailure($e);
+            }
+        }
+        return true;
+    }
+
+    /** @param list<array{0:callable,1:?callable}> $callbacks */
+    private static function runRollbackCallbacks(array $callbacks): void
+    {
+        foreach ($callbacks as [, $onRollback]) {
+            if ($onRollback === null) continue;
+            try {
+                $onRollback();
+            } catch (Throwable $e) {
+                self::reportAfterCommitFailure($e);
+            }
+        }
+    }
+
+    private static function reportAfterCommitFailure(Throwable $e): void
+    {
+        $message = '[Database] after-commit side effect failed (data was committed): ' . $e->getMessage();
+        if (class_exists('ErrorHandler', false)) {
+            ErrorHandler::log('ERROR', $message, $e->getFile(), $e->getLine(), $e);
+        } else {
+            error_log($message);
+        }
     }
 
     /**
-     * 回滚事务
+     * 回滚事务。没有活动事务时（例如已经提交）什么都不做、返回 false，
+     * 不抛「There is no active transaction」盖掉调用方正在处理的原始异常（评审 F07）。
      */
     public function rollback(): bool
     {
         $callbacks = $this->afterCommit;
         $this->afterCommit = [];
-        $ok = $this->pdo->rollBack();
-        foreach ($callbacks as [, $onRollback]) {
-            if ($onRollback !== null) {
-                $onRollback();
-            }
+        if (!$this->pdo->inTransaction()) {
+            self::runRollbackCallbacks($callbacks);
+            return false;
         }
+        $ok = $this->pdo->rollBack();
+        self::runRollbackCallbacks($callbacks);
         return $ok;
     }
 

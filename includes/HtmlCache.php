@@ -207,9 +207,21 @@ final class HtmlCache
         // Rotate before cleanup, even with no directory: an in-flight old render may write later.
         // Prefix limits file cleanup only; namespace invalidation is deliberately site-wide.
         // Settings do not yet exist during installation. Normal runtime uses the persistent stamp.
-        if (function_exists('settingModel') && db()->tableExists('settings')) {
-            settingModel()->rotateHtmlCacheGeneration();
+        // 换代失败（数据库写不进）时仍要删掉缓存文件，不然内容已改、访客却一直看到旧页面；
+        // 失败照样抛出，让调用方知道失效没有完整做完（提交后的回调由 Database::commit 记日志，评审 F07）
+        try {
+            if (function_exists('settingModel') && db()->tableExists('settings')) {
+                settingModel()->rotateHtmlCacheGeneration();
+            }
+        } catch (Throwable $e) {
+            self::purgeFiles($prefix);
+            throw $e;
         }
+        return self::purgeFiles($prefix);
+    }
+
+    private static function purgeFiles(?string $prefix): int
+    {
         $dir = self::dir();
         if (!is_dir($dir)) return 0;
         $count = 0;
