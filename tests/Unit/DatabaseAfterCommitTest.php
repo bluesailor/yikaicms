@@ -77,6 +77,11 @@ final class DatabaseAfterCommitTest extends TestCase
             self::fail('提交后的副作用异常不该抛给写库的调用方：' . $e->getMessage());
         }
         self::assertSame(['second'], $ran, '一个回调失败不影响其余的');
+        self::assertCount(1, db()->afterCommitFailures(), '失败仍要让关心它的调用方知道（AI 提案标为已应用 + post_commit_error）');
+        self::assertSame('cache generation write failed', db()->afterCommitFailures()[0]->getMessage());
+        db()->beginTransaction();
+        db()->commit();
+        self::assertSame([], db()->afterCommitFailures(), '下一次提交重新计');
         self::assertSame('saved', db()->fetchColumn('SELECT v FROM f07_probe'));
         self::assertFalse(db()->getPdo()->inTransaction());
     }

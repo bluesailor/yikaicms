@@ -296,6 +296,7 @@ class Database
         // 先取走回调：提交本身失败抛异常时，也不能把这批回调留给下一个事务
         $callbacks = $this->afterCommit;
         $this->afterCommit = [];
+        $this->afterCommitFailures = [];
         try {
             $ok = $this->pdo->commit();
         } catch (Throwable $e) {
@@ -308,15 +309,29 @@ class Database
         }
         // 数据已经提交。之后的副作用（缓存失效等）出错不能再抛给调用方：调用方会当成写库失败去回滚，
         // 回滚又因没有活动事务再抛一次，把原错误盖掉，用户看到「失败」而数据其实存了（评审 F07）。
-        // 逐个执行、记日志，一个失败不影响其余的
+        // 逐个执行、记日志，一个失败不影响其余的；要如实告诉用户「已保存，但后续步骤出错」的调用方读 afterCommitFailures()
         foreach ($callbacks as [$onCommit]) {
             try {
                 $onCommit();
             } catch (Throwable $e) {
+                $this->afterCommitFailures[] = $e;
                 self::reportAfterCommitFailure($e);
             }
         }
         return true;
+    }
+
+    /** @var list<Throwable> 最近一次提交之后执行失败的回调 */
+    private array $afterCommitFailures = [];
+
+    /**
+     * 最近一次 commit() 之后哪些副作用失败了（数据已提交）。
+     * 例：AI 提案应用据此返回「已应用，但提交后的步骤出错」，而不是「未保存」。
+     * @return list<Throwable>
+     */
+    public function afterCommitFailures(): array
+    {
+        return $this->afterCommitFailures;
     }
 
     /** @param list<array{0:callable,1:?callable}> $callbacks */

@@ -266,7 +266,7 @@ final class AiProposalService
         $product = (string) $pre['tool'] === AiProductContentRules::TOOL;
         $logId = 0;
         try {
-            return $this->transaction(function () use ($pre, $itemId, $now, $page, $product, &$logId): array {
+            $result = $this->transaction(function () use ($pre, $itemId, $now, $page, $product, &$logId): array {
                 $verdict = $this->lockSource((int) $pre['owner_id'], (int) $pre['token_id'], $now, (string) $pre['tool']);
                 $item = $this->lock('ai_proposal_items', (int) $pre['id']);
                 $this->check('apply.locked');
@@ -316,6 +316,10 @@ final class AiProposalService
                 return ['item_id' => $itemId, 'status' => 'applied', 'reason' => '', 'replayed' => false, 'content_id' => $contentId,
                     'revision' => $write['after'], 'log_id' => $logId, 'post_commit_error' => false];
             });
+            // 提交后的回调（缓存失效等）失败：数据已保存，如实标出「已应用，但提交后的步骤出错」。
+            // Database::commit 不再为此抛异常（评审 F07），改从 afterCommitFailures() 读
+            if ($logId > 0 && $this->db->afterCommitFailures() !== []) $result['post_commit_error'] = true;
+            return $result;
         } catch (Throwable $error) {
             // 提交后的回调失败不等于未保存：本次写下的日志已在项目上，就如实返回已提交结果。
             if ($logId > 0) {
