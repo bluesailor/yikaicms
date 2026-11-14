@@ -426,7 +426,7 @@ jobs:
         run: test "$PHPUNIT_RESULT" = success
 
   # ─── 从已发布的完整包安装旧站，再用 prepare/batch/finalize 管道升级。
-  # ─── 保留 1.20.1 的历史跨度；8.4 数据库验证上一版 2.2.0 及升级数据保留。
+  # ─── 保留 1.20.1 的历史跨度；8.4 数据库验证上一版 2.2.1 及升级数据保留。
   # ─── 这条专门覆盖源码树、全新安装和两文件回滚沙箱都看不到的客户升级路径。
   n-minus-one-upgrade:
     name: PHP ${{ matrix.php }} MySQL ${{ matrix.mysql }} Package Upgrade from ${{ matrix.from }}
@@ -447,8 +447,8 @@ jobs:
             from_sha256: '03c894794cb463886ee7df15027f7c511d8ccf54e67fc9960c860a36da778756'
           - php: '8.2'
             mysql: '8.4'
-            from: '2.2.0'
-            from_sha256: '3cf4b1eca2bd7b664eb928e4f27b1b3d4d5211108734c8dc703fe6ff3d9ac3e9'
+            from: '2.2.1'
+            from_sha256: '16a9b7281b380618a8a375c8a41ef9c3d7df32f443036988f9bfe506700098cf'
     services:
       mysql:
         image: mysql:${{ matrix.mysql }}
