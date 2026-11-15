@@ -3,7 +3,7 @@
  * Yikai CMS - 翻译状态（评审 T04，第一条切片：产品）
  *
  * 默认语言的产品 × 已启用的其它语言：每格是该语言译文的状态——缺失、最新、原文已改（过期）、
- * 人改过、已审、待审、未追踪。可筛出有问题的行，勾选后建「翻译缺失项」或「更新过期译文」批次。
+ * 人改过、已审、待审、未追踪；已有译文但未发布另计。可筛出有问题的行，勾选后建「翻译缺失项」或「更新过期译文」批次。
  * 状态来自 translation_links 与当前内容的指纹比对（includes/TranslationState.php），本页只读。
  */
 
@@ -13,7 +13,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
-require_once ROOT_PATH . '/includes/TranslationState.php';
+require_once ROOT_PATH . '/includes/TranslationCoverage.php';
 
 checkLogin();
 requirePermission('edit_product');
@@ -23,69 +23,30 @@ $pageTitle = __('tss_title');
 $tablesReady = db()->tableExists('translation_links') && db()->tableExists('translation_batches');
 $defaultLang = (string) config('site_lang', 'zh-CN');
 $langs = array_diff_key(enabledLanguages(), [$defaultLang => true]);
-$filters = ['all', 'missing', 'outdated', 'proposal', 'untracked'];
+$filters = ['all', 'missing', 'draft', 'outdated', 'proposal', 'untracked'];
 $filter = in_array($_GET['filter'] ?? '', $filters, true) ? (string) $_GET['filter'] : 'all';
 $keyword = trim((string) ($_GET['q'] ?? ''));
 $perPage = 50;
 $page = max(1, (int) ($_GET['page'] ?? 1));
 
 /**
- * 逐块（100 个产品）算状态，只留下当前页要显示的行；顶部计数覆盖全部产品。
+ * 逐块算状态（includes/TranslationCoverage.php，与交付检查清单同一份判断），只留下当前页要显示的行；顶部计数覆盖全部产品。
  * 一格：['id' => 译文 id（0=缺失）, 'status' => TranslationState::status() 或 null, 'draft' => bool]
  */
 $rows = [];
 $totals = array_fill_keys($filters, 0);
 $matched = 0;
 if ($tablesReady && $langs !== []) {
-    $p = DB_PREFIX;
-    $where = 'lang = ? AND deleted_at IS NULL';
-    $params = [$defaultLang];
-    if ($keyword !== '') {
-        $where .= ' AND title LIKE ?';
-        $params[] = '%' . $keyword . '%';
-    }
-    $states = new TranslationState(db());
-    $langCodes = array_keys($langs);
-    for ($offset = 0; ; $offset += 100) {
-        $sources = db()->fetchAll("SELECT * FROM {$p}products WHERE {$where} ORDER BY id DESC LIMIT 100 OFFSET {$offset}", $params);
-        if ($sources === []) break;
-        $groups = [];
-        foreach ($sources as $source) $groups[(int) ($source['translation_group_id'] ?: $source['id'])] = (int) $source['id'];
-        $targets = db()->fetchAll("SELECT * FROM {$p}products WHERE deleted_at IS NULL AND translation_group_id IN (" . implode(',', array_fill(0, count($groups), '?')) . ')'
-            . ' AND lang IN (' . implode(',', array_fill(0, count($langCodes), '?')) . ')', array_merge(array_keys($groups), $langCodes));
-        $links = $states->links('products', array_map(static fn (array $row): int => (int) $row['id'], $targets));
-        $byGroup = [];
-        foreach ($targets as $target) {
-            $groupId = (int) $target['translation_group_id'];
-            if (($groups[$groupId] ?? 0) !== (int) $target['id']) $byGroup[$groupId][(string) $target['lang']] ??= $target;
-        }
-        foreach ($sources as $source) {
-            $groupId = (int) ($source['translation_group_id'] ?: $source['id']);
-            $sourceFp = TranslationState::rowFingerprint($source, 'title', 'summary');
-            $cells = [];
-            $flags = array_fill_keys($filters, false);
+    (new TranslationCoverage(db()))->scan($defaultLang, array_map('strval', array_keys($langs)),
+        static function (array $source, array $cells, array $flags) use (&$rows, &$totals, &$matched, $filter, $page, $perPage): void {
             $flags['all'] = true;
-            foreach ($langCodes as $lang) {
-                $target = $byGroup[$groupId][$lang] ?? null;
-                if ($target === null) {
-                    $cells[$lang] = ['id' => 0, 'status' => null, 'draft' => false];
-                    $flags['missing'] = true;
-                    continue;
-                }
-                $status = TranslationState::status($links[(int) $target['id']] ?? null, $sourceFp, TranslationState::rowFingerprint($target, 'title', 'summary'));
-                $cells[$lang] = ['id' => (int) $target['id'], 'status' => $status, 'draft' => (int) ($target['status'] ?? 0) === 0];
-                $flags['outdated'] = $flags['outdated'] || $status['outdated'];
-                $flags['proposal'] = $flags['proposal'] || $status['proposal'];
-                $flags['untracked'] = $flags['untracked'] || $status['state'] === 'untracked';
-            }
-            foreach ($flags as $name => $on) if ($on) $totals[$name]++;
-            if (!$flags[$filter]) continue;
+            foreach (array_keys($totals) as $name) if ($flags[$name] ?? false) $totals[$name]++;
+            if (!($flags[$filter] ?? false)) return;
             $matched++;
             if ($matched > ($page - 1) * $perPage && $matched <= $page * $perPage) {
                 $rows[] = ['id' => (int) $source['id'], 'title' => (string) $source['title'], 'cells' => $cells];
             }
-        }
-    }
+        }, $keyword);
 }
 $pages = max(1, (int) ceil($matched / $perPage));
 $url = static fn (array $changes): string => BasePath::url('/admin/translation_status.php?' . http_build_query(array_filter(

@@ -10,9 +10,15 @@ declare(strict_types=1);
 
 use Yikai\Tests\TestCase;
 
-// 测试引导只加载最小集合：productUrl 由既有测试按同一风格提供，productPrettyUrl 尚缺。
-// 产品按钮元素在生产走 functions.php 的 productPrettyUrl；这里给同形最小实现，
-// 仅用于断言"按钮链到产品自身"，不复制 SEO 逻辑。
+// 测试引导只加载最小集合：productUrl / productPrettyUrl 在生产来自 functions.php。
+// 这里给同形最小实现（与 TagEngineTest 一致），仅用于断言"按钮链到产品自身"，不复制 SEO 逻辑。
+// 以前依赖别的测试先定义 productUrl，单独跑本文件时上一页/下一页、相关产品两个用例会报未定义函数。
+if (!function_exists('productUrl')) {
+    function productUrl(array $product): string
+    {
+        return '/product/' . ($product['id'] ?? 0) . '.html';
+    }
+}
 if (!function_exists('productPrettyUrl')) {
     function productPrettyUrl(array $product): string
     {

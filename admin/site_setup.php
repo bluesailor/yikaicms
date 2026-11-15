@@ -28,7 +28,8 @@ if (($_GET['catalog'] ?? '') === '1') {
         session_write_close();
     }
     if (!is_array($catalog)) {
-        http_response_code(503);
+        // 目录连不上是预期内的情况（离线、内网、对方维护）：页面收起推荐区即可。
+        // 回 200 + code，不回 HTTP 503——后者在浏览器控制台记一条网络错误，也让依赖这页的浏览器测试随外网波动失败
         echo json_encode(['code' => 503]);
         exit;
     }

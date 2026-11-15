@@ -52,7 +52,7 @@ final class RuntimeRequirements
 
     /** 缺了只是降级，不拦安装 */
     private const RECOMMENDED = [
-        'curl'      => '在线升级与 AI 服务；缺了退回 file_get_contents，部分主机会失败',
+        'curl'      => 'AI 服务必需，缺了 AI 功能不可用；在线升级缺了退回 file_get_contents，部分主机会失败',
         'openssl'   => '授权校验与加密；缺了商业授权验不了',
         'gd'        => '缩略图与图片压缩；缺了上传仍可用但不生成缩略图',
         'zip'       => '在线升级解包与远程模板导入；缺了只能手工传包升级',

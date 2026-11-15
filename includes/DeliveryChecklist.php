@@ -19,7 +19,7 @@ final class DeliveryChecklist
 
     /**
      * 站点现状（只读、轻量）。
-     * @return array{setup:list<array{label:string,url:string,done:bool}>,description:bool,languages:array<string,string>,missing_translations:array<string,int>,latest_inquiry:int}
+     * @return array{setup:list<array{label:string,url:string,done:bool}>,description:bool,languages:array<string,string>,translation_gaps:array<string,array{missing:int,draft:int,outdated:int}>,latest_inquiry:int}
      */
     public static function facts(): array
     {
@@ -29,24 +29,21 @@ final class DeliveryChecklist
             'setup' => SiteSetup::checklist(),
             'description' => trim((string) config('site_description', '')) !== '',
             'languages' => array_map('strval', $languages),
-            'missing_translations' => self::missingTranslations($default, array_map('strval', array_keys($languages))),
+            'translation_gaps' => self::translationGaps($default, array_map('strval', array_keys($languages))),
             'latest_inquiry' => db()->tableExists('forms') ? (int) db()->fetchColumn('SELECT MAX(created_at) FROM ' . DB_PREFIX . 'forms') : 0,
         ];
     }
 
     /**
-     * 默认语言已发布、未删除的产品里，在每种语言下没有（未删除的）译文的数量。
-     * @param list<string> $languages @return array<string,int>
+     * 默认语言已发布的产品，在每种语言下还要处理的数量：缺译文、有译文但未发布、原文改过后过期（路线图 CORE-02）。
+     * 只要有译文就算「已翻译」会高估交付就绪：草稿前台看不到，过期的内容跟原文对不上。
+     * 判断与「译文状态」页同一份（TranslationCoverage）。
+     * @param list<string> $languages @return array<string,array{missing:int,draft:int,outdated:int}>
      */
-    public static function missingTranslations(string $default, array $languages): array
+    public static function translationGaps(string $default, array $languages): array
     {
-        $missing = [];
-        foreach ($languages as $lang) {
-            $missing[$lang] = (int) db()->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . 'products p WHERE p.lang = ? AND p.status = 1 AND p.deleted_at IS NULL'
-                . ' AND NOT EXISTS (SELECT 1 FROM ' . DB_PREFIX . 'products t WHERE t.lang = ? AND t.deleted_at IS NULL AND t.id <> p.id'
-                . ' AND t.translation_group_id = CASE WHEN p.translation_group_id > 0 THEN p.translation_group_id ELSE p.id END)', [$default, $lang]);
-        }
-        return $missing;
+        require_once __DIR__ . '/TranslationCoverage.php';
+        return (new TranslationCoverage(db()))->gapsByLanguage($default, $languages);
     }
 
     /** @return array{accept:array<string,array{admin_id:int,name:string,at:int}>,run:array<string,mixed>} */
@@ -131,10 +128,16 @@ final class DeliveryChecklist
         }
         $data[] = $item('description', 'dlv_description', $facts['description'] ? 'done' : 'todo', '/admin/setting.php?tab=basic');
         if ($facts['languages'] !== []) {
-            $gaps = array_filter($facts['missing_translations'], static fn (int $n): bool => $n > 0);
-            $data[] = $item('translations', 'dlv_translations', $gaps === [] ? 'done' : 'todo', '/admin/translation_status.php?filter=missing',
-                $gaps === [] ? '' : 'dlv_translations_missing',
-                ['list' => implode(', ', array_map(static fn (string $lang, int $n): string => ($facts['languages'][$lang] ?? $lang) . ' ' . $n, array_keys($gaps), $gaps))]);
+            $gaps = array_filter($facts['translation_gaps'], static fn (array $g): bool => $g['missing'] + $g['draft'] + $g['outdated'] > 0);
+            // 修复入口指向最先要处理的一类：先补缺的，再发布草稿，最后更新过期的
+            $first = 'missing';
+            foreach (['missing', 'draft', 'outdated'] as $kind) {
+                if (array_sum(array_column($gaps, $kind)) > 0) { $first = $kind; break; }
+            }
+            $data[] = $item('translations', 'dlv_translations', $gaps === [] ? 'done' : 'todo', '/admin/translation_status.php?filter=' . $first,
+                $gaps === [] ? '' : 'dlv_translations_gaps',
+                ['list' => implode(', ', array_map(static fn (string $lang, array $g): string => ($facts['languages'][$lang] ?? $lang)
+                    . ' ' . $g['missing'] . '/' . $g['draft'] . '/' . $g['outdated'], array_keys($gaps), $gaps))]);
         }
 
         $run = is_array($state['run'] ?? null) ? $state['run'] : [];

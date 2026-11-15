@@ -74,7 +74,7 @@ test.afterAll(() => {
   if (mockLog && fs.existsSync(mockLog)) fs.unlinkSync(mockLog);
 });
 
-test('batch translation turns selected products into draft translations', async ({ page }, info) => {
+test('batch translation turns selected products into draft translations @ci', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop-1440', 'one viewport is enough');
   test.setTimeout(120000);
 
@@ -129,7 +129,7 @@ test('batch translation turns selected products into draft translations', async 
 });
 
 // T04：原文改了 → 状态页标过期 → 人改过的译文批量更新时转待审 → 逐字段采用 → 已审
-test('outdated translations are flagged and edited ones are reviewed field by field', async ({ page }, info) => {
+test('outdated translations are flagged and edited ones are reviewed field by field @ci', async ({ page }, info) => {
   test.skip(info.project.name !== 'desktop-1440', 'one viewport is enough');
   test.setTimeout(180000);
 

@@ -35,6 +35,8 @@ function recordContentRevision(string $type, int $targetId, string $lang, array 
 final class ExtFields
 {
     public static function copyValues(string $owner, int $from, int $to): void {}
+    /** @return list<array<string,mixed>> */
+    public static function fields(string $owner, bool $onlyEnabled = true): array { return []; }
 }
 
 $scenario = (string) ($argv[1] ?? '');

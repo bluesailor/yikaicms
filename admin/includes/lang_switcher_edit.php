@@ -93,6 +93,8 @@ if ($_ls_item && $_ls_source && db()->tableExists('translation_links')) {
         };
         return $norm($a) === $norm($b);
     };
+    // 比对库里存的指纹用 rowPrint（兼容 2.2.1 以前的旧格式，评审 F08）；带回服务端的审阅基线用 rowFingerprint
+    $_ls_sourcePrint = TranslationState::rowPrint($_ls_source, $_ls_titleKey, $_ls_summaryKey, $_ls_pageOf($_ls_source));
     $_ls_sourceFp = TranslationState::rowFingerprint($_ls_source, $_ls_titleKey, $_ls_summaryKey, $_ls_pageOf($_ls_source));
     $_ls_targets = $_ls_translations;
     unset($_ls_targets[$_ls_defaultLang]);
@@ -102,7 +104,7 @@ if ($_ls_item && $_ls_source && db()->tableExists('translation_links')) {
         $page = $_ls_pageOf($row);
         $link = $_ls_links[(int) $row['id']] ?? null;
         $_ls_targetFp = TranslationState::rowFingerprint($row, $_ls_titleKey, $_ls_summaryKey, $page);
-        $_ls_states[$lc] = TranslationState::status($link, $_ls_sourceFp, $_ls_targetFp);
+        $_ls_states[$lc] = TranslationState::status($link, $_ls_sourcePrint, TranslationState::rowPrint($row, $_ls_titleKey, $_ls_summaryKey, $page));
         // 审阅动作带回页面打开时的版本，服务端对不上就拒绝（评审 F04）
         if ($lc === $_ls_currentLang) $_ls_reviewBase = ['source_fp' => $_ls_sourceFp, 'target_fp' => $_ls_targetFp, 'proposal_rev' => TranslationState::proposalRevision($link)];
         $proposed = $lc === $_ls_currentLang && $link !== null ? json_decode((string) ($link['proposal_json'] ?? ''), true) : null;

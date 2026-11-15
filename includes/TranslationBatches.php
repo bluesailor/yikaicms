@@ -366,7 +366,7 @@ final class TranslationBatches
         $link = (new TranslationState($this->db))->link('products', $targetId);
         $target = $this->product($targetId);
         if ($link === null || $target === null) return false;
-        return TranslationState::status($link, TranslationState::rowFingerprint($src, 'title', 'summary'), TranslationState::rowFingerprint($target, 'title', 'summary'))['outdated'];
+        return TranslationState::status($link, TranslationState::rowPrint($src, 'title', 'summary'), TranslationState::rowPrint($target, 'title', 'summary'))['outdated'];
     }
 
     private function openElsewhere(int $sourceId, string $lang): bool

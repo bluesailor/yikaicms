@@ -693,11 +693,21 @@ class AiService
         return SecretStore::open($ciphertext, true);
     }
 
+    /** AI 服务要的 PHP cURL 扩展是否可用（设置页、站点健康据此提示） */
+    public static function transportAvailable(): bool
+    {
+        return function_exists('curl_init');
+    }
+
     /**
      * HTTP POST 请求
      */
     private function httpPost(string $url, array $payload, array $headers): array
     {
+        // AI 请求只走 cURL（没有 file_get_contents 退路：要同等的 TLS 校验、超时与错误信息）。缺扩展时明说，不报未定义函数（评审 F06）
+        if (!self::transportAvailable()) {
+            return ['success' => false, 'content' => '', 'error' => __('ai_needs_curl'), 'body' => ''];
+        }
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_POST           => true,
