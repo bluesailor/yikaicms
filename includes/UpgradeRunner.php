@@ -242,6 +242,50 @@ function uo_invalidate_runtime_file(string $path): void
 }
 
 /**
+ * 把内容写进正在运行的站点文件：先写同目录的临时文件、核对写入长度，再改名替换。
+ *
+ * 直接 file_put_contents 覆盖时，文件有一小段时间是「写了一半」的：这时进来的请求会读到残缺的
+ * PHP 文件（语法错误、类只定义了一半）；磁盘写满或进程被杀还会把半个文件留在原处。
+ * 改名替换在同一文件系统内是一步完成的，别的请求要么读到旧文件、要么读到完整的新文件。
+ * （深度评审「在线升级仍是原地替换」的短期建议；整个版本的原子切换不在这里解决。）
+ *
+ * 个别主机不允许改名覆盖正在使用的文件（Windows 上被占用时）：改名失败就退回直接写入，
+ * 行为不比以前差；临时文件一律清掉。成功后丢弃该文件的旧字节码。
+ */
+function uo_write_file_atomic(string $dest, string $data): bool
+{
+    // 临时文件名以点开头、以 .php 结尾：进程在改名前被杀时它会留在原处，而 config.php 的临时文件里有数据库口令——
+    // 没屏蔽 config/ 的服务器会把别的后缀当静态文件原样发出去，.php 只会被执行（不输出内容）。同名固定，重试时直接覆盖
+    $tmp = dirname($dest) . '/.yk-upgrade-' . basename($dest) . '.tmp.php';
+    $written = @file_put_contents($tmp, $data, LOCK_EX);
+    if ($written === false || $written !== strlen($data)) {
+        @unlink($tmp);
+        return false;
+    }
+    // 沿用原文件的权限位；新文件用目录默认
+    if (is_file($dest)) {
+        $perms = @fileperms($dest);
+        if ($perms !== false) @chmod($tmp, $perms & 0777);
+    }
+    if (@rename($tmp, $dest)) {
+        uo_invalidate_runtime_file($dest);
+        return true;
+    }
+    $direct = @file_put_contents($dest, $data, LOCK_EX);
+    @unlink($tmp);
+    if ($direct === false || $direct !== strlen($data)) return false;
+    uo_invalidate_runtime_file($dest);
+    return true;
+}
+
+/** 同 uo_write_file_atomic，内容来自另一个文件（回滚时把快照放回去）。 */
+function uo_copy_file_atomic(string $source, string $dest): bool
+{
+    $data = @file_get_contents($source);
+    return $data !== false && uo_write_file_atomic($dest, $data);
+}
+
+/**
  * 幂等删除临时文件。
  *
  * 在线升级会被重试、断点续传和回滚反复调用；文件已经被上一轮清理掉
@@ -326,9 +370,8 @@ function uo_copy_tree(string $src, string $dst, string $baseRel = ''): array
             if (!is_dir($d) && !@mkdir($d, 0755, true) && !is_dir($d)) { $errors[] = "建目录失败: $rel"; continue; }
             [$c, $e] = uo_copy_tree($s, $d, $rel);
             $copied += $c; $errors = array_merge($errors, $e);
-        } elseif (@copy($s, $d)) {
+        } elseif (uo_copy_file_atomic($s, $d)) {
             $copied++;
-            uo_invalidate_runtime_file($d);
         } else {
             $errors[] = "复制失败: $rel";
         }
@@ -451,7 +494,7 @@ function uo_patch_config_version(): string
     if (strpos($raw, "version.php'") !== false) return 'already';
     $new = preg_replace("/define\\(\\s*'CMS_VERSION'\\s*,\\s*'[^']*'\\s*\\)\\s*;/", "require_once __DIR__ . '/version.php';", $raw, 1, $cnt);
     if ($cnt < 1 || $new === null || $new === $raw) return 'nochange';
-    return @file_put_contents($cf, $new) !== false ? 'patched' : 'failed';
+    return uo_write_file_atomic($cf, $new) ? 'patched' : 'failed';
 }
 
 /** 升级后健康自检（实现在 includes/UpgradeHealth.php，独立类便于单测与 CLI 复用） */
@@ -755,9 +798,8 @@ function upgrade_batch(mixed $requestedOffset = null): array
                         }
                         $created = $nextCreated;
                     }
-                    if (@file_put_contents($d, $data) !== false) {
+                    if (uo_write_file_atomic($d, $data)) {
                         $copied++;
-                        uo_invalidate_runtime_file($d);
                     } else {
                         $errors[] = "写入失败: $rel";
                     }
@@ -1086,7 +1128,7 @@ function upgrade_rollback(string $backup): array
 
     // config.php 不在通用快照树中（它是受保护路径），单独恢复 prepare 时的副本。
     $configBackup = $bakDir . '/config.php';
-    if (is_file($configBackup) && !@copy($configBackup, ROOT_PATH . '/config/config.php')) {
+    if (is_file($configBackup) && !uo_copy_file_atomic($configBackup, ROOT_PATH . '/config/config.php')) {
         $restoreErrors[] = '恢复 config/config.php 失败';
     }
 
