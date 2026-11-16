@@ -25,11 +25,15 @@ final class DeliveryChecklist
     {
         $default = (string) config('site_lang', 'zh-CN');
         $languages = array_diff_key(enabledLanguages(), [$default => true]);
+        $codes = array_map('strval', array_keys($languages));
         return [
             'setup' => SiteSetup::checklist(),
             'description' => trim((string) config('site_description', '')) !== '',
             'languages' => array_map('strval', $languages),
-            'translation_gaps' => self::translationGaps($default, array_map('strval', array_keys($languages))),
+            'translation_gaps' => self::translationGaps($default, $codes),
+            // 2.3.0：文章等内容、栏目与单页也要算，不然只有产品译文齐了就显示就绪
+            'content_translation_gaps' => self::translationGaps($default, $codes, 'contents'),
+            'channel_translation_gaps' => self::translationGaps($default, $codes, 'channels'),
             'latest_inquiry' => db()->tableExists('forms') ? (int) db()->fetchColumn('SELECT MAX(created_at) FROM ' . DB_PREFIX . 'forms') : 0,
         ];
     }
@@ -38,12 +42,13 @@ final class DeliveryChecklist
      * 默认语言已发布的产品，在每种语言下还要处理的数量：缺译文、有译文但未发布、原文改过后过期（路线图 CORE-02）。
      * 只要有译文就算「已翻译」会高估交付就绪：草稿前台看不到，过期的内容跟原文对不上。
      * 判断与「译文状态」页同一份（TranslationCoverage）。
-     * @param list<string> $languages @return array<string,array{missing:int,draft:int,outdated:int}>
+     * @param list<string> $languages @param string $kind products / contents / channels（TranslationCoverage::KINDS）
+     * @return array<string,array{missing:int,draft:int,outdated:int}>
      */
-    public static function translationGaps(string $default, array $languages): array
+    public static function translationGaps(string $default, array $languages, string $kind = 'products'): array
     {
         require_once __DIR__ . '/TranslationCoverage.php';
-        return (new TranslationCoverage(db()))->gapsByLanguage($default, $languages);
+        return (new TranslationCoverage(db()))->gapsByLanguage($default, $languages, $kind);
     }
 
     /** @return array{accept:array<string,array{admin_id:int,name:string,at:int}>,run:array<string,mixed>} */
@@ -138,6 +143,18 @@ final class DeliveryChecklist
                 $gaps === [] ? '' : 'dlv_translations_gaps',
                 ['list' => implode(', ', array_map(static fn (string $lang, array $g): string => ($facts['languages'][$lang] ?? $lang)
                     . ' ' . $g['missing'] . '/' . $g['draft'] . '/' . $g['outdated'], array_keys($gaps), $gaps))]);
+            // 文章等内容、栏目与单页：同样的三类计数。它们还没有专门的译文状态页（2.3.0 翻译工作中心会补），入口先指到各自的列表
+            foreach ([
+                'translations_contents' => ['content_translation_gaps', 'dlv_translations_contents', '/admin/article.php'],
+                'translations_channels' => ['channel_translation_gaps', 'dlv_translations_channels', '/admin/channel.php'],
+            ] as $key => [$factKey, $label, $url]) {
+                /** @var array<string,array{missing:int,draft:int,outdated:int}> $kindFacts */
+                $kindFacts = is_array($facts[$factKey] ?? null) ? $facts[$factKey] : [];
+                $kindGaps = array_filter($kindFacts, static fn (array $g): bool => $g['missing'] + $g['draft'] + $g['outdated'] > 0);
+                $data[] = $item($key, $label, $kindGaps === [] ? 'done' : 'todo', $url, $kindGaps === [] ? '' : 'dlv_translations_gaps',
+                    ['list' => implode(', ', array_map(static fn (string $lang, array $g): string => ($facts['languages'][$lang] ?? $lang)
+                        . ' ' . $g['missing'] . '/' . $g['draft'] . '/' . $g['outdated'], array_keys($kindGaps), $kindGaps))]);
+            }
         }
 
         $run = is_array($state['run'] ?? null) ? $state['run'] : [];
