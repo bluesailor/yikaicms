@@ -2037,9 +2037,23 @@ CREATE TABLE `yikai_translation_batches` (
   `total` int(11) UNSIGNED NOT NULL DEFAULT 0,
   `created_at` int(11) UNSIGNED NOT NULL,
   `updated_at` int(11) UNSIGNED NOT NULL,
+  `calls` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `max_calls` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `note` varchar(32) NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   KEY `idx_translation_batches_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='批量翻译任务';
+DROP TABLE IF EXISTS `yikai_translation_batch_events`;
+CREATE TABLE `yikai_translation_batch_events` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `batch_id` int(11) UNSIGNED NOT NULL,
+  `item_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `event` varchar(20) NOT NULL,
+  `detail` varchar(255) NOT NULL DEFAULT '',
+  `created_at` int(11) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_translation_batch_events_batch` (`batch_id`, `id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='批量翻译任务日志';
 DROP TABLE IF EXISTS `yikai_translation_batch_items`;
 CREATE TABLE `yikai_translation_batch_items` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,

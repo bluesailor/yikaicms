@@ -21,7 +21,8 @@ require ROOT_PATH . '/includes/TranslationBatches.php';
 db()->getPdo()->exec((string) file_get_contents(ROOT_PATH . '/install/sql/sqlite.sql'));
 foreach (['settings', 'channels', 'contents', 'products', 'content_revisions'] as $table) db()->execute('DELETE FROM ' . DB_PREFIX . $table);
 
-function config(string $key, mixed $default = ''): mixed { return $key === 'site_lang' ? 'zh-CN' : $default; }
+$GLOBALS['probe_config'] = ['site_lang' => 'zh-CN'];
+function config(string $key, mixed $default = ''): mixed { return $GLOBALS['probe_config'][$key] ?? $default; }
 function findTranslatedChannelId(int $channelId, string $lang): int { return 0; }
 function resolveExtFieldOwner(string $type): string { return ''; }
 function adminLog(string $module, string $action, string $detail = ''): void {}
@@ -97,10 +98,12 @@ switch ((string) ($argv[1] ?? '')) {
         $svc = new TranslationBatches(db(), $generator(static function (): void { throw new RuntimeException('provider 503'); }));
         $created = $svc->create(1, [$a], ['en'], 'zh-CN', $now);
         $out['after'] = [];
-        for ($i = 1; $i <= 4; $i++) {
-            $svc->step($created['batch_id'], 30, static fn (): int => $now + $i);
-            $out['after'][] = $items($created['batch_id'])[0];
+        // 第 1 次失败后等 60 秒、第 2 次后等 120 秒；等待期内的 step 不调模型
+        foreach ([1, 30, 62, 100, 62 + 121, 400] as $offset) {
+            $svc->step($created['batch_id'], 30, static fn (): int => $now + $offset);
+            $out['after'][] = $items($created['batch_id'])[0] + ['calls' => count($calls)];
         }
+        $out['log'] = array_column(array_reverse($svc->events($created['batch_id'])), 'event');
         $out['batch'] = $svc->batch($created['batch_id'])['status'];
         $out['retried'] = $svc->retry($created['batch_id'], $now + 10);
         $out['after_retry'] = $items($created['batch_id'])[0];
@@ -189,6 +192,47 @@ switch ((string) ($argv[1] ?? '')) {
             TranslationBatches::memoryTight(800 * 1024 ** 2, '1G'),
             TranslationBatches::memoryTight(950 * 1024 ** 2, '1G'),
         ];
+        break;
+
+    case 'budget':
+        // 每批调用上限：到线就把这一项放回去、整批暂停；继续时给剩下的项再分配额度
+        $GLOBALS['probe_config']['translate_batch_max_calls'] = 2;
+        $svc = new TranslationBatches(db(), $generator());
+        $created = $svc->create(1, [$product('液压泵'), $product('齿轮泵'), $product('叶片泵')], ['en'], 'zh-CN', $now);
+        $id = $created['batch_id'];
+        $out['first'] = $svc->step($id, 30, static fn (): int => $now);
+        $row = $svc->batch($id);
+        $out['paused'] = [$row['status'], $row['note'], (int) $row['calls'], (int) $row['max_calls'], count($calls)];
+        $out['released'] = array_map(static fn (array $i): array => [$i['status'], (int) $i['attempts'], (int) $i['lease_until']], $items($id));
+        $svc->resume($id, $now + 5);
+        $row = $svc->batch($id);
+        $out['resumed'] = [$row['status'], $row['note'], (int) $row['max_calls']];
+        $out['second'] = $svc->step($id, 30, static fn (): int => $now + 6);
+        $out['done'] = [$svc->batch($id)['status'], (int) $svc->batch($id)['calls'], count($calls)];
+        $out['log'] = array_column(array_reverse($svc->events($id)), 'event');
+        $GLOBALS['probe_config']['translate_batch_max_calls'] = 0;
+        $out['default_cap'] = (int) $svc->batch($svc->create(1, [$product('柱塞泵')], ['en', 'ja'], 'zh-CN', $now)['batch_id'])['max_calls'];
+        break;
+
+    case 'purge':
+        // 结果保留期限：只删过期的已完成 / 已取消批次，连同项与日志；进行中、暂停的不动；已写进站点的译文不受影响
+        $svc = new TranslationBatches(db(), $generator());
+        $old = $svc->create(1, [$product('液压泵')], ['en'], 'zh-CN', $now)['batch_id'];
+        $svc->step($old, 30, static fn (): int => $now);
+        $cancelled = $svc->create(1, [$product('齿轮泵')], ['en'], 'zh-CN', $now)['batch_id'];
+        $svc->cancel($cancelled, $now);
+        $paused = $svc->create(1, [$product('叶片泵')], ['en'], 'zh-CN', $now)['batch_id'];
+        $svc->pause($paused, $now);
+        $fresh = $svc->create(1, [$product('柱塞泵')], ['en'], 'zh-CN', $now + 29 * 86400)['batch_id'];
+        $svc->step($fresh, 30, static fn (): int => $now + 29 * 86400);
+        $translations = (int) db()->fetchColumn("SELECT COUNT(*) FROM yikai_products WHERE lang = 'en'");
+        $out['purged'] = $svc->purge($now + 31 * 86400);
+        $out['left'] = array_map('intval', array_column(db()->fetchAll('SELECT id FROM yikai_translation_batches ORDER BY id'), 'id'));
+        $out['expected_left'] = [$paused, $fresh];
+        $out['orphans'] = (int) db()->fetchColumn('SELECT COUNT(*) FROM yikai_translation_batch_items WHERE batch_id IN (?, ?)', [$old, $cancelled])
+            + (int) db()->fetchColumn('SELECT COUNT(*) FROM yikai_translation_batch_events WHERE batch_id IN (?, ?)', [$old, $cancelled]);
+        $out['translations_kept'] = $translations === (int) db()->fetchColumn("SELECT COUNT(*) FROM yikai_products WHERE lang = 'en'") && $translations === 2;
+        $out['again'] = $svc->purge($now + 31 * 86400);
         break;
 
     case 'cancel_during_generation':

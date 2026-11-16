@@ -3034,9 +3034,22 @@ CREATE TABLE "yikai_translation_batches" (
   "status" TEXT NOT NULL DEFAULT 'running',
   "total" INTEGER NOT NULL DEFAULT 0,
   "created_at" INTEGER NOT NULL,
-  "updated_at" INTEGER NOT NULL
+  "updated_at" INTEGER NOT NULL,
+  "calls" INTEGER NOT NULL DEFAULT 0,
+  "max_calls" INTEGER NOT NULL DEFAULT 0,
+  "note" TEXT NOT NULL DEFAULT ''
 );
 CREATE INDEX "idx_translation_batches_created_yikai_translation_batches" ON "yikai_translation_batches" ("created_at");
+DROP TABLE IF EXISTS "yikai_translation_batch_events";
+CREATE TABLE "yikai_translation_batch_events" (
+  "id" INTEGER PRIMARY KEY AUTOINCREMENT,
+  "batch_id" INTEGER NOT NULL,
+  "item_id" INTEGER NOT NULL DEFAULT 0,
+  "event" TEXT NOT NULL,
+  "detail" TEXT NOT NULL DEFAULT '',
+  "created_at" INTEGER NOT NULL
+);
+CREATE INDEX "idx_translation_batch_events_batch_yikai_translation_batch_events" ON "yikai_translation_batch_events" ("batch_id", "id");
 DROP TABLE IF EXISTS "yikai_translation_batch_items";
 CREATE TABLE "yikai_translation_batch_items" (
   "id" INTEGER PRIMARY KEY AUTOINCREMENT,

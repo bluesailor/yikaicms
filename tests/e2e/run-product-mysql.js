@@ -33,7 +33,7 @@ try {
   }
   fs.writeFileSync(path.join(site, 'config/config.php'), config);
   run(['tests/fixtures/product-drafts-mysql.php', 'provision'], '01-baseline', true);
-  for (const id of ['20261107_translation_batches', '20261108_translation_links']) {
+  for (const id of ['20261107_translation_batches', '20261108_translation_links', '20261116_translation_batch_worker']) {
     run(['bin/yikai.php', 'migrate:run', '--id=' + id, '--yes'], '02-' + id);
     run(['bin/yikai.php', 'migrate:run', '--id=' + id, '--yes'], '03-repeat-' + id);
   }
@@ -41,7 +41,8 @@ try {
   run(['tests/fixtures/product-drafts-mysql.php', 'partial'], '05-interrupted-ddl', true);
   run(['bin/yikai.php', 'migrate:run', '--id=20261107_translation_batches', '--yes'], '06-resume-interrupted-ddl');
   run(['tests/fixtures/product-drafts-mysql.php', 'verify-partial'], '07-resumed-upgrade-preservation', true);
-  run(['tests/fixtures/product-drafts-mysql.php', 'concurrency'], '08-concurrency', true);
+  run(['tests/fixtures/product-drafts-mysql.php', 'translation-workers'], '08-translation-workers', true);
+  run(['tests/fixtures/product-drafts-mysql.php', 'concurrency'], '09-concurrency', true);
   report.passed = true;
 } catch (error) {
   report.error = error.message;

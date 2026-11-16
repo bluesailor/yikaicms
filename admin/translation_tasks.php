@@ -22,7 +22,7 @@ requirePermission('edit_product');
 
 $currentMenu = 'translation_tasks';
 $pageTitle = __('tbt_title');
-$tablesReady = db()->tableExists('translation_batches') && db()->tableExists('translation_batch_items');
+$tablesReady = db()->tableExists('translation_batches') && db()->tableExists('translation_batch_items') && db()->tableExists('translation_batch_events');
 $service = new TranslationBatches(db());
 $languages = enabledLanguages();
 $defaultLang = (string) config('site_lang', 'zh-CN');
@@ -159,6 +159,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
         <p id="tbtSummary" class="mt-3 text-sm text-gray-600" aria-live="polite"></p>
         <div class="mt-2 h-2 bg-gray-100 rounded" aria-hidden="true"><div id="tbtBar" class="h-2 bg-primary rounded" style="width:0"></div></div>
+        <p class="mt-2 text-xs text-gray-500"><?php echo e(__('tbt_calls', ['calls' => (string) (int) $batch['calls'], 'max' => (string) (int) $batch['max_calls']])); ?></p>
+        <?php if ((string) $batch['note'] === TranslationBatches::NOTE_BUDGET && (string) $batch['status'] === 'paused'): ?>
+        <p class="mt-2 text-sm bg-amber-50 border-l-4 border-amber-400 text-amber-800 px-3 py-2" role="status"><?php echo e(__('tbt_budget_paused')); ?></p>
+        <?php endif; ?>
     </div>
     <div class="bg-white rounded-lg shadow overflow-x-auto">
         <table class="w-full text-sm">
@@ -173,6 +177,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <tbody id="tbtRows"></tbody>
         </table>
     </div>
+    <?php $events = $service->events((int) $batch['id']); if ($events !== []): ?>
+    <details class="bg-white rounded-lg shadow mt-4">
+        <summary class="px-4 py-3 text-sm font-medium text-gray-700 cursor-pointer"><?php echo e(__('tbt_log')); ?></summary>
+        <ul class="px-4 pb-3 text-sm text-gray-600 space-y-1">
+            <?php foreach ($events as $event): ?>
+            <li><span class="text-gray-400"><?php echo e(date('m-d H:i:s', (int) $event['created_at'])); ?></span>
+                <?php echo e(__('tbt_ev_' . $event['event'])); ?><?php if ((int) $event['item_id'] > 0): ?> · #<?php echo (int) $event['item_id']; ?><?php endif; ?>
+                <?php if ((string) $event['detail'] !== ''): ?><span class="text-gray-500">— <?php echo e((string) $event['detail']); ?></span><?php endif; ?></li>
+            <?php endforeach; ?>
+        </ul>
+    </details>
+    <?php endif; ?>
     <script>
     const tbtLabels = <?php echo json_encode($statusLabels, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;
     const tbtText = <?php echo json_encode(['open' => __('tbt_open'), 'review' => __('tbt_review'), 'running' => __('tbt_running')], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;

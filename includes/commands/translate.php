@@ -1,18 +1,18 @@
 <?php
 /**
- * ÃüÁî×é£ºtranslate
- *   translate:run   ÍÆ½øËùÓĞ¡¸½øĞĞÖĞ¡¹µÄÅúÁ¿·­ÒëÈÎÎñ£»--budget=Ãë£¨Ä¬ÈÏ 240£¬ÉÏÏŞ 3600£©
+ * å‘½ä»¤ç»„ï¼štranslate
+ *   translate:run   æ¨è¿›æ‰€æœ‰ã€Œè¿›è¡Œä¸­ã€çš„æ‰¹é‡ç¿»è¯‘ä»»åŠ¡ï¼›--budget=ç§’ï¼ˆé»˜è®¤ 240ï¼Œä¸Šé™ 3600ï¼‰
  *
- * ¶¨Ê±ÈÎÎñ translation_batches Ã¿·ÖÖÓÒ²»áÅÜÒ»´Î£¨Ã¿´Î 45 Ãë£©£»´óÅúÁ¿¿ÉÒÔÖ±½Ó¹ÒÕâÌõÃüÁî¡£
- * ÄÚ´æ³Ôµ½ memory_limit µÄ 85% Ê±ÌáÇ°½áÊø£¬ÏÂÒ»´Î½Ó×ÅÅÜ£¬ÒÑÍê³ÉµÄÏî²»»áÖØ×ö¡£
+ * å®šæ—¶ä»»åŠ¡ translation_batches æ¯åˆ†é’Ÿä¹Ÿä¼šè·‘ä¸€æ¬¡ï¼ˆæ¯æ¬¡ 45 ç§’ï¼‰ï¼›å¤§æ‰¹é‡å¯ä»¥ç›´æ¥æŒ‚è¿™æ¡å‘½ä»¤ã€‚
+ * å†…å­˜åƒåˆ° memory_limit çš„ 85% æ—¶æå‰ç»“æŸï¼Œä¸‹ä¸€æ¬¡æ¥ç€è·‘ï¼Œå·²å®Œæˆçš„é¡¹ä¸ä¼šé‡åšã€‚
  */
 declare(strict_types=1);
 
 if (!defined('IK_CLI')) return;
 
-CLI::register('translate:run', 'ÍÆ½ø½øĞĞÖĞµÄÅúÁ¿·­ÒëÈÎÎñ', function (array $args, array $opts): int {
-    if (!db()->tableExists('translation_batches')) {
-        CLI::err('translation_batches ±í²»´æÔÚ£¬ÇëÏÈÍê³ÉÊı¾İ¿âÉı¼¶');
+CLI::register('translate:run', 'æ¨è¿›è¿›è¡Œä¸­çš„æ‰¹é‡ç¿»è¯‘ä»»åŠ¡', function (array $args, array $opts): int {
+    if (!db()->tableExists('translation_batch_events')) {
+        CLI::err('æ‰¹é‡ç¿»è¯‘çš„æ•°æ®è¡¨æœªå‡çº§ï¼Œè¯·å…ˆå®Œæˆæ•°æ®åº“å‡çº§ï¼ˆphp bin/yikai.php migrate:runï¼‰');
         return 1;
     }
     require_once ROOT_PATH . '/includes/TranslationBatches.php';
@@ -20,7 +20,7 @@ CLI::register('translate:run', 'ÍÆ½ø½øĞĞÖĞµÄÅúÁ¿·­ÒëÈÎÎñ', function (array $args
     @set_time_limit($budget + 60);
     $done = (new TranslationBatches(db()))->drain($budget);
     if ($done === []) {
-        CLI::out('Ã»ÓĞ½øĞĞÖĞµÄÅúÁ¿·­ÒëÈÎÎñ');
+        CLI::out('æ²¡æœ‰è¿›è¡Œä¸­çš„æ‰¹é‡ç¿»è¯‘ä»»åŠ¡');
         return 0;
     }
     foreach ($done as $id => $counts) {
@@ -28,6 +28,6 @@ CLI::register('translate:run', 'ÍÆ½ø½øĞĞÖĞµÄÅúÁ¿·­ÒëÈÎÎñ', function (array $args
         foreach ($counts as $status => $n) if ($n > 0) $parts[] = "{$status} {$n}";
         CLI::out("  #{$id}  " . implode(', ', $parts));
     }
-    if (TranslationBatches::memoryTight()) CLI::out('ÄÚ´æ½Ó½üÉÏÏŞ£¬ÒÑÌáÇ°½áÊø£»ÔÙÔËĞĞÒ»´Î½Ó×Å´¦Àí');
+    if (TranslationBatches::memoryTight()) CLI::out('å†…å­˜æ¥è¿‘ä¸Šé™ï¼Œå·²æå‰ç»“æŸï¼›å†è¿è¡Œä¸€æ¬¡æ¥ç€å¤„ç†');
     return 0;
 }, ['usage' => 'translate:run [--budget=240]']);

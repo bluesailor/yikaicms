@@ -72,12 +72,15 @@ final class Cron
         // 批量翻译后台执行（2.3.0 CORE-01）：关掉页面后由定时任务接着跑 running 批次。
         // 预算 45 秒 + 内存 85% 守卫；表未建或没有进行中的批次时是一次早退。
         self::register('translation_batches', __('cron_translation_batches'), 60, static function (): string {
-            if (!db()->tableExists('translation_batches')) {
+            if (!db()->tableExists('translation_batch_events')) {   // 20261116 迁移未跑：老表缺额度列
                 return __('cron_nothing_due');
             }
             require_once ROOT_PATH . '/includes/TranslationBatches.php';
             @set_time_limit(120);
-            $done = (new TranslationBatches(db()))->drain(45);
+            $service = new TranslationBatches(db());
+            $done = $service->drain(45);
+            // 结果保留期限：过期的已完成 / 已取消批次连同逐项结果与日志一起清掉
+            $service->purge(time(), (int) config('translate_batch_keep_days', TranslationBatches::KEEP_DAYS) ?: TranslationBatches::KEEP_DAYS);
             return $done === [] ? __('cron_nothing_due') : str_replace(':n', (string) count($done), __('cron_translation_batches_n'));
         });
 
