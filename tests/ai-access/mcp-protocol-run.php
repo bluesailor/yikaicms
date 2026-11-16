@@ -28,6 +28,8 @@ final class S104Run
     private string $tmp;
     private string $trace;
     private int $id = 0;
+    /** 最近一次请求的状态与正文开头：检查失败时附在说明后面，偶发失败也能看出是超时（状态 0）、限流（429）还是别的 */
+    private string $lastResponse = '';
 
     public function __construct()
     {
@@ -88,6 +90,7 @@ final class S104Run
 
     public function check(bool $ok, string $label): void
     {
+        if (!$ok && $this->lastResponse !== '') $label .= ' [last response: ' . $this->lastResponse . ']';
         $this->results[$this->scenario][] = [$ok, $label];
     }
 
@@ -110,6 +113,7 @@ final class S104Run
         }
         $text = $response === false ? '' : $response;
         $this->bodies[] = $text;
+        $this->lastResponse = 'HTTP ' . $status . ($response === false ? ' (no response: timeout or connection failure)' : '') . ' ' . substr(preg_replace('/\s+/', ' ', $text) ?? '', 0, 200);
         return ['status' => $status, 'headers' => $parsed, 'raw_headers' => $raw, 'body' => $text, 'json' => json_decode($text, true)];
     }
 
