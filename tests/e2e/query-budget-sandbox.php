@@ -33,6 +33,17 @@ const BUDGET = [
 ];
 const N1_SLACK = 4;
 
+/**
+ * 页面 → [本站 CSS+JS 的 KB 上限, 文件数上限]（2.3.0，路线图 CORE-05）。按实测留约 15%，改大要说明原因。
+ * 只算本站资源；外部字体、CDN 不算。2026-11-16 实测（演示数据、每页 24 条）：
+ * 首页 / 英文首页 525 KB 17 个、单页 518 KB 11 个、产品 379 KB 12 个、产品列表 316 KB 9 个，其余 304 KB 8 个。
+ */
+const ASSET_BUDGET = [
+    'home' => [604, 20], 'home-en' => [604, 20], 'page' => [596, 13], 'product' => [436, 14], 'product-list' => [364, 11],
+    'news-list' => [350, 10], 'article' => [350, 10], 'case-list' => [350, 10], 'search' => [350, 10],
+    'plain-cards' => [350, 10], 'component-cards' => [350, 10], 'pinned-cards' => [350, 10], 'nested-cards' => [350, 10],
+];
+
 $fail = 0;
 $check = static function (bool $ok, string $label, string $detail = '') use (&$fail): void {
     echo ($ok ? 'PASS ' : 'FAIL ') . $label . ($ok || $detail === '' ? '' : "\n     " . substr($detail, 0, 700)) . "\n";
@@ -199,22 +210,51 @@ try {
         $last = (string) end($lines);
         // 列表页实际列出了多少条造出来的条目（确认每页条数设置真的生效）
         $items = count(array_unique(preg_match_all('#href="[^"]*qb-(?:article|case|product)-\d+#', $r['body'], $m) ? $m[0] : []));
-        return [$r['status'], (int) substr($last, (int) strrpos($last, "\t") + 1), $items];
+        return [$r['status'], (int) substr($last, (int) strrpos($last, "\t") + 1), $items, $r['body']];
+    };
+    /**
+     * 2.3.0（路线图 CORE-05）：页面加载的本站样式表与脚本——字节数与文件数。和查询数一样是确定的，不受机器快慢影响，
+     * 所以能拿来判失败；外部字体、CDN 不算（不在我们控制内，也随网络变）。同一文件只取一次。
+     */
+    $assetBytes = [];
+    $assetWeight = static function (string $html) use ($port, &$assetBytes): array {
+        $urls = [];
+        if (preg_match_all('#<link\b[^>]*>#i', $html, $links)) {
+            foreach ($links[0] as $tag) {
+                if (preg_match('#\brel=["\']?stylesheet#i', $tag) && preg_match('#\bhref=["\']([^"\']+)#i', $tag, $h)) $urls[] = $h[1];
+            }
+        }
+        if (preg_match_all('#<script\b[^>]*\bsrc=["\']([^"\']+)#i', $html, $scripts)) array_push($urls, ...$scripts[1]);
+        $total = 0;
+        $files = 0;
+        foreach (array_unique($urls) as $url) {
+            $url = html_entity_decode($url, ENT_QUOTES);
+            $url = (string) preg_replace('#^https?://main\.test:\d+#', '', $url);
+            if (!str_starts_with($url, '/') || str_starts_with($url, '//')) continue;   // 外部资源
+            $path = (string) strtok($url, '?#');
+            $assetBytes[$path] ??= strlen(http($port, $path)['body']);
+            $total += $assetBytes[$path];
+            $files++;
+        }
+        return [(int) round($total / 1024), $files];
     };
 
     $table = [];
     $listed = [];
+    $weights = [];
     foreach ([6, 24] as $size) {
         $check($drive('pagesize', (string) $size) === 'ok', "page size $size");
         foreach ($pages as $name => $path) {
-            [$status, $n, $items] = $measure($path, $name . '-' . $size);
+            [$status, $n, $items, $body] = $measure($path, $name . '-' . $size);
             $check($status === 200, "$name ($path) is 200 at page size $size", (string) $status);
             $table[$name][$size] = $n;
             $listed[$name][$size] = $items;
+            if ($size === 24 && $name !== 'sitemap') $weights[$name] = $assetWeight($body);
         }
     }
-    echo "\npage            q@6   q@24  budget  items@6  items@24\n";
-    foreach ($table as $name => $row) printf("%-14s %5d %6d %7d %8d %9d\n", $name, $row[6], $row[24], BUDGET[$name] ?? 0, $listed[$name][6], $listed[$name][24]);
+    echo "\npage            q@6   q@24  budget  items@6  items@24   cssjsKB  files  kbBudget  filesBudget\n";
+    foreach ($table as $name => $row) printf("%-14s %5d %6d %7d %8d %9d %9d %6d %9d %12d\n", $name, $row[6], $row[24], BUDGET[$name] ?? 0, $listed[$name][6], $listed[$name][24],
+        $weights[$name][0] ?? 0, $weights[$name][1] ?? 0, ASSET_BUDGET[$name][0] ?? 0, ASSET_BUDGET[$name][1] ?? 0);
     echo "\n";
     foreach ($listPages as $name) {
         $check($listed[$name][24] > $listed[$name][6], "$name lists more entries at page size 24 ({$listed[$name][6]} → {$listed[$name][24]})");
@@ -237,6 +277,10 @@ try {
     if (!$reportOnly) {
         foreach ($table as $name => $row) {
             $check($row[24] <= (BUDGET[$name] ?? 0), "$name stays within its budget ({$row[24]} ≤ " . (BUDGET[$name] ?? 0) . ')');
+        }
+        foreach ($weights as $name => [$kb, $files]) {
+            [$kbBudget, $filesBudget] = ASSET_BUDGET[$name] ?? [0, 0];
+            $check($kb <= $kbBudget && $files <= $filesBudget, "$name loads at most {$kbBudget} KB of own CSS/JS in {$filesBudget} files ({$kb} KB, {$files} files)");
         }
     }
 } catch (RuntimeException) {

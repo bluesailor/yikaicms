@@ -150,3 +150,15 @@ test('existing compatibility, database, browser and language checks remain bound
   }
   assert.match(job('psalm'), /key: composer-8\.2-/);
 });
+
+test('performance budgets fail CI on deterministic regressions only', () => {
+  // 2.3.0（路线图 CORE-05）：查询次数、N+1、本站 CSS/JS 字节数与文件数会让 CI 失败；耗时类指标只报告，不在 CI 里判
+  const gate = step(job('smoke'), 'Performance budgets (queries and own CSS/JS weight)');
+  assert.match(gate, /if: matrix\.php == '8\.2' && matrix\.lang == 'zh-CN'/);
+  assert.match(gate, /run: php tests\/e2e\/query-budget-sandbox\.php "\$GITHUB_WORKSPACE"$/m);
+  assert.doesNotMatch(gate, /--report/, 'report mode never fails, so it cannot be the CI gate');
+  const sandbox = fs.readFileSync(path.join(__dirname, '..', 'e2e', 'query-budget-sandbox.php'), 'utf8');
+  assert.match(sandbox, /const ASSET_BUDGET = \[/);
+  assert.match(sandbox, /\$check\(\$kb <= \$kbBudget && \$files <= \$filesBudget/);
+  assert.doesNotMatch(sandbox, /Ms['"]?\s*=>|wallUntil|latency/i, 'timing metrics stay out of the CI gate');
+});
