@@ -168,7 +168,6 @@ if ($stats['files'] > 0 && $safeBaseUrl !== '' && function_exists('curl_init')) 
     ]);
     $__head = (string) curl_exec($__ch);
     $__code = (int) curl_getinfo($__ch, CURLINFO_HTTP_CODE);
-    curl_close($__ch);
     // 判据是响应头 X-Yikai-Render：只有 PHP 实时渲染才会带它，
     // 静态文件由 Web 服务器直出、不经 PHP，一定没有。
     // 不能拿页面内容判断——探测请求只带 yk_admin、不带会话，

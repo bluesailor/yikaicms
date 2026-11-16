@@ -218,7 +218,6 @@ final class AutoUpgrade
                 curl_setopt_array($ch, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $body]);
             }
             $resp = curl_exec($ch);
-            curl_close($ch);
         }
         $d = $resp ? json_decode((string) $resp, true) : null;
         if (!is_array($d) || ($d['code'] ?? 1) !== 0 || !is_array($d['data'] ?? null)) {

@@ -437,8 +437,9 @@ final class SiteHealth
             'http' => ['timeout' => 8, 'ignore_errors' => true, 'follow_location' => 0, 'header' => "Accept: application/json\r\n"],
             'ssl' => ['verify_peer' => true, 'verify_peer_name' => true],
         ]);
+        if (function_exists('http_clear_last_response_headers')) http_clear_last_response_headers();
         $body = @file_get_contents($url, false, $context);
-        $statusCode = self::httpStatusCode($http_response_header ?? []);
+        $statusCode = self::httpStatusCode((function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? [])));
         if ($body === false || $statusCode < 200 || $statusCode >= 300) {
             $body = false;
         }
@@ -455,7 +456,6 @@ final class SiteHealth
                 $response = curl_exec($curl);
                 $statusCode = (int) curl_getinfo($curl, CURLINFO_RESPONSE_CODE);
                 $body = is_string($response) && $statusCode >= 200 && $statusCode < 300 ? $response : false;
-                curl_close($curl);
             }
         }
         $data = is_string($body) ? json_decode($body, true) : null;

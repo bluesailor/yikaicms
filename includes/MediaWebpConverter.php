@@ -394,7 +394,6 @@ final class MediaWebpConverter
         if ($image === false) {
             return false;
         }
-        imagedestroy($image);
         return true;
     }
 }

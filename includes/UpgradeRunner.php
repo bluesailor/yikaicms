@@ -335,7 +335,6 @@ function uo_download(string $url, string $dest): array
         $ok = curl_exec($ch);
         $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $err = curl_error($ch);
-        curl_close($ch);
         fclose($fp);
         if (!$ok || $code >= 400) return [false, '下载失败: ' . ($err ?: "HTTP $code")];
         return [true, ''];
@@ -1193,7 +1192,6 @@ function uo_download_range(string $url, int $from, int $to, $fh): array
         $err = (string) curl_error($ch);
         $total = $rangeTotal;
         $len = curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
-        curl_close($ch);
         // 206 才是真正的区间响应；200 表示服务端忽略了 Range，整包又发了一遍。
         if ($total === null && $status === 200 && $len !== false && $len > 0) {
             $total = (int) $len;
@@ -1211,10 +1209,11 @@ function uo_download_range(string $url, int $from, int $to, $fh): array
         'http' => ['timeout' => UO_DOWNLOAD_CHUNK_SECONDS, 'header' => "Range: bytes=$range\r\n", 'ignore_errors' => true],
         'ssl' => ['verify_peer' => true, 'verify_peer_name' => true],
     ]);
+    if (function_exists('http_clear_last_response_headers')) http_clear_last_response_headers();
     $src = @fopen($url, 'rb', false, $ctx);
     if (!$src) return [0, null, '下载失败(allow_url_fopen)'];
     $status = 0; $total = null;
-    foreach ($http_response_header ?? [] as $h) {
+    foreach ((function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? [])) as $h) {
         if (preg_match('#^HTTP/\S+\s+(\d{3})#i', $h, $m) === 1) $status = (int) $m[1];
         if (preg_match('#^Content-Range:\s*bytes\s+\d+-\d+/(\d+)#i', $h, $m) === 1) $total = (int) $m[1];
         if ($status === 200 && preg_match('#^Content-Length:\s*(\d+)#i', $h, $m) === 1) $total = (int) $m[1];
@@ -1241,7 +1240,6 @@ function uo_download_total(string $url): ?int
     curl_exec($ch);
     $len = curl_getinfo($ch, CURLINFO_CONTENT_LENGTH_DOWNLOAD);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
     return ($code < 400 && $len !== false && $len > 0) ? (int) $len : null;
 }
 

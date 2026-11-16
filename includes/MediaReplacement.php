@@ -66,7 +66,6 @@ final class MediaReplacement
                 $finfo = finfo_open(FILEINFO_MIME_TYPE);
                 $mime = $finfo ? (string) finfo_file($finfo, $sourcePath) : '';
                 if ($finfo) {
-                    finfo_close($finfo);
                 }
                 if ($mime !== '' && !in_array($mime, self::IMAGE_MIME[$ext], true)) {
                     return self::fail('media_replace_mime_mismatch');

@@ -124,7 +124,6 @@ if ($action !== '') {
             $ch = curl_init($api);
             curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_TIMEOUT => 15, CURLOPT_SSL_VERIFYPEER => true, CURLOPT_FOLLOWLOCATION => true]);
             $resp = curl_exec($ch);
-            curl_close($ch);
         }
         $data = $resp ? json_decode($resp, true) : null;
         if (!is_array($data)) uo_json(['code' => 1, 'msg' => '无法连接更新服务器或返回格式错误']);

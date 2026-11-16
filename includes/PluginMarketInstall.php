@@ -183,7 +183,6 @@ final class PluginMarketInstall
             ]);
             curl_exec($ch);
             $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
             return !$tooLarge && $status >= 200 && $status < 300 && $body !== '' ? $body : null;
         }
         if (ini_get('allow_url_fopen')) {

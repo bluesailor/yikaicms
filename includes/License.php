@@ -436,7 +436,6 @@ function license_http_once(string $url, string $body, string $caFile, int $timeo
         $r = curl_exec($ch);
         $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
         $errno = curl_errno($ch);
-        curl_close($ch);
         if ($r !== false && $code > 0 && $code < 400) {
             return [(string) $r, false];
         }

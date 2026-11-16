@@ -89,7 +89,6 @@ final class FormUploadService
             if (!function_exists('finfo_open')) throw new RuntimeException('form_upload_unavailable');
             $finfo = finfo_open(FILEINFO_MIME_TYPE);
             $mime = $finfo ? finfo_file($finfo, $canonicalTarget) : false;
-            if ($finfo) finfo_close($finfo);
             if (!is_string($mime) || !in_array($mime, self::MIME_MAP[$ext], true)) throw new RuntimeException('form_upload_mime');
             if (in_array($ext, ['jpg', 'jpeg', 'png', 'webp'], true)) {
                 $image = @getimagesize($canonicalTarget);

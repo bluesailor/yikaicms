@@ -240,15 +240,15 @@ final class SiteTemplateMarket
             $completed = curl_exec($ch);
             $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
             $error = $completed === false ? curl_error($ch) : '';
-            curl_close($ch);
             return ['status' => $status, 'error' => $error];
         }
         $context = stream_context_create([
             'http' => ['timeout' => $timeout, 'follow_location' => 0, 'max_redirects' => 0, 'ignore_errors' => true],
             'ssl' => ['verify_peer' => true, 'verify_peer_name' => true],
         ]);
+        if (function_exists('http_clear_last_response_headers')) http_clear_last_response_headers();
         $stream = @fopen($url, 'rb', false, $context);
-        $headers = is_array($http_response_header ?? null) ? $http_response_header : [];
+        $headers = (function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []));
         $status = preg_match('#\s(\d{3})\s#', (string) ($headers[0] ?? ''), $match) === 1 ? (int) $match[1] : 0;
         if (!is_resource($stream)) return ['status' => $status, 'error' => 'connection'];
         try {

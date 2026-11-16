@@ -274,7 +274,6 @@ final class LanguageDomains
         $body = curl_exec($ch);
         $errno = curl_errno($ch);
         $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-        curl_close($ch);
         if ($errno !== 0) {
             return in_array($errno, [35, 51, 58, 60, 77, 83], true) ? 'tls' : 'unreachable';
         }
