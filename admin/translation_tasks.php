@@ -15,6 +15,7 @@ require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 require_once ROOT_PATH . '/includes/TranslationBatches.php';
+require_once ROOT_PATH . '/includes/Cron.php';
 
 checkLogin();
 requirePermission('edit_product');
@@ -56,6 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error(__('tbt_err_empty'));
         }
         if ($created['total'] === 0) error(__($created['not_outdated'] > 0 ? 'tss_nothing_outdated' : 'tbt_err_empty'));
+        // 立即在后台开跑（不等结果）；没配站点地址或连不上时，本页与定时任务照常接着跑
+        Cron::kick('translation_batches');
         adminLog('translate', 'batch_create', "批量翻译 #{$created['batch_id']}：{$created['total']} 项");
         success(['id' => $created['batch_id']], __('tbt_created', [
             'total' => (string) $created['total'], 'elsewhere' => (string) $created['queued_elsewhere'], 'skipped' => (string) ($created['not_source'] + $created['not_outdated']),
@@ -95,8 +98,9 @@ foreach (['pending', 'generating', 'generated', 'applied', 'proposed', 'exists',
 }
 $langNames = static fn (string $json): string => implode(', ', array_map(static fn (string $lang): string => (string) ($languages[$lang] ?? $lang), (array) json_decode($json, true)));
 
-// 后台执行（CORE-01）：定时任务 translation_batches 10 分钟内跑过，就算关掉本页也会继续
-$workerLast = (int) settingModel()->get('cron_translation_batches_last', '0');
+// 后台执行（CORE-01）：计划任务 10 分钟内调用过本站（心跳），关掉本页也会继续。
+// 看心跳而不看 translation_batches 的上次运行：建批后的立即触发也会跑这个任务，但它不代表定时任务配好了
+$workerLast = (int) settingModel()->get('cron_heartbeat', '0');
 $workerOn = $workerLast > 0 && $workerLast >= time() - 600;
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>

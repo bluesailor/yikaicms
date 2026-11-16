@@ -178,6 +178,43 @@ final class Cron
         return ['state' => $state, 'last' => max(0, $last), 'days' => $last <= 0 ? 0 : intdiv(max(0, $now - $last), 86400)];
     }
 
+    /**
+     * 不等结果地请求一次本站 cron.php?task=…（建批后立即开跑；定时任务仍是兜底）。
+     * 只用后台设置的站点地址或 config.php 的 SITE_URL，不用请求头里的 Host，令牌不会发到伪造的域名。
+     * HTTPS 保留证书校验；连不上就算了，返回 false。
+     */
+    public static function kick(string $task): bool
+    {
+        $base = rtrim((string) config('site_url', ''), '/');
+        if ($base === '' && defined('SITE_URL')) $base = rtrim((string) SITE_URL, '/');
+        $req = self::kickRequest($base, $task, self::token());
+        if ($req === null) return false;
+        $ctx = stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true, 'peer_name' => $req['host']]]);
+        $fp = @stream_socket_client($req['target'], $errno, $errstr, 2, STREAM_CLIENT_CONNECT, $ctx);
+        if ($fp === false) return false;
+        stream_set_timeout($fp, 2);
+        $ok = @fwrite($fp, $req['request']) === strlen($req['request']);
+        fclose($fp);
+        return $ok;
+    }
+
+    /** @return null|array{target:string,host:string,request:string} */
+    public static function kickRequest(string $base, string $task, string $token): ?array
+    {
+        $u = parse_url($base);
+        $scheme = strtolower((string) ($u['scheme'] ?? ''));
+        $host = (string) ($u['host'] ?? '');
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '' || isset($u['query']) || isset($u['user'])) return null;
+        $port = (int) ($u['port'] ?? ($scheme === 'https' ? 443 : 80));
+        $path = rtrim((string) ($u['path'] ?? ''), '/') . '/cron.php?' . http_build_query(['token' => $token, 'task' => $task, 'kick' => 1]);
+        $hostHeader = $host . (isset($u['port']) ? ':' . $port : '');
+        return [
+            'target' => ($scheme === 'https' ? 'tls://' : 'tcp://') . $host . ':' . $port,
+            'host' => $host,
+            'request' => "GET {$path} HTTP/1.1\r\nHost: {$hostHeader}\r\nUser-Agent: YikaiCMS-cron\r\nConnection: close\r\n\r\n",
+        ];
+    }
+
     /** 手动运行单个任务（后台「立即运行」用），无视间隔 */
     public static function runOne(string $name): array
     {
