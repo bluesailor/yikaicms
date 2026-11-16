@@ -170,6 +170,27 @@ switch ((string) ($argv[1] ?? '')) {
         $out['batch'] = $svc->batch($created['batch_id'])['status'];
         break;
 
+    case 'drain':
+        // CORE-01 后台执行：只推进 running 批次，按批次号顺序；暂停的不动
+        $svc = new TranslationBatches(db(), $generator());
+        $one = $svc->create(1, [$product('液压泵')], ['en'], 'zh-CN', $now)['batch_id'];
+        $two = $svc->create(1, [$product('齿轮泵')], ['en'], 'zh-CN', $now)['batch_id'];
+        $three = $svc->create(1, [$product('叶片泵')], ['en', 'ja'], 'zh-CN', $now)['batch_id'];
+        $svc->pause($two, $now);
+        $out['drained'] = $svc->drain(30, static fn (): int => $now);
+        $out['order'] = array_keys($out['drained']) === [$one, $three];
+        $out['statuses'] = [$svc->batch($one)['status'], $svc->batch($two)['status'], $svc->batch($three)['status']];
+        $out['calls'] = count($calls);
+        $out['again'] = $svc->drain(30, static fn (): int => $now);
+        $out['memory'] = [
+            TranslationBatches::memoryTight(100 * 1024 ** 2, '128M'),
+            TranslationBatches::memoryTight(110 * 1024 ** 2, '128M'),
+            TranslationBatches::memoryTight(PHP_INT_MAX, '-1'),
+            TranslationBatches::memoryTight(800 * 1024 ** 2, '1G'),
+            TranslationBatches::memoryTight(950 * 1024 ** 2, '1G'),
+        ];
+        break;
+
     case 'cancel_during_generation':
     case 'cancel_then_provider_error':
         // 评审 F03：模型请求进行中，另一个页面取消了整批；之后模型返回结果（或报错）

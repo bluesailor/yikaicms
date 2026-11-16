@@ -95,6 +95,9 @@ foreach (['pending', 'generating', 'generated', 'applied', 'proposed', 'exists',
 }
 $langNames = static fn (string $json): string => implode(', ', array_map(static fn (string $lang): string => (string) ($languages[$lang] ?? $lang), (array) json_decode($json, true)));
 
+// 后台执行（CORE-01）：定时任务 translation_batches 10 分钟内跑过，就算关掉本页也会继续
+$workerLast = (int) settingModel()->get('cron_translation_batches_last', '0');
+$workerOn = $workerLast > 0 && $workerLast >= time() - 600;
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
@@ -102,6 +105,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-800"><?php echo e(__('tbt_title')); ?></h1>
         <p class="text-sm text-gray-500 mt-1 max-w-3xl"><?php echo e(__('tbt_intro')); ?></p>
+        <p class="text-sm mt-1 max-w-3xl <?php echo $workerOn ? 'text-green-700' : 'text-amber-700'; ?>" data-tbt-worker="<?php echo $workerOn ? 'on' : 'off'; ?>"><?php echo e($workerOn ? __('tbt_worker_on', ['time' => date('H:i', $workerLast)]) : __('tbt_worker_off')); ?></p>
         <p class="text-sm mt-1"><a class="text-primary hover:underline" href="<?php echo e(BasePath::url('/admin/translation_status.php')); ?>"><?php echo e(__('tss_title')); ?></a></p>
     </div>
 

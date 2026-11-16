@@ -105,7 +105,7 @@ final class TranslationBatches
         $clock ??= static fn (): int => time();
         $deadline = microtime(true) + $budgetSeconds;
         $seen = [];
-        while (microtime(true) < $deadline && $this->batchStatus($batchId) === 'running') {
+        while (microtime(true) < $deadline && !self::memoryTight() && $this->batchStatus($batchId) === 'running') {
             $item = $this->claim($batchId, $clock(), $seen);
             if ($item === null) break;
             $seen[(int) $item['id']] = true;
@@ -114,6 +114,43 @@ final class TranslationBatches
         }
         $this->finishIfDone($batchId, $clock());
         return $this->counts($batchId);
+    }
+
+    /**
+     * 后台执行（定时任务 / CLI）：按批次号依次推进所有 running 批次，到时限或内存吃到 85% 就停，
+     * 下一轮接着跑。租约保证与浏览器里同时点「继续」不会重复处理同一项；暂停、取消照常生效
+     * （step 每项之前都重读批次状态，正在调模型的那一项跑完才停）。
+     * @param null|Closure():int $clock 测试注入
+     * @return array<int,array<string,int>> 批次号 => 各状态计数
+     */
+    public function drain(float $budgetSeconds, ?Closure $clock = null): array
+    {
+        $deadline = microtime(true) + $budgetSeconds;
+        $out = [];
+        $ids = $this->db->fetchAll('SELECT id FROM ' . DB_PREFIX . "translation_batches WHERE status = 'running' ORDER BY id");
+        foreach ($ids as $row) {
+            $left = $deadline - microtime(true);
+            if ($left <= 0 || self::memoryTight()) break;
+            $out[(int) $row['id']] = $this->step((int) $row['id'], $left, $clock);
+        }
+        return $out;
+    }
+
+    /** 已用内存是否到了 memory_limit 的 85%（无上限时永远 false） */
+    public static function memoryTight(?int $used = null, ?string $limit = null): bool
+    {
+        $bytes = self::bytes($limit ?? (string) ini_get('memory_limit'));
+        return $bytes > 0 && ($used ?? memory_get_usage(true)) >= $bytes * 0.85;
+    }
+
+    private static function bytes(string $value): int
+    {
+        $value = trim($value);
+        if ($value === '' || $value === '-1') return 0;
+        $n = (int) $value;
+        return match (strtolower(substr($value, -1))) {
+            'g' => $n * 1024 ** 3, 'm' => $n * 1024 ** 2, 'k' => $n * 1024, default => $n,
+        };
     }
 
     /** failed 与 conflict 重新排队；conflict 的旧结果作废（源已变，必须重新生成） */

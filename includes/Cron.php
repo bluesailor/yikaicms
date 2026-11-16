@@ -69,6 +69,18 @@ final class Cron
         require_once ROOT_PATH . '/includes/DemoSandbox.php';
         DemoSandbox::registerCron();
 
+        // 批量翻译后台执行（2.3.0 CORE-01）：关掉页面后由定时任务接着跑 running 批次。
+        // 预算 45 秒 + 内存 85% 守卫；表未建或没有进行中的批次时是一次早退。
+        self::register('translation_batches', __('cron_translation_batches'), 60, static function (): string {
+            if (!db()->tableExists('translation_batches')) {
+                return __('cron_nothing_due');
+            }
+            require_once ROOT_PATH . '/includes/TranslationBatches.php';
+            @set_time_limit(120);
+            $done = (new TranslationBatches(db()))->drain(45);
+            return $done === [] ? __('cron_nothing_due') : str_replace(':n', (string) count($done), __('cron_translation_batches_n'));
+        });
+
         // 邮件可靠性的重试队列（roadmap #3）：任务体内自判（表未建/无失败时是一次早退），
         // 放在内置任务里，站点未装任何插件也能自愈
         self::register('mail_retry', __('cron_mail_retry'), 600, function (): string {

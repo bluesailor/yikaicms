@@ -103,6 +103,16 @@ final class TranslationBatchesTest extends TestCase
         self::assertSame(0, $r['calls_cancelled']);
         self::assertSame('cancelled', $r['batch']);
     }
+    public function testBackgroundDrainRunsOnlyRunningBatchesAndStopsNearTheMemoryLimit(): void
+    {
+        $r = $this->probe('drain');
+        self::assertTrue($r['order'], '按批次号推进，暂停的批次不在结果里');
+        self::assertSame(['done', 'paused', 'done'], $r['statuses']);
+        self::assertSame(3, $r['calls'], '暂停批次的项不调模型');
+        self::assertSame([], $r['again'], '没有进行中的批次时是一次早退');
+        self::assertSame([false, true, false, false, true], $r['memory'], '85% 为界；memory_limit=-1 不限');
+    }
+
     public function testCancellationDuringGenerationWinsOverTheLateResult(): void
     {
         foreach (["cancel_during_generation", "cancel_then_provider_error"] as $scenario) {
