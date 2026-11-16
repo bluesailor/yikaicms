@@ -129,7 +129,6 @@ final class HomeAboutLocalizationTest extends TestCase
     {
         function channelUrl(array $channel): string { return $channel['test_url']; }
         $method = new ReflectionMethod(HomeAboutLocalization::class, 'channelUrlInLanguage');
-        $method->setAccessible(true);
         $channel = ['type' => 'page', 'test_url' => '/index.php?yk_route=page&slug=about&lang=en'];
         self::assertSame('/index.php?yk_route=page&slug=about', $method->invoke(null, $channel, 'zh-CN'));
         self::assertSame('/index.php?yk_route=page&slug=about&lang=ja', $method->invoke(null, $channel, 'ja'));

@@ -38,7 +38,7 @@ $db->execute('DELETE FROM yikai_blox_page_drafts WHERE page_id=2');
 $db->insert('blox_page_drafts',['page_id'=>2,'draft_data'=>$doc,'updated_at'=>time()]);
 $path=$root.'/uploads/images/matrix-permission.png';
 if(is_file($path)) throw new RuntimeException('Fixture file already exists');
-$image=imagecreatetruecolor(3,2); imagepng($image,$path); imagedestroy($image);
+$image=imagecreatetruecolor(3,2); imagepng($image,$path);
 $pdf=tempnam(sys_get_temp_dir(),'matrix-pdf-');
 file_put_contents($pdf,"%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF");
 $svg=tempnam(sys_get_temp_dir(),'matrix-svg-');
@@ -74,7 +74,7 @@ $request=static function(string $actor,string $method,string $url,?array $data=n
         $multipart=count(array_filter($data,static fn($v)=>$v instanceof CURLFile))>0;
         curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$multipart?$data:http_build_query($data)]);
     } elseif($method!=='GET')curl_setopt($ch,CURLOPT_CUSTOMREQUEST,$method);
-    $body=(string)curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);$raw[]=$body;
+    $body=(string)curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);$raw[]=$body;
     return [$status,$body,json_decode($body,true)];
 };
 $log=tempnam(sys_get_temp_dir(),'yk-matrix-server-');

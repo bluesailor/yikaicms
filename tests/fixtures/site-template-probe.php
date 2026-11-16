@@ -317,7 +317,6 @@ try {
     if ($server !== null && preg_match('/^yk_siteprobe_[a-f0-9]{12}$/D', DB_NAME)) $server->exec('DROP DATABASE `' . DB_NAME . '`');
     if (!$mysql && is_file($databasePath)) {
         $instance = new ReflectionProperty(Database::class, 'instance');
-        $instance->setAccessible(true);
         $instance->setValue(null, null);
         gc_collect_cycles();
         @unlink($databasePath);

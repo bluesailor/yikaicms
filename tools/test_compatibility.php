@@ -22,8 +22,6 @@ $cls = new \ReflectionClass('Compatibility');
 $prop = $cls->getProperty('bootstrapped');
 $diagProp = $cls->getProperty('diagnostics');
 if (PHP_VERSION_ID < 80100) {
-    $prop->setAccessible(true);
-    $diagProp->setAccessible(true);
 }
 $prop->setValue(null, false);
 $diagProp->setValue(null, []);

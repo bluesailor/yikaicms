@@ -72,7 +72,6 @@ $request = static function(string $path, ?array $data = null) use ($base, $jar):
     if ($data !== null) curl_setopt_array($curl, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => $data]);
     $body = curl_exec($curl);
     $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
-    curl_close($curl);
     if (!is_string($body) || $status >= 500) throw new RuntimeException('HTTP failure: ' . $path);
     return [$body, $status];
 };

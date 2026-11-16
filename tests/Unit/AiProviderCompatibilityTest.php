@@ -19,7 +19,6 @@ final class AiProviderCompatibilityTest extends TestCase
         $service = (new ReflectionClass(AiService::class))->newInstanceWithoutConstructor();
         foreach (['provider' => $provider, 'model' => $model, 'apiKey' => 'fixture-key'] as $key => $value) {
             $property = new ReflectionProperty(AiService::class, $key);
-            $property->setAccessible(true);
             $property->setValue($service, $value);
         }
         return $service;
@@ -28,7 +27,6 @@ final class AiProviderCompatibilityTest extends TestCase
     private function invoke(AiService $service, string $method, array $arguments = []): array
     {
         $reflection = new ReflectionMethod(AiService::class, $method);
-        $reflection->setAccessible(true);
         return $reflection->invokeArgs($service, $arguments);
     }
 
@@ -109,7 +107,6 @@ final class AiProviderCompatibilityTest extends TestCase
             $service = new AiService('kimi', 'fixture-key', '', '');
             foreach (['model' => 'kimi-k3.1-pro', 'baseUrl' => 'https://api.moonshot.cn/v1'] as $key => $expected) {
                 $property = new ReflectionProperty(AiService::class, $key);
-                $property->setAccessible(true);
                 self::assertSame($expected, $property->getValue($service));
             }
             self::assertSame('old-model', $GLOBALS['_test_config']['ai_model']);

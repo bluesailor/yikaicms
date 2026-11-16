@@ -27,7 +27,6 @@ final class MediaAltAiTest extends TestCase
     public function testImagePartsAreSentInEachProvidersFormat(): void
     {
         $method = new ReflectionMethod(AiService::class, 'messageContent');
-        $method->setAccessible(true);
         $parts = [['type' => 'image', 'mime' => 'image/png', 'data' => 'QUJD'], ['type' => 'text', 'text' => 'describe']];
         self::assertSame('plain', $method->invoke(null, 'plain', 'openai'), '纯文字不变');
         self::assertSame([

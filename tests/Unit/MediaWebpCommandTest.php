@@ -110,6 +110,5 @@ final class MediaWebpCommandTest extends TestCase
         self::assertNotFalse($image);
         imagefill($image, 0, 0, imagecolorallocate($image, 26, 86, 138));
         self::assertTrue(imagepng($image, $path));
-        imagedestroy($image);
     }
 }

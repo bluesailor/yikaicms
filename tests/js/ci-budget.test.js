@@ -46,7 +46,10 @@ function run(command, options = {}) {
 
 test('Blox assertions share the PHP 8.2 suite and the retained check fails closed', () => {
   const suite = job('phpunit');
-  assert.match(suite, /php: \['8\.2', '8\.3', '8\.4'\]/);
+  // 2.3.0 起 8.5 也跑全量单测；锁定的 Psalm 6.4.0 上限 8.4，只在 8.5 这一档忽略 PHP 上限安装依赖（本作业不跑 Psalm）
+  assert.match(suite, /php: \['8\.2', '8\.3', '8\.4', '8\.5'\]/);
+  assert.match(step(suite, 'composer install'), /\$\{\{ matrix\.php == '8\.5' && '--ignore-platform-req=php\+' \|\| '' \}\}/);
+  assert.doesNotMatch(step(suite, 'composer install'), /--ignore-platform-reqs\b/, '不能整体忽略平台要求');
   // Blox 源码在主仓里：缺了直接失败，不再注入、不再「跳过」
   const required = step(suite, 'Require Blox sources');
   assert.match(required, /if: matrix\.php == '8\.2'/);

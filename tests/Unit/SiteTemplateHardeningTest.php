@@ -39,7 +39,6 @@ final class SiteTemplateHardeningTest extends TestCase
 
         try {
             $discard = new ReflectionMethod(SiteTemplateService::class, 'discardImportedFiles');
-            $discard->setAccessible(true);
             $service = new SiteTemplateService($root);
 
             $discard->invoke($service, $alias);

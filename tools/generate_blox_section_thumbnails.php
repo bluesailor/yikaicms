@@ -89,13 +89,11 @@ function photo(GdImage $image, string $path, int $x, int $y, int $width, int $he
     $sourceX = max(0, (int) (($sourceWidth - $cropWidth) / 2));
     $sourceY = max(0, (int) (($sourceHeight - $cropHeight) / 2));
     imagecopyresampled($image, $source, $x, $y, $sourceX, $sourceY, $width, $height, $cropWidth, $cropHeight);
-    imagedestroy($source);
 }
 
 function save(GdImage $image, string $path): void
 {
     imagepng($image, $path, 8);
-    imagedestroy($image);
     echo basename($path) . PHP_EOL;
 }
 

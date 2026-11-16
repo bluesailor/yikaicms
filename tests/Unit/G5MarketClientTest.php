@@ -170,7 +170,7 @@ final class G5MarketClientTest extends TestCase
                 $body = file_get_contents($target, false, stream_context_create(['http' => [
                     'timeout' => 10, 'ignore_errors' => true, 'follow_location' => 0,
                 ]]));
-                self::assertMatchesRegularExpression('/^HTTP\/\S+ 200\b/', $http_response_header[0] ?? '');
+                self::assertMatchesRegularExpression('/^HTTP\/\S+ 200\b/', (function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []))[0] ?? '');
                 self::assertIsString($body);
                 if (!$catalog) return $body;
                 $response = json_decode($body, true, 64, JSON_THROW_ON_ERROR);
@@ -213,7 +213,7 @@ final class G5MarketClientTest extends TestCase
             self::assertStringStartsWith($base . '/api/market/', $url);
             $context = stream_context_create(['http' => ['follow_location' => 0, 'max_redirects' => 0, 'ignore_errors' => true, 'timeout' => 15]]);
             $body = file_get_contents($url, false, $context);
-            self::assertMatchesRegularExpression('/^HTTP\/\S+ 200\b/', $http_response_header[0] ?? '');
+            self::assertMatchesRegularExpression('/^HTTP\/\S+ 200\b/', (function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []))[0] ?? '');
             self::assertIsString($body);
             return $body;
         };
@@ -306,9 +306,9 @@ final class G5MarketClientTest extends TestCase
             $body = file_get_contents($base . $path, false, stream_context_create(['http' => [
                 'timeout' => 15, 'ignore_errors' => true, 'follow_location' => 0,
             ]]));
-            self::assertMatchesRegularExpression('/^HTTP\/\S+ 200\b/', $http_response_header[0] ?? '');
+            self::assertMatchesRegularExpression('/^HTTP\/\S+ 200\b/', (function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []))[0] ?? '');
             self::assertIsString($body);
-            return [$body, $http_response_header];
+            return [$body, (function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []))];
         };
         $transport = static function (string $url) use ($get, $base): string {
             self::assertStringStartsWith('https://update.yikaicms.com/api/', $url);
@@ -405,8 +405,8 @@ final class G5MarketClientTest extends TestCase
             $body = file_get_contents($url, false, stream_context_create(['http' => [
                 'timeout' => 15, 'ignore_errors' => true, 'follow_location' => 0,
             ]]));
-            preg_match('/^HTTP\/\S+ (\d+)/', $http_response_header[0] ?? '', $match);
-            return [(int) ($match[1] ?? 0), (string) $body, $http_response_header ?? []];
+            preg_match('/^HTTP\/\S+ (\d+)/', (function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []))[0] ?? '', $match);
+            return [(int) ($match[1] ?? 0), (string) $body, (function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []))];
         };
         $cases = json_decode((string) file_get_contents($fixture . '/cases.json'), true, 64, JSON_THROW_ON_ERROR);
         self::assertCount(4, $cases);

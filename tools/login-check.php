@@ -43,7 +43,6 @@ $fetch = static function (string $target, string $cookie) use ($insecure): ?arra
         $body = curl_exec($ch);
         $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         $error = curl_error($ch);
-        curl_close($ch);
         if (!is_string($body)) {
             fwrite(STDERR, "请求失败: $target $error\n");
             return null;

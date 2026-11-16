@@ -101,7 +101,7 @@ final class S104Run
         foreach ($headers as $name => $value) $lines[] = $name . ': ' . $value;
         $context = stream_context_create(['http' => ['method' => $method, 'header' => implode("\r\n", $lines), 'content' => $body, 'ignore_errors' => true, 'timeout' => 20]]);
         $response = @file_get_contents($this->url . $query, false, $context);
-        $raw = $http_response_header ?? [];
+        $raw = (function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []));
         $status = preg_match('#^HTTP/\S+ (\d{3})#', $raw[0] ?? '', $m) === 1 ? (int) $m[1] : 0;
         $parsed = [];
         foreach (array_slice($raw, 1) as $line) {

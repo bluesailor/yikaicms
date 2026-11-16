@@ -36,7 +36,6 @@ if ($action === 'package') {
         $img = imagecreatetruecolor(480, 480);
         imagefill($img, 0, 0, imagecolorallocate($img, $r, $g, $b));
         imagepng($img, "{$dir}/images/{$name}.png");
-        imagedestroy($img);
     }
     copy("{$dir}/images/collage.png", "{$dir}/images/washer-collage-copy.png");
     file_put_contents($dir . '/products.json', json_encode([

@@ -51,7 +51,6 @@ final class ProductImportRunnerTest extends TestCase
             $img = imagecreatetruecolor(400, 400);
             imagefill($img, 0, 0, $color);
             imagepng($img, $this->tmp . "/package/images/{$name}.png");
-            imagedestroy($img);
         }
         $this->manifest();
     }

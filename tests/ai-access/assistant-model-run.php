@@ -13,7 +13,7 @@ $request = static function (string $method, string $path, array $form = []) use 
     $headers = ['Content-Type: application/x-www-form-urlencoded'];
     if ($cookies) $headers[] = 'Cookie: ' . implode('; ', array_map(static fn($k,$v) => "$k=$v", array_keys($cookies), $cookies));
     $text = (string) file_get_contents($base . $path, false, stream_context_create(['http'=>['method'=>$method,'header'=>implode("\r\n",$headers),'content'=>http_build_query($form),'ignore_errors'=>true,'follow_location'=>0,'timeout'=>180]]));
-    foreach ($http_response_header ?? [] as $h) if (preg_match('/^Set-Cookie:\s*([^=]+)=([^;]*)/i', $h, $m)) $cookies[$m[1]]=$m[2];
+    foreach ((function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? [])) as $h) if (preg_match('/^Set-Cookie:\s*([^=]+)=([^;]*)/i', $h, $m)) $cookies[$m[1]]=$m[2];
     return $text;
 };
 $checks = [];

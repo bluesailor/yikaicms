@@ -41,7 +41,6 @@ function rbReq(string $url): array
     ]);
     $body = (string) curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
     return [$code, $body];
 }
 
@@ -56,7 +55,6 @@ function rbPost(string $url, array $post): array
     ]);
     $body = (string) curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
     return [$code, $body];
 }
 

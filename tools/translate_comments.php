@@ -49,7 +49,6 @@ function ds_translate(string $cn, string $apiKey, string $model, array &$cache):
     ]);
     $resp = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
     if ($code !== 200) return $cn;
     $en = trim(json_decode($resp, true)['choices'][0]['message']['content'] ?? '');
     $en = trim($en, "\"' \t\n");

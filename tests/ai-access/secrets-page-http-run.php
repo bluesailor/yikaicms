@@ -50,7 +50,7 @@ $request = static function (string $path, ?array $post = null, bool $anonymous =
     curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>20,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_HTTPHEADER=>$headers]);
     if (!$anonymous) curl_setopt_array($ch, [CURLOPT_COOKIEFILE=>$jar,CURLOPT_COOKIEJAR=>$jar]);
     if ($post !== null) curl_setopt_array($ch, [CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$bearer !== null ? json_encode($post) : http_build_query($post)]);
-    $body = (string) curl_exec($ch); $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE); curl_close($ch);
+    $body = (string) curl_exec($ch); $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $responses[] = $body;
     return [$status, $body, json_decode($body, true)];
 };

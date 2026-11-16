@@ -42,7 +42,6 @@ final class ProductImportPlannerTest extends TestCase
         $img = imagecreatetruecolor($w, $h);
         imagefill($img, 0, 0, $color);
         imagepng($img, $path);
-        imagedestroy($img);
     }
 
     /** @param array<string,mixed> $manifest */

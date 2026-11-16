@@ -19,7 +19,6 @@ function usabilityRequest(string $path, ?array $data = null): array
     if ($data !== null) curl_setopt_array($curl, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => http_build_query($data)]);
     $body = (string) curl_exec($curl);
     $status = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
-    curl_close($curl);
     return [$status, $body];
 }
 function usabilityAssert(bool $condition, string $message): void

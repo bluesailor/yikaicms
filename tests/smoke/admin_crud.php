@@ -90,7 +90,7 @@ function smokeArticleChannel(PDO $pdo): int
     return (int) ($childStatement->fetchColumn() ?: $rootId);
 }
 
-function req(string $method, string $url, array $post = null): array
+function req(string $method, string $url, ?array $post = null): array
 {
     global $JAR, $BASE;
     $ch = curl_init($BASE . $url);
@@ -106,7 +106,6 @@ function req(string $method, string $url, array $post = null): array
     }
     $body = (string) curl_exec($ch);
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
     return [$code, $body];
 }
 

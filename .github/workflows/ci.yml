@@ -56,10 +56,10 @@ jobs:
         run: php tools/check-php80-runtime.php
 
   # ─── PHPUnit: model + controller + admin suites. SQLite in-memory. ───
-  # Matrix is 8.2–8.4: 8.2 is the product floor, and `composer install`
-  # can't resolve on 8.5 yet (lock has no 8.5-compatible dev toolchain).
-  # Product runtime support for 8.2–8.5 is verified by the Lint job;
-  # raise the ceiling here once the dev toolchain lock declares 8.5.
+  # Matrix is 8.2–8.5: 8.2 is the product floor, 8.5 the newest runtime the
+  # README claims. The locked Psalm (6.4.0) caps PHP at 8.4; this job does not
+  # run Psalm, so the 8.5 leg ignores only PHP upper bounds when installing.
+  # Drop that flag once the dev toolchain lock declares 8.5.
   phpunit:
     name: PHPUnit (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
@@ -67,7 +67,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3', '8.4']
+        php: ['8.2', '8.3', '8.4', '8.5']
     steps:
       - uses: actions/checkout@v4
 
@@ -98,7 +98,7 @@ jobs:
             composer-${{ matrix.php }}-
 
       - name: composer install
-        run: composer install --no-interaction --prefer-dist --no-progress
+        run: composer install --no-interaction --prefer-dist --no-progress ${{ matrix.php == '8.5' && '--ignore-platform-req=php+' || '' }}
 
       - name: Verify Blox asset classification
         run: php bin/blox-assets.php verify-policy .

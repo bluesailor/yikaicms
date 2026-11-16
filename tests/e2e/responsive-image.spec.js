@@ -25,7 +25,6 @@ test('responsive image candidates select by viewport @ci', async ({ page }, test
     '  imagefill($image, 0, 0, imagecolorallocate($image, $file[3], $file[4], $file[5]));',
     '  imagepng($image, $file[0]);',
     '  imagewebp($image, preg_replace("/\\.png$/", ".webp", $file[0]), 82);',
-    '  imagedestroy($image);',
     '}',
   ].join(' ');
 

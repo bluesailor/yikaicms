@@ -373,7 +373,6 @@ final class ThemeMarketTest extends TestCase
         rewind($stream);
         $chunks = [];
         $copy = new ReflectionMethod(ThemeMarket::class, 'copyStream');
-        $copy->setAccessible(true);
 
         $error = $copy->invoke(null, $stream, static function (string $chunk) use (&$chunks): int {
             $chunks[] = strlen($chunk);

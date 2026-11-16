@@ -32,7 +32,6 @@ function upgradeRequest(string $url, string $cookieJar, ?array $post = null): ar
     $body = curl_exec($handle);
     $error = curl_error($handle);
     $code = (int) curl_getinfo($handle, CURLINFO_HTTP_CODE);
-    curl_close($handle);
     if ($body === false) {
         throw new RuntimeException('HTTP request failed: ' . $error);
     }

@@ -88,8 +88,9 @@ function rt_http(string $method, string $url, array $form = [], array &$cookies 
         'method' => $method, 'header' => implode("\r\n", $headers), 'content' => $content,
         'ignore_errors' => true, 'follow_location' => 0, 'timeout' => 60,
     ]]);
+    if (function_exists('http_clear_last_response_headers')) http_clear_last_response_headers();
     $body = @file_get_contents($url, false, $context);
-    $responseHeaders = $http_response_header ?? [];
+    $responseHeaders = (function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []));
     $status = preg_match('#^HTTP/\S+\s+(\d{3})#', (string) ($responseHeaders[0] ?? ''), $m) ? (int) $m[1] : 0;
     foreach ($responseHeaders as $line) {
         if (preg_match('/^Set-Cookie:\s*([^=;\s]+)=([^;]*)/i', $line, $c)) {

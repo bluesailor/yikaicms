@@ -128,7 +128,7 @@ final class ComponentRoundtripServer
             foreach ($this->processes as $process) if (!proc_get_status($process)['running']) throw new RuntimeException('Owned service exited before readiness: '.substr($this->logText(),-1800));
             $ch=curl_init('http://127.0.0.1:'.$this->port.'/roundtrip-health.php');
             curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_TIMEOUT=>1,CURLOPT_PROXY=>'']);
-            $raw=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);
+            $raw=curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);
             $health=is_string($raw)?json_decode($raw,true):null;
             if ($status===200 && is_array($health) && ($health['nonce']??null)===$this->nonce
                 && str_replace('\\','/',$health['root']??'')===$this->site

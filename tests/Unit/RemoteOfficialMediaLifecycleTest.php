@@ -48,7 +48,6 @@ final class RemoteOfficialMediaLifecycleTest extends TestCase
             [990002, 'update.yikaicms.com', 'test-lifecycle-stale', 'v1']
         );
         $method = new ReflectionMethod(RemoteOfficialMedia::class, 'findExisting');
-        $method->setAccessible(true);
 
         self::assertNull($method->invoke(null, 'test-lifecycle-stale', 'v1'));
         self::assertSame(0, (int) db()->fetchColumn(
@@ -60,7 +59,6 @@ final class RemoteOfficialMediaLifecycleTest extends TestCase
     public function testApiBaseRequiresOfficialHttpsOrExplicitLocalDevelopment(): void
     {
         $method = new ReflectionMethod(RemoteOfficialMedia::class, 'apiBaseAllowed');
-        $method->setAccessible(true);
 
         self::assertTrue($method->invoke(null, 'https://update.yikaicms.com/api/media'));
         self::assertFalse($method->invoke(null, 'http://update.yikaicms.com/api/media'));

@@ -822,7 +822,6 @@ final class BuilderRenderTest extends TestCase
             }
         };
         $registry = new \ReflectionProperty(BuilderRegistry::class, 'elements');
-        $registry->setAccessible(true);
         $before = $registry->getValue();
         try {
             BuilderRegistry::register($el);

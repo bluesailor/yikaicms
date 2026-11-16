@@ -133,7 +133,7 @@ final class PremiumSectionsLiveImportTest extends TestCase
                 $body = file_get_contents($target, false, stream_context_create(['http' => [
                     'timeout' => 10, 'ignore_errors' => true, 'follow_location' => 0,
                 ]]));
-                self::assertMatchesRegularExpression('/^HTTP\/\S+ 200\b/', $http_response_header[0] ?? '', 'isolated market answered ' . ($http_response_header[0] ?? 'nothing'));
+                self::assertMatchesRegularExpression('/^HTTP\/\S+ 200\b/', (function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []))[0] ?? '', 'isolated market answered ' . ((function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []))[0] ?? 'nothing'));
                 self::assertIsString($body);
                 if (!$catalog) return $body;
                 $response = json_decode($body, true, 64, JSON_THROW_ON_ERROR);
