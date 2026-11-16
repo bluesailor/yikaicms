@@ -88,6 +88,15 @@ if ($table === 'channels' && ($src['type'] ?? '') === 'page') {
 $bodySource = $pageContent ?: $src;
 require_once ROOT_PATH . '/includes/content_translation.php';
 require_once ROOT_PATH . '/includes/TranslationWrite.php';
+// 新建译文前：目标语言里还没有它所在的栏目（或上级栏目、上级分类）就不建，提示先翻译上级。
+// 放在调模型之前，不为一条存不进去的译文花翻译请求（2026-11-15 所有者裁决）
+if ($target === null) {
+    $_ta_missing = TranslationWrite::missingParent($table, $src, $toLang);
+    if ($_ta_missing !== null) {
+        json(['code' => 409, 'msg' => __('lse_parent_missing', ['name' => $_ta_missing['name']]),
+            'data' => ['conflict' => 'parent_missing', 'parent' => ['kind' => $_ta_missing['kind'], 'id' => $_ta_missing['id']]]], 409);
+    }
+}
 $bodyField = translationBodyField($bodySource);
 // 调模型之前的状态：写库时逐行比对，期间有人改过就不覆盖（见 TranslationWrite）
 $translationRead = [

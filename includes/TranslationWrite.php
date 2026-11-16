@@ -88,14 +88,14 @@ final class TranslationWrite
             }
         }
 
-        // 内容/产品类有 channel_id —— 重映射到目标语言频道（如已存在）
-        if (isset($newData['channel_id']) && (int) $newData['channel_id'] > 0) {
-            $mapped = findTranslatedChannelId((int) $newData['channel_id'], $toLang);
-            if ($mapped > 0) $newData['channel_id'] = $mapped;
-        }
-        if ($table === 'channels' && (int) ($newData['parent_id'] ?? 0) > 0) {
-            $mappedParent = findTranslatedChannelId((int) $newData['parent_id'], $toLang);
-            if ($mappedParent > 0) $newData['parent_id'] = $mappedParent;
+        // 文章的栏目、子栏目与单页的上级栏目、子分类的上级分类：换成目标语言里对应的那一个。
+        // 目标语言还没有时不沿用原语言的（那样译文挂在别的语言的栏目下，目标语言的列表里找不到它）：
+        // 调用方先用 missingParent() 拦下并提示先翻译上级（2026-11-15 所有者裁决）；这里兜底，绝不静默沿用
+        $parent = self::parentRef($table, $src);
+        if ($parent !== null) {
+            $mapped = $parent['id'] > 0 ? self::mappedParentId($parent['kind'], $parent['id'], $toLang) : 0;
+            if ($parent['id'] > 0 && $mapped === 0) throw new DomainException('translation_parent_missing');
+            $newData[$parent['column']] = $mapped;
         }
         // 产品分类按分类的翻译组换成目标语言那一个（评审 F02）。目标语言还没有这个分类就放「未分类」，
         // 不沿用原语言分类：那样目标语言的分类页查不到它，面包屑还会混语言。调用方据此提示用户
@@ -111,6 +111,48 @@ final class TranslationWrite
             $newData['seo_description'] = $translated['summary'];
         }
         return $newData;
+    }
+
+    /**
+     * 这一行依赖的上级：文章 → 所在栏目；栏目（含单页）→ 上级栏目；产品分类 → 上级分类。没有上级返回 null。
+     * 产品的分类不在这里：产品缺分类时放「未分类」并提示（评审 F02），不阻止。
+     * @param array<string,mixed> $src @return array{kind:string,column:string,id:int}|null
+     */
+    private static function parentRef(string $table, array $src): ?array
+    {
+        $ref = match ($table) {
+            'contents' => ['kind' => 'channel', 'column' => 'channel_id'],
+            'channels' => ['kind' => 'channel', 'column' => 'parent_id'],
+            'product_categories' => ['kind' => 'category', 'column' => 'parent_id'],
+            default => null,
+        };
+        if ($ref === null || (int) ($src[$ref['column']] ?? 0) <= 0) return null;
+        $id = (int) $src[$ref['column']];
+        // 原文指向的上级已经不存在（栏目被删后留下的旧编号）：当作没有上级，译文不带这个失效的编号
+        $exists = db()->fetchOne('SELECT id FROM ' . DB_PREFIX . ($ref['kind'] === 'category' ? 'product_categories' : 'channels') . ' WHERE id = ?', [$id]);
+        return $ref + ['id' => $exists ? $id : 0];
+    }
+
+    private static function mappedParentId(string $kind, int $id, string $toLang): int
+    {
+        if ($kind === 'category') return self::translatedCategoryId($id, $toLang);
+        $channel = db()->fetchOne('SELECT id, lang FROM ' . DB_PREFIX . 'channels WHERE id = ?', [$id]);
+        if (!$channel) return 0;
+        if ((string) $channel['lang'] === $toLang) return (int) $channel['id'];
+        return findTranslatedChannelId($id, $toLang);
+    }
+
+    /**
+     * 新建译文前的检查：目标语言里缺的上级。返回 null 表示可以建；否则给出上级的名称，供提示「请先翻译「…」」。
+     * 在调模型之前调用——缺上级时不该先花一次翻译请求。
+     * @param array<string,mixed> $src @return array{kind:string,id:int,name:string}|null
+     */
+    public static function missingParent(string $table, array $src, string $toLang): ?array
+    {
+        $parent = self::parentRef($table, $src);
+        if ($parent === null || $parent['id'] === 0 || self::mappedParentId($parent['kind'], $parent['id'], $toLang) > 0) return null;
+        $row = db()->fetchOne('SELECT name FROM ' . DB_PREFIX . ($parent['kind'] === 'category' ? 'product_categories' : 'channels') . ' WHERE id = ?', [$parent['id']]);
+        return ['kind' => $parent['kind'], 'id' => $parent['id'], 'name' => (string) ($row['name'] ?? '#' . $parent['id'])];
     }
 
     /** 源产品分类在目标语言的对应分类 id；没有返回 0 */
