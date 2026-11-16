@@ -1,16 +1,16 @@
 <?php
-/** ÅúÁ¿·­ÒëºóÌ¨Ö´ÐÐ£¨2.3.0 CORE-01£©£ºÃ¿ÅúµÄµ÷ÓÃÉÏÏÞÓë¼ÆÊý¡¢ÈÎÎñÈÕÖ¾¡£Ö»¼ÓÁÐÓëÐÂ±í£¬²»¸ÄÈÎºÎÄÚÈÝ¡£ */
+/** æ‰¹é‡ç¿»è¯‘åŽå°æ‰§è¡Œï¼ˆ2.3.0 CORE-01ï¼‰ï¼šæ¯æ‰¹çš„è°ƒç”¨ä¸Šé™ä¸Žè®¡æ•°ã€ä»»åŠ¡æ—¥å¿—ã€‚åªåŠ åˆ—ä¸Žæ–°è¡¨ï¼Œä¸æ”¹ä»»ä½•å†…å®¹ã€‚ */
 
 declare(strict_types=1);
 
 return [
     'id'    => '20261116_translation_batch_worker',
-    'title' => 'ÅúÁ¿·­ÒëºóÌ¨Ö´ÐÐ',
-    'desc'  => '¸ø translation_batches ¼Ó calls¡¢max_calls¡¢note ÈýÁÐ£¨Ã¿ÅúµÄÄ£ÐÍµ÷ÓÃ´ÎÊýÓëÉÏÏÞ¡¢ÔÝÍ£Ô­Òò£©£¬ÐÂÔö translation_batch_events ±í¼ÇÂ¼ÈÎÎñÈÕÖ¾¡£Ö»¼ÓÁÐÓë½¨±í£¬²»¸Ä¶¯ÒÑÓÐÄÚÈÝ¡£',
+    'title' => 'æ‰¹é‡ç¿»è¯‘åŽå°æ‰§è¡Œ',
+    'desc'  => 'ç»™ translation_batches åŠ  callsã€max_callsã€note ä¸‰åˆ—ï¼ˆæ¯æ‰¹çš„æ¨¡åž‹è°ƒç”¨æ¬¡æ•°ä¸Žä¸Šé™ã€æš‚åœåŽŸå› ï¼‰ï¼Œæ–°å¢ž translation_batch_events è¡¨è®°å½•ä»»åŠ¡æ—¥å¿—ã€‚åªåŠ åˆ—ä¸Žå»ºè¡¨ï¼Œä¸æ”¹åŠ¨å·²æœ‰å†…å®¹ã€‚',
     'title_en' => 'Background batch translation',
-    'title_ja' => 'Ò»À¨·­ÔU¤Î¥Ð¥Ã¥¯¥°¥é¥¦¥ó¥ÉŒgÐÐ',
+    'title_ja' => 'ä¸€æ‹¬ç¿»è¨³ã®ãƒãƒƒã‚¯ã‚°ãƒ©ã‚¦ãƒ³ãƒ‰å®Ÿè¡Œ',
     'desc_en' => 'Adds the calls, max_calls and note columns to translation_batches (model calls used per batch, their limit and the pause reason) and a translation_batch_events table for the task log. Adds columns and a table only; existing content is not changed.',
-    'desc_ja' => 'translation_batches ¤Ë calls¡¢max_calls¡¢note ¤Î 3 ÁÐ£¨¥Ð¥Ã¥Á¤´¤È¤Î¥â¥Ç¥ëºô¤Ó³ö¤·»ØÊý¤ÈÉÏÏÞ¡¢Ò»•rÍ£Ö¹¤ÎÀíÓÉ£©¤ò×·¼Ó¤·¡¢¥¿¥¹¥¯¥í¥°ÓÃ¤Î translation_batch_events ¥Æ©`¥Ö¥ë¤ò×·¼Ó¤·¤Þ¤¹¡£ÁÐ¤È¥Æ©`¥Ö¥ë¤Î×·¼Ó¤Î¤ß¤Ç¡¢¼È´æ¤Î¥³¥ó¥Æ¥ó¥Ä¤Ï‰ä¸ü¤·¤Þ¤»¤ó¡£',
+    'desc_ja' => 'translation_batches ã« callsã€max_callsã€note ã® 3 åˆ—ï¼ˆãƒãƒƒãƒã”ã¨ã®ãƒ¢ãƒ‡ãƒ«å‘¼ã³å‡ºã—å›žæ•°ã¨ä¸Šé™ã€ä¸€æ™‚åœæ­¢ã®ç†ç”±ï¼‰ã‚’è¿½åŠ ã—ã€ã‚¿ã‚¹ã‚¯ãƒ­ã‚°ç”¨ã® translation_batch_events ãƒ†ãƒ¼ãƒ–ãƒ«ã‚’è¿½åŠ ã—ã¾ã™ã€‚åˆ—ã¨ãƒ†ãƒ¼ãƒ–ãƒ«ã®è¿½åŠ ã®ã¿ã§ã€æ—¢å­˜ã®ã‚³ãƒ³ãƒ†ãƒ³ãƒ„ã¯å¤‰æ›´ã—ã¾ã›ã‚“ã€‚',
     'check' => static fn (): bool => db()->tableExists('translation_batch_events')
         && _columnExists('translation_batches', 'calls') && _columnExists('translation_batches', 'max_calls') && _columnExists('translation_batches', 'note'),
     'sqls' => [
@@ -29,7 +29,7 @@ return [
         _addColumn('translation_batches', 'calls', 'int(11) UNSIGNED NOT NULL DEFAULT 0');
         _addColumn('translation_batches', 'max_calls', 'int(11) UNSIGNED NOT NULL DEFAULT 0');
         _addColumn('translation_batches', 'note', "varchar(32) NOT NULL DEFAULT ''");
-        // SQLite ½¨±í×ª»»¶ªµôÆÕÍ¨Ë÷Òý£ºÁí½¨
+        // SQLite å»ºè¡¨è½¬æ¢ä¸¢æŽ‰æ™®é€šç´¢å¼•ï¼šå¦å»º
         if (db()->isSqlite()) _addIndex('translation_batch_events', 'idx_translation_batch_events_batch', '`batch_id`, `id`');
         return 'ok';
     },
