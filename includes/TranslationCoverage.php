@@ -8,7 +8,7 @@
  * 一格（$cells[lang]）：['id' => 译文 id（0=缺失）, 'status' => TranslationState::status() 或 null, 'draft' => 未发布]
  * 「未发布」只看这一行自己的 status：前台各入口（product.php、detail.php、page.php、产品分类查询）都以 status = 1 为准，
  * 审阅状态（已审 / 人改过）与是否发布是两回事，一格里分开给出。
- * 一行的标记（$flags）：missing / draft / outdated / proposal / untracked，只要有一种语言符合就为 true。
+ * 一行的标记（$flags）：missing / draft / outdated / proposal / untracked / ready（有已审、可直接发布的草稿译文），只要有一种语言符合就为 true。
  */
 
 declare(strict_types=1);
@@ -17,7 +17,7 @@ require_once __DIR__ . '/TranslationState.php';
 
 final class TranslationCoverage
 {
-    public const FLAGS = ['missing', 'draft', 'outdated', 'proposal', 'untracked'];
+    public const FLAGS = ['missing', 'draft', 'outdated', 'proposal', 'untracked', 'ready'];
     /** 表、标题列、摘要列、有没有回收站、额外条件、是否有单页正文行 */
     public const KINDS = [
         'products' => ['table' => 'products', 'title' => 'title', 'summary' => 'summary', 'trash' => true, 'where' => '', 'pages' => false],
@@ -104,6 +104,7 @@ final class TranslationCoverage
                     $flags['outdated'] = $flags['outdated'] || $status['outdated'];
                     $flags['proposal'] = $flags['proposal'] || $status['proposal'];
                     $flags['untracked'] = $flags['untracked'] || $status['state'] === 'untracked';
+                    $flags['ready'] = $flags['ready'] || ((int) ($source['status'] ?? 0) === 1 && self::ready($cells[$lang]));
                 }
                 $visit($source + ['_title' => (string) ($source[$spec['title']] ?? '')], $cells, $flags);
             }
@@ -167,6 +168,7 @@ final class TranslationCoverage
                     $flags['outdated'] = $flags['outdated'] || $status['outdated'];
                     $flags['proposal'] = $flags['proposal'] || $status['proposal'];
                     $flags['untracked'] = $flags['untracked'] || $status['state'] === 'untracked';
+                    $flags['ready'] = $flags['ready'] || ((int) ($source['status'] ?? 0) === 1 && self::ready($cells[$lang]));
                 }
                 unset($source['_sig']);
                 $visit($source + ['_title' => (string) ($source[$spec['title']] ?? '')], $cells, $flags);
@@ -280,6 +282,18 @@ final class TranslationCoverage
             }
         }, $keyword, false, $kind);
         return ['totals' => $totals, 'matched' => $matched, 'rows' => $rows];
+    }
+
+    /**
+     * 这一格是不是「已审、可以直接发布的草稿」：有人审过，审过之后原文和译文都没改，也没有待审的新译文。
+     * 批量发布只收这样的译文（另外还要求原文已发布，由调用方看原文那一行）。
+     * @param array{id:int,status:?array<string,mixed>,draft:bool} $cell
+     */
+    public static function ready(array $cell): bool
+    {
+        $status = $cell['status'];
+        return $cell['id'] > 0 && $cell['draft'] && $status !== null
+            && $status['reviewed'] && !$status['outdated'] && !$status['edited'] && !$status['proposal'];
     }
 
     /**

@@ -95,6 +95,16 @@ foreach (['live' => 1, 'draft' => 0] as $name => $status) {
     $reviewed('product_categories', $source, $target, 'name', 'description');
     $out['categories'][$name] = ['source' => $source, 'target' => $target, 'name' => "{$tag} category {$name}", 'slug' => strtolower($tag) . "-c-{$name}-en"];
 }
+// 一条机器翻译、没人审过的英文草稿产品：批量发布不收，编辑标为已审之后才收
+$machineSource = (int) productModel()->create(['title' => "{$tag} 产品 machine", 'slug' => strtolower($tag) . '-p-machine', 'summary' => '摘要', 'content' => '<p>正文</p>',
+    'lang' => 'zh-CN', 'status' => 1, 'category_id' => 1, 'created_at' => $now, 'updated_at' => $now]);
+db()->execute('UPDATE ' . DB_PREFIX . 'products SET translation_group_id = id WHERE id = ?', [$machineSource]);
+$machineTarget = (int) productModel()->create(['title' => "{$tag} product machine", 'slug' => strtolower($tag) . '-p-machine-en', 'summary' => 'Summary', 'content' => '<p>Body</p>',
+    'lang' => 'en', 'translation_group_id' => $machineSource, 'status' => 0, 'created_at' => $now, 'updated_at' => $now]);
+$productRow = static fn (int $id): array => (array) db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'products WHERE id = ?', [$id]);
+$states->recordMachine('products', $machineTarget, $machineSource, 'en',
+    TranslationState::rowFingerprint($productRow($machineSource), 'title', 'summary'), TranslationState::rowFingerprint($productRow($machineTarget), 'title', 'summary'), $now);
+$out['products']['machine'] = ['source' => $machineSource, 'target' => $machineTarget];
 $out['listChannel'] = $channelOf('product', 'en');
 // 一篇没有英文版的文章：下一步应是「去翻译」
 $missing = (int) contentModel()->create(['title' => "{$tag} 文章 missing", 'slug' => strtolower($tag) . '-a-missing', 'summary' => '摘要', 'content' => '<p>正文</p>',

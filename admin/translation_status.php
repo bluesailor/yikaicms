@@ -15,6 +15,7 @@ require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 require_once ROOT_PATH . '/includes/TranslationCoverage.php';
+require_once ROOT_PATH . '/includes/TranslationPublish.php';
 
 checkLogin();
 /**
@@ -41,9 +42,27 @@ $pageTitle = __('tss_title');
 $tablesReady = db()->tableExists('translation_links') && db()->tableExists('translation_batches');
 $defaultLang = (string) config('site_lang', 'zh-CN');
 $langs = array_diff_key(enabledLanguages(), [$defaultLang => true]);
-$filters = ['all', 'missing', 'draft', 'outdated', 'proposal', 'untracked'];
+$filters = ['all', 'missing', 'draft', 'ready', 'outdated', 'proposal', 'untracked'];
 $filter = in_array($_GET['filter'] ?? '', $filters, true) ? (string) $_GET['filter'] : 'all';
 $keyword = trim((string) ($_GET['q'] ?? ''));
+
+// 批量发布已审的草稿译文：种类按当前账号能编辑的来（$kinds 已按权限过滤），每一条在服务端按此刻的内容重新判断
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    $action = (string) ($_POST['action'] ?? '');
+    if ($action === 'publish') {
+        $postKind = (string) ($_POST['kind'] ?? '');
+        if (!isset($kinds[$postKind])) permissionDenied();
+        if (!$tablesReady) error(__('tbt_need_upgrade'));
+        $result = (new TranslationPublish(db()))->publishReviewed($postKind, array_map('intval', (array) ($_POST['ids'] ?? [])),
+            $defaultLang, array_map('strval', array_keys($langs)), time());
+        if ($result['published'] === [] && $result['skipped'] === []) error(__('tss_publish_none'));
+        if ($result['published'] !== []) adminLog('translate', 'publish_reviewed', "批量发布已审译文（{$postKind}）：" . implode(',', $result['published']));
+        $message = __('tss_publish_done', ['n' => (string) count($result['published'])]);
+        if ($result['skipped'] !== []) $message .= ' ' . __('tss_publish_skipped', ['n' => (string) count($result['skipped'])]);
+        success(['published' => $result['published'], 'skipped' => $result['skipped']], $message);
+    }
+    error(__('operation_failed'));
+}
 $perPage = 50;
 $page = max(1, (int) ($_GET['page'] ?? 1));
 
@@ -115,23 +134,24 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     </div>
 
     <div class="bg-white rounded-lg shadow overflow-x-auto">
-        <?php if ($batchable): ?>
         <div class="flex flex-wrap items-center gap-3 px-4 py-3 border-b text-sm">
-            <span class="text-gray-500"><?php echo e(__('tss_selected_action')); ?></span>
+            <span class="text-gray-500"><?php echo e(__('tss_selected_any')); ?></span>
             <?php foreach ($langs as $code => $name): ?>
             <label class="flex items-center gap-1"><input type="checkbox" name="tss_langs[]" value="<?php echo e((string) $code); ?>" checked> <?php echo e((string) $name); ?></label>
             <?php endforeach; ?>
+            <?php if ($batchable): ?>
             <button type="button" id="tssMissing" onclick="tssCreate('missing', this)" class="border px-3 py-1 rounded"><?php echo e(__('tss_translate_missing')); ?></button>
             <button type="button" id="tssUpdate" onclick="tssCreate('update', this)" class="border px-3 py-1 rounded" title="<?php echo e(__('tss_update_hint')); ?>"><?php echo e(__('tss_update_outdated')); ?></button>
+            <?php endif; ?>
+            <button type="button" id="tssPublish" data-confirm="<?php echo e(__('tbt_confirm_again')); ?>" onclick="tssPublish(this)" class="border border-green-300 text-green-800 px-3 py-1 rounded" title="<?php echo e(__('tss_publish_hint')); ?>"><?php echo e(__('tss_publish_reviewed')); ?></button>
         </div>
-        <?php endif; ?>
         <?php if ($rows === []): ?>
         <p class="px-6 py-8 text-sm text-gray-500"><?php echo e(__('tss_empty_any')); ?></p>
         <?php else: ?>
         <table class="w-full text-sm" id="tssTable">
             <thead class="bg-gray-50 text-left text-gray-600">
                 <tr>
-                    <?php if ($batchable): ?><th class="px-4 py-2 w-8"><input type="checkbox" aria-label="<?php echo e(__('tss_select_all')); ?>" onchange="document.querySelectorAll('#tssTable tbody input[type=checkbox]').forEach((box) => { box.checked = this.checked; })"></th><?php endif; ?>
+                    <th class="px-4 py-2 w-8"><input type="checkbox" aria-label="<?php echo e(__('tss_select_all')); ?>" onchange="document.querySelectorAll('#tssTable tbody input[type=checkbox]').forEach((box) => { box.checked = this.checked; })"></th>
                     <th class="px-4 py-2"><?php echo e(__('tss_kind_' . $kind)); ?></th>
                     <?php foreach ($langs as $name): ?><th class="px-4 py-2 whitespace-nowrap"><?php echo e((string) $name); ?></th><?php endforeach; ?>
                 </tr>
@@ -139,7 +159,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <tbody>
                 <?php foreach ($rows as $row): ?>
                 <tr class="border-t align-top" data-source="<?php echo $row['id']; ?>" data-source-live="<?php echo $row['live'] ? '1' : '0'; ?>">
-                    <?php if ($batchable): ?><td class="px-4 py-2"><input type="checkbox" value="<?php echo $row['id']; ?>" aria-label="<?php echo e($row['title']); ?>"></td><?php endif; ?>
+                    <td class="px-4 py-2"><input type="checkbox" value="<?php echo $row['id']; ?>" aria-label="<?php echo e($row['title']); ?>"></td>
                     <td class="px-4 py-2"><a class="text-primary hover:underline" href="<?php echo e(BasePath::url($sourceLink($row['id'], $defaultLang))); ?>"><?php echo e($row['title'] !== '' ? $row['title'] : '#' . $row['id']); ?></a>
                         <?php if (!$row['live']): ?><span class="text-xs text-gray-400 ml-1"><?php echo e(__('tss_draft')); ?></span><?php endif; ?></td>
                     <?php foreach ($row['cells'] as $lang => $cell):
@@ -149,7 +169,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         $nextUrl = $next === 'translate' ? $sourceLink($row['id'], $defaultLang) : $targetLink($cell['id'], (string) $lang);
                     ?>
                     <td class="px-4 py-2 whitespace-nowrap" data-lang="<?php echo e($lang); ?>" data-target="<?php echo (int) $cell['id']; ?>"
-                        data-live="<?php echo $cell['id'] > 0 && !$cell['draft'] ? '1' : '0'; ?>" data-next="<?php echo e($next); ?>">
+                        data-live="<?php echo $cell['id'] > 0 && !$cell['draft'] ? '1' : '0'; ?>" data-next="<?php echo e($next); ?>"
+                        data-ready="<?php echo $row['live'] && TranslationCoverage::ready($cell) ? '1' : '0'; ?>">
                         <?php if ($cell['id'] > 0): ?>
                         <a href="<?php echo e(BasePath::url($targetLink($cell['id'], (string) $lang))); ?>" class="px-2 py-0.5 rounded text-xs <?php echo $class; ?>" title="<?php echo e(__($key . '_hint')); ?>"><?php echo e(__($key)); ?></a>
                         <span class="text-xs ml-1 <?php echo $cell['draft'] ? 'text-gray-400' : 'text-green-700'; ?>"><?php echo e(__($cell['draft'] ? 'tss_draft' : 'tss_published')); ?></span>
@@ -176,6 +197,34 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <?php endif; ?>
     <script>
     // 勾选的产品 × 勾选的语言 → 建批次，跳到任务页去跑
+    // 批量发布：勾选的行 × 勾选的语言里「已审、可直接发布」的草稿译文。两步按钮，第二次点击才提交；服务端逐条重新判断
+    async function tssPublish(button) {
+        const langs = Array.from(document.querySelectorAll('input[name="tss_langs[]"]:checked')).map((box) => box.value);
+        const ids = Array.from(document.querySelectorAll('#tssTable tbody input[type=checkbox]:checked')).flatMap((box) =>
+            Array.from(box.closest('tr').querySelectorAll('td[data-ready="1"]')).filter((cell) => langs.includes(cell.dataset.lang)).map((cell) => cell.dataset.target));
+        if (ids.length === 0) { showMessage(<?php echo json_encode(__('tss_publish_none'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>, 'error'); return; }
+        if (button.dataset.armed !== '1') {
+            button.dataset.armed = '1';
+            button.dataset.label = button.textContent;
+            button.textContent = button.dataset.confirm + ' (' + ids.length + ')';
+            setTimeout(() => { button.dataset.armed = ''; button.textContent = button.dataset.label; }, 5000);
+            return;
+        }
+        button.disabled = true;
+        const fd = new FormData();
+        fd.append('action', 'publish');
+        fd.append('kind', <?php echo json_encode($kind); ?>);
+        ids.forEach((id) => fd.append('ids[]', id));
+        try {
+            const data = await safeJson(await fetch(location.pathname, { method: 'POST', body: fd }));
+            if (data.code !== 0) throw new Error(data.msg || 'error');
+            showMessage(data.msg);
+            setTimeout(() => location.reload(), 900);
+        } catch (e) {
+            button.disabled = false;
+            showMessage(e.message, 'error');
+        }
+    }
     async function tssCreate(mode, button) {
         const ids = Array.from(document.querySelectorAll('#tssTable tbody input[type=checkbox]:checked')).map((box) => box.value);
         const langs = Array.from(document.querySelectorAll('input[name="tss_langs[]"]:checked')).map((box) => box.value);

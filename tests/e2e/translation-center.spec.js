@@ -134,3 +134,77 @@ test('restricted editors reach the work center and only product editors see batc
     await saveLanguages(page, ['zh-CN']);
   }
 });
+
+// CORE-02 第二部分：批量发布已审的草稿译文。整条流程：机器译文草稿（发不了）→ 编辑标为已审 → 批量发布 → 访客能打开
+test('reviewed draft translations are published in bulk and become visible to visitors @ci', async ({ page, browser, baseURL }, info) => {
+  test.skip(info.project.name !== 'desktop-1440', 'one viewport is enough');
+  test.setTimeout(120000);
+  await saveLanguages(page, ['zh-CN', 'en']);
+  const visitor = await browser.newContext({ baseURL, storageState: { cookies: [], origins: [] } });
+  const status = async (url) => (await visitor.request.get(url)).status();
+  const publish = async () => {
+    const button = page.locator('#tssPublish');
+    await button.click();   // 第一次点击只换成确认语
+    await expect(button).toContainText(/再点一次确认|Click again/);
+    const response = page.waitForResponse((r) => r.request().method() === 'POST' && new URL(r.url()).pathname.endsWith('/admin/translation_status.php'));
+    await button.click();
+    return (await response).json();
+  };
+  try {
+    const seeded = JSON.parse(execFileSync(process.env.PHP_BINARY || 'php', [path.join(__dirname, 'translation-center-fixture.php')], { cwd: root, encoding: 'utf8' }));
+    const entry = { products: '/product.php?id=', contents: '/detail.php?id=', pages: '/page.php?id=' };
+
+    // 文章、单页：筛「已审待发布」→ 全选 → 发布；已发布的那条不受影响
+    for (const kind of ['contents', 'pages']) {
+      const draft = seeded[kind].draft;
+      expect(await status(entry[kind] + draft.target)).toBe(404);
+      await page.goto(`/admin/translation_status.php?kind=${kind}&filter=ready&q=WC`);
+      const cell = page.locator(`tr[data-source="${draft.source}"] td[data-lang="en"]`);
+      await expect(cell).toHaveAttribute('data-ready', '1');
+      await expect(page.locator(`tr[data-source="${seeded[kind].live.source}"]`)).toHaveCount(0);
+      await page.locator(`tr[data-source="${draft.source}"] input[type="checkbox"]`).check();
+      const reply = await publish();
+      expect([reply.code, reply.data.published.map(Number)]).toEqual([0, [draft.target]]);
+      await page.goto(`/admin/translation_status.php?kind=${kind}&q=WC`);
+      await expect(cell).toHaveAttribute('data-live', '1');
+      await expect(cell).toContainText(/已审|Reviewed/);          // 发布不改审阅状态
+      await expect(cell).toHaveAttribute('data-next', '');
+      expect(await status(entry[kind] + draft.target), `${kind}: visitor after publish`).toBe(200);
+    }
+
+    // 产品：机器译文草稿没人审过，勾上也发不了
+    const machine = seeded.products.machine;
+    await page.goto('/admin/translation_status.php?kind=products&q=WC');
+    const machineCell = page.locator(`tr[data-source="${machine.source}"] td[data-lang="en"]`);
+    await expect(machineCell).toHaveAttribute('data-ready', '0');
+    await page.locator(`tr[data-source="${machine.source}"] input[type="checkbox"]`).check();
+    await page.locator('#tssPublish').click();
+    await expect(page.locator('#tssPublish')).not.toContainText(/再点一次确认|Click again/);   // 没有可发布的：不进入确认
+    // 绕过页面直接提交：服务端也拒绝
+    const forced = await page.request.post('/admin/translation_status.php', { multipart: { action: 'publish', kind: 'products', 'ids[]': String(machine.target), _token: await csrf(page) } });
+    expect((await forced.json()).data.skipped[machine.target]).toBe('not_reviewed');
+    expect(await status(entry.products + machine.target)).toBe(404);
+
+    // 编辑进译文的编辑页标为已审
+    await machineCell.getByRole('link', { name: /去发布|Publish/ }).click();
+    await expect(page).toHaveURL(new RegExp(`product_edit\\.php\\?id=${machine.target}`));
+    await page.locator('#lseMarkReviewed').click();
+    await expect(page.locator('[data-translation-state="en"]')).toContainText(/已审|Reviewed/);
+
+    // 回到工作中心：现在可发布；和另一条已审草稿一起发
+    await page.goto('/admin/translation_status.php?kind=products&filter=ready&q=WC');
+    await expect(machineCell).toHaveAttribute('data-ready', '1');
+    await page.locator('#tssTable thead input[type="checkbox"]').check();
+    const reply = await publish();
+    expect(reply.code).toBe(0);
+    // 全选还会带上同一轮里别的测试留下的已审草稿：只要求这两条在里面
+    expect(reply.data.published.map(Number)).toEqual(expect.arrayContaining([machine.target, seeded.products.draft.target]));
+    expect(await status(entry.products + machine.target)).toBe(200);
+    expect(await status(entry.products + seeded.products.draft.target)).toBe(200);
+    await page.goto('/admin/translation_status.php?kind=products&filter=ready&q=WC');
+    await expect(page.locator('#tssTable tbody tr')).toHaveCount(0);
+  } finally {
+    await visitor.close();
+    await saveLanguages(page, ['zh-CN']);
+  }
+});

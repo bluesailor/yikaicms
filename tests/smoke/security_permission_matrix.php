@@ -111,6 +111,7 @@ try {
         ['translation-batch-step','POST','/admin/translation_tasks.php',['action'=>'step','batch_id'=>1],['admin']],
         ['translation-batch-status','POST','/admin/translation_tasks.php',['action'=>'status','batch_id'=>1],['admin']],
         ['translation-status','GET','/admin/translation_status.php',null,['admin','article','page','other']],
+        ['translation-publish-reviewed','POST','/admin/translation_status.php',['action'=>'publish','kind'=>'contents','ids'=>[999999]],['admin','article']],
         ['translation-status-contents','GET','/admin/translation_status.php?kind=contents',null,['admin','article','page','other']],
         ['translation-status-pages','GET','/admin/translation_status.php?kind=pages',null,['admin','article','page','other']],
         ['translation-status-categories','GET','/admin/translation_status.php?kind=categories',null,['admin','article','page','other']],

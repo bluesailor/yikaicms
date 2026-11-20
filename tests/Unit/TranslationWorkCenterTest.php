@@ -13,6 +13,7 @@ use TranslationState;
 use Yikai\Tests\TestCase;
 
 require_once ROOT_PATH . '/includes/TranslationCoverage.php';
+require_once ROOT_PATH . '/includes/TranslationPublish.php';
 
 final class TranslationWorkCenterTest extends TestCase
 {
@@ -187,5 +188,92 @@ final class TranslationWorkCenterTest extends TestCase
         self::assertSame(2, $view(true, 'all', 1)['totals']['outdated']);
         // 搜索与发布状态照常
         self::assertSame(1, (new TranslationCoverage(db()))->page('zh-CN', ['en'], 'contents', 'all', '文章 30', 1, 10)['matched']);
+    }
+
+    /**
+     * 批量发布（CORE-02 第二部分）：只发已审、审后原文与译文都没改、没有待审新译文、原文已发布的草稿；
+     * 其余逐条跳过并给出原因。发布不改审阅状态。
+     */
+    public function testBulkPublishOnlyTakesReviewedUnchangedDrafts(): void
+    {
+        db()->execute("INSERT INTO channels (id, lang, name, type) VALUES (1, 'zh-CN', '新闻', 'list')");
+        db()->execute("INSERT INTO contents (id, lang, translation_group_id, channel_id, type, title, summary, status) VALUES
+            (1, 'zh-CN', 1, 1, 'article', '可发布', '摘要', 1), (2, 'en', 1, 1, 'article', 'Ready', 'Summary', 0),
+            (3, 'zh-CN', 3, 1, 'article', '机器译文', '摘要', 1), (4, 'en', 3, 1, 'article', 'Machine', 'Summary', 0),
+            (5, 'zh-CN', 5, 1, 'article', '原文后来改了', '摘要', 1), (6, 'en', 5, 1, 'article', 'Outdated', 'Summary', 0),
+            (7, 'zh-CN', 7, 1, 'article', '译文后来改了', '摘要', 1), (8, 'en', 7, 1, 'article', 'Edited', 'Summary', 0),
+            (9, 'zh-CN', 9, 1, 'article', '有待审新译文', '摘要', 1), (10, 'en', 9, 1, 'article', 'Proposal', 'Summary', 0),
+            (11, 'zh-CN', 11, 1, 'article', '原文未发布', '摘要', 0), (12, 'en', 11, 1, 'article', 'Source draft', 'Summary', 0),
+            (13, 'zh-CN', 13, 1, 'article', '已发布', '摘要', 1), (14, 'en', 13, 1, 'article', 'Live', 'Summary', 1),
+            (15, 'zh-CN', 15, 1, 'article', '手工译文', '摘要', 1), (16, 'en', 15, 1, 'article', 'Untracked', 'Summary', 0),
+            (17, 'zh-CN', 17, 1, 'article', '日文不在启用语言里', '摘要', 1), (18, 'ja', 17, 1, 'article', 'JA', 'Summary', 0)");
+        $row = static fn (int $id): array => (array) db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'contents WHERE id = ?', [$id]);
+        foreach ([[1, 2, 'reviewed'], [3, 4, 'machine'], [5, 6, 'reviewed'], [7, 8, 'reviewed'], [9, 10, 'reviewed'], [11, 12, 'reviewed'], [13, 14, 'reviewed'], [17, 18, 'reviewed']] as [$s, $t, $state]) {
+            $this->track('contents', $row($s), $row($t), $state);
+        }
+        db()->execute("UPDATE contents SET title = '原文后来改了（新）' WHERE id = 5");
+        db()->execute("UPDATE contents SET title = 'Edited again' WHERE id = 8");
+        db()->execute("UPDATE translation_links SET proposal_json = '{\"title\":\"New\"}' WHERE target_id = 10");
+
+        // 状态页：只有第一条算「已审待发布」
+        $page = (new TranslationCoverage(db()))->page('zh-CN', ['en'], 'contents', 'ready', '', 1, 50);
+        self::assertSame([1, ['可发布']], [$page['totals']['ready'], array_column($page['rows'], 'title')]);
+        self::assertSame((new TranslationCoverage(db(), false))->page('zh-CN', ['en'], 'contents', 'ready', '', 1, 50), $page, '两种扫描对「已审待发布」的判断一致');
+
+        $calls = [];
+        $publisher = static function (string $kind, array $target, int $now) use (&$calls): void {
+            $calls[] = [$kind, (int) $target['id'], $now];
+            db()->execute('UPDATE ' . DB_PREFIX . 'contents SET status = 1 WHERE id = ?', [(int) $target['id']]);
+        };
+        $service = new \TranslationPublish(db(), $publisher);
+        $result = $service->publishReviewed('contents', [2, 4, 6, 8, 10, 12, 14, 16, 18, 999, 2], 'zh-CN', ['en'], 1800000000);
+
+        self::assertSame([2], $result['published']);
+        self::assertSame([['contents', 2, 1800000000]], $calls, '只调一次发布，重复的 id 不重复发');
+        self::assertSame([
+            4 => 'not_reviewed', 6 => 'outdated', 8 => 'edited', 10 => 'proposal', 12 => 'source_unpublished',
+            14 => 'already_published', 16 => 'not_reviewed', 18 => 'not_found', 999 => 'not_found',
+        ], $result['skipped']);
+        foreach ($result['skipped'] as $reason) self::assertContains($reason, \TranslationPublish::SKIP);
+        self::assertSame([1, 0, 0, 0, 0, 0, 0], array_map(static fn (int $id): int => (int) $row($id)['status'], [2, 4, 6, 8, 10, 12, 16]), '跳过的一条都没动');
+        self::assertFalse(db()->getPdo()->inTransaction());
+
+        // 发布之后：仍是「已审」，不再是草稿，也不再算待发布；再发一次是「已发布」
+        $after = (new TranslationCoverage(db()))->page('zh-CN', ['en'], 'contents', 'all', '可发布', 1, 50)['rows'][0]['cells']['en'];
+        self::assertSame([true, false, ''], [$after['status']['reviewed'], $after['draft'], TranslationCoverage::nextAction($after)]);
+        self::assertSame([2 => 'already_published'], $service->publishReviewed('contents', [2], 'zh-CN', ['en'], 1800000001)['skipped']);
+    }
+
+    public function testBulkPublishChecksPagesWithTheirBodyAndCategories(): void
+    {
+        db()->execute("INSERT INTO channels (id, lang, translation_group_id, name, type, status) VALUES
+            (1, 'zh-CN', 1, '关于', 'page', 1), (2, 'en', 1, 'About', 'page', 0), (3, 'zh-CN', 3, '新闻', 'list', 1), (4, 'en', 3, 'News', 'list', 0)");
+        db()->execute("INSERT INTO contents (id, lang, channel_id, type, title, content, status) VALUES (1, 'zh-CN', 1, 'page', '关于', '<p>正文</p>', 1), (2, 'en', 2, 'page', 'About', '<p>Body</p>', 1)");
+        $channel = static fn (int $id): array => (array) db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'channels WHERE id = ?', [$id]);
+        $body = static fn (int $id): array => (array) db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'contents WHERE channel_id = ?', [$id]);
+        db()->insert('translation_links', ['table_name' => 'channels', 'target_id' => 2, 'source_id' => 1, 'lang' => 'en', 'state' => 'reviewed', 'created_at' => 1, 'updated_at' => 1,
+            'source_fp' => TranslationState::rowFingerprint($channel(1), 'name', 'description', $body(1)), 'target_fp' => TranslationState::rowFingerprint($channel(2), 'name', 'description', $body(2))]);
+        db()->execute("INSERT INTO product_categories (id, lang, translation_group_id, name, status) VALUES (1, 'zh-CN', 1, '泵', 1), (2, 'en', 1, 'Pumps', 0)");
+        $category = static fn (int $id): array => (array) db()->fetchOne('SELECT * FROM ' . DB_PREFIX . 'product_categories WHERE id = ?', [$id]);
+        $this->track('product_categories', $category(1), $category(2), 'reviewed', 'name', 'description');
+
+        $publisher = static function (string $kind, array $target): void {
+            db()->execute('UPDATE ' . DB_PREFIX . ($kind === 'pages' ? 'channels' : 'product_categories') . ' SET status = 1 WHERE id = ?', [(int) $target['id']]);
+        };
+        $service = new \TranslationPublish(db(), $publisher);
+
+        // 页面打开之后，有人改了英文单页的正文：发布时按此刻的内容判断，跳过
+        db()->execute("UPDATE contents SET content = '<p>Body changed</p>' WHERE id = 2");
+        self::assertSame([2 => 'edited'], $service->publishReviewed('pages', [2], 'zh-CN', ['en'], 1)['skipped']);
+        db()->execute("UPDATE contents SET content = '<p>Body</p>' WHERE id = 2");
+        // 列表栏目不属于「单页」这一类，按不存在处理
+        $result = $service->publishReviewed('pages', [2, 4], 'zh-CN', ['en'], 1);
+        self::assertSame([[2], [4 => 'not_found']], [$result['published'], $result['skipped']]);
+        self::assertSame(1, (int) $channel(2)['status']);
+
+        self::assertSame([2], $service->publishReviewed('categories', [2], 'zh-CN', ['en'], 1)['published']);
+        self::assertSame(1, (int) $category(2)['status']);
+        $this->expectException(\InvalidArgumentException::class);
+        $service->publishReviewed('nope', [1], 'zh-CN', ['en'], 1);
     }
 }
