@@ -10008,6 +10008,7 @@ return [
     'pimp_err_job_busy' => 'Dieser Auftrag läuft bereits auf einer anderen Seite',
     'pimp_err_job_not_undoable' => 'Dieser Auftrag kann nicht rückgängig gemacht werden',
     'pimp_err_post_required' => 'Ungültige Anfragemethode',
+    'pimp_err_no_permission' => 'Dieses Konto hat keine Berechtigung für diesen Schritt',
     'pimp_err_unknown_handler' => 'Unbekannte Aktion',
     'pimp_issue_category_incomplete' => 'Der Kategorie fehlen Schlüssel oder Name',
     'pimp_issue_category_duplicate_key' => 'Der Kategorieschlüssel {key} ist doppelt vorhanden',

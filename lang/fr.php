@@ -10008,6 +10008,7 @@ return [
     'pimp_err_job_busy' => 'Cette tâche est en cours sur une autre page',
     'pimp_err_job_not_undoable' => 'Cette tâche ne peut pas être annulée',
     'pimp_err_post_required' => 'Méthode de requête incorrecte',
+    'pimp_err_no_permission' => 'Ce compte n\'a pas l\'autorisation pour cette étape',
     'pimp_err_unknown_handler' => 'Action inconnue',
     'pimp_issue_category_incomplete' => 'La clé ou le nom de la catégorie manque',
     'pimp_issue_category_duplicate_key' => 'La clé de catégorie {key} est en double',

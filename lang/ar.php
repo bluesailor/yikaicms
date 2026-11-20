@@ -10008,6 +10008,7 @@ return [
     'pimp_err_job_busy' => 'هذه المهمة قيد التشغيل في صفحة أخرى',
     'pimp_err_job_not_undoable' => 'لا يمكن التراجع عن هذه المهمة',
     'pimp_err_post_required' => 'طريقة الطلب غير صحيحة',
+    'pimp_err_no_permission' => 'لا يملك هذا الحساب صلاحية تنفيذ هذه الخطوة',
     'pimp_err_unknown_handler' => 'إجراء غير معروف',
     'pimp_issue_category_incomplete' => 'الفئة تفتقد المفتاح أو الاسم',
     'pimp_issue_category_duplicate_key' => 'مفتاح الفئة {key} مكرر',

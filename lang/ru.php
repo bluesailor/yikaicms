@@ -10008,6 +10008,7 @@ return [
     'pimp_err_job_busy' => 'Это задание уже выполняется на другой странице',
     'pimp_err_job_not_undoable' => 'Это задание нельзя отменить',
     'pimp_err_post_required' => 'Неверный метод запроса',
+    'pimp_err_no_permission' => 'У этой учётной записи нет прав на это действие',
     'pimp_err_unknown_handler' => 'Неизвестное действие',
     'pimp_issue_category_incomplete' => 'У категории не указан ключ или название',
     'pimp_issue_category_duplicate_key' => 'Ключ категории {key} повторяется',

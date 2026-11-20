@@ -10008,6 +10008,7 @@ return [
     'pimp_err_job_busy' => 'Tác vụ này đang chạy ở trang khác',
     'pimp_err_job_not_undoable' => 'Không thể hoàn tác tác vụ này',
     'pimp_err_post_required' => 'Phương thức yêu cầu không đúng',
+    'pimp_err_no_permission' => 'Tài khoản này không có quyền thực hiện bước này',
     'pimp_err_unknown_handler' => 'Thao tác không xác định',
     'pimp_issue_category_incomplete' => 'Danh mục thiếu khóa hoặc tên',
     'pimp_issue_category_duplicate_key' => 'Khóa danh mục {key} bị trùng',

@@ -25,6 +25,9 @@ require_once ROOT_PATH . '/includes/product-import/ProductImportPackages.php';
 require_once ROOT_PATH . '/includes/product-import/ProductImportExporter.php';
 
 
+require_once ROOT_PATH . '/includes/product-import/ProductImportAccess.php';
+// 新建分类 / 往媒体库加图的权限在建任务与分批执行时另查（接口本身的权限 page.php 已查过）
+$pimpHas = static fn (string $key): bool => hasPermission($key);
 $pimpPackages = new ProductImportPackages(ROOT_PATH . '/storage/product-import');
 $pimpJobs = new ProductImportJobs($pimpPackages->jobsDir());
 
@@ -62,7 +65,7 @@ $pimpPublicPlan = static function (array $plan): array {
 };
 
 $pimpJobView = static function (array $job): array {
-    unset($job['package'], $job['images'], $job['updated'], $job['category_ids']);
+    unset($job['package'], $job['images'], $job['updated'], $job['category_ids'], $job['needs']);
     $job['created'] = ['categories' => count($job['created']['categories']), 'products' => count($job['created']['products']),
         'media' => count($job['created']['media'])];
     return $job;
@@ -166,7 +169,13 @@ try {
                     $decisions[(int) $index] = (string) $choice;
                 }
             }
+            // 这份计划还要新建分类 / 往媒体库加图时，另查这两项权限；记在任务上，分批执行时再查一次
+            $needs = ProductImportAccess::planNeeds($plan, $decisions);
+            if (ProductImportAccess::missing($needs, $pimpHas) !== []) {
+                $pimpReply([], 'no_permission');
+            }
             $job = ProductImportRunner::newJob($plan, $decisions, $record['dir'], $lang, (int) ($_SESSION['admin_id'] ?? 0), (string) $record['name']);
+            $job['needs'] = $needs;
             $pimpJobs->save($job);
             $pimpReply(['job' => $pimpJobView($job)]);
 
@@ -195,6 +204,10 @@ try {
             }
             if (!is_dir((string) $job['package'])) {
                 $pimpReply([], 'package_gone');
+            }
+            // 升级前建的任务没有记 needs：按两项都需要处理
+            if (ProductImportAccess::missing((array) ($job['needs'] ?? ['create_category', 'create_media']), $pimpHas) !== []) {
+                $pimpReply([], 'no_permission');
             }
             if ($handler === 'job_retry') {
                 // 没有失败的行：原样返回，不再空跑一批

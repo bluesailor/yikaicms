@@ -10008,6 +10008,7 @@ return [
     'pimp_err_job_busy' => 'Questo processo è in esecuzione in un’altra pagina',
     'pimp_err_job_not_undoable' => 'Questo processo non può essere annullato',
     'pimp_err_post_required' => 'Metodo di richiesta non corretto',
+    'pimp_err_no_permission' => 'Questo account non ha i permessi per questo passaggio',
     'pimp_err_unknown_handler' => 'Azione sconosciuta',
     'pimp_issue_category_incomplete' => 'Alla categoria manca la chiave o il nome',
     'pimp_issue_category_duplicate_key' => 'La chiave della categoria {key} è duplicata',

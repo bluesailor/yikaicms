@@ -10008,6 +10008,7 @@ return [
     'pimp_err_job_busy' => '이 작업은 다른 페이지에서 실행 중입니다',
     'pimp_err_job_not_undoable' => '이 작업은 취소할 수 없습니다',
     'pimp_err_post_required' => '잘못된 요청 방식입니다',
+    'pimp_err_no_permission' => '이 계정에는 이 작업을 수행할 권한이 없습니다',
     'pimp_err_unknown_handler' => '알 수 없는 작업입니다',
     'pimp_issue_category_incomplete' => '분류에 키 또는 이름이 없습니다',
     'pimp_issue_category_duplicate_key' => '분류 키 {key}가 중복됩니다',

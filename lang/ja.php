@@ -10206,6 +10206,7 @@ voltage|電圧|220V',
     'pimp_err_job_busy' => 'このジョブは別のページで実行中です',
     'pimp_err_job_not_undoable' => 'このジョブは取り消せません',
     'pimp_err_post_required' => 'リクエストの方法が正しくありません',
+    'pimp_err_no_permission' => 'このアカウントにはこの操作を行う権限がありません',
     'pimp_err_unknown_handler' => '不明な操作です',
     
     'pimp_issue_category_incomplete' => '分類のキーまたは名称がありません',

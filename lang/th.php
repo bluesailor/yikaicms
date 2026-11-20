@@ -10008,6 +10008,7 @@ return [
     'pimp_err_job_busy' => 'งานนี้กำลังทำงานอยู่ในหน้าอื่น',
     'pimp_err_job_not_undoable' => 'ยกเลิกงานนี้ไม่ได้',
     'pimp_err_post_required' => 'วิธีส่งคำขอไม่ถูกต้อง',
+    'pimp_err_no_permission' => 'บัญชีนี้ไม่มีสิทธิ์ทำขั้นตอนนี้',
     'pimp_err_unknown_handler' => 'ไม่รู้จักการดำเนินการนี้',
     'pimp_issue_category_incomplete' => 'หมวดหมู่ไม่มีคีย์หรือชื่อ',
     'pimp_issue_category_duplicate_key' => 'คีย์หมวดหมู่ {key} ซ้ำกัน',

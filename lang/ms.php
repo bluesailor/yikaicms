@@ -10008,6 +10008,7 @@ return [
     'pimp_err_job_busy' => 'Tugas ini sedang berjalan pada halaman lain',
     'pimp_err_job_not_undoable' => 'Tugas ini tidak boleh dibuat asal',
     'pimp_err_post_required' => 'Kaedah permintaan tidak betul',
+    'pimp_err_no_permission' => 'Akaun ini tiada kebenaran untuk langkah ini',
     'pimp_err_unknown_handler' => 'Tindakan tidak diketahui',
     'pimp_issue_category_incomplete' => 'Kategori tiada kunci atau nama',
     'pimp_issue_category_duplicate_key' => 'Kunci kategori {key} digunakan lebih daripada sekali',

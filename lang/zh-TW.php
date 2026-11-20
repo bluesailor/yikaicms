@@ -10007,6 +10007,7 @@ return [
     'pimp_err_job_busy' => '這個任務正在別的頁面裡執行',
     'pimp_err_job_not_undoable' => '這個任務不能撤銷',
     'pimp_err_post_required' => '請求方式不對',
+    'pimp_err_no_permission' => '當前帳號沒有執行這一步的權限',
     'pimp_err_unknown_handler' => '未知操作',
     'pimp_issue_category_incomplete' => '分類缺少鍵或名稱',
     'pimp_issue_category_duplicate_key' => '分類鍵 {key} 重複',

@@ -126,6 +126,11 @@ test('restricted editors reach the work center and only product editors see batc
         await expect(editor.getByTestId('product-import-entry')).toHaveCount(0);
         await editor.goto('/admin/product_import.php');
         await expect(editor.locator('[data-pimp-wizard]')).toHaveCount(0);
+        // 接口也一样：任务列表、导出、撤销都拿不到数据
+        for (const handler of ['jobs', 'pkg_export', 'pkg_incoming']) {
+          const body = await (await editor.request.get(`/admin/product_import.php?handler=${handler}`)).text();
+          expect([name, handler, /"code":0/.test(body), body.includes('"jobs"')]).toEqual([name, handler, false, false]);
+        }
         // 任务页本身仍要 edit_product：没有权限的得到「无权限」页（不是任务页）
         await editor.goto('/admin/translation_tasks.php');
         const taskHeading = editor.locator('h1').filter({ hasText: /批量翻译任务|Batch translation tasks/ });

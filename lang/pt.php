@@ -10008,6 +10008,7 @@ return [
     'pimp_err_job_busy' => 'Esta tarefa está sendo executada em outra página',
     'pimp_err_job_not_undoable' => 'Esta tarefa não pode ser desfeita',
     'pimp_err_post_required' => 'Método de solicitação inválido',
+    'pimp_err_no_permission' => 'Esta conta não tem permissão para este passo',
     'pimp_err_unknown_handler' => 'Ação desconhecida',
     'pimp_issue_category_incomplete' => 'Falta a chave ou o nome da categoria',
     'pimp_issue_category_duplicate_key' => 'A chave da categoria {key} está duplicada',

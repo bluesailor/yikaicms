@@ -10008,6 +10008,7 @@ return [
     'pimp_err_job_busy' => 'Tugas ini sedang berjalan di halaman lain',
     'pimp_err_job_not_undoable' => 'Tugas ini tidak dapat dibatalkan',
     'pimp_err_post_required' => 'Metode permintaan salah',
+    'pimp_err_no_permission' => 'Akun ini tidak memiliki izin untuk langkah ini',
     'pimp_err_unknown_handler' => 'Tindakan tidak dikenal',
     'pimp_issue_category_incomplete' => 'Kunci atau nama kategori tidak ada',
     'pimp_issue_category_duplicate_key' => 'Kunci kategori {key} duplikat',

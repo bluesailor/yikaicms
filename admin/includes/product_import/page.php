@@ -13,6 +13,19 @@ if (!defined('ROOT_PATH')) {
 
 $handler = $_GET['handler'] ?? '';
 
+// 每个接口先按它所属的动作查权限（导入 / 导出 / 撤销，见 ProductImportAccess）。页面入口目前只放超级管理员，
+// 这一层对超级管理员恒通过；入口以后放开时，各动作各自把关。不认识的接口一律拒绝。
+require_once ROOT_PATH . '/includes/product-import/ProductImportAccess.php';
+$pimpHas = static fn (string $key): bool => hasPermission($key);
+if (!is_string($handler) || ($handler !== '' && !ProductImportAccess::handlerAllowed($handler, $pimpHas))
+    || ($handler === '' && !ProductImportAccess::can('import', $pimpHas))) {
+    if ($handler === '') permissionDenied();
+    http_response_code(403);
+    header('Content-Type: application/json; charset=utf-8');
+    echo json_encode(['code' => 403, 'msg' => __('pimp_err_no_permission'), 'error' => 'no_permission'], JSON_UNESCAPED_UNICODE);
+    return;
+}
+
 // 2.0 导入包向导的接口
 if (preg_match('/^(pkg_|job_|jobs$)/', (string) $handler)) {
     require __DIR__ . '/package_handler.php';

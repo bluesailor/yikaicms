@@ -10133,6 +10133,7 @@ voltage|电压|220V',
     'pimp_err_job_busy' => '这个任务正在别的页面里运行',
     'pimp_err_job_not_undoable' => '这个任务不能撤销',
     'pimp_err_post_required' => '请求方式不对',
+    'pimp_err_no_permission' => '当前账号没有执行这一步的权限',
     'pimp_err_unknown_handler' => '未知操作',
     
     // 按行校验与执行结果

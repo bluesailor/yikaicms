@@ -7538,6 +7538,7 @@
     "lang/fr.php|pimp_err_job_busy": "f9d0d0645402",
     "lang/fr.php|pimp_err_job_gone": "606480f7a63d",
     "lang/fr.php|pimp_err_job_not_undoable": "cca7968eaa26",
+    "lang/fr.php|pimp_err_no_permission": "de257b2e3faf",
     "lang/fr.php|pimp_err_package_bad_format": "358fa2659a2c",
     "lang/fr.php|pimp_err_package_bad_json": "02532b12aeec",
     "lang/fr.php|pimp_err_package_bad_type": "b33ae801daf5",

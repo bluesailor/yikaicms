@@ -10064,6 +10064,7 @@ e.g. steel|Stainless steel',
     'pimp_err_job_busy' => 'This job is running in another page',
     'pimp_err_job_not_undoable' => 'This job cannot be undone',
     'pimp_err_post_required' => 'Wrong request method',
+    'pimp_err_no_permission' => 'This account does not have permission for this step',
     'pimp_err_unknown_handler' => 'Unknown action',
     
     'pimp_issue_category_incomplete' => 'Category is missing its key or name',

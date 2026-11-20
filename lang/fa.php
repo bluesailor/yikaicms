@@ -10008,6 +10008,7 @@ return [
     'pimp_err_job_busy' => 'این کار در صفحه دیگری در حال اجراست',
     'pimp_err_job_not_undoable' => 'نمی‌توان این کار را برگرداند',
     'pimp_err_post_required' => 'روش درخواست نادرست است',
+    'pimp_err_no_permission' => 'این حساب اجازه انجام این مرحله را ندارد',
     'pimp_err_unknown_handler' => 'عملیات ناشناخته',
     'pimp_issue_category_incomplete' => 'کلید یا نام دسته‌بندی وارد نشده است',
     'pimp_issue_category_duplicate_key' => 'کلید دسته‌بندی {key} تکراری است',

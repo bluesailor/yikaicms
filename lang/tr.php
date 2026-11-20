@@ -10008,6 +10008,7 @@ return [
     'pimp_err_job_busy' => 'Bu iş başka bir sayfada çalışıyor',
     'pimp_err_job_not_undoable' => 'Bu iş geri alınamaz',
     'pimp_err_post_required' => 'Hatalı istek yöntemi',
+    'pimp_err_no_permission' => 'Bu hesabın bu adım için izni yok',
     'pimp_err_unknown_handler' => 'Bilinmeyen işlem',
     'pimp_issue_category_incomplete' => 'Kategorinin anahtarı veya adı eksik',
     'pimp_issue_category_duplicate_key' => '{key} kategori anahtarı yineleniyor',
