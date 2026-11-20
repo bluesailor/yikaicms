@@ -1,6 +1,6 @@
 <?php
 /**
- * 产品导入 2.0 接口（导入包向导）。由 admin.php 按 ?handler=pkg_* / job_* 引入，plugin_page.php 已做登录与权限。
+ * 产品导入 2.0 接口（导入包向导）。由 admin.php 按 ?handler=pkg_* / job_* 引入，product_import.php 已做登录与权限。
  *
  *   pkg_upload        POST  上传 zip（或单张 products.csv/xlsx/json）→ 包
  *   pkg_incoming      GET   incoming/ 里用 FTP 传上来的文件夹与 zip
@@ -16,15 +16,14 @@
 
 if (!defined('ROOT_PATH')) exit;
 
-require_once __DIR__ . '/lib/ProductImportPackage.php';
-require_once __DIR__ . '/lib/ProductImportPlanner.php';
-require_once __DIR__ . '/lib/ProductImportSiteDb.php';
-require_once __DIR__ . '/lib/ProductImportJobs.php';
-require_once __DIR__ . '/lib/ProductImportRunner.php';
-require_once __DIR__ . '/lib/ProductImportPackages.php';
-require_once __DIR__ . '/lib/ProductImportExporter.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportPackage.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportPlanner.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportSiteDb.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportJobs.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportRunner.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportPackages.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportExporter.php';
 
-loadPluginLang('product-import');
 
 $pimpPackages = new ProductImportPackages(ROOT_PATH . '/storage/product-import');
 $pimpJobs = new ProductImportJobs($pimpPackages->jobsDir());

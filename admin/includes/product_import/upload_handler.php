@@ -1,7 +1,7 @@
 <?php
 /**
  * 产品导入 - 文件上传与解析
- * 由 admin.php 根据 ?handler=upload 引入（已通过 plugin_page.php 完成 auth）
+ * 由 admin.php 根据 ?handler=upload 引入（已通过 product_import.php 完成 auth）
  */
 
 if (!defined('ROOT_PATH')) exit;
@@ -11,7 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 
-verifyCsrf(); // 写端点必须 CSRF（plugin_page.php 只做登录与权限）
+verifyCsrf(); // 写端点必须 CSRF（product_import.php 只做登录与权限）
 
 if (empty($_FILES['file'])) {
     echo json_encode(['code' => 1, 'msg' => '请选择文件'], JSON_UNESCAPED_UNICODE);
@@ -95,7 +95,7 @@ if ($ext === 'csv') {
     }
     fclose($fh);
 } else {
-    require_once __DIR__ . '/XlsxReader.php';
+    require_once ROOT_PATH . '/includes/product-import/ProductImportXlsxReader.php';
     $parsed = ProductImportXlsxReader::read($destPath);
     $headers = $parsed['headers'];
     $rows = $parsed['rows'];

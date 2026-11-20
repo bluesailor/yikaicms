@@ -604,7 +604,7 @@ final class SiteHealth
     /** @return array<string,mixed> */
     private static function checkExtensions(): array
     {
-        // simplexml 已从必需项移出：核心零使用，只有 product-import 插件读 xlsx 用得到，
+        // simplexml 已从必需项移出：只有产品导入读 xlsx 用得到（2.3.0 起在主程序里），
         // 缺了却报 CRITICAL 是误报。清单见 RuntimeRequirements。
         $missing = RuntimeRequirements::missingRequired();
         return self::result('required_extensions', $missing === [] ? self::GOOD : self::CRITICAL, 'environment',

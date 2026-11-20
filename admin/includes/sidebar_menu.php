@@ -70,6 +70,15 @@ return [
                 'icon'        => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>',
                 'active_keys' => ['product', 'product_setting', 'translation_tasks'],
             ],
+            // 产品导入 / 导出（2.3.0 并入主程序；此前由插件 product-import 注册同一个 key）
+            [
+                'key'      => 'product_import',
+                'perm'     => 'edit_product',
+                'label'    => __('pimp_menu'),
+                'url'      => '/admin/product_import.php',
+                'icon'     => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>',
+                'priority' => 95,
+            ],
             // 翻译工作中心（2.3.0）：有产品权限的在产品组里看到；只有文章 / 单页权限的在文章组里看到（见下）
             [
                 'key'      => 'translation_status',

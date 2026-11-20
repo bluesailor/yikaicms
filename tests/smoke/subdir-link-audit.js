@@ -130,7 +130,7 @@ async function scanPage(page, label, findings) {
   if (bell) { await bell.click().catch(() => {}); await page.waitForTimeout(600); await scanPage(page, '/admin/index.php#bell', findings); }
   // 编辑器与编辑页
   for (const u of ['/admin/blox_editor.php?id=2', '/admin/blox_editor.php?home=1', '/admin/product_edit.php?id=1', '/admin/article_edit.php', '/admin/page_edit.php', '/admin/content_edit.php', '/admin/site_setup.php', '/admin/site_templates.php', '/admin/setting_home.php', '/admin/form_design.php']) statuses[u] = await visit(u);
-  for (const slug of ['announcement', 'cookie-consent', 'dologin', 'menu-sort', 'product-import', 'search-replace', 'seo', 'shop', 'stats']) {
+  for (const slug of ['announcement', 'cookie-consent', 'dologin', 'menu-sort', 'search-replace', 'seo', 'shop', 'stats']) {
     const u = '/admin/plugin_page.php?plugin=' + slug;
     statuses[u] = await visit(u);
   }

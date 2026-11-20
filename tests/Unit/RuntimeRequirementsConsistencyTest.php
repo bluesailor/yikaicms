@@ -72,7 +72,7 @@ final class RuntimeRequirementsConsistencyTest extends TestCase
         );
     }
 
-    /** 核心真的用到才算必需：simplexml 只有 product-import 插件用，不能进必需项 */
+    /** 少了它站点照常运行的不算必需：simplexml 只有产品导入读 xlsx 用（2.3.0 起在主程序里），是推荐项 */
     public function testSimplexmlIsNotACoreRequirement(): void
     {
         self::assertNotContains('simplexml', RuntimeRequirements::requiredNames());

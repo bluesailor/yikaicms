@@ -1,7 +1,7 @@
 <?php
 /**
  * 产品导入 - 分批写入
- * 由 admin.php 根据 ?handler=import 引入（已通过 plugin_page.php 完成 auth）
+ * 由 admin.php 根据 ?handler=import 引入（已通过 product_import.php 完成 auth）
  *
  * Request JSON:
  *   file_id, mapping, strategy("skip"|"update"), lang, batch, batch_size
@@ -96,7 +96,7 @@ if ($ext === 'csv') {
         fclose($fh);
     }
 } else {
-    require_once __DIR__ . '/XlsxReader.php';
+    require_once ROOT_PATH . '/includes/product-import/ProductImportXlsxReader.php';
     $parsed = ProductImportXlsxReader::read($csvFile);
     if ($parsed['errors'] !== []) {
         echo json_encode(['code' => 1, 'msg' => implode('；', $parsed['errors'])], JSON_UNESCAPED_UNICODE);

@@ -542,6 +542,9 @@
         "admin/product_edit.php": {
             "action_candidates": []
         },
+        "admin/product_import.php": {
+            "action_candidates": []
+        },
         "admin/product_native_preview.php": {
             "action_candidates": []
         },

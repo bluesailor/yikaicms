@@ -8,13 +8,13 @@ declare(strict_types=1);
 
 use Yikai\Tests\TestCase;
 
-require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportPackage.php';
-require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportPlanner.php';
-require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportSiteDb.php';
-require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportJobs.php';
-require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportRunner.php';
-require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportPackages.php';
-require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportExporter.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportPackage.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportPlanner.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportSiteDb.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportJobs.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportRunner.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportPackages.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportExporter.php';
 
 final class ProductImportRunnerTest extends TestCase
 {

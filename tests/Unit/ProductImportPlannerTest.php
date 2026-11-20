@@ -8,8 +8,8 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 
-require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportPackage.php';
-require_once ROOT_PATH . '/plugins/product-import/lib/ProductImportPlanner.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportPackage.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportPlanner.php';
 
 final class ProductImportPlannerTest extends TestCase
 {

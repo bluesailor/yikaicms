@@ -11,7 +11,7 @@ test('an import package is checked, imported, synced back and undone @ci', async
   test.skip(testInfo.project.name !== 'desktop-1440', 'one desktop run is enough');
   const zipPath = fixture('package');
 
-  await page.goto('/admin/plugin_page.php?plugin=product-import');
+  await page.goto('/admin/product_import.php');
   const wizard = page.locator('[data-pimp-wizard]');
   await expect(wizard).toBeVisible();
   await page.locator('[data-pimp-file]').setInputFiles(zipPath);
@@ -71,4 +71,32 @@ test('an import package is checked, imported, synced back and undone @ci', async
   await wizard.locator('li', {hasText: 'e2e-washer'}).getByRole('button').click();
   await expect(preview.locator('[data-pimp-summary="create"] .text-2xl')).toHaveText('3');
   await expect(page.locator('[data-pimp-error]')).toBeHidden();
+});
+
+// 2.3.0：产品导入并入主程序。从 2.2.x 升级上来的站点旧插件目录可能还在、数据库里还标着启用——
+// 不能出现第二个「导入产品」菜单，旧地址转到新页面，插件列表里不再列出它
+test('an upgraded site with the old import plugin still has one entry and old links keep working @ci', async ({page}, testInfo) => {
+  test.skip(testInfo.project.name !== 'desktop-1440', 'one desktop run is enough');
+  expect(fixture('legacy')).toBe('ok');
+
+  await page.goto('/admin/index.php');
+  const html = await page.content();
+  expect(html).not.toContain('LEGACY-IMPORT-MENU');
+  expect(html).not.toContain('plugin_page.php?plugin=product-import');
+  await expect(page.locator('a[href$="/admin/product_import.php"]').first()).toBeAttached();
+
+  // 旧书签：转到新页面，不执行旧插件的页面
+  await page.goto('/admin/plugin_page.php?plugin=product-import&tab=table');
+  await expect(page).toHaveURL(/\/admin\/product_import\.php\?tab=table$/);
+  await expect(page.locator('[data-pimp-tab="table"]')).toHaveAttribute('aria-selected', 'true');
+  expect(await page.content()).not.toContain('LEGACY-IMPORT-PAGE');
+
+  // 产品列表页有入口
+  await page.goto('/admin/product.php');
+  await page.getByTestId('product-import-entry').click();
+  await expect(page.locator('[data-pimp-wizard]')).toBeVisible();
+
+  // 插件列表不再列出它
+  await page.goto('/admin/plugin.php');
+  expect(await page.content()).not.toContain('plugin=product-import');
 });

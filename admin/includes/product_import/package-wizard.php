@@ -280,7 +280,7 @@ $pimpConfig = [
             <button type="button" x-show="job && job.status === 'done' && job.counts.failed > 0" class="border px-4 py-2 rounded text-gray-700"
                     :disabled="running" @click="retry()" x-text="t('pimp_retry_failed')"></button>
             <a x-show="job && (job.counts.failed > 0 || job.counts.error > 0)" class="border px-4 py-2 rounded text-gray-700"
-               :href="'?plugin=product-import&handler=job_errors&job=' + (job ? job.id : '')" x-text="t('pimp_download_errors')"></a>
+               :href="'?handler=job_errors&job=' + (job ? job.id : '')" x-text="t('pimp_download_errors')"></a>
             <a x-show="job && job.status === 'done'" href="/admin/product.php" class="bg-primary text-white px-5 py-2 rounded" x-text="t('pimp_view_products')"></a>
             <button type="button" x-show="job && job.status === 'done'" class="border border-red-300 text-red-600 px-4 py-2 rounded" data-pimp-undo
                     :disabled="running" @click="undo()" x-text="t('pimp_undo')"></button>
@@ -354,7 +354,7 @@ function pimpWizard(config) {
             }
             let data;
             try {
-                const resp = await fetch('?plugin=product-import&handler=' + handler, opts);
+                const resp = await fetch('?handler=' + handler, opts);
                 data = await resp.json();
             } catch (e) {
                 throw new Error(this.t('pimp_network_error', { msg: e.message }));
@@ -406,7 +406,7 @@ function pimpWizard(config) {
             this.step = 'preview';
         },
         thumb(ref) {
-            return '?plugin=product-import&handler=pkg_image&package=' + encodeURIComponent(this.pkg ? this.pkg.id : '') + '&ref=' + encodeURIComponent(ref);
+            return '?handler=pkg_image&package=' + encodeURIComponent(this.pkg ? this.pkg.id : '') + '&ref=' + encodeURIComponent(ref);
         },
         summaryCards() {
             const s = this.plan ? this.plan.summary : {};
@@ -449,7 +449,7 @@ function pimpWizard(config) {
             return out;
         },
         exportUrl() {
-            return '?plugin=product-import&handler=pkg_export&lang=' + encodeURIComponent(this.lang) + '&categories=' + this.exportIds.join(',');
+            return '?handler=pkg_export&lang=' + encodeURIComponent(this.lang) + '&categories=' + this.exportIds.join(',');
         },
         importCount() {
             return this.plan ? this.plan.products.filter(p => p.action !== 'error' && this.decisions[p.index] !== 'skip').length : 0;

@@ -1,7 +1,7 @@
 <?php
 /**
- * 产品导入插件 - 管理页面
- * 由 /admin/plugin_page.php?plugin=product-import 加载
+ * 产品导入 - 管理页面（2.3.0 起并入主程序，此前是插件 product-import）
+ * 由 /admin/product_import.php 加载（登录与产品编辑权限在那里检查）
  *
  * ?handler=upload  文件上传 + 解析（返回 JSON）
  * ?handler=import  分批写入（返回 JSON）
@@ -77,9 +77,8 @@ $productFields = [
 
 $fieldJson = json_encode($productFields, JSON_UNESCAPED_UNICODE);
 
-loadPluginLang('product-import');
 $GLOBALS['pageTitle'] = __('pimp_page_title');
-$GLOBALS['currentMenu'] = 'product';
+$GLOBALS['currentMenu'] = 'product_import';
 
 require_once ROOT_PATH . '/admin/includes/header.php';
 $pimpTab = ($_GET['tab'] ?? '') === 'table' ? 'table' : 'package';
@@ -98,7 +97,7 @@ $pimpTab = ($_GET['tab'] ?? '') === 'table' ? 'table' : 'package';
 </div>
 
 <div x-show="tab === 'package'">
-<?php require __DIR__ . '/views/package-wizard.php'; ?>
+<?php require __DIR__ . '/package-wizard.php'; ?>
 </div>
 
 <div x-show="tab === 'table'" x-cloak>
@@ -129,7 +128,7 @@ $pimpTab = ($_GET['tab'] ?? '') === 'table' ? 'table' : 'package';
             <button type="button" @click="helpOpen = !helpOpen" class="text-sm font-medium text-blue-700 inline-flex items-center gap-1">
                 <i class="ti" :class="helpOpen ? 'ti-chevron-down' : 'ti-chevron-right'"></i>使用说明与字段格式
             </button>
-            <a href="?plugin=product-import&handler=sample"
+            <a href="?handler=sample"
                class="text-sm text-white bg-blue-600 hover:bg-blue-500 rounded px-3 py-1.5 inline-flex items-center gap-1">
                 <i class="ti ti-file-download"></i>下载样例表格（CSV，Excel 可直接编辑）
             </a>
@@ -460,7 +459,7 @@ function productImport() {
             formData.append('file', this.uploadFile);
 
             try {
-                const resp = await fetch('?plugin=product-import&handler=upload', {
+                const resp = await fetch('?handler=upload', {
                     method: 'POST',
                     body: formData,
                     headers: { 'X-Requested-With': 'XMLHttpRequest', 'X-CSRF-TOKEN': this.csrf }
@@ -557,7 +556,7 @@ function productImport() {
 
             while (true) {
                 try {
-                    const resp = await fetch('?plugin=product-import&handler=import', {
+                    const resp = await fetch('?handler=import', {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
