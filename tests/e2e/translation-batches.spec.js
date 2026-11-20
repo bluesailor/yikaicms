@@ -104,7 +104,10 @@ test('batch translation turns selected products into draft translations @ci', as
 
     const rows = page.locator('#tbtRows tr');
     await expect(rows).toHaveCount(2);
-    await page.locator('#tbtRun').click();
+    // 2.3.0 CORE-01：建批后已在后台开跑（立即触发），本页不点「开始」也会自己刷新到完成；
+    // 还没跑完时点「开始」接着跑也可以，两边靠租约不重复处理
+    const run = page.locator('#tbtRun');
+    if (await run.isEnabled()) await run.click({ timeout: 3000 }).catch(() => {});
     await expect(page.locator('#tbtRows')).not.toContainText(/等待|翻译中|Waiting|Translating/, { timeout: 60000 });
     await expect(rows.filter({ hasText: /已存为草稿|Saved as draft/ })).toHaveCount(2);
     await expect(page.locator('#tbtRun')).toBeDisabled();
@@ -143,7 +146,7 @@ test('outdated translations are flagged and edited ones are reviewed field by fi
     const created = await (await page.request.post('/admin/translation_tasks.php', { multipart: { action: 'create', 'ids[]': copy, 'langs[]': 'en', _token: await csrf(page) } })).json();
     expect(created.code).toBe(0);
     await page.goto(`/admin/translation_tasks.php?id=${created.data.id}`);
-    await page.locator('#tbtRun').click();
+    if (await page.locator('#tbtRun').isEnabled()) await page.locator('#tbtRun').click({ timeout: 3000 }).catch(() => {});   // 多半已由后台跑完
     await expect(page.locator('#tbtRows')).toContainText(/已存为草稿|Saved as draft/, { timeout: 60000 });
     const target = new URL(await page.locator('#tbtRows a', { hasText: /打开译文|Open translation/ }).getAttribute('href'), page.url()).searchParams.get('id');
 
@@ -160,7 +163,7 @@ test('outdated translations are flagged and edited ones are reviewed field by fi
     await page.locator(`tr[data-source="${copy}"] input[type=checkbox]`).check();
     await page.locator('#tssUpdate').click();
     await page.waitForURL(/translation_tasks\.php\?id=\d+/);
-    await page.locator('#tbtRun').click();
+    if (await page.locator('#tbtRun').isEnabled()) await page.locator('#tbtRun').click({ timeout: 3000 }).catch(() => {});   // 多半已由后台跑完
     await expect(page.locator('#tbtRows')).toContainText(/已存为待审|Saved for review/, { timeout: 60000 });
 
     // 只采用标题；其余字段保持

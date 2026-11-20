@@ -34,11 +34,14 @@ final class ProductController extends ListController
         $productCategory = adminDraftPreviewRow('product_categories');
         if ($productCategory) $productCategoryId = (int) $productCategory['id'];
         if (!empty($GLOBALS['yk_custom_product_category_id'])) {
-            $productCategory = getProductCategory((int) $GLOBALS['yk_custom_product_category_id']);
+            $productCategory = getProductCategory((int) $GLOBALS['yk_custom_product_category_id']);   // 只取已启用的
             if ($productCategory) $productCategoryId = (int) $productCategory['id'];
         }
+        // 未启用的分类对访客不存在（2.3.0）：此前按别名（?cat= / 分类页地址）仍能打开停用分类的页面，
+        // 与导航、分类树、登记网址（都只取 status = 1）以及后台显示的「草稿」不一致。后台预览不受影响。
+        $enabled = static fn (?array $category): ?array => $category !== null && (int) ($category['status'] ?? 1) === 1 ? $category : null;
         if ($catSlug !== '' && $productCategory === null) {
-            $productCategory = getProductCategoryBySlug($catSlug);
+            $productCategory = $enabled(getProductCategoryBySlug($catSlug));
             if ($productCategory) {
                 $productCategoryId = (int) $productCategory['id'];
                 redirectToRegisteredUrl('category', $productCategoryId);   // 旧地址 301 到登记网址

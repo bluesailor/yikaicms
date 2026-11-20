@@ -67,10 +67,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($service->batch($batchId) === null) error(__('tbt_none'));
     $counts = null;
+    $progress = true;
     if ($action === 'step') {
         // 一项可能要调好几次模型；先放开会话锁，别让同一账号的其它后台页面跟着卡住
         session_write_close();
+        // 这一轮有没有动过任何一项：没动（都在失败后的等待期，或被后台执行器领着）时前端放慢轮询
+        $mark = static fn (): string => json_encode(array_map(static fn (array $i): array => [$i['status'], $i['attempts']], $service->items($batchId)), JSON_THROW_ON_ERROR);
+        $before = $mark();
         $counts = $service->step($batchId, 20);
+        $progress = $before !== $mark();
+    } elseif ($action === 'status') {
+        // 只读：后台执行器在跑时页面定时刷新进度，不领项、不调模型
     } elseif ($action === 'retry') {
         if ($service->retry($batchId, $now) === 0) error(__('tbt_nothing_to_retry'));
     } elseif ($action === 'pause') {
@@ -84,6 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     success([
         'status' => (string) ($service->batch($batchId)['status'] ?? ''),
+        'progress' => $progress,
         'counts' => $counts ?? $service->counts($batchId),
         'items' => array_map($itemView, $service->items($batchId)),
     ], '');
@@ -226,7 +234,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         document.getElementById('tbtSummary').textContent = (tbtLoop ? tbtText.running + ' · ' : (tbtLabels[tbtState.status] || tbtState.status) + ' · ') + parts.join(' · ');
         document.getElementById('tbtBar').style.width = (total ? Math.round((total - open) * 100 / total) : 100) + '%';
         document.getElementById('tbtRun').disabled = tbtLoop || open === 0 || tbtState.status === 'cancelled';
-        document.getElementById('tbtPause').disabled = !tbtLoop;
+        // 后台执行器在跑时页面没在循环，也要能暂停
+        document.getElementById('tbtPause').disabled = !tbtLoop && tbtState.status !== 'running';
     }
     async function tbtPost(action) {
         const fd = new FormData();
@@ -247,6 +256,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             while (tbtLoop) {
                 const state = await tbtPost('step');
                 if (state.status !== 'running' || !state.items.some((item) => tbtOpen.includes(item.status) && item.status !== 'generating')) break;
+                // 这一轮什么都没动（失败后的等待期，或后台执行器正领着）：等 5 秒再问，不连着发请求
+                if (!state.progress) await new Promise((resolve) => setTimeout(resolve, 5000));
             }
         } catch (e) {
             showMessage(e.message, 'error');
@@ -274,6 +285,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         tbtAction('cancel');
     }
     tbtRender();
+    // 后台执行（定时任务 / 建批后立即触发）在跑时，本页不点「开始」也每 5 秒刷新一次进度
+    setInterval(() => {
+        if (tbtLoop || document.hidden || tbtState.status !== 'running') return;
+        tbtPost('status').catch(() => {});
+    }, 5000);
     </script>
     <?php endif; ?>
 </div>
