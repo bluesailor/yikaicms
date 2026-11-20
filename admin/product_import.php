@@ -18,8 +18,8 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
-// 权限跟产品走（插件时期只有超级管理员能用）
-requirePermission('edit_product');
+// 只有超级管理员能用（所有者 2026-11-20 定，与插件时期一致）：导入会批量改产品、新建分类与媒体，还能整批撤销
+requirePermission('*');
 
 $currentMenu = 'product_import';
 $pageTitle = __('pimp_page_title');

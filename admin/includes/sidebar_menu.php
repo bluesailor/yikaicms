@@ -73,7 +73,7 @@ return [
             // 产品导入 / 导出（2.3.0 并入主程序；此前由插件 product-import 注册同一个 key）
             [
                 'key'      => 'product_import',
-                'perm'     => 'edit_product',
+                'perm'     => '*',
                 'label'    => __('pimp_menu'),
                 'url'      => '/admin/product_import.php',
                 'icon'     => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>',

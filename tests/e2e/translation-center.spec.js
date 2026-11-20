@@ -121,6 +121,11 @@ test('restricted editors reach the work center and only product editors see batc
         await editor.goto(`/admin/translation_status.php?kind=${name === 'product' ? 'contents' : 'products'}`);
         await expect(editor.locator(`nav a[data-kind="${want.kinds[0]}"]`)).toHaveAttribute('aria-current', 'page');
         await expect(editor.locator('#tssMissing')).toHaveCount(want.batch ? 1 : 0);
+        // 产品导入只给超级管理员：产品编辑也看不到入口、打不开页面
+        await editor.goto('/admin/product.php');
+        await expect(editor.getByTestId('product-import-entry')).toHaveCount(0);
+        await editor.goto('/admin/product_import.php');
+        await expect(editor.locator('[data-pimp-wizard]')).toHaveCount(0);
         // 任务页本身仍要 edit_product：没有权限的得到「无权限」页（不是任务页）
         await editor.goto('/admin/translation_tasks.php');
         const taskHeading = editor.locator('h1').filter({ hasText: /批量翻译任务|Batch translation tasks/ });
