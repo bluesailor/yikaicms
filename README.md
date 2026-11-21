@@ -1,4 +1,4 @@
-# YikaiCMS v2.2.2
+# YikaiCMS v2.3.0
 
 > **面向企业官网与外贸网站的轻量 PHP CMS** · 源码公开，免费商用
 
@@ -34,7 +34,7 @@
 
 ## 3 分钟安装
 
-1. 下载完整包 [yikaicms-v2.2.2.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.2.2/yikaicms-v2.2.2.zip)（校验文件 [yikaicms-v2.2.2.sha256](https://github.com/bluesailor/yikaicms/releases/download/v2.2.2/yikaicms-v2.2.2.sha256)），解压上传到网站根目录（也可以放在子目录）；
+1. 下载完整包 [yikaicms-v2.3.0.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.3.0/yikaicms-v2.3.0.zip)（校验文件 [yikaicms-v2.3.0.sha256](https://github.com/bluesailor/yikaicms/releases/download/v2.3.0/yikaicms-v2.3.0.sha256)），解压上传到网站根目录（也可以放在子目录）；
 2. 确保站点根目录（安装器写入 `installed.lock`）和 `/config/`、`/uploads/`、`/storage/` 可写，浏览器访问 `http://你的域名/install/`，按向导选择 MySQL 或 SQLite 完成安装；
 3. 配置伪静态（宝塔面板：站点 → 设置 → 伪静态，写入一行 `include /www/wwwroot/<你的站点目录>/deploy/nginx-baota.conf;`）；
 4. 登录后台，在「建站向导」里从 40 多套行业整站模板（中文、日文、英文）中挑一套导入，或直接在演示内容上修改。
@@ -113,7 +113,7 @@
 
 ### 插件
 
-**随包预装**：返回顶部、Cookie 同意横幅（GDPR / PIPL，Google Consent Mode v2）、产品导入。
+**随包预装**：返回顶部、Cookie 同意横幅（GDPR / PIPL，Google Consent Mode v2）。产品导入自 2.3.0 起是主程序功能（后台「商品与展示 → 导入产品」），不再是插件。
 
 **插件市场**（后台「外观与扩展 → 插件 → 插件市场」，SHA256 + RSA 签名校验）：轻量商城、繁體中文語言包（开启繁体中文时需要）、网站公告、后台菜单排序、数据库搜索替换、网站统计接入、SEO 助手、LOGO 制作、产品轮播、易登录、整站模板的配套插件（如民宿订房咨询），以及需专业授权的易开网页构建器 Pro。
 
@@ -134,7 +134,7 @@
 | PHP 扩展（推荐） | curl、openssl、gd、zip、simplexml（在线升级、缩略图、授权校验与 XLSX 导入需要） |
 
 > 以上要求由 `includes/RuntimeRequirements.php` 统一定义，安装器、站点健康检查与兼容层都从那里读取；
-> 改要求请只改那一处。`simplexml` 核心不依赖，仅 product-import 插件读 XLSX 时用到。
+> 改要求请只改那一处。`simplexml` 只有产品导入读 XLSX 表格时用到，不导入 XLSX 可以不装。
 
 ### 本机试用：易开面板
 
@@ -148,7 +148,7 @@
 
 ### 1. 下载部署
 
-- 完整安装包：[yikaicms-v2.2.2.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.2.2/yikaicms-v2.2.2.zip)，发布说明见 [v2.2.2 Release](https://github.com/bluesailor/yikaicms/releases/tag/v2.2.2)；每个版本附 `.sha256` 校验文件，历史版本见 [Releases](https://github.com/bluesailor/yikaicms/releases)。
+- 完整安装包：[yikaicms-v2.3.0.zip](https://github.com/bluesailor/yikaicms/releases/download/v2.3.0/yikaicms-v2.3.0.zip)，发布说明见 [v2.3.0 Release](https://github.com/bluesailor/yikaicms/releases/tag/v2.3.0)；每个版本附 `.sha256` 校验文件，历史版本见 [Releases](https://github.com/bluesailor/yikaicms/releases)。
 - 已安装的站点可在后台「系统维护 → 系统升级」在线升级，无需手动下载。
 - 开发者也可以直接克隆仓库：`git clone https://github.com/bluesailor/yikaicms.git`
 
