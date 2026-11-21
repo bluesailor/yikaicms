@@ -124,6 +124,8 @@ final class ProductImportAccessTest extends TestCase
         self::assertStringContainsString("requirePermission('*');", $entry);
         self::assertStringNotContainsString("requirePermission('edit_product')", $entry);
         self::assertMatchesRegularExpression("/'key'\\s*=>\\s*'product_import',\\s*'perm'\\s*=>\\s*'\\*'/", (string) file_get_contents(ROOT_PATH . '/admin/includes/sidebar_menu.php'));
+        // 侧栏分组标题链接到组里第一项：导入要排在产品管理（默认 100）之后（2.3.0 候选验收发现）
+        self::assertMatchesRegularExpression("/'key'\\s*=>\\s*'product_import',[^\\]]*'priority'\\s*=>\\s*1[0-9]{2},/s", (string) file_get_contents(ROOT_PATH . '/admin/includes/sidebar_menu.php'));
         self::assertStringContainsString("hasPermission('*')): ?><a href=\"<?php echo e(BasePath::url('/admin/product_import.php'))", (string) file_get_contents(ROOT_PATH . '/admin/product.php'));
 
         $page = (string) file_get_contents(ROOT_PATH . '/admin/includes/product_import/page.php');

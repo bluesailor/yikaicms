@@ -27,7 +27,7 @@ $pricingText = json_encode([
 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 ?>
 <template x-if="ctrl.type === 'pricing_plans' && professionalFeatures.pricing.allowed">
-    <div data-testid="blox-pricing-plans" class="space-y-2" x-data="{ pt: <?= $pricingText ?> }">
+    <div data-testid="blox-pricing-plans" class="space-y-2" x-data="{ pt: <?= e((string) $pricingText) ?> }">
         <template x-for="(plan, index) in pricingPlans(selEl)" :key="'plan-' + index">
             <div data-testid="blox-pricing-plan" class="rounded border p-2.5 space-y-1.5"
                  :class="plan.featured ? 'border-blue-300 bg-blue-50/60' : 'border-gray-200 bg-gray-50/70'">

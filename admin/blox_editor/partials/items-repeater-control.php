@@ -12,7 +12,7 @@ $itemsText = json_encode([
 ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP);
 ?>
 <template x-if="ctrl.type === 'items_repeater'">
-    <div class="space-y-2" :data-testid="'blox-items-' + ctrl.key" x-data="{ it: <?= $itemsText ?> }">
+    <div class="space-y-2" :data-testid="'blox-items-' + ctrl.key" x-data="{ it: <?= e((string) $itemsText) ?> }">
         <template x-for="(item, index) in repeaterItems(ctrl, selEl)" :key="ctrl.key + '-' + index">
             <div data-testid="blox-items-item" class="rounded border border-gray-200 bg-gray-50/70 p-2.5 space-y-2">
                 <div class="flex items-center gap-1.5">

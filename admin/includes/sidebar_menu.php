@@ -77,7 +77,8 @@ return [
                 'label'    => __('pimp_menu'),
                 'url'      => '/admin/product_import.php',
                 'icon'     => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>',
-                'priority' => 95,
+                // 排在产品管理（默认 100）之后：分组标题链接到组里第一项，不能让「商品与展示」一点就进导入页
+                'priority' => 120,
             ],
             // 翻译工作中心（2.3.0）：有产品权限的在产品组里看到；只有文章 / 单页权限的在文章组里看到（见下）
             [
