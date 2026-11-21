@@ -2,11 +2,7 @@
 
 declare(strict_types=1);
 
-if (!defined('ROOT_PATH')) {
-    exit('Access Denied');
-}
-
-require_once ROOT_PATH . '/includes/security.php';
+require_once dirname(__DIR__) . '/security.php';
 
 final class ProductImportXlsxReader
 {

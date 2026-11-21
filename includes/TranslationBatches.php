@@ -215,7 +215,8 @@ final class TranslationBatches
     /**
      * 结果保留期限：删掉更新时间早于 $keepDays 天的已完成 / 已取消批次，连同逐项结果与日志。
      * 已写进站点的译文是普通内容，不受影响。进行中、暂停的批次不删。
-     * @return int 删掉的批次数
+     * @return int 删掉的批次数（命令行 translate:run 显示它；定时任务不需要）
+     * @psalm-suppress PossiblyUnusedReturnValue 命令文件里的闭包不在 Psalm 的使用分析范围内
      */
     public function purge(int $now, int $keepDays = self::KEEP_DAYS): int
     {

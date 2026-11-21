@@ -84,6 +84,20 @@ final class Cron
             return $done === [] ? __('cron_nothing_due') : str_replace(':n', (string) count($done), __('cron_translation_batches_n'));
         });
 
+        // 产品导入后台执行（2.3.0）：确认导入后关掉页面也会跑完。没有排队的任务时只是一次 glob。
+        // 跑完这一段还有活、而且这一段有进展，就立即再触发下一段（不用等下一分钟；没配站点地址时等定时任务）。
+        self::register('product_import', __('cron_product_import'), 60, static function (): string {
+            $dir = ROOT_PATH . '/storage/product-import/jobs';
+            if ((glob($dir . '/*.active') ?: []) === []) {
+                return __('cron_nothing_due');
+            }
+            require_once ROOT_PATH . '/includes/product-import/ProductImportWorker.php';
+            @set_time_limit(120);
+            $result = (new ProductImportWorker(new ProductImportJobs($dir), ROOT_PATH))->drain(ProductImportWorker::BACKGROUND_SLICE);
+            if ($result['remaining'] && $result['progress']) Cron::kick('product_import');
+            return $result['jobs'] === 0 ? __('cron_nothing_due') : str_replace(':n', (string) $result['jobs'], __('cron_product_import_n'));
+        });
+
         // 邮件可靠性的重试队列（roadmap #3）：任务体内自判（表未建/无失败时是一次早退），
         // 放在内置任务里，站点未装任何插件也能自愈
         self::register('mail_retry', __('cron_mail_retry'), 600, function (): string {
@@ -184,21 +198,20 @@ final class Cron
     /**
      * 不等结果地请求一次本站 cron.php?task=…（建批后立即开跑；定时任务仍是兜底）。
      * 只用后台设置的站点地址或 config.php 的 SITE_URL，不用请求头里的 Host，令牌不会发到伪造的域名。
-     * HTTPS 保留证书校验；连不上就算了，返回 false。
+     * HTTPS 保留证书校验；连不上就算了（定时任务与开着的页面照样会推进）。
      */
-    public static function kick(string $task): bool
+    public static function kick(string $task): void
     {
         $base = rtrim((string) config('site_url', ''), '/');
         if ($base === '' && defined('SITE_URL')) $base = rtrim((string) SITE_URL, '/');
         $req = self::kickRequest($base, $task, self::token());
-        if ($req === null) return false;
+        if ($req === null) return;
         $ctx = stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true, 'peer_name' => $req['host']]]);
         $fp = @stream_socket_client($req['target'], $errno, $errstr, 2, STREAM_CLIENT_CONNECT, $ctx);
-        if ($fp === false) return false;
+        if ($fp === false) return;
         stream_set_timeout($fp, 2);
-        $ok = @fwrite($fp, $req['request']) === strlen($req['request']);
+        @fwrite($fp, $req['request']);
         fclose($fp);
-        return $ok;
     }
 
     /** @return null|array{target:string,host:string,request:string} */

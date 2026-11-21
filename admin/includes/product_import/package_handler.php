@@ -7,10 +7,10 @@
  *   pkg_use_incoming  POST  选一个 incoming 项 → 包
  *   pkg_plan          POST  包 + 语言 → 导入计划（预览）
  *   pkg_image         GET   预览缩略图（包里或本站的图）
- *   job_create        POST  包 + 语言 + 每行选择 → 任务
- *   job_run           POST  跑下一批
- *   job_retry / job_undo  POST
- *   job_get / jobs    GET
+ *   job_create        POST  包 + 语言 + 每行选择 → 任务（排队，立即触发后台执行）
+ *   job_run           POST  页面开着时顺手推进一小段（后台正在跑就只回进度）；升级前的任务在这里点「继续」
+ *   job_retry / job_undo  POST  交给后台；撤销遇上正在执行，先留请求，执行者停下来撤
+ *   job_get / jobs    GET   进度（关掉页面回来也看得到）
  *   job_errors        GET   出错行 CSV
  */
 
@@ -23,6 +23,7 @@ require_once ROOT_PATH . '/includes/product-import/ProductImportJobs.php';
 require_once ROOT_PATH . '/includes/product-import/ProductImportRunner.php';
 require_once ROOT_PATH . '/includes/product-import/ProductImportPackages.php';
 require_once ROOT_PATH . '/includes/product-import/ProductImportExporter.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportWorker.php';
 
 
 require_once ROOT_PATH . '/includes/product-import/ProductImportAccess.php';
@@ -30,6 +31,11 @@ require_once ROOT_PATH . '/includes/product-import/ProductImportAccess.php';
 $pimpHas = static fn (string $key): bool => hasPermission($key);
 $pimpPackages = new ProductImportPackages(ROOT_PATH . '/storage/product-import');
 $pimpJobs = new ProductImportJobs($pimpPackages->jobsDir());
+$pimpWorker = new ProductImportWorker($pimpJobs, ROOT_PATH);
+// 立即在后台开跑（不等结果）；没配站点地址或连不上时，定时任务与开着的页面照样会推进
+$pimpKick = static function (): void {
+    if (class_exists('Cron')) Cron::kick('product_import');
+};
 
 /** @return never */
 $pimpReply = static function (array $data = [], string $error = ''): void {
@@ -64,10 +70,16 @@ $pimpPublicPlan = static function (array $plan): array {
     return $plan;
 };
 
-$pimpJobView = static function (array $job): array {
-    unset($job['package'], $job['images'], $job['updated'], $job['category_ids'], $job['needs']);
+$pimpJobView = static function (array $job) use ($pimpJobs): array {
+    $id = (string) $job['id'];
+    unset($job['package'], $job['images'], $job['updated'], $job['updated_ids'], $job['category_ids'], $job['needs']);
     $job['created'] = ['categories' => count($job['created']['categories']), 'products' => count($job['created']['products']),
         'media' => count($job['created']['media'])];
+    // 页面据此显示「后台执行中」「等待接着执行」「已请求撤销」
+    $job['v'] = (int) ($job['v'] ?? 1);
+    $job['busy'] = $pimpJobs->busy($id);
+    $job['undo_requested'] = $pimpJobs->undoRequested($id);
+    $job['queued'] = in_array($id, $pimpJobs->active(), true);
     return $job;
 };
 
@@ -177,6 +189,8 @@ try {
             $job = ProductImportRunner::newJob($plan, $decisions, $record['dir'], $lang, (int) ($_SESSION['admin_id'] ?? 0), (string) $record['name']);
             $job['needs'] = $needs;
             $pimpJobs->save($job);
+            $pimpJobs->markActive((string) $job['id']);
+            $pimpKick();
             $pimpReply(['job' => $pimpJobView($job)]);
 
         case 'job_run':
@@ -186,57 +200,49 @@ try {
             if (!ProductImportJobs::validId($id)) {
                 $pimpReply([], 'job_gone');
             }
-            // 同一任务同时只跑一个请求（两个标签页同时点会重复建产品）
-            $lock = fopen($pimpPackages->jobsDir() . '/' . $id . '.lock', 'c');
-            if ($lock === false || !flock($lock, LOCK_EX | LOCK_NB)) {
-                $pimpReply([], 'job_busy');
-            }
-            $job = $pimpJobs->load($id) ?? $pimpReply([], 'job_gone');
+            // 一小段可能要十来秒：先放开会话锁，别让同一账号的其它后台页面跟着卡住
+            session_write_close();
             if ($handler === 'job_undo') {
-                if (!in_array($job['status'], ['done', 'running'], true)) {
-                    $pimpReply([], 'job_not_undoable');
-                }
-                $runner = new ProductImportRunner(ProductImportPackage::fromDirectory(is_dir($job['package']) ? $job['package'] : sys_get_temp_dir(), ROOT_PATH), ROOT_PATH);
-                $conflicts = $runner->undo($job);
-                $pimpJobs->save($job);
-                adminLog('product', 'import', '撤销产品导入任务 ' . $id . '，未恢复 ' . count($conflicts) . ' 款');
-                $pimpReply(['job' => $pimpJobView($job)]);
+                $result = $pimpWorker->undo($id);
+                if ($result['result'] === 'gone') $pimpReply([], 'job_gone');
+                if ($result['result'] === 'not_undoable') $pimpReply([], 'job_not_undoable');
+                if ($result['result'] === 'queued') $pimpKick();
+                $pimpReply(['job' => $pimpJobView($result['job']), 'undo' => $result['result']]);
             }
-            if (!is_dir((string) $job['package'])) {
-                $pimpReply([], 'package_gone');
-            }
+            $job = $pimpJobs->load($id, false) ?? $pimpReply([], 'job_gone');
             // 升级前建的任务没有记 needs：按两项都需要处理
             if (ProductImportAccess::missing((array) ($job['needs'] ?? ['create_category', 'create_media']), $pimpHas) !== []) {
                 $pimpReply([], 'no_permission');
             }
             if ($handler === 'job_retry') {
-                // 没有失败的行：原样返回，不再空跑一批
-                if (ProductImportRunner::retryFailed($job) === 0) {
-                    $pimpReply(['job' => $pimpJobView($job)]);
-                }
+                $result = $pimpWorker->retry($id);
+                if ($result['result'] === 'busy') $pimpReply([], 'job_busy');
+                if ($result['result'] === 'queued') $pimpKick();
+                $pimpReply(['job' => $pimpJobView($result['job'] ?? $job)]);
             }
-            $runner = new ProductImportRunner(ProductImportPackage::fromDirectory($job['package'], ROOT_PATH), ROOT_PATH);
-            $wasDone = $job['status'] === 'done';
-            $runner->run($job);
-            if ($job['status'] === 'done' && (!$wasDone || $handler === 'job_retry')) {
-                $job['verify'] = $runner->verify($job);
+            // 升级前建的、没跑完的任务：只有站长点「继续」才交给后台（不会因为打开页面就自己跑起来）
+            if ((int) ($job['v'] ?? 1) < ProductImportRunner::VERSION) {
+                if (($pimpInput()['resume_legacy'] ?? false) !== true) $pimpReply(['job' => $pimpJobView($job)]);
+                $result = $pimpWorker->resumeLegacy($id);
+                if ($result['result'] === 'queued') $pimpKick();
+                $pimpReply(['job' => $pimpJobView($result['job'] ?? $job)]);
             }
-            $pimpJobs->save($job);
-            if (!$wasDone && $job['status'] === 'done') {
-                $c = $job['counts'];
-                adminLog('product', 'import', "产品导入任务 {$id}：新增 {$c['created']}，更新 {$c['updated']}，跳过 {$c['skipped']}，失败 {$c['failed']}，有错 {$c['error']}");
-            }
-            $pimpReply(['job' => $pimpJobView($job)]);
+            // 页面兜底：没人拿着执行权就在这里推进一小段；后台正在跑就只回进度
+            $result = $pimpWorker->runJob($id, ProductImportWorker::PAGE_SLICE, 'page');
+            if ($result['job'] === null) $pimpReply([], 'job_gone');
+            // 还有活：交给后台接着跑，关掉页面也不停
+            if ($result['result'] === 'ran' && in_array($result['job']['status'], ['queued', 'running'], true)) $pimpKick();
+            $pimpReply(['job' => $pimpJobView($result['job'])]);
 
         case 'job_get':
-            $job = $pimpJobs->load((string) ($_GET['job'] ?? '')) ?? $pimpReply([], 'job_gone');
+            $job = $pimpJobs->load((string) ($_GET['job'] ?? ''), false) ?? $pimpReply([], 'job_gone');
             $pimpReply(['job' => $pimpJobView($job)]);
 
         case 'jobs':
             $pimpReply(['jobs' => $pimpJobs->recent()]);
 
         case 'job_errors':
-            $job = $pimpJobs->load((string) ($_GET['job'] ?? '')) ?? $pimpReply([], 'job_gone');
+            $job = $pimpJobs->load((string) ($_GET['job'] ?? ''), false) ?? $pimpReply([], 'job_gone');
             header('Content-Type: text/csv; charset=utf-8');
             header('Content-Disposition: attachment; filename="product-import-' . $job['id'] . '-errors.csv"');
             $out = fopen('php://output', 'w');

@@ -236,10 +236,19 @@ $pimpConfig = [
     <?php /* ③ 导入进度与结果 */ ?>
     <section x-show="step === 'run' && job" x-cloak class="bg-white rounded-lg shadow p-6 space-y-5" data-pimp-job>
         <div class="flex flex-wrap items-center justify-between gap-3">
-            <h2 class="font-bold text-gray-800" x-text="job ? (job.status === 'done' ? t('pimp_done') : (job.status === 'undone' ? t('pimp_undone') : t('pimp_status_running'))) : ''"></h2>
+            <h2 class="font-bold text-gray-800" data-pimp-job-status :data-status="job ? job.status : ''"
+                x-text="job ? (job.status === 'done' ? t('pimp_done') : (job.status === 'undone' ? t('pimp_undone') : t('pimp_status_' + job.status))) : ''"></h2>
             <span class="text-xs text-gray-400" x-text="job ? job.name + ' · ' + job.id : ''"></span>
         </div>
-        <p x-show="job && ['ready', 'running'].includes(job.status)" class="text-sm text-gray-500" x-text="t('pimp_running')"></p>
+        <?php /* 2.3.0：确认后由后台执行，关掉页面也会跑完；这里只看进度 */ ?>
+        <p x-show="job && job.v >= 2 && isActive(job) && !job.undo_requested" class="text-sm text-gray-600 bg-blue-50 border border-blue-200 rounded p-3" data-pimp-background>
+            <span x-text="t('pimp_background_note')"></span>
+            <span class="ms-1 text-gray-500" x-text="job && job.busy ? '· ' + t('pimp_background_busy') : (job && job.owner ? '· ' + t('pimp_waiting_resume') : '')"></span>
+        </p>
+        <p x-show="job && job.undo_requested && job.status !== 'undone'" class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded p-3" data-pimp-undo-requested x-text="t('pimp_undo_requested')"></p>
+        <p x-show="job && job.v < 2 && ['ready', 'running'].includes(job.status)" class="text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded p-3" data-pimp-legacy x-text="t('pimp_legacy_note')"></p>
+        <p x-show="job && job.status === 'blocked'" class="text-sm text-red-700 bg-red-50 border border-red-200 rounded p-3" data-pimp-blocked
+           x-text="job && job.status === 'blocked' ? t('pimp_blocked_' + (job.blocked_reason || 'admin_not_allowed')) : ''"></p>
         <div class="space-y-2" x-show="job">
             <div class="text-sm text-gray-600" x-text="job ? t('pimp_progress', { done: processed(), total: job.counts.total }) : ''"></div>
             <div class="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
@@ -275,15 +284,15 @@ $pimpConfig = [
             <template x-for="c in undoConflicts" :key="c.id"><p x-text="'#' + c.id + ' ' + c.title"></p></template>
         </div>
         <div class="flex flex-wrap gap-3 pt-2" x-show="job">
-            <button type="button" x-show="job && ['ready', 'running'].includes(job.status) && !running" class="bg-primary text-white px-5 py-2 rounded"
-                    @click="runLoop()" x-text="t('pimp_continue')"></button>
+            <button type="button" x-show="job && job.v < 2 && ['ready', 'running'].includes(job.status) && !running" class="bg-primary text-white px-5 py-2 rounded"
+                    data-pimp-resume-legacy @click="resumeLegacy()" x-text="t('pimp_continue')"></button>
             <button type="button" x-show="job && job.status === 'done' && job.counts.failed > 0" class="border px-4 py-2 rounded text-gray-700"
                     :disabled="running" @click="retry()" x-text="t('pimp_retry_failed')"></button>
             <a x-show="job && (job.counts.failed > 0 || job.counts.error > 0)" class="border px-4 py-2 rounded text-gray-700"
                :href="'?handler=job_errors&job=' + (job ? job.id : '')" x-text="t('pimp_download_errors')"></a>
             <a x-show="job && job.status === 'done'" href="/admin/product.php" class="bg-primary text-white px-5 py-2 rounded" x-text="t('pimp_view_products')"></a>
-            <button type="button" x-show="job && job.status === 'done'" class="border border-red-300 text-red-600 px-4 py-2 rounded" data-pimp-undo
-                    :disabled="running" @click="undo()" x-text="t('pimp_undo')"></button>
+            <button type="button" x-show="job && ['done', 'running', 'queued', 'blocked'].includes(job.status) && !job.undo_requested" class="border border-red-300 text-red-600 px-4 py-2 rounded" data-pimp-undo
+                    :disabled="undoing" @click="undo()" x-text="t('pimp_undo')"></button>
             <button type="button" class="border px-4 py-2 rounded text-gray-700" @click="reset()" x-text="t('pimp_new_import')"></button>
         </div>
     </section>
@@ -298,7 +307,7 @@ $pimpConfig = [
                     <tr class="border-b">
                         <td class="py-2 pe-3" x-text="j.name || j.id"></td>
                         <td class="py-2 pe-3 text-xs text-gray-500" x-text="date(j.created_at)"></td>
-                        <td class="py-2 pe-3 text-xs" x-text="t('pimp_status_' + j.status)"></td>
+                        <td class="py-2 pe-3 text-xs" :data-pimp-history-status="j.status" x-text="t('pimp_status_' + j.status) + (j.busy ? ' · ' + t('pimp_background_busy') : '')"></td>
                         <td class="py-2 pe-3 text-xs text-gray-500"
                             x-text="j.counts ? t('pimp_count_created') + ' ' + j.counts.created + ' · ' + t('pimp_count_updated') + ' ' + j.counts.updated + ' · ' + t('pimp_count_failed') + ' ' + j.counts.failed : ''"></td>
                         <td class="py-2 text-end"><button type="button" class="text-primary" @click="openJob(j.id)" x-text="t('pimp_open')"></button></td>
@@ -314,7 +323,7 @@ function pimpWizard(config) {
     return {
         text: config.text, csrf: config.csrf, uploadLimit: config.uploadLimit, languages: config.languages,
         lang: config.lang, incomingDir: 'storage/product-import/incoming/',
-        step: 'choose', busy: '', error: '', dragOver: false, running: false,
+        step: 'choose', busy: '', error: '', dragOver: false, running: false, undoing: false, watching: null,
         incoming: [], jobs: [], pkg: null, plan: null, decisions: {}, filter: 'all', limit: 100, job: null, undoConflicts: [],
         categories: [], categoriesLang: '', uncategorized: 0, exportIds: [],
 
@@ -322,6 +331,8 @@ function pimpWizard(config) {
             this.loadIncoming();
             this.loadJobs();
             if (config.job) this.openJob(config.job);
+            // 关掉页面后回来：最近一个还在后台跑的任务直接打开，接着看进度
+            else this.openActive();
             this.$watch('lang', () => { if (this.categoriesLang) { this.exportIds = []; this.loadCategories(); } });
         },
         t(key, params) {
@@ -454,6 +465,9 @@ function pimpWizard(config) {
         importCount() {
             return this.plan ? this.plan.products.filter(p => p.action !== 'error' && this.decisions[p.index] !== 'skip').length : 0;
         },
+        isActive(job) {
+            return !!job && (['queued', 'running', 'undoing'].includes(job.status) || job.undo_requested || (job.queued && job.status !== 'blocked'));
+        },
         async start() {
             this.error = '';
             this.busy = this.t('pimp_planning');
@@ -463,34 +477,56 @@ function pimpWizard(config) {
                 this.step = 'run';
             } catch (e) { this.error = e.message; }
             this.busy = '';
-            if (this.job) await this.runLoop();
+            if (this.job) this.watch();
         },
-        async runLoop(handler) {
-            if (this.running) return;
+        // 看进度。后台在跑就只读进度；没人在跑（没配定时任务、站点地址也连不上）就顺手推进一小段。
+        // 升级前的任务不在这里自己跑起来：要点「接着跑」。
+        async watch() {
+            if (this.watching === (this.job && this.job.id)) return;
+            const id = this.job ? this.job.id : null;
+            this.watching = id;
             this.running = true;
             this.error = '';
             try {
-                let first = handler || 'job_run';
-                while (this.job && (first !== 'job_run' || ['ready', 'running'].includes(this.job.status))) {
-                    this.job = (await this.api(first, { job: this.job.id })).job;
-                    first = 'job_run';
+                while (this.job && this.job.id === id && this.job.v >= 2 && this.isActive(this.job)) {
+                    const data = await this.api('job_run', { job: id });
+                    if (!this.job || this.job.id !== id) break;
+                    this.job = data.job;
+                    this.undoConflicts = this.job.undo_conflicts || [];
+                    if (this.isActive(this.job)) await new Promise(r => setTimeout(r, this.job.busy ? 2000 : 300));
                 }
             } catch (e) { this.error = e.message; }
+            if (this.watching === id) this.watching = null;
             this.running = false;
             this.loadJobs();
         },
-        retry() {
-            return this.runLoop('job_retry');
+        async resumeLegacy() {
+            if (!this.job) return;
+            this.error = '';
+            try {
+                this.job = (await this.api('job_run', { job: this.job.id, resume_legacy: true })).job;
+            } catch (e) { this.error = e.message; return; }
+            this.watch();
+        },
+        async retry() {
+            if (!this.job) return;
+            this.error = '';
+            try {
+                this.job = (await this.api('job_retry', { job: this.job.id })).job;
+            } catch (e) { this.error = e.message; return; }
+            this.watch();
         },
         async undo() {
             if (!this.job || !confirm(this.t('pimp_undo_confirm'))) return;
-            this.running = true;
+            this.undoing = true;
             try {
-                this.job = (await this.api('job_undo', { job: this.job.id })).job;
+                const data = await this.api('job_undo', { job: this.job.id });
+                this.job = data.job;
                 this.undoConflicts = this.job.undo_conflicts || [];
             } catch (e) { this.error = e.message; }
-            this.running = false;
+            this.undoing = false;
             this.loadJobs();
+            if (this.job && this.isActive(this.job)) this.watch();
         },
         async openJob(id) {
             this.error = '';
@@ -499,7 +535,15 @@ function pimpWizard(config) {
                 this.undoConflicts = this.job.undo_conflicts || [];
                 this.step = 'run';
                 window.scrollTo({ top: 0, behavior: 'smooth' });
-            } catch (e) { this.error = e.message; }
+            } catch (e) { this.error = e.message; return; }
+            if (this.job.v >= 2 && this.isActive(this.job)) this.watch();
+        },
+        async openActive() {
+            try {
+                const jobs = (await this.api('jobs')).jobs;
+                const active = jobs.find(j => (j.v || 1) >= 2 && (['queued', 'running', 'undoing'].includes(j.status) || j.busy));
+                if (active && this.step === 'choose') await this.openJob(active.id);
+            } catch (e) { /* 历史读不到不影响上传 */ }
         },
         processed() {
             if (!this.job) return 0;

@@ -18,7 +18,11 @@ CLI::register('translate:run', '推进进行中的批量翻译任务', function 
     require_once ROOT_PATH . '/includes/TranslationBatches.php';
     $budget = isset($opts['budget']) ? min(3600, max(5, (int) $opts['budget'])) : 240;
     @set_time_limit($budget + 60);
-    $done = (new TranslationBatches(db()))->drain($budget);
+    $service = new TranslationBatches(db());
+    $done = $service->drain($budget);
+    // 结果保留期限：与定时任务同一口径，命令行跑时也清掉过期的已完成 / 已取消批次
+    $purged = $service->purge(time(), (int) config('translate_batch_keep_days', TranslationBatches::KEEP_DAYS) ?: TranslationBatches::KEEP_DAYS);
+    if ($purged > 0) CLI::out("已清理 {$purged} 个过期的批次");
     if ($done === []) {
         CLI::out('没有进行中的批量翻译任务');
         return 0;

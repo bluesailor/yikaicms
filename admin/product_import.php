@@ -16,6 +16,7 @@ define('ROOT_PATH', dirname(__DIR__));
 require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
+require_once ROOT_PATH . '/includes/Cron.php';   // 建任务后立即触发后台执行（Cron::kick）
 
 checkLogin();
 // 只有超级管理员能用（所有者 2026-11-20 定，与插件时期一致）：导入会批量改产品、新建分类与媒体，还能整批撤销
