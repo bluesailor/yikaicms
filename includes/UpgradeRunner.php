@@ -257,6 +257,9 @@ function uo_write_file_atomic(string $dest, string $data): bool
     // 临时文件名以点开头、以 .php 结尾：进程在改名前被杀时它会留在原处，而 config.php 的临时文件里有数据库口令——
     // 没屏蔽 config/ 的服务器会把别的后缀当静态文件原样发出去，.php 只会被执行（不输出内容）。同名固定，重试时直接覆盖
     $tmp = dirname($dest) . '/.yk-upgrade-' . basename($dest) . '.tmp.php';
+    // 目标存在但不可写（主机设成只读、属主是别的用户）：照原地写入时的结果报失败、交给回滚。
+    // 不能靠改名绕过去——Linux 上目录可写就能改名覆盖只读文件，升级会悄悄换掉主机特意锁住的文件（2.3.0 CI 查出）
+    if (is_file($dest) && !is_writable($dest)) return false;
     $written = @file_put_contents($tmp, $data, LOCK_EX);
     if ($written === false || $written !== strlen($data)) {
         @unlink($tmp);

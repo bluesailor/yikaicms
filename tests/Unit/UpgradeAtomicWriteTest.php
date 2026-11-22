@@ -65,6 +65,30 @@ final class UpgradeAtomicWriteTest extends TestCase
         self::assertFalse(uo_write_file_atomic($this->dir . '/missing/a.php', 'data'));
     }
 
+    /** 只读的目标照原地写入时的结果报失败：Linux 上改名能覆盖只读文件，不能借此绕过主机的权限设置（2.3.0 CI 查出） */
+    public function testReadOnlyTargetIsReportedAsAFailureAndLeftUntouched(): void
+    {
+        $file = $this->dir . '/locked.php';
+        file_put_contents($file, '<?php // locked by the host');
+        chmod($file, 0444);
+        clearstatcache(true, $file);
+        try {
+            if (is_writable($file)) self::markTestSkipped('chmod cannot make a file read-only on this platform/user');
+            self::assertFalse(uo_write_file_atomic($file, '<?php // new'));
+            self::assertSame('<?php // locked by the host', file_get_contents($file));
+            self::assertSame([], $this->leftovers());
+        } finally {
+            chmod($file, 0644);
+        }
+    }
+
+    public function testTheReadOnlyRuleIsInTheWriter(): void
+    {
+        // Windows 上 chmod 常常改不成只读，上一项会跳过；这里在源码层面守住同一条规则
+        $source = (string) file_get_contents(ROOT_PATH . '/includes/UpgradeRunner.php');
+        self::assertStringContainsString('if (is_file($dest) && !is_writable($dest)) return false;', $source);
+    }
+
     public function testCopyRestoresASnapshotByteForByte(): void
     {
         $snapshot = $this->dir . '/snapshot.bin';
