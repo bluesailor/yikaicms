@@ -209,7 +209,6 @@ final class BasePathTest extends TestCase
         self::assertSame($image, BasePath::imageData($image), 'root install: unchanged');
 
         $base = new \ReflectionProperty(BasePath::class, 'base');
-        $base->setAccessible(true);
         $saved = $base->getValue();
         $base->setValue(null, '/sub');
         try {

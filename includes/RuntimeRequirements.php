@@ -11,7 +11,7 @@
  *   SiteHealth    PHP >= 8.2 判 CRITICAL，必需项里还多一个 simplexml
  *
  * 后果是实打实的：装得上 8.0 的站，打开站点健康检查会看到一条红色 CRITICAL；
- * 而 simplexml 核心根本没用到（只有 product-import 插件用），缺了也报红。
+ * 而 simplexml 只有产品导入读 xlsx 用（当时是插件，2.3.0 起在主程序里），缺了站点照常运行，也报红。
  *
  * 这里的分级口径：
  *   PHP_MINIMUM      硬地板。低于它安装器直接拦——功能真的跑不起来。
@@ -56,7 +56,7 @@ final class RuntimeRequirements
         'openssl'   => '授权校验与加密；缺了商业授权验不了',
         'gd'        => '缩略图与图片压缩；缺了上传仍可用但不生成缩略图',
         'zip'       => '在线升级解包与远程模板导入；缺了只能手工传包升级',
-        'simplexml' => 'product-import 插件读 xlsx 用；核心不依赖，未装该插件可忽略',
+        'simplexml' => '产品导入读 xlsx 表格用；不导入 xlsx 可忽略（CSV 不需要）',
     ];
 
     /** 数据库驱动：至少要有一个 */

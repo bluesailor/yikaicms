@@ -61,6 +61,7 @@ final class PluginMarketInstall
     {
         $fail = static fn(string $msg): array => ['ok' => false, 'msg' => $msg, 'slug' => '', 'version' => ''];
         if (preg_match('/^[a-z0-9]([a-z0-9\-]*[a-z0-9])?$/D', $slug) !== 1) return $fail(__('pl_bad_slug'));
+        if (function_exists('retiredPlugins') && in_array($slug, retiredPlugins(), true)) return $fail(__('pl_built_in'));   // 已并入主程序，不再从市场装回来
         $catalog ??= $this->catalog();
         if ($catalog === null) return $fail(__('pl_market_offline'));
         $item = self::find($catalog, $slug);
@@ -183,7 +184,6 @@ final class PluginMarketInstall
             ]);
             curl_exec($ch);
             $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
             return !$tooLarge && $status >= 200 && $status < 300 && $body !== '' ? $body : null;
         }
         if (ini_get('allow_url_fopen')) {

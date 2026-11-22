@@ -78,7 +78,6 @@ $request = static function (string $actor, string $path, ?array $post = null) us
     if ($raw === false) throw new RuntimeException(curl_error($ch));
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $headerSize = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-    curl_close($ch);
     return [$code, substr($raw, $headerSize), substr($raw, 0, $headerSize)];
 };
 $check = static function (bool $ok, string $label) use (&$results): void {

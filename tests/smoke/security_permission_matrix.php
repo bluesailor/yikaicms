@@ -38,7 +38,7 @@ $db->execute('DELETE FROM yikai_blox_page_drafts WHERE page_id=2');
 $db->insert('blox_page_drafts',['page_id'=>2,'draft_data'=>$doc,'updated_at'=>time()]);
 $path=$root.'/uploads/images/matrix-permission.png';
 if(is_file($path)) throw new RuntimeException('Fixture file already exists');
-$image=imagecreatetruecolor(3,2); imagepng($image,$path); imagedestroy($image);
+$image=imagecreatetruecolor(3,2); imagepng($image,$path);
 $pdf=tempnam(sys_get_temp_dir(),'matrix-pdf-');
 file_put_contents($pdf,"%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF");
 $svg=tempnam(sys_get_temp_dir(),'matrix-svg-');
@@ -74,7 +74,7 @@ $request=static function(string $actor,string $method,string $url,?array $data=n
         $multipart=count(array_filter($data,static fn($v)=>$v instanceof CURLFile))>0;
         curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$multipart?$data:http_build_query($data)]);
     } elseif($method!=='GET')curl_setopt($ch,CURLOPT_CUSTOMREQUEST,$method);
-    $body=(string)curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);$raw[]=$body;
+    $body=(string)curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);$raw[]=$body;
     return [$status,$body,json_decode($body,true)];
 };
 $log=tempnam(sys_get_temp_dir(),'yk-matrix-server-');
@@ -109,7 +109,15 @@ try {
         ['proposal-apply','POST','/admin/ai_proposals.php',['action'=>'apply','item_ids'=>[$item]],['admin']],
         ['translation-batch-create','POST','/admin/translation_tasks.php',['action'=>'create','ids'=>[1],'langs'=>['en']],['admin']],
         ['translation-batch-step','POST','/admin/translation_tasks.php',['action'=>'step','batch_id'=>1],['admin']],
-        ['translation-status','GET','/admin/translation_status.php',null,['admin']],
+        ['translation-batch-status','POST','/admin/translation_tasks.php',['action'=>'status','batch_id'=>1],['admin']],
+        ['translation-status','GET','/admin/translation_status.php',null,['admin','article','page','other']],
+        ['product-import-page','GET','/admin/product_import.php',null,['admin']],
+        ['product-import-jobs','GET','/admin/product_import.php?handler=jobs',null,['admin']],
+        ['product-import-run','POST','/admin/product_import.php?handler=job_create',['package'=>'none'],['admin']],
+        ['translation-publish-reviewed','POST','/admin/translation_status.php',['action'=>'publish','kind'=>'contents','ids'=>[999999]],['admin','article']],
+        ['translation-status-contents','GET','/admin/translation_status.php?kind=contents',null,['admin','article','page','other']],
+        ['translation-status-pages','GET','/admin/translation_status.php?kind=pages',null,['admin','article','page','other']],
+        ['translation-status-categories','GET','/admin/translation_status.php?kind=categories',null,['admin','article','page','other']],
         ['translation-review','POST','/admin/product_edit.php?id=1',['action'=>'translation_mark_reviewed','target_id'=>1],['admin']],
         ['delivery-check','GET','/admin/delivery_check.php',null,['admin']],
         ['delivery-accept','POST','/admin/delivery_check.php',['action'=>'accept','key'=>'handover'],['admin']],

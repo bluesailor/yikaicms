@@ -61,7 +61,6 @@ final class HtmlCacheTest extends TestCase
     private function isCacheable(): bool
     {
         $m = new ReflectionMethod(HtmlCache::class, 'isCacheable');
-        $m->setAccessible(true);
         return (bool) $m->invoke(null);
     }
 
@@ -76,7 +75,6 @@ final class HtmlCacheTest extends TestCase
     public function testInvalidationRotatesNamespaceEvenWithoutACacheDirectory(): void
     {
         $key = new ReflectionMethod(HtmlCache::class, 'buildKey');
-        $key->setAccessible(true);
         $before = $key->invoke(null);
         $dir = $this->makeCacheDir();
         rmdir($dir);
@@ -89,11 +87,9 @@ final class HtmlCacheTest extends TestCase
     {
         $dir = $this->makeCacheDir();
         $keyMethod = new ReflectionMethod(HtmlCache::class, 'buildKey');
-        $keyMethod->setAccessible(true);
         $oldKey = $keyMethod->invoke(null);
         foreach (['currentKey' => $oldKey, 'buffering' => true] as $name => $value) {
             $property = new \ReflectionProperty(HtmlCache::class, $name);
-            $property->setAccessible(true);
             $property->setValue(null, $value);
         }
         settingModel()->rotateHtmlCacheGeneration();
@@ -179,7 +175,6 @@ final class HtmlCacheTest extends TestCase
     public function testCacheKeyCanonicalizesQueryOrderAndPageNumber(): void
     {
         $method = new ReflectionMethod(HtmlCache::class, 'buildKey');
-        $method->setAccessible(true);
         $_SERVER['REQUEST_URI'] = '/products.html?page=02&sort=newest';
         $_GET = ['page' => '02', 'sort' => 'newest'];
         $first = $method->invoke(null);
@@ -193,7 +188,6 @@ final class HtmlCacheTest extends TestCase
     public function testCacheKeyRotatesAcrossMidnight(): void
     {
         $method = new ReflectionMethod(HtmlCache::class, 'buildKey');
-        $method->setAccessible(true);
         $_SERVER['REQUEST_URI'] = '/products.html?page=2';
         $_GET = ['page' => '2'];
         try {

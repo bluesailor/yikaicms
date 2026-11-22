@@ -78,7 +78,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $json = (string) curl_exec($ch);
             $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $errMsg = curl_error($ch);
-            curl_close($ch);
             if ($json === '' || $code >= 400) {
                 echo json_encode(['code' => 1, 'msg' => str_replace(':err', $errMsg ?: ('HTTP ' . $code), __('ai_sync_fetch_failed'))]);
                 exit;

@@ -383,7 +383,6 @@ final class SiteTemplateOfflineValidatorTest extends TestCase
         self::assertNotFalse($image);
         imagefill($image, 0, 0, imagecolorallocate($image, 12, 44, 88));
         self::assertTrue(imagewebp($image, $covers . '/site-01.webp', 80));
-        imagedestroy($image);
         $suffix = bin2hex(random_bytes(3));
         $inventory = $this->root . '/inventory-' . $suffix . '.json';
         $catalog = $this->root . '/catalog-source-' . $suffix . '.json';

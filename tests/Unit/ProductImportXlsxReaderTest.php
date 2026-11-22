@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 
-require_once ROOT_PATH . '/plugins/product-import/XlsxReader.php';
+require_once ROOT_PATH . '/includes/product-import/ProductImportXlsxReader.php';
 
 final class ProductImportXlsxReaderTest extends TestCase
 {
@@ -44,8 +44,8 @@ final class ProductImportXlsxReaderTest extends TestCase
 
     public function testLegacyXlsIsNotAdvertisedOrAccepted(): void
     {
-        $upload = (string) file_get_contents(ROOT_PATH . '/plugins/product-import/upload_handler.php');
-        $admin = (string) file_get_contents(ROOT_PATH . '/plugins/product-import/admin.php');
+        $upload = (string) file_get_contents(ROOT_PATH . '/admin/includes/product_import/upload_handler.php');
+        $admin = (string) file_get_contents(ROOT_PATH . '/admin/includes/product_import/page.php');
         self::assertStringNotContainsString("'xlsx', 'xls'", $upload);
         self::assertStringNotContainsString('.xlsx,.xls', $admin);
     }

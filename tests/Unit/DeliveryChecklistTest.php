@@ -149,4 +149,36 @@ final class DeliveryChecklistTest extends TestCase
         self::assertSame('/admin/translation_status.php?filter=missing', $row['url']);
         self::assertContains('language_review', array_column($list['accept'], 'key'));
     }
+
+    /** 2.3.0：文章等内容、栏目与单页的译文也计入，单页的正文行不单独算一条内容 */
+    public function testArticlesAndChannelsAreCountedSeparatelyFromProducts(): void
+    {
+        db()->execute("CREATE TABLE channels (id INTEGER PRIMARY KEY AUTOINCREMENT, lang TEXT, translation_group_id INTEGER DEFAULT 0, parent_id INTEGER DEFAULT 0, name TEXT, description TEXT DEFAULT '', content TEXT DEFAULT '', type TEXT DEFAULT 'list', status INTEGER DEFAULT 1)");
+        db()->execute("CREATE TABLE contents (id INTEGER PRIMARY KEY AUTOINCREMENT, lang TEXT, translation_group_id INTEGER DEFAULT 0, channel_id INTEGER DEFAULT 0, type TEXT DEFAULT 'article', title TEXT, summary TEXT DEFAULT '', content TEXT DEFAULT '', status INTEGER DEFAULT 1, deleted_at INTEGER DEFAULT NULL)");
+        try {
+            // 栏目：「关于」单页有已发布的英文版；「新闻」没有英文版
+            db()->execute("INSERT INTO channels (id, lang, translation_group_id, name, type, status) VALUES (1, 'zh-CN', 0, '关于', 'page', 1), (2, 'zh-CN', 0, '新闻', 'list', 1), (3, 'en', 1, 'About', 'page', 1), (4, 'zh-CN', 0, '未启用', 'list', 0)");
+            // 内容：单页正文行（不算内容）；一篇已发布文章，英文版是草稿；一篇回收站里的文章
+            db()->execute("INSERT INTO contents (id, lang, translation_group_id, channel_id, type, title, status) VALUES (1, 'zh-CN', 0, 1, 'page', '关于正文', 1), (2, 'en', 1, 3, 'page', 'About body', 1), (3, 'zh-CN', 0, 2, 'article', '开业', 1), (4, 'en', 3, 2, 'article', 'Opening', 0), (5, 'zh-CN', 0, 2, 'article', '已删', 1)");
+            db()->execute('UPDATE contents SET deleted_at = 1 WHERE id = 5');
+
+            self::assertSame(['en' => ['missing' => 0, 'draft' => 1, 'outdated' => 0]], DeliveryChecklist::translationGaps('zh-CN', ['en'], 'contents'),
+                '单页正文行与回收站里的文章不算；草稿译文算未发布');
+            self::assertSame(['en' => ['missing' => 1, 'draft' => 0, 'outdated' => 0]], DeliveryChecklist::translationGaps('zh-CN', ['en'], 'channels'),
+                '「新闻」缺英文版；未启用的栏目不需要译文');
+        } finally {
+            db()->execute('DROP TABLE channels');
+            db()->execute('DROP TABLE contents');
+        }
+
+        $facts = self::facts(true) + [
+            'content_translation_gaps' => ['en' => ['missing' => 0, 'draft' => 1, 'outdated' => 0]],
+            'channel_translation_gaps' => ['en' => ['missing' => 0, 'draft' => 0, 'outdated' => 0]],
+        ];
+        $data = self::byKey(DeliveryChecklist::evaluate($facts, ['accept' => [], 'run' => []])['data']);
+        self::assertSame('done', $data['translations']['status']);
+        self::assertSame(['todo', '/admin/article.php', 'English 0/1/0'], [$data['translations_contents']['status'], $data['translations_contents']['url'], $data['translations_contents']['params']['list']],
+            '产品译文齐了、文章译文还是草稿：清单不能显示就绪');
+        self::assertSame('done', $data['translations_channels']['status']);
+    }
 }

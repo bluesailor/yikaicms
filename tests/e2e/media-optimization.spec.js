@@ -14,7 +14,6 @@ test('media library repairs responsive image derivatives @ci', async ({ page }, 
     '$image = imagecreatetruecolor(1200, 675);',
     'imagefill($image, 0, 0, imagecolorallocate($image, 38, 112, 92));',
     'if (!imagepng($image, $path)) { fwrite(STDERR, "imagepng failed\\n"); exit(1); }',
-    'imagedestroy($image);',
   ].join(' ');
   execFileSync(process.env.PHP_BINARY || 'php', ['-r', createImage, original], { cwd: root });
 

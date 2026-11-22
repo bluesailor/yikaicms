@@ -50,7 +50,6 @@ final class DoLoginLinkTest extends TestCase
     public function testIdentityHashIgnoresDriverIntegerTypes(): void
     {
         $identity = new \ReflectionMethod(DoLoginLinkModel::class, 'identity');
-        $identity->setAccessible(true);
         $model = new DoLoginLinkModel();
         $asStrings = ['id' => '2', 'password' => 'editor-password-hash', 'role_id' => '2', 'totp_secret' => null];
         $asIntegers = ['id' => 2, 'password' => 'editor-password-hash', 'role_id' => 2, 'totp_secret' => ''];

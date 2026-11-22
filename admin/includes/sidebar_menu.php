@@ -68,7 +68,26 @@ return [
                 'label'       => __('admin_product'),
                 'url'         => '/admin/product.php',
                 'icon'        => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"></path>',
-                'active_keys' => ['product', 'product_setting', 'translation_tasks', 'translation_status'],
+                'active_keys' => ['product', 'product_setting', 'translation_tasks'],
+            ],
+            // 产品导入 / 导出（2.3.0 并入主程序；此前由插件 product-import 注册同一个 key）
+            [
+                'key'      => 'product_import',
+                'perm'     => '*',
+                'label'    => __('pimp_menu'),
+                'url'      => '/admin/product_import.php',
+                'icon'     => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>',
+                // 排在产品管理（默认 100）之后：分组标题链接到组里第一项，不能让「商品与展示」一点就进导入页
+                'priority' => 120,
+            ],
+            // 翻译工作中心（2.3.0）：有产品权限的在产品组里看到；只有文章 / 单页权限的在文章组里看到（见下）
+            [
+                'key'      => 'translation_status',
+                'visible'  => hasPermission('edit_product'),
+                'label'    => __('tss_title'),
+                'url'      => '/admin/translation_status.php',
+                'icon'     => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>',
+                'priority' => 150,
             ],
             [
                 'key'   => 'case',
@@ -90,6 +109,14 @@ return [
                 'label' => __('admin_article'),
                 'url'   => '/admin/article.php',
                 'icon'  => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1m2 13a2 2 0 01-2-2V7m2 13a2 2 0 002-2V9a2 2 0 00-2-2h-2m-4-3H9M7 16h6M7 8h6v4H7V8z"></path>',
+            ],
+            [
+                'key'      => 'translation_status',
+                'visible'  => !hasPermission('edit_product') && (hasPermission('edit_article') || hasPermission('edit_page')),
+                'label'    => __('tss_title'),
+                'url'      => '/admin/translation_status.php',
+                'icon'     => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>',
+                'priority' => 150,
             ],
             [
                 'key'   => 'download',

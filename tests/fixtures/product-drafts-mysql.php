@@ -11,6 +11,7 @@ require ROOT_PATH . '/includes/models/autoload.php';
 require ROOT_PATH . '/includes/ScheduledPublish.php';
 require ROOT_PATH . '/includes/ProductEditDraft.php';
 require ROOT_PATH . '/includes/Migrator.php';
+require ROOT_PATH . '/includes/TranslationBatches.php';
 if (DB_DRIVER !== 'mysql' || !str_starts_with(DB_NAME, 's103_product_') || DB_HOST !== '127.0.0.1' || (int) DB_PORT < 33080) {
     throw new RuntimeException('Disposable connection required');
 }
@@ -26,7 +27,7 @@ $output = [];
 $checks = [];
 $check = static function(bool $ok, string $label) use (&$checks): void { $checks[] = ['ok' => $ok, 'label' => $label]; };
 $stateFile = ROOT_PATH . '/storage/product-mysql-baseline.json';
-$tables = ['translation_batches', 'translation_batch_items', 'translation_links'];
+$tables = ['translation_batches', 'translation_batch_items', 'translation_batch_events', 'translation_links'];
 $hashes = static function(): array {
     $out = [];
     foreach (['products', 'contents', 'channels', 'users', 'roles', 'settings', 'metas', 'product_routes'] as $name) {
@@ -49,7 +50,7 @@ if ($action === 'provision') {
     $check($hashes() === json_decode((string) file_get_contents($stateFile), true, 512, JSON_THROW_ON_ERROR), 'all pre-upgrade product/content/settings/account/route/meta rows preserved byte-for-byte');
     foreach ($tables as $name) {
         $check(db()->tableExists($name), $name . ' exists');
-        $migrationId = $name === 'translation_links' ? '20261108_translation_links' : '20261107_translation_batches';
+        $migrationId = match ($name) { 'translation_links' => '20261108_translation_links', 'translation_batch_events' => '20261116_translation_batch_worker', default => '20261107_translation_batches' };
         $all = array_column(Migrator::loadAll(), null, 'id');
         $check(Migrator::isApplied($all[$migrationId]), $migrationId . ' recognized by the common migrator');
         $quote = '`yikai_' . $name . '`';
@@ -83,6 +84,71 @@ if ($action === 'provision') {
         $output = ['ok' => false, 'error' => $exception->getMessage()];
     }
     $output['elapsed'] = microtime(true) - $started;
+} elseif ($action === 'tworker') {
+    // CORE-01：一个独立进程里的后台执行器。等父进程放行后和另一个执行器同时 drain 同一批
+    $job = json_decode((string) file_get_contents((string) $argv[2]), true, 512, JSON_THROW_ON_ERROR);
+    file_put_contents($job['ready'], (string) getmypid());
+    $deadline = microtime(true) + 20;
+    while (!is_file($job['go']) && microtime(true) < $deadline) usleep(5000);
+    $log = $job['calls'];
+    $svc = new TranslationBatches(db(), static function (array $source, string $lang) use ($log): array {
+        file_put_contents($log, $source['title'] . '|' . $lang . '|' . getmypid() . "\n", FILE_APPEND | LOCK_EX);
+        usleep(80000);   // 模型请求进行中：让两个执行器的领取与写库交错
+        return ['title' => $source['title'] . ' [' . $lang . ']', 'summary' => 'Summary', 'content' => '<p>Body</p>'];
+    });
+    $output = ['ok' => true, 'drained' => $svc->drain(30)];
+} elseif ($action === 'translation-workers') {
+    $db = db();
+    $prefix = DB_PREFIX;
+    $ids = [];
+    for ($i = 1; $i <= 6; $i++) {
+        $ids[] = (int) productModel()->create(['title' => 'Worker race ' . $i, 'summary' => 'S', 'content' => '<p>B</p>', 'slug' => 'worker-race-' . $i,
+            'lang' => 'zh-CN', 'status' => 1, 'created_at' => 1, 'updated_at' => 1]);
+    }
+    $svc = new TranslationBatches($db);
+    $batch = $svc->create(1, $ids, ['en', 'ja'], 'zh-CN', time());
+    $check($batch['total'] === 12, 'batch of 6 products × 2 languages created');
+    $stem = ROOT_PATH . '/storage/tworker-' . bin2hex(random_bytes(5));
+    $running = [];
+    foreach ([1, 2] as $n) {
+        $job = ['ready' => "{$stem}.{$n}.ready", 'go' => "{$stem}.go", 'calls' => "{$stem}.calls"];
+        file_put_contents("{$stem}.{$n}.job.json", json_encode($job, JSON_THROW_ON_ERROR));
+        $pipes = [];
+        $proc = proc_open([PHP_BINARY, __FILE__, 'tworker', "{$stem}.{$n}.job.json"],
+            [0 => ['pipe', 'r'], 1 => ['file', "{$stem}.{$n}.out.json", 'w'], 2 => ['file', "{$stem}.{$n}.err", 'w']], $pipes);
+        if (!is_resource($proc)) throw new RuntimeException('Worker startup failed');
+        fclose($pipes[0]);
+        $running[] = ['proc' => $proc, 'n' => $n, 'ready' => $job['ready']];
+    }
+    try {
+        $deadline = microtime(true) + 15;
+        while ((!is_file("{$stem}.1.ready") || !is_file("{$stem}.2.ready")) && microtime(true) < $deadline) usleep(5000);
+        $check(is_file("{$stem}.1.ready") && is_file("{$stem}.2.ready"), 'both workers connected before release');
+        touch("{$stem}.go");
+        $results = [];
+        foreach ($running as $worker) {
+            $deadline = microtime(true) + 60;
+            while (proc_get_status($worker['proc'])['running'] && microtime(true) < $deadline) usleep(10000);
+            if (proc_get_status($worker['proc'])['running']) throw new RuntimeException('Worker deadline exceeded');
+            proc_close($worker['proc']);
+            $results[] = json_decode((string) file_get_contents("{$stem}.{$worker['n']}.out.json"), true, 512, JSON_THROW_ON_ERROR);
+        }
+    } finally {
+        foreach ($running as $worker) if (is_resource($worker['proc'])) { proc_terminate($worker['proc']); proc_close($worker['proc']); }
+    }
+    $calls = array_values(array_filter(explode("\n", (string) @file_get_contents("{$stem}.calls"))));
+    $pids = array_unique(array_map(static fn (string $line): string => explode('|', $line)[2], $calls));
+    $check(count($results) === 2 && $results[0]['ok'] && $results[1]['ok'], 'both workers finished without errors');
+    $check(count($calls) === 12 && count(array_unique(array_map(static fn (string $l): string => implode('|', array_slice(explode('|', $l), 0, 2)), $calls))) === 12,
+        'each product × language was sent to the model exactly once across both workers (' . count($calls) . ' calls)');
+    $check(count($pids) === 2, 'both workers did part of the batch (interleaved, not one after the other)');
+    $check($svc->counts($batch['batch_id']) === ['applied' => 12] && $svc->batch($batch['batch_id'])['status'] === 'done', 'every item applied once and the batch is done');
+    $check((int) $db->fetchColumn("SELECT MAX(attempts) FROM {$prefix}translation_batch_items WHERE batch_id = ?", [$batch['batch_id']]) === 1, 'no item was claimed twice');
+    $places = implode(',', array_fill(0, count($ids), '?'));
+    $dups = $db->fetchAll("SELECT translation_group_id, lang, COUNT(*) AS n FROM {$prefix}products WHERE translation_group_id IN ({$places}) AND lang IN ('en', 'ja') AND deleted_at IS NULL GROUP BY translation_group_id, lang", $ids);
+    $check(count($dups) === 12 && max(array_map('intval', array_column($dups, 'n'))) === 1, 'exactly one translation per product and language, no duplicate commits');
+    $check((int) $db->fetchColumn("SELECT calls FROM {$prefix}translation_batches WHERE id = ?", [$batch['batch_id']]) === 12, 'the call counter matches the model calls actually made');
+    foreach (glob($stem . '*') ?: [] as $file) @unlink($file);
 } elseif ($action === 'concurrency') {
     $db = db();
     $prefix = DB_PREFIX;
@@ -239,7 +305,7 @@ if ($action === 'provision') {
         && metaModel()->get('product', DRAFT_PROBE_ID, 'draft_note') === 'Original note', 'failed apply preserves metadata, the current draft and history');
 }
 
-if ($action !== 'worker') {
+if ($action !== 'worker' && $action !== 'tworker') {
     $output = ['action' => $action, 'php' => PHP_VERSION, 'server' => db()->fetchColumn('SELECT VERSION()'), 'database' => DB_NAME,
         'assertions' => count($checks), 'failed' => count(array_filter($checks, static fn(array $row): bool => !$row['ok'])), 'checks' => $checks];
 }

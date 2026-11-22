@@ -35,7 +35,6 @@ function dlRequest(string $path, string $client, ?array $post = null): array
     if (!is_string($raw)) throw new RuntimeException('HTTP request failed.');
     $length = (int) curl_getinfo($handle, CURLINFO_HEADER_SIZE);
     $result = [(int) curl_getinfo($handle, CURLINFO_HTTP_CODE), substr($raw, $length), substr($raw, 0, $length)];
-    curl_close($handle);
     return $result;
 }
 function dlCsrf(string $html): string

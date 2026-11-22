@@ -119,6 +119,25 @@ final class TranslationStateTest extends TestCase
         self::assertSame("<p>HUMAN</p>", $r["edited_row"]["content"]);
     }
 
+    public function testTranslationIsRefusedUntilItsParentExistsInTheTargetLanguage(): void
+    {
+        $r = $this->probe('parent_missing');
+        self::assertSame('公司新闻', $r['article_missing']['name'], '文章：目标语言没有所在栏目就不建，并说出缺哪个栏目');
+        self::assertSame('translation_parent_missing', $r['article_new_row'], '写库层兜底：绝不静默沿用原语言的栏目');
+        self::assertSame('新闻', $r['child_missing']['name'], '子栏目 / 单页：先翻译上级栏目');
+        self::assertNull($r['top_missing'], '顶级栏目没有上级，不拦');
+        self::assertNull($r['child_after_parent']);
+        self::assertTrue($r['child_parent_mapped'], '上级换成目标语言的那一个');
+        self::assertTrue($r['article_still_missing'], '只翻译了上级栏目还不够，文章要它自己所在的栏目');
+        self::assertNull($r['article_after_channel']);
+        self::assertTrue($r['article_channel_mapped']);
+        self::assertNull($r['orphan_missing'], '原文指向的栏目已不存在：不拦');
+        self::assertSame(0, $r['orphan_channel'], '译文不带失效的栏目编号');
+        self::assertSame('泵', $r['category_missing']['name'], '子分类：先翻译上级分类');
+        self::assertTrue($r['category_parent_mapped']);
+        self::assertNull($r['product_missing'], '产品缺分类仍按 F02：放未分类并提示，不拦');
+    }
+
     public function testNewProductTranslationUsesTheTargetLanguageCategory(): void
     {
         $r = $this->probe("category_map");

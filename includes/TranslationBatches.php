@@ -24,6 +24,12 @@ final class TranslationBatches
     public const OPEN = ['pending', 'generating', 'generated'];
     /** 写库时发现这一项已不归本请求（被取消或被重新领取） */
     private const LEASE_LOST = 'lease_lost';
+    /** 生成失败后的等待：第 n 次失败后等 BACKOFF_SECONDS × 2^(n-1) 秒再领（60、120 秒） */
+    public const BACKOFF_SECONDS = 60;
+    /** 已完成、已取消的批次保留天数（含逐项结果与日志），过期由定时任务清理；设置项 translate_batch_keep_days 可改 */
+    public const KEEP_DAYS = 30;
+    /** 暂停原因：模型调用次数到了这一批的上限 */
+    public const NOTE_BUDGET = 'budget';
 
     /** @var Closure(array<string,mixed>, string): array<string,mixed> */
     private Closure $generator;
@@ -85,7 +91,12 @@ final class TranslationBatches
                     $total++;
                 }
             }
-            $this->db->execute('UPDATE ' . DB_PREFIX . 'translation_batches SET total = ? WHERE id = ?', [$total, $batchId]);
+            // 调用上限：设置项 translate_batch_max_calls（每批模型调用次数）> 0 时用它；
+            // 否则按每项最多 MAX_ATTEMPTS 次封顶，防止一批无限重试
+            $configured = (int) config('translate_batch_max_calls', 0);
+            $this->db->execute('UPDATE ' . DB_PREFIX . 'translation_batches SET total = ?, max_calls = ? WHERE id = ?',
+                [$total, $configured > 0 ? $configured : $total * self::MAX_ATTEMPTS, $batchId]);
+            $this->log($batchId, 0, 'created', (string) $total, $now);
             $this->db->commit();
         } catch (Throwable $error) {
             $this->db->rollback();
@@ -105,15 +116,60 @@ final class TranslationBatches
         $clock ??= static fn (): int => time();
         $deadline = microtime(true) + $budgetSeconds;
         $seen = [];
-        while (microtime(true) < $deadline && $this->batchStatus($batchId) === 'running') {
+        while (microtime(true) < $deadline && !self::memoryTight() && $this->batchStatus($batchId) === 'running') {
             $item = $this->claim($batchId, $clock(), $seen);
             if ($item === null) break;
             $seen[(int) $item['id']] = true;
-            if ($item['status'] === 'generating') $item = $this->generateItem($item, $clock());
+            if ($item['status'] === 'generating') {
+                // 调模型前先占一次额度；到上限就把这一项放回去、整批暂停，等人看过再继续
+                if (!$this->reserveCall($batchId)) {
+                    $this->release($item, $clock());
+                    $this->pauseForBudget($batchId, $clock());
+                    break;
+                }
+                $item = $this->generateItem($item, $clock());
+            }
             if ($item !== null && $item['status'] === 'generated') $this->applyItem($item, $clock());
         }
         $this->finishIfDone($batchId, $clock());
         return $this->counts($batchId);
+    }
+
+    /**
+     * 后台执行（定时任务 / CLI）：按批次号依次推进所有 running 批次，到时限或内存吃到 85% 就停，
+     * 下一轮接着跑。租约保证与浏览器里同时点「继续」不会重复处理同一项；暂停、取消照常生效
+     * （step 每项之前都重读批次状态，正在调模型的那一项跑完才停）。
+     * @param null|Closure():int $clock 测试注入
+     * @return array<int,array<string,int>> 批次号 => 各状态计数
+     */
+    public function drain(float $budgetSeconds, ?Closure $clock = null): array
+    {
+        $deadline = microtime(true) + $budgetSeconds;
+        $out = [];
+        $ids = $this->db->fetchAll('SELECT id FROM ' . DB_PREFIX . "translation_batches WHERE status = 'running' ORDER BY id");
+        foreach ($ids as $row) {
+            $left = $deadline - microtime(true);
+            if ($left <= 0 || self::memoryTight()) break;
+            $out[(int) $row['id']] = $this->step((int) $row['id'], $left, $clock);
+        }
+        return $out;
+    }
+
+    /** 已用内存是否到了 memory_limit 的 85%（无上限时永远 false） */
+    public static function memoryTight(?int $used = null, ?string $limit = null): bool
+    {
+        $bytes = self::bytes($limit ?? (string) ini_get('memory_limit'));
+        return $bytes > 0 && ($used ?? memory_get_usage(true)) >= $bytes * 0.85;
+    }
+
+    private static function bytes(string $value): int
+    {
+        $value = trim($value);
+        if ($value === '' || $value === '-1') return 0;
+        $n = (int) $value;
+        return match (strtolower(substr($value, -1))) {
+            'g' => $n * 1024 ** 3, 'm' => $n * 1024 ** 2, 'k' => $n * 1024, default => $n,
+        };
     }
 
     /** failed 与 conflict 重新排队；conflict 的旧结果作废（源已变，必须重新生成） */
@@ -121,19 +177,71 @@ final class TranslationBatches
     {
         $n = $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batch_items SET status = 'pending', attempts = 0, error = '', result_json = NULL, source_fp = '', lease_until = 0, updated_at = ?"
             . " WHERE batch_id = ? AND status IN ('failed', 'conflict')", [$now, $batchId]);
-        if ($n > 0) $this->setStatus($batchId, 'running', $now);
+        if ($n > 0) {
+            // 人点了重试就是同意再花：额度至少留够这些项各 MAX_ATTEMPTS 次
+            $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET status = 'running', note = '', updated_at = ?,"
+                . ' max_calls = CASE WHEN max_calls < calls + ? THEN calls + ? ELSE max_calls END WHERE id = ?',
+                [$now, $n * self::MAX_ATTEMPTS, $n * self::MAX_ATTEMPTS, $batchId]);
+            $this->log($batchId, 0, 'retried', (string) $n, $now);
+        }
         return $n;
     }
 
     public function pause(int $batchId, int $now): void
     {
-        $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET status = 'paused', updated_at = ? WHERE id = ? AND status = 'running'", [$now, $batchId]);
+        if ($this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET status = 'paused', note = '', updated_at = ? WHERE id = ? AND status = 'running'", [$now, $batchId]) === 1) {
+            $this->log($batchId, 0, 'paused', '', $now);
+        }
     }
 
+    /** 继续。因调用额度暂停的，继续时给剩下的项各 MAX_ATTEMPTS 次额度（人看过、同意再花） */
     public function resume(int $batchId, int $now): void
     {
-        $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET status = 'running', updated_at = ? WHERE id = ? AND status = 'paused'", [$now, $batchId]);
+        $open = (int) $this->db->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . "translation_batch_items WHERE batch_id = ? AND status IN ('pending', 'generating', 'generated')", [$batchId]);
+        $grant = $open * self::MAX_ATTEMPTS;
+        $n = $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET status = 'running', updated_at = ?,"
+            . ' max_calls = CASE WHEN note = ? THEN calls + ? ELSE max_calls END, note = \'\' WHERE id = ? AND status = \'paused\'',
+            [$now, self::NOTE_BUDGET, $grant, $batchId]);
+        if ($n === 1) $this->log($batchId, 0, 'resumed', '', $now);
         $this->finishIfDone($batchId, $now);
+    }
+
+    /** @return list<array<string,mixed>> 任务日志，新的在前 */
+    public function events(int $batchId, int $limit = 50): array
+    {
+        return $this->db->fetchAll('SELECT id, item_id, event, detail, created_at FROM ' . DB_PREFIX . 'translation_batch_events WHERE batch_id = ? ORDER BY id DESC LIMIT ' . max(1, $limit), [$batchId]);
+    }
+
+    /**
+     * 结果保留期限：删掉更新时间早于 $keepDays 天的已完成 / 已取消批次，连同逐项结果与日志。
+     * 已写进站点的译文是普通内容，不受影响。进行中、暂停的批次不删。
+     * @return int 删掉的批次数（命令行 translate:run 显示它；定时任务不需要）
+     * @psalm-suppress PossiblyUnusedReturnValue 命令文件里的闭包不在 Psalm 的使用分析范围内
+     */
+    public function purge(int $now, int $keepDays = self::KEEP_DAYS): int
+    {
+        $cutoff = $now - max(1, $keepDays) * 86400;
+        $ids = array_map('intval', array_column($this->db->fetchAll('SELECT id FROM ' . DB_PREFIX
+            . "translation_batches WHERE status IN ('done', 'cancelled') AND updated_at < ? ORDER BY id LIMIT 200", [$cutoff]), 'id'));
+        if ($ids === []) return 0;
+        $in = implode(',', array_fill(0, count($ids), '?'));
+        $this->db->beginTransaction();
+        try {
+            $this->db->execute('DELETE FROM ' . DB_PREFIX . "translation_batch_events WHERE batch_id IN ({$in})", $ids);
+            $this->db->execute('DELETE FROM ' . DB_PREFIX . "translation_batch_items WHERE batch_id IN ({$in})", $ids);
+            $this->db->execute('DELETE FROM ' . DB_PREFIX . "translation_batches WHERE id IN ({$in})", $ids);
+            $this->db->commit();
+        } catch (Throwable $error) {
+            $this->db->rollback();
+            throw $error;
+        }
+        return count($ids);
+    }
+
+    /** 第 $attempts 次失败后要等的秒数 */
+    public static function backoff(int $attempts): int
+    {
+        return self::BACKOFF_SECONDS << max(0, min(6, $attempts - 1));
     }
 
     /** 取消：未开始的项不再处理；已经写进去的译文不撤（它们是普通草稿） */
@@ -143,8 +251,9 @@ final class TranslationBatches
         // 它先写完就是 applied，不再改；它还没开始写，就看到 cancelled、一个字都不写（评审 F03）
         $this->db->beginTransaction();
         try {
-            $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET status = 'cancelled', updated_at = ? WHERE id = ? AND status IN ('running', 'paused')", [$now, $batchId]);
+            $n = $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET status = 'cancelled', updated_at = ? WHERE id = ? AND status IN ('running', 'paused')", [$now, $batchId]);
             $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batch_items SET status = 'cancelled', lease_until = 0, updated_at = ? WHERE batch_id = ? AND status IN ('pending', 'generating', 'generated')", [$now, $batchId]);
+            if ($n === 1) $this->log($batchId, 0, 'cancelled', '', $now);
             $this->db->commit();
         } catch (Throwable $error) {
             if ($this->db->getPdo()->inTransaction()) $this->db->rollback();
@@ -230,8 +339,17 @@ final class TranslationBatches
         try {
             $translated = ($this->generator)(TranslationWrite::source($src, 'title', 'summary', $src, translationBodyField($src)), (string) $item['lang']);
         } catch (Throwable $error) {
-            $status = (int) $item['attempts'] >= self::MAX_ATTEMPTS ? 'failed' : 'pending';
-            $this->markHeld($item, $status, ['error' => mb_substr($error->getMessage(), 0, 250)], $now);
+            $attempts = (int) $item['attempts'];
+            $message = mb_substr($error->getMessage(), 0, 250);
+            if ($attempts >= self::MAX_ATTEMPTS) {
+                if ($this->markHeld($item, 'failed', ['error' => $message], $now)) $this->log((int) $item['batch_id'], $id, 'failed', $message, $now);
+                return null;
+            }
+            // 退避：租约时间设到「可以再试」的时刻，claim 在那之前不会领它（不占调用额度、不连打失败的接口）
+            $retryAt = $now + self::backoff($attempts);
+            if ($this->markHeld($item, 'pending', ['error' => $message], $now, $retryAt)) {
+                $this->log((int) $item['batch_id'], $id, 'retry_later', date('H:i:s', $retryAt) . ' ' . $message, $now);
+            }
             return null;
         }
         // 租约留着：本请求接着写库，别的页面这时领不走它。
@@ -261,7 +379,7 @@ final class TranslationBatches
             return;
         }
         if (TranslationWrite::fingerprint($src) !== (string) $row['source_fp']) {
-            $this->markHeld($item, 'conflict', ['error' => 'source_changed'], $now);
+            if ($this->markHeld($item, 'conflict', ['error' => 'source_changed'], $now)) $this->log((int) $item['batch_id'], $id, 'conflict', 'source_changed', $now);
             return;
         }
         require_once ROOT_PATH . '/includes/content_translation.php';
@@ -306,7 +424,8 @@ final class TranslationBatches
         match ($written['conflict']) {
             '', self::LEASE_LOST => null,   // 已在事务里记好；或这一项已不归本请求，什么都不动
             'target_exists' => $this->markHeld($item, 'exists', ['target_id' => $written['id'], 'error' => ''], $now),
-            default => $this->markHeld($item, 'conflict', ['error' => $written['conflict']], $now),
+            default => $this->markHeld($item, 'conflict', ['error' => $written['conflict']], $now)
+                && $this->log((int) $item['batch_id'], $id, 'conflict', (string) $written['conflict'], $now),
         };
     }
 
@@ -332,15 +451,47 @@ final class TranslationBatches
     private function finishIfDone(int $batchId, int $now): void
     {
         $open = (int) $this->db->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . "translation_batch_items WHERE batch_id = ? AND status IN ('pending', 'generating', 'generated')", [$batchId]);
-        if ($open === 0) {
-            $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET status = 'done', updated_at = ? WHERE id = ? AND status = 'running'", [$now, $batchId]);
+        if ($open === 0 && $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET status = 'done', updated_at = ? WHERE id = ? AND status = 'running'", [$now, $batchId]) === 1) {
+            $this->log($batchId, 0, 'done', '', $now);
         }
     }
 
-    private function setStatus(int $batchId, string $status, int $now): void
+    /** 占一次模型调用额度；批次不在 running 或额度用完时返回 false */
+    private function reserveCall(int $batchId): bool
     {
-        $this->db->execute('UPDATE ' . DB_PREFIX . 'translation_batches SET status = ?, updated_at = ? WHERE id = ?', [$status, $now, $batchId]);
+        return $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET calls = calls + 1 WHERE id = ? AND status = 'running' AND (max_calls = 0 OR calls < max_calls)", [$batchId]) === 1;
     }
+
+    /** 刚领到、还没调模型的项放回去：本次不算一次尝试 @param array<string,mixed> $held */
+    private function release(array $held, int $now): void
+    {
+        $this->db->update('translation_batch_items', ['status' => 'pending', 'attempts' => max(0, (int) $held['attempts'] - 1), 'lease_until' => 0, 'updated_at' => $now],
+            'id = ? AND status = ? AND lease_until = ? AND attempts = ?',
+            [(int) $held['id'], (string) $held['status'], (int) $held['lease_until'], (int) $held['attempts']]);
+    }
+
+    private function pauseForBudget(int $batchId, int $now): void
+    {
+        $n = $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET status = 'paused', note = ?, updated_at = ? WHERE id = ? AND status = 'running'", [self::NOTE_BUDGET, $now, $batchId]);
+        if ($n === 1) {
+            $row = $this->batch($batchId);
+            $this->log($batchId, 0, 'budget_paused', (int) ($row['calls'] ?? 0) . '/' . (int) ($row['max_calls'] ?? 0), $now);
+        }
+    }
+
+    /** 记一条任务日志。日志写失败不影响翻译本身 */
+    private function log(int $batchId, int $itemId, string $event, string $detail, int $now): bool
+    {
+        try {
+            $this->db->insert('translation_batch_events', [
+                'batch_id' => $batchId, 'item_id' => $itemId, 'event' => $event, 'detail' => mb_substr($detail, 0, 250), 'created_at' => $now,
+            ]);
+        } catch (Throwable) {
+            // 表还没建（迁移未跑）或写失败：只少一条日志
+        }
+        return true;
+    }
+
 
     private function batchStatus(int $batchId): string
     {

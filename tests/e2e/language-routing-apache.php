@@ -39,7 +39,6 @@ $http = static function (string $url, array $post = [], string $hostHeader = '')
     $raw = (string) curl_exec($ch);
     $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
     $size = (int) curl_getinfo($ch, CURLINFO_HEADER_SIZE);
-    curl_close($ch);
     preg_match('/^Location:\s*(.+)$/mi', substr($raw, 0, $size), $m);
     return ['status' => $status, 'location' => trim($m[1] ?? ''), 'body' => substr($raw, $size)];
 };

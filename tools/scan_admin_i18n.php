@@ -64,7 +64,6 @@ function scan_req(string $path, array $post = []): array
     $body = is_string($result) ? $result : '';
     $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
     $error = curl_error($ch);
-    curl_close($ch);
     return [$code, $body, $error];
 }
 

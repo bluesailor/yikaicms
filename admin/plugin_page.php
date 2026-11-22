@@ -20,6 +20,13 @@ checkLogin();
 // 声明的键必须已在权限目录（allPermissionKeys，含插件声明）里登记，否则退回
 // '*'——未知键只收紧、不放宽。
 $pluginSlug = trim($_GET['plugin'] ?? '');
+// 已并入主程序的插件：旧书签、旧菜单地址转到新页面（新页面自己查权限）
+$retiredTarget = retiredPluginRedirect($pluginSlug);
+if ($retiredTarget !== null) {
+    $keep = array_intersect_key($_GET, ['tab' => true]);
+    header('Location: ' . BasePath::url($retiredTarget . ($keep !== [] ? '?' . http_build_query($keep) : '')), true, 302);
+    exit;
+}
 $pluginMetaEarly = getPluginMeta($pluginSlug);
 $pluginAdminPermissions = [];
 if (is_array($pluginMetaEarly)) {

@@ -240,7 +240,6 @@ final class MediaWebpConverterTest extends TestCase
         self::assertNotFalse($image);
         imagefill($image, 0, 0, imagecolorallocate($image, 200, 10, 20));
         imagewebp($image, $this->uploads . '/hero.webp', 85);
-        imagedestroy($image);
         $before = hash_file('sha256', $this->uploads . '/hero.webp');
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('同名 WebP 缺少有效来源契约');
@@ -263,7 +262,6 @@ final class MediaWebpConverterTest extends TestCase
         self::assertNotFalse($image);
         imagesetpixel($image, 0, 0, imagecolorallocate($image, 250, 2, 3));
         imagepng($image, $this->uploads . '/hero.png');
-        imagedestroy($image);
 
         $this->expectException(\RuntimeException::class);
         $this->expectExceptionMessage('同名 WebP 来源契约与当前源图或转换品质不一致');
@@ -337,7 +335,6 @@ final class MediaWebpConverterTest extends TestCase
         self::assertNotFalse($image);
         imagefill($image, 0, 0, imagecolorallocate($image, 33, 98, 166));
         $ok = $format === 'png' ? imagepng($image, $path) : imagejpeg($image, $path, 90);
-        imagedestroy($image);
         self::assertTrue($ok);
     }
 }

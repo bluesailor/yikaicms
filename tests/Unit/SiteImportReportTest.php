@@ -23,7 +23,6 @@ final class SiteImportReportTest extends TestCase
     private function foreignLinks(mixed $value, string $host): array
     {
         $method = new ReflectionMethod(SiteImportReport::class, 'foreignAssetLinks');
-        $method->setAccessible(true);
         /** @var list<string> $result */
         $result = $method->invoke(null, $value, $host);
         return $result;
@@ -66,7 +65,6 @@ final class SiteImportReportTest extends TestCase
     public function testStatusFollowsTheWorstLevelPresent(): void
     {
         $push = new ReflectionMethod(SiteImportReport::class, 'push');
-        $push->setAccessible(true);
 
         $items = [];
         $counts = [SiteImportReport::FAILED => 0, SiteImportReport::WARNING => 0];
@@ -83,7 +81,6 @@ final class SiteImportReportTest extends TestCase
     public function testEachLevelIsBounded(): void
     {
         $push = new ReflectionMethod(SiteImportReport::class, 'push');
-        $push->setAccessible(true);
         $items = [];
         $counts = [SiteImportReport::FAILED => 0, SiteImportReport::WARNING => 0];
         for ($i = 0; $i < 500; $i++) {

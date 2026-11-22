@@ -30,7 +30,6 @@ $request = static function(int $port, string $path, ?array $data = null): array 
     if ($data !== null) curl_setopt_array($curl, [CURLOPT_POST => true, CURLOPT_POSTFIELDS => http_build_query($data)]);
     $body = curl_exec($curl);
     $code = (int) curl_getinfo($curl, CURLINFO_HTTP_CODE);
-    curl_close($curl);
     return [$code, $body];
 };
 $assert = static function(bool $ok, string $message): void { if (!$ok) throw new RuntimeException($message); };

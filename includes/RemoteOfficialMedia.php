@@ -488,7 +488,6 @@ final class RemoteOfficialMedia
             $ok = curl_exec($ch);
             $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
             $err = curl_error($ch);
-            curl_close($ch);
             if ($ok === false || $code >= 300 || $code < 200) {
                 throw new RuntimeException($err !== '' ? $err : '官方素材暂时不可用，本站媒体仍可使用');
             }

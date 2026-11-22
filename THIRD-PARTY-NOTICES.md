@@ -117,6 +117,7 @@ Psalm、PHP-Parser 等只用于开发与测试，见 `composer.json` 的 `requir
   随包只保留运行时文件（*.min.js、皮肤、插件数据），语言包沿用原 zh_CN / ja 两份并改挂
   `hugerte.addI18n`。`assets/tinymce/` 整目录删除；`window.tinymce` 作为别名保留给第三方插件。
 
+- **2026-11-22（v2.3.0 候选核对）**：`composer.json`、`composer.lock`、`package.json`、`package-lock.json` 与 v2.2.2 一致；本版未新增、升级或移除第三方组件。`assets/icons/` 的站点图标子集按新的使用情况重新生成（同一 Tabler Icons，许可不变）。随包插件少了产品导入（并入主程序，代码为本项目自有）。
 - **2026-11-15（v2.2.2 核对）**：`composer.json`、`composer.lock`、`package.json`、`package-lock.json`、`assets/` 和随包插件与 v2.2.1 一致。本版未新增、升级或移除第三方组件，既有组件许可和加载入口保持有效。AI 请求沿用 PHP cURL 扩展，本次补充缺失扩展时的提示。
 - **2026-11-08（v2.2.1 核对）**：本周期没有新增第三方组件；`composer.json` / `composer.lock` 与 `package.json` / `package-lock.json` 自 v2.2.0 起无变化；`assets/` 没有新增或删除文件，只改了本项目源码 `yikay-preview-client.js` 与 `tailwind.css` 产物。翻译任务、译文来源追踪与产品修改草稿均为本项目源码。反向核对：本周期未删除任何组件的加载点。
 - **2026-11-06（v2.2.0 核对）**：本周期没有新增第三方组件；`composer.json` / `composer.lock` 与 `package.json` / `package-lock.json` 自 v2.1.3 起无变化；`assets/` 没有新增或删除文件，只改了本项目源码 `yikay-editor-runtime.js`、`yikay-page-settings.js` 与 `tailwind.css` 产物。外部 AI 接入（MCP）按公开协议自行实现，不引入 SDK；密钥加密沿用 PHP 自带的 OpenSSL。反向核对：本周期未删除任何组件的加载点。

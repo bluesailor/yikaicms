@@ -57,10 +57,14 @@ final class TranslationBatchesTest extends TestCase
     public function testFailuresAreCountedVisibleAndRetryable(): void
     {
         $r = $this->probe('failures');
-        self::assertSame(['pending', 'pending', 'failed', 'failed'], array_column($r['after'], 'status'));
-        self::assertSame(3, $r['after'][3]['attempts']);
-        self::assertSame('provider 503', $r['after'][3]['error']);
-        self::assertCount(3, $r['calls'], '失败满 3 次后不再调模型');
+        self::assertSame(['pending', 'pending', 'pending', 'pending', 'failed', 'failed'], array_column($r['after'], 'status'));
+        self::assertSame([1, 1, 2, 2, 3, 3], array_column($r['after'], 'calls'), '退避期内不调模型；满 3 次后不再调');
+        self::assertSame(1800000000 + 1 + 60, $r['after'][0]['lease_until'], '第 1 次失败后等 60 秒');
+        self::assertSame(1800000000 + 62 + 120, $r['after'][2]['lease_until'], '第 2 次失败后等 120 秒');
+        self::assertSame(3, $r['after'][5]['attempts']);
+        self::assertSame('provider 503', $r['after'][5]['error']);
+        self::assertCount(3, $r['calls']);
+        self::assertSame(['created', 'retry_later', 'retry_later', 'failed', 'done'], $r['log']);
         self::assertSame('done', $r['batch']);
         self::assertSame(1, $r['retried']);
         self::assertSame(['pending', 0, ''], [$r['after_retry']['status'], $r['after_retry']['attempts'], $r['after_retry']['error']]);
@@ -103,6 +107,39 @@ final class TranslationBatchesTest extends TestCase
         self::assertSame(0, $r['calls_cancelled']);
         self::assertSame('cancelled', $r['batch']);
     }
+    public function testBackgroundDrainRunsOnlyRunningBatchesAndStopsNearTheMemoryLimit(): void
+    {
+        $r = $this->probe('drain');
+        self::assertTrue($r['order'], '按批次号推进，暂停的批次不在结果里');
+        self::assertSame(['done', 'paused', 'done'], $r['statuses']);
+        self::assertSame(3, $r['calls'], '暂停批次的项不调模型');
+        self::assertSame([], $r['again'], '没有进行中的批次时是一次早退');
+        self::assertSame([false, true, false, false, true], $r['memory'], '85% 为界；memory_limit=-1 不限');
+    }
+
+    public function testCallLimitPausesTheBatchAndResumeGrantsMore(): void
+    {
+        $r = $this->probe('budget');
+        self::assertSame(['applied' => 2, 'pending' => 1], $r['first']);
+        self::assertSame(['paused', 'budget', 2, 2, 2], $r['paused'], '到上限即暂停，不多调一次模型');
+        self::assertSame(['pending', 0, 0], $r['released'][2], '放回去的项不算一次尝试、可以马上再领');
+        self::assertSame(['running', '', 2 + 3], $r['resumed'], '继续时给剩下 1 项再分配 3 次');
+        self::assertSame(['applied' => 3], $r['second']);
+        self::assertSame(['done', 3, 3], $r['done']);
+        self::assertSame(['created', 'budget_paused', 'resumed', 'done'], $r['log']);
+        self::assertSame(2 * 3, $r['default_cap'], '没设上限时按每项 3 次封顶');
+    }
+
+    public function testPurgeRemovesOnlyExpiredFinishedBatchesAndKeepsTranslations(): void
+    {
+        $r = $this->probe('purge');
+        self::assertSame(2, $r['purged']);
+        self::assertSame($r['expected_left'], $r['left'], '暂停的与未过期的批次保留');
+        self::assertSame(0, $r['orphans'], '项与日志一起删');
+        self::assertTrue($r['translations_kept'], '已写进站点的译文不受影响');
+        self::assertSame(0, $r['again']);
+    }
+
     public function testCancellationDuringGenerationWinsOverTheLateResult(): void
     {
         foreach (["cancel_during_generation", "cancel_then_provider_error"] as $scenario) {

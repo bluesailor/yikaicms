@@ -141,7 +141,6 @@ final class NavCurrentTest extends TestCase
     {
         $_SERVER['REQUEST_URI'] = '/product/pumps/';
         $render = new ReflectionMethod(NavElement::class, 'renderMenuNode');
-        $render->setAccessible(true);
         $node = ['name' => '产品', '_url' => '/product/', 'children' => [
             ['name' => '水泵', '_url' => '/product/pumps/'],
             ['name' => '阀门', '_url' => '/product/valves/'],
@@ -167,7 +166,6 @@ final class NavCurrentTest extends TestCase
     {
         $_SERVER['REQUEST_URI'] = '/solutions/water/';
         $column = new ReflectionMethod(NavMegaElement::class, 'renderColumn');
-        $column->setAccessible(true);
         $html = $column->invoke(new NavMegaElement(), ['name' => '方案', '_url' => '/solutions/', 'children' => [
             ['name' => '水处理', '_url' => '/solutions/water/'],
         ]], false, false);

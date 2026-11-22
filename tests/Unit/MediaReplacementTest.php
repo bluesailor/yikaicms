@@ -38,7 +38,6 @@ final class MediaReplacementTest extends TestCase
         $image = imagecreatetruecolor($width, $height);
         imagefill($image, 0, 0, imagecolorallocate($image, $red, 64, 96));
         imagepng($image, $path);
-        imagedestroy($image);
     }
 
     private function media(string $path, int $id = 7): array

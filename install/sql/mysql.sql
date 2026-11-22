@@ -1,6 +1,6 @@
 -- ============================================================
 -- Yikai CMS Install SQL (MySQL)
--- Version: 2.2.2
+-- Version: 2.3.0
 -- Generated: 2026-05-16 20:03:01
 -- ============================================================
 SET NAMES utf8mb4;
@@ -1619,7 +1619,7 @@ INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `ti
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (105,'member','download_require_login','0','switch','下载需要登录','',NULL,2);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (106,'social','social_links','[]','social_links','社交媒体链接','',NULL,1);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (107,'system','current_theme','default','text','当前主题','',NULL,0);
-INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (108,'system','cms_version','2.2.2','text','CMS版本号','',NULL,1);
+INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (108,'system','cms_version','2.3.0','text','CMS版本号','',NULL,1);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (109,'system','site_lang','zh-CN','text','站点语言','',NULL,2);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (110,'system','admin_lang','zh-CN','text','后台语言','',NULL,3);
 INSERT INTO `yikai_settings` (`id`, `group`, `key`, `value`, `type`, `name`, `tip`, `options`, `sort_order`) VALUES (111,'basic','html_cache_enabled','1','select','HTML缓存','','{\"0\":\"关闭\",\"1\":\"开启\"}',15);
@@ -2037,9 +2037,23 @@ CREATE TABLE `yikai_translation_batches` (
   `total` int(11) UNSIGNED NOT NULL DEFAULT 0,
   `created_at` int(11) UNSIGNED NOT NULL,
   `updated_at` int(11) UNSIGNED NOT NULL,
+  `calls` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `max_calls` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `note` varchar(32) NOT NULL DEFAULT '',
   PRIMARY KEY (`id`),
   KEY `idx_translation_batches_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='批量翻译任务';
+DROP TABLE IF EXISTS `yikai_translation_batch_events`;
+CREATE TABLE `yikai_translation_batch_events` (
+  `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,
+  `batch_id` int(11) UNSIGNED NOT NULL,
+  `item_id` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `event` varchar(20) NOT NULL,
+  `detail` varchar(255) NOT NULL DEFAULT '',
+  `created_at` int(11) UNSIGNED NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_translation_batch_events_batch` (`batch_id`, `id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='批量翻译任务日志';
 DROP TABLE IF EXISTS `yikai_translation_batch_items`;
 CREATE TABLE `yikai_translation_batch_items` (
   `id` int(11) UNSIGNED NOT NULL AUTO_INCREMENT,

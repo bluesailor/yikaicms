@@ -13,6 +13,21 @@ require_once ROOT_PATH . '/includes/Cron.php';
 
 final class CronHealthTest extends TestCase
 {
+    /** 建批后立即触发（CORE-01）：只发往配置的站点地址，带 kick=1（不算心跳），HTTPS 走 TLS */
+    public function testKickRequestTargetsTheConfiguredSiteOnly(): void
+    {
+        $r = Cron::kickRequest('https://shop.example.com/sub/', 'translation_batches', 'tok');
+        self::assertSame('tls://shop.example.com:443', $r['target']);
+        self::assertSame('shop.example.com', $r['host']);
+        self::assertStringStartsWith("GET /sub/cron.php?token=tok&task=translation_batches&kick=1 HTTP/1.1\r\nHost: shop.example.com\r\n", $r['request']);
+        $plain = Cron::kickRequest('http://127.0.0.1:8080', 'translation_batches', 'tok');
+        self::assertSame('tcp://127.0.0.1:8080', $plain['target']);
+        self::assertStringContainsString("Host: 127.0.0.1:8080\r\n", $plain['request']);
+        foreach (['', 'example.com', 'ftp://example.com', 'https://u:p@example.com', 'https://example.com/?x=1'] as $bad) {
+            self::assertNull(Cron::kickRequest($bad, 'translation_batches', 'tok'), $bad);
+        }
+    }
+
     public function testHealthStates(): void
     {
         $now = 1_800_000_000;
@@ -28,7 +43,8 @@ final class CronHealthTest extends TestCase
         $cron = (string) file_get_contents(ROOT_PATH . '/includes/Cron.php');
         self::assertMatchesRegularExpression('/function runDue\(.*?\{.*?self::beat\(\);/s', $cron);
         self::assertDoesNotMatchRegularExpression('/function runOne\(.*?\{[^}]*beat\(/s', $cron);
-        self::assertStringContainsString("Cron::beat();\n    \$r = Cron::runOne(\$task);", str_replace("\r\n", "\n", (string) file_get_contents(ROOT_PATH . '/cron.php')));
+        // 立即触发（kick=1）也走 cron.php?task=，但不是计划任务在调用，不算心跳
+        self::assertStringContainsString("if (!isset(\$_GET['kick'])) Cron::beat();", (string) file_get_contents(ROOT_PATH . '/cron.php'));
         self::assertStringContainsString('Cron::beat();', (string) file_get_contents(ROOT_PATH . '/includes/commands/cron.php'));
         self::assertStringNotContainsString('beat(', (string) file_get_contents(ROOT_PATH . '/admin/cron.php'));
     }

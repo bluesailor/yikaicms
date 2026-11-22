@@ -330,7 +330,6 @@ final class LanguagePacks
             ]);
             curl_exec($ch);
             $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
             self::$lastStatus = $status;
             return !$tooLarge && $status === 200 && $body !== '' ? $body : null;
         }
@@ -338,8 +337,9 @@ final class LanguagePacks
             return null;
         }
         $context = stream_context_create(['http' => ['timeout' => 30, 'follow_location' => 0, 'ignore_errors' => true]]);
+        if (function_exists('http_clear_last_response_headers')) http_clear_last_response_headers();
         $body = @file_get_contents($url, false, $context, 0, $maxBytes + 1);
-        $statusLine = (string) ($http_response_header[0] ?? '');
+        $statusLine = (string) ((function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []))[0] ?? '');
         self::$lastStatus = preg_match('/^HTTP\/\S+\s+(\d{3})/', $statusLine, $m) === 1 ? (int) $m[1] : 0;
         return is_string($body) && $body !== '' && strlen($body) <= $maxBytes && preg_match('/^HTTP\/\S+\s+200\b/', $statusLine) === 1 ? $body : null;
     }

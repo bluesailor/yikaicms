@@ -69,6 +69,35 @@ final class Cron
         require_once ROOT_PATH . '/includes/DemoSandbox.php';
         DemoSandbox::registerCron();
 
+        // 批量翻译后台执行（2.3.0 CORE-01）：关掉页面后由定时任务接着跑 running 批次。
+        // 预算 45 秒 + 内存 85% 守卫；表未建或没有进行中的批次时是一次早退。
+        self::register('translation_batches', __('cron_translation_batches'), 60, static function (): string {
+            if (!db()->tableExists('translation_batch_events')) {   // 20261116 迁移未跑：老表缺额度列
+                return __('cron_nothing_due');
+            }
+            require_once ROOT_PATH . '/includes/TranslationBatches.php';
+            @set_time_limit(120);
+            $service = new TranslationBatches(db());
+            $done = $service->drain(45);
+            // 结果保留期限：过期的已完成 / 已取消批次连同逐项结果与日志一起清掉
+            $service->purge(time(), (int) config('translate_batch_keep_days', TranslationBatches::KEEP_DAYS) ?: TranslationBatches::KEEP_DAYS);
+            return $done === [] ? __('cron_nothing_due') : str_replace(':n', (string) count($done), __('cron_translation_batches_n'));
+        });
+
+        // 产品导入后台执行（2.3.0）：确认导入后关掉页面也会跑完。没有排队的任务时只是一次 glob。
+        // 跑完这一段还有活、而且这一段有进展，就立即再触发下一段（不用等下一分钟；没配站点地址时等定时任务）。
+        self::register('product_import', __('cron_product_import'), 60, static function (): string {
+            $dir = ROOT_PATH . '/storage/product-import/jobs';
+            if ((glob($dir . '/*.active') ?: []) === []) {
+                return __('cron_nothing_due');
+            }
+            require_once ROOT_PATH . '/includes/product-import/ProductImportWorker.php';
+            @set_time_limit(120);
+            $result = (new ProductImportWorker(new ProductImportJobs($dir), ROOT_PATH))->drain(ProductImportWorker::BACKGROUND_SLICE);
+            if ($result['remaining'] && $result['progress']) Cron::kick('product_import');
+            return $result['jobs'] === 0 ? __('cron_nothing_due') : str_replace(':n', (string) $result['jobs'], __('cron_product_import_n'));
+        });
+
         // 邮件可靠性的重试队列（roadmap #3）：任务体内自判（表未建/无失败时是一次早退），
         // 放在内置任务里，站点未装任何插件也能自愈
         self::register('mail_retry', __('cron_mail_retry'), 600, function (): string {
@@ -164,6 +193,42 @@ final class Cron
     {
         $state = $last <= 0 ? 'never' : (($now - $last) > self::STALE_AFTER ? 'stale' : 'ok');
         return ['state' => $state, 'last' => max(0, $last), 'days' => $last <= 0 ? 0 : intdiv(max(0, $now - $last), 86400)];
+    }
+
+    /**
+     * 不等结果地请求一次本站 cron.php?task=…（建批后立即开跑；定时任务仍是兜底）。
+     * 只用后台设置的站点地址或 config.php 的 SITE_URL，不用请求头里的 Host，令牌不会发到伪造的域名。
+     * HTTPS 保留证书校验；连不上就算了（定时任务与开着的页面照样会推进）。
+     */
+    public static function kick(string $task): void
+    {
+        $base = rtrim((string) config('site_url', ''), '/');
+        if ($base === '' && defined('SITE_URL')) $base = rtrim((string) SITE_URL, '/');
+        $req = self::kickRequest($base, $task, self::token());
+        if ($req === null) return;
+        $ctx = stream_context_create(['ssl' => ['verify_peer' => true, 'verify_peer_name' => true, 'peer_name' => $req['host']]]);
+        $fp = @stream_socket_client($req['target'], $errno, $errstr, 2, STREAM_CLIENT_CONNECT, $ctx);
+        if ($fp === false) return;
+        stream_set_timeout($fp, 2);
+        @fwrite($fp, $req['request']);
+        fclose($fp);
+    }
+
+    /** @return null|array{target:string,host:string,request:string} */
+    public static function kickRequest(string $base, string $task, string $token): ?array
+    {
+        $u = parse_url($base);
+        $scheme = strtolower((string) ($u['scheme'] ?? ''));
+        $host = (string) ($u['host'] ?? '');
+        if (!in_array($scheme, ['http', 'https'], true) || $host === '' || isset($u['query']) || isset($u['user'])) return null;
+        $port = (int) ($u['port'] ?? ($scheme === 'https' ? 443 : 80));
+        $path = rtrim((string) ($u['path'] ?? ''), '/') . '/cron.php?' . http_build_query(['token' => $token, 'task' => $task, 'kick' => 1]);
+        $hostHeader = $host . (isset($u['port']) ? ':' . $port : '');
+        return [
+            'target' => ($scheme === 'https' ? 'tls://' : 'tcp://') . $host . ':' . $port,
+            'host' => $host,
+            'request' => "GET {$path} HTTP/1.1\r\nHost: {$hostHeader}\r\nUser-Agent: YikaiCMS-cron\r\nConnection: close\r\n\r\n",
+        ];
     }
 
     /** 手动运行单个任务（后台「立即运行」用），无视间隔 */

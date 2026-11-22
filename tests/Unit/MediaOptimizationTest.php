@@ -246,7 +246,6 @@ final class MediaOptimizationTest extends TestCase
         self::assertNotFalse($image);
         imagefill($image, 0, 0, imagecolorallocate($image, 38, 112, 92));
         self::assertTrue(imagepng($image, $path));
-        imagedestroy($image);
     }
 
     private function requireWebp(): void

@@ -46,7 +46,10 @@ function run(command, options = {}) {
 
 test('Blox assertions share the PHP 8.2 suite and the retained check fails closed', () => {
   const suite = job('phpunit');
-  assert.match(suite, /php: \['8\.2', '8\.3', '8\.4'\]/);
+  // 2.3.0 起 8.5 也跑全量单测；锁定的 Psalm 6.4.0 上限 8.4，只在 8.5 这一档忽略 PHP 上限安装依赖（本作业不跑 Psalm）
+  assert.match(suite, /php: \['8\.2', '8\.3', '8\.4', '8\.5'\]/);
+  assert.match(step(suite, 'composer install'), /\$\{\{ matrix\.php == '8\.5' && '--ignore-platform-req=php\+' \|\| '' \}\}/);
+  assert.doesNotMatch(step(suite, 'composer install'), /--ignore-platform-reqs\b/, '不能整体忽略平台要求');
   // Blox 源码在主仓里：缺了直接失败，不再注入、不再「跳过」
   const required = step(suite, 'Require Blox sources');
   assert.match(required, /if: matrix\.php == '8\.2'/);
@@ -77,7 +80,7 @@ test('both upgrade runtimes consume the verified package and do not hide downloa
   // Both supported runtimes upgrade from the oldest kept baseline; MySQL 8.4 upgrades from the last release.
   assert.match(upgrade, /- php: '8\.2'\s+mysql: '5\.7'\s+from: '1\.20\.1'/);
   assert.match(upgrade, /- php: '8\.4'\s+mysql: '5\.7'\s+from: '1\.20\.1'/);
-  assert.match(upgrade, /- php: '8\.2'\s+mysql: '8\.4'\s+from: '2\.2\.1'\s+from_sha256: '16a9b7281b380618a8a375c8a41ef9c3d7df32f443036988f9bfe506700098cf'/);
+  assert.match(upgrade, /- php: '8\.2'\s+mysql: '8\.4'\s+from: '2\.2\.2'\s+from_sha256: '4826be2b8d6988b3d195b16e3cdae3215b41ed4322123ac70e7da6fd1394cf64'/);
   const download = step(upgrade, 'Download verified current package');
   assert.match(download, /if: needs\.free-package\.outputs\.has_package == 'true'/);
   assert.match(download, /uses: actions\/download-artifact@v4/);
@@ -146,4 +149,16 @@ test('existing compatibility, database, browser and language checks remain bound
     assert.ok(minutes > 0 && minutes <= 75, `${name} must have a finite timeout`);
   }
   assert.match(job('psalm'), /key: composer-8\.2-/);
+});
+
+test('performance budgets fail CI on deterministic regressions only', () => {
+  // 2.3.0（路线图 CORE-05）：查询次数、N+1、本站 CSS/JS 字节数与文件数会让 CI 失败；耗时类指标只报告，不在 CI 里判
+  const gate = step(job('smoke'), 'Performance budgets (queries and own CSS/JS weight)');
+  assert.match(gate, /if: matrix\.php == '8\.2' && matrix\.lang == 'zh-CN'/);
+  assert.match(gate, /run: php tests\/e2e\/query-budget-sandbox\.php "\$GITHUB_WORKSPACE"$/m);
+  assert.doesNotMatch(gate, /--report/, 'report mode never fails, so it cannot be the CI gate');
+  const sandbox = fs.readFileSync(path.join(__dirname, '..', 'e2e', 'query-budget-sandbox.php'), 'utf8');
+  assert.match(sandbox, /const ASSET_BUDGET = \[/);
+  assert.match(sandbox, /\$check\(\$kb <= \$kbBudget && \$files <= \$filesBudget/);
+  assert.doesNotMatch(sandbox, /Ms['"]?\s*=>|wallUntil|latency/i, 'timing metrics stay out of the CI gate');
 });

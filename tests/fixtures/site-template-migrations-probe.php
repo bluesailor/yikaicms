@@ -135,7 +135,6 @@ try {
     foreach ($it as $file) { $file->isDir() ? rmdir($file->getPathname()) : unlink($file->getPathname()); }
     rmdir($root);
     $instance = new ReflectionProperty(Database::class, 'instance');
-    $instance->setAccessible(true);
     $instance->setValue(null, null);
     gc_collect_cycles();
     @unlink($databasePath);

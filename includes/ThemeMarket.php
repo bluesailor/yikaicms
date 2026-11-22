@@ -403,7 +403,6 @@ final class ThemeMarket
         $completed = curl_exec($ch);
         $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
         $error = $completed === false ? curl_error($ch) : '';
-        curl_close($ch);
         return ['status' => $status, 'error' => $error];
     }
 
@@ -421,8 +420,9 @@ final class ThemeMarket
             'http' => ['timeout' => $timeout, 'follow_location' => 0, 'max_redirects' => 0, 'ignore_errors' => true],
             'ssl' => ['verify_peer' => true, 'verify_peer_name' => true],
         ]);
+        if (function_exists('http_clear_last_response_headers')) http_clear_last_response_headers();
         $stream = @fopen($url, 'rb', false, $context);
-        $headers = is_array($http_response_header ?? null) ? $http_response_header : [];
+        $headers = (function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []));
         $statusLine = (string) ($headers[0] ?? '');
         $status = preg_match('#\s(\d{3})\s#', $statusLine, $match) === 1 ? (int) $match[1] : 0;
         if (!is_resource($stream)) {
@@ -480,7 +480,6 @@ final class ThemeMarket
             ] : []));
             $response = curl_exec($ch);
             $status = (int) curl_getinfo($ch, CURLINFO_RESPONSE_CODE);
-            curl_close($ch);
             return is_string($response) && $response !== '' && $status >= 200 && $status < 300 ? $response : null;
         }
         if (!(bool) ini_get('allow_url_fopen')) {
@@ -491,8 +490,9 @@ final class ThemeMarket
                 + ($postBody !== '' ? ['method' => 'POST', 'content' => $postBody, 'header' => "Content-Type: application/x-www-form-urlencoded\r\n"] : []),
             'ssl' => ['verify_peer' => true, 'verify_peer_name' => true],
         ]);
+        if (function_exists('http_clear_last_response_headers')) http_clear_last_response_headers();
         $response = @file_get_contents($url, false, $context);
-        $statusLine = is_array($http_response_header ?? null) ? (string) ($http_response_header[0] ?? '') : '';
+        $statusLine = (string) ((function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []))[0] ?? '');
         return is_string($response) && $response !== '' && preg_match('#\s2\d\d\s#', $statusLine) === 1 ? $response : null;
     }
 

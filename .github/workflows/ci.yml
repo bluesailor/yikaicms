@@ -56,10 +56,10 @@ jobs:
         run: php tools/check-php80-runtime.php
 
   # ─── PHPUnit: model + controller + admin suites. SQLite in-memory. ───
-  # Matrix is 8.2–8.4: 8.2 is the product floor, and `composer install`
-  # can't resolve on 8.5 yet (lock has no 8.5-compatible dev toolchain).
-  # Product runtime support for 8.2–8.5 is verified by the Lint job;
-  # raise the ceiling here once the dev toolchain lock declares 8.5.
+  # Matrix is 8.2–8.5: 8.2 is the product floor, 8.5 the newest runtime the
+  # README claims. The locked Psalm (6.4.0) caps PHP at 8.4; this job does not
+  # run Psalm, so the 8.5 leg ignores only PHP upper bounds when installing.
+  # Drop that flag once the dev toolchain lock declares 8.5.
   phpunit:
     name: PHPUnit (PHP ${{ matrix.php }})
     runs-on: ubuntu-latest
@@ -67,7 +67,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        php: ['8.2', '8.3', '8.4']
+        php: ['8.2', '8.3', '8.4', '8.5']
     steps:
       - uses: actions/checkout@v4
 
@@ -98,7 +98,7 @@ jobs:
             composer-${{ matrix.php }}-
 
       - name: composer install
-        run: composer install --no-interaction --prefer-dist --no-progress
+        run: composer install --no-interaction --prefer-dist --no-progress ${{ matrix.php == '8.5' && '--ignore-platform-req=php+' || '' }}
 
       - name: Verify Blox asset classification
         run: php bin/blox-assets.php verify-policy .
@@ -122,7 +122,7 @@ jobs:
   # ─── 真实形态）。v1.13.0 的 pinyin 事故（生产依赖要求的 PHP 高于产品承诺、
   # ─── 低版本主机保存文章 ParseError 500）由本矩阵的最低版腿拦截：
   # ─── composer 平台约束、vendor 语法、真实保存 三层全覆盖。
-  # ─── extensions 里的 simplexml 是给 product-import 插件的 XlsxReader 测试用的；
+  # ─── extensions 里的 simplexml 是给产品导入的 XlsxReader 测试用的；
   # ─── 它不是核心必需项（见 RuntimeRequirements），CI 装它只为让那条插件测试能跑。
   smoke:
     name: Admin CRUD Smoke (PHP ${{ matrix.php }} / ${{ matrix.lang }})
@@ -173,6 +173,12 @@ jobs:
           find vendor -type f -name '*.php' -print0 \
             | xargs -0 -n50 php -l > /tmp/vendor-lint.log 2>&1 \
             || { grep -B1 -E 'Errors parsing|Parse error' /tmp/vendor-lint.log; exit 1; }
+
+      # 性能回归门槛（2.3.0，路线图 CORE-05）：只判确定的指标——关键页的查询次数、列表页没有 N+1、
+      # 页面加载的本站 CSS/JS 字节数与文件数。耗时类指标噪声大，不在这里判。预算按 zh-CN 演示数据实测，只在这一档跑。
+      - name: Performance budgets (queries and own CSS/JS weight)
+        if: matrix.php == '8.2' && matrix.lang == 'zh-CN'
+        run: php tests/e2e/query-budget-sandbox.php "$GITHUB_WORKSPACE"
 
       # 全新安装 ≡ 老站跑完全部迁移。install SQL 与 migrations 是两条独立演进的
       # 路径，两个方向都漏过（v1.11.0 新装缺列 500 / 某站升级缺 9 列），单向
@@ -426,7 +432,7 @@ jobs:
         run: test "$PHPUNIT_RESULT" = success
 
   # ─── 从已发布的完整包安装旧站，再用 prepare/batch/finalize 管道升级。
-  # ─── 保留 1.20.1 的历史跨度；8.4 数据库验证上一版 2.2.1 及升级数据保留。
+  # ─── 保留 1.20.1 的历史跨度；8.4 数据库验证上一版 2.2.2 及升级数据保留。
   # ─── 这条专门覆盖源码树、全新安装和两文件回滚沙箱都看不到的客户升级路径。
   n-minus-one-upgrade:
     name: PHP ${{ matrix.php }} MySQL ${{ matrix.mysql }} Package Upgrade from ${{ matrix.from }}
@@ -447,8 +453,8 @@ jobs:
             from_sha256: '03c894794cb463886ee7df15027f7c511d8ccf54e67fc9960c860a36da778756'
           - php: '8.2'
             mysql: '8.4'
-            from: '2.2.1'
-            from_sha256: '16a9b7281b380618a8a375c8a41ef9c3d7df32f443036988f9bfe506700098cf'
+            from: '2.2.2'
+            from_sha256: '4826be2b8d6988b3d195b16e3cdae3215b41ed4322123ac70e7da6fd1394cf64'
     services:
       mysql:
         image: mysql:${{ matrix.mysql }}

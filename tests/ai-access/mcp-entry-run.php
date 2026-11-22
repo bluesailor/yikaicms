@@ -255,7 +255,7 @@ final class S2EntryRun
         if ($this->caFile !== null) $options['ssl'] = ['cafile' => $this->caFile, 'verify_peer' => true, 'verify_peer_name' => true];
         $context = stream_context_create($options);
         $text = (string) @file_get_contents($this->url, false, $context);
-        $raw = $http_response_header ?? [];
+        $raw = (function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []));
         $this->raw[] = implode("\n", $raw) . "\n" . $text;
         $status = preg_match('#^HTTP/\S+ (\d{3})#', $raw[0] ?? '', $m) === 1 ? (int) $m[1] : 0;
         $parsed = [];

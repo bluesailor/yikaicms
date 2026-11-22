@@ -80,7 +80,6 @@ class HomePageP2Test extends TestCase
 
         $issues = [];
         $method = new ReflectionMethod(SiteContentChecks::class, 'inspectLanguages');
-        $method->setAccessible(true);
         $method->invokeArgs(null, [&$issues]);
 
         $flagged = array_values(array_map(static fn(array $i): string => $i['label'], array_filter($issues, static fn(array $i): bool => $i['kind'] === 'sc_lang_untranslated')));

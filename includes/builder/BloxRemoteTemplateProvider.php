@@ -571,7 +571,6 @@ final class BloxRemoteTemplateProvider
             ]);
             $ok = curl_exec($ch);
             $status = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
-            curl_close($ch);
             return $ok !== false && !$tooLarge && $status >= 200 && $status < 300 && $body !== '' ? $body : null;
         }
         if (ini_get('allow_url_fopen')) {
@@ -583,8 +582,9 @@ final class BloxRemoteTemplateProvider
                 ] + ($postBody !== '' ? ['method' => 'POST', 'content' => $postBody] : []),
                 'ssl' => ['verify_peer' => true, 'verify_peer_name' => true],
             ]);
+            if (function_exists('http_clear_last_response_headers')) http_clear_last_response_headers();
             $body = @file_get_contents($url, false, $context, 0, $maxBytes + 1);
-            $statusLine = $http_response_header[0] ?? '';
+            $statusLine = (string) ((function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? []))[0] ?? '');
             $ok = preg_match('/^HTTP\/\S+\s+2\d\d(?:\s|$)/', $statusLine) === 1;
             return $ok && is_string($body) && $body !== '' && strlen($body) <= $maxBytes ? $body : null;
         }

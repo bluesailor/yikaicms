@@ -22,7 +22,14 @@ db()->getPdo()->exec((string) file_get_contents(ROOT_PATH . '/install/sql/sqlite
 foreach (['settings', 'channels', 'contents', 'products', 'content_revisions'] as $table) db()->execute('DELETE FROM ' . DB_PREFIX . $table);
 
 function config(string $key, mixed $default = ''): mixed { return $key === 'site_lang' ? 'zh-CN' : $default; }
-function findTranslatedChannelId(int $channelId, string $lang): int { return 0; }
+/** 与 includes/functions.php 的同名函数同一规则：按翻译组找目标语言的栏目 */
+function findTranslatedChannelId(int $channelId, string $lang): int
+{
+    $src = db()->fetchOne('SELECT id, translation_group_id FROM yikai_channels WHERE id = ?', [$channelId]);
+    if (!$src) return 0;
+    $found = db()->fetchOne('SELECT id FROM yikai_channels WHERE translation_group_id = ? AND lang = ?', [(int) ($src['translation_group_id'] ?: $src['id']), $lang]);
+    return $found ? (int) $found['id'] : 0;
+}
 function resolveExtFieldOwner(string $type): string { return ''; }
 function adminLog(string $module, string $action, string $detail = ''): void {}
 function recordContentRevision(string $type, int $targetId, string $lang, array $targets, string $summary): void {}
@@ -172,6 +179,64 @@ switch ((string) ($argv[1] ?? '')) {
         $out['untouched_row'] = $row($t[$a]);
         $out['edited'] = $writer->apply(['review_ui' => false] + $read($b, $t[$b]), $translated, []);
         $out['edited_row'] = $row($t[$b]);
+        break;
+
+    case 'parent_missing':
+        // 所有者 11-15 裁决：目标语言没有对应的栏目 / 上级栏目 / 上级分类时不建译文，提示先翻译上级
+        $channel = static fn (string $name, string $lang, int $group = 0, int $parent = 0): int => (int) db()->insert('channels', [
+            'name' => $name, 'slug' => 'ch-' . bin2hex(random_bytes(3)), 'type' => 'list', 'lang' => $lang, 'translation_group_id' => $group, 'parent_id' => $parent,
+            'status' => 1, 'created_at' => $now, 'updated_at' => $now,
+        ]);
+        $news = $channel('新闻', 'zh-CN');
+        $newsChild = $channel('公司新闻', 'zh-CN', 0, $news);
+        $article = (int) contentModel()->create(['channel_id' => $newsChild, 'title' => '开业', 'content' => '<p>正文</p>', 'lang' => 'zh-CN', 'type' => 'article',
+            'slug' => 'a-' . bin2hex(random_bytes(3)), 'status' => 1, 'created_at' => $now, 'updated_at' => $now]);
+        $orphan = (int) contentModel()->create(['channel_id' => 99999, 'title' => '旧文', 'content' => '<p>正文</p>', 'lang' => 'zh-CN', 'type' => 'article',
+            'slug' => 'a-' . bin2hex(random_bytes(3)), 'status' => 1, 'created_at' => $now, 'updated_at' => $now]);
+        $translated = ['title' => 'X', 'summary' => 'S', 'content' => '<p>B</p>'];
+        $newRow = static function (string $table, array $src) use ($translated): array|string {
+            try {
+                return TranslationWrite::newRow($table, $src, $translated, 'en', (int) $src['id'], $table === 'contents' ? 'title' : 'name', $table === 'contents' ? 'summary' : 'description', 'content');
+            } catch (DomainException $e) {
+                return $e->getMessage();
+            }
+        };
+        $articleRow = contentModel()->find($article);
+        $childRow = channelModel()->find($newsChild);
+        $out['article_missing'] = TranslationWrite::missingParent('contents', $articleRow, 'en');
+        $out['article_new_row'] = $newRow('contents', $articleRow);
+        $out['child_missing'] = TranslationWrite::missingParent('channels', $childRow, 'en');
+        $out['top_missing'] = TranslationWrite::missingParent('channels', channelModel()->find($news), 'en');
+        // 先翻译上级，再翻译下级
+        $newsEn = $channel('News', 'en', $news);
+        $out['child_after_parent'] = TranslationWrite::missingParent('channels', $childRow, 'en');
+        $childNew = $newRow('channels', $childRow);
+        $out['child_parent_mapped'] = is_array($childNew) ? (int) $childNew['parent_id'] === $newsEn : $childNew;
+        $out['article_still_missing'] = TranslationWrite::missingParent('contents', $articleRow, 'en') !== null;
+        $childEn = $channel('Company news', 'en', $newsChild, $newsEn);
+        $out['article_after_channel'] = TranslationWrite::missingParent('contents', $articleRow, 'en');
+        $articleNew = $newRow('contents', $articleRow);
+        $out['article_channel_mapped'] = is_array($articleNew) ? (int) $articleNew['channel_id'] === $childEn : $articleNew;
+        // 原文指向的栏目早已不存在：不拦，译文不带失效的编号
+        $orphanRow = contentModel()->find($orphan);
+        $out['orphan_missing'] = TranslationWrite::missingParent('contents', $orphanRow, 'en');
+        $orphanNew = $newRow('contents', $orphanRow);
+        $out['orphan_channel'] = is_array($orphanNew) ? (int) $orphanNew['channel_id'] : $orphanNew;
+        // 子分类的上级分类
+        $cat = static fn (string $name, string $lang, int $group = 0, int $parent = 0): int => (int) db()->insert('product_categories', [
+            'name' => $name, 'slug' => 'c-' . bin2hex(random_bytes(3)), 'lang' => $lang, 'translation_group_id' => $group, 'parent_id' => $parent, 'created_at' => $now,
+        ]);
+        $pump = $cat('泵', 'zh-CN');
+        $pumpChild = $cat('液压泵', 'zh-CN', 0, $pump);
+        $childCat = db()->fetchOne('SELECT * FROM yikai_product_categories WHERE id = ?', [$pumpChild]);
+        $out['category_missing'] = TranslationWrite::missingParent('product_categories', $childCat, 'en');
+        $pumpEn = $cat('Pumps', 'en', $pump);
+        $catNew = $newRow('product_categories', $childCat);
+        $out['category_parent_mapped'] = is_array($catNew) ? (int) $catNew['parent_id'] === $pumpEn : $catNew;
+        // 产品缺分类仍按 F02：不拦，放未分类
+        $p = $product('液压泵');
+        db()->execute('UPDATE yikai_products SET category_id = ? WHERE id = ?', [$pumpChild, $p]);
+        $out['product_missing'] = TranslationWrite::missingParent('products', productModel()->find($p), 'en');
         break;
 
     case 'category_map':

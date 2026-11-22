@@ -15,13 +15,14 @@ require_once ROOT_PATH . '/config/config.php';
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 require_once ROOT_PATH . '/includes/TranslationBatches.php';
+require_once ROOT_PATH . '/includes/Cron.php';
 
 checkLogin();
 requirePermission('edit_product');
 
 $currentMenu = 'translation_tasks';
 $pageTitle = __('tbt_title');
-$tablesReady = db()->tableExists('translation_batches') && db()->tableExists('translation_batch_items');
+$tablesReady = db()->tableExists('translation_batches') && db()->tableExists('translation_batch_items') && db()->tableExists('translation_batch_events');
 $service = new TranslationBatches(db());
 $languages = enabledLanguages();
 $defaultLang = (string) config('site_lang', 'zh-CN');
@@ -56,6 +57,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             error(__('tbt_err_empty'));
         }
         if ($created['total'] === 0) error(__($created['not_outdated'] > 0 ? 'tss_nothing_outdated' : 'tbt_err_empty'));
+        // 立即在后台开跑（不等结果）；没配站点地址或连不上时，本页与定时任务照常接着跑
+        Cron::kick('translation_batches');
         adminLog('translate', 'batch_create', "批量翻译 #{$created['batch_id']}：{$created['total']} 项");
         success(['id' => $created['batch_id']], __('tbt_created', [
             'total' => (string) $created['total'], 'elsewhere' => (string) $created['queued_elsewhere'], 'skipped' => (string) ($created['not_source'] + $created['not_outdated']),
@@ -64,10 +67,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($service->batch($batchId) === null) error(__('tbt_none'));
     $counts = null;
+    $progress = true;
     if ($action === 'step') {
         // 一项可能要调好几次模型；先放开会话锁，别让同一账号的其它后台页面跟着卡住
         session_write_close();
+        // 这一轮有没有动过任何一项：没动（都在失败后的等待期，或被后台执行器领着）时前端放慢轮询
+        $mark = static fn (): string => json_encode(array_map(static fn (array $i): array => [$i['status'], $i['attempts']], $service->items($batchId)), JSON_THROW_ON_ERROR);
+        $before = $mark();
         $counts = $service->step($batchId, 20);
+        $progress = $before !== $mark();
+    } elseif ($action === 'status') {
+        // 只读：后台执行器在跑时页面定时刷新进度，不领项、不调模型
     } elseif ($action === 'retry') {
         if ($service->retry($batchId, $now) === 0) error(__('tbt_nothing_to_retry'));
     } elseif ($action === 'pause') {
@@ -81,6 +91,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     success([
         'status' => (string) ($service->batch($batchId)['status'] ?? ''),
+        'progress' => $progress,
         'counts' => $counts ?? $service->counts($batchId),
         'items' => array_map($itemView, $service->items($batchId)),
     ], '');
@@ -95,6 +106,10 @@ foreach (['pending', 'generating', 'generated', 'applied', 'proposed', 'exists',
 }
 $langNames = static fn (string $json): string => implode(', ', array_map(static fn (string $lang): string => (string) ($languages[$lang] ?? $lang), (array) json_decode($json, true)));
 
+// 后台执行（CORE-01）：计划任务 10 分钟内调用过本站（心跳），关掉本页也会继续。
+// 看心跳而不看 translation_batches 的上次运行：建批后的立即触发也会跑这个任务，但它不代表定时任务配好了
+$workerLast = (int) settingModel()->get('cron_heartbeat', '0');
+$workerOn = $workerLast > 0 && $workerLast >= time() - 600;
 require_once ROOT_PATH . '/admin/includes/header.php';
 ?>
 
@@ -102,6 +117,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="mb-6">
         <h1 class="text-2xl font-bold text-gray-800"><?php echo e(__('tbt_title')); ?></h1>
         <p class="text-sm text-gray-500 mt-1 max-w-3xl"><?php echo e(__('tbt_intro')); ?></p>
+        <p class="text-sm mt-1 max-w-3xl <?php echo $workerOn ? 'text-green-700' : 'text-amber-700'; ?>" data-tbt-worker="<?php echo $workerOn ? 'on' : 'off'; ?>"><?php echo e($workerOn ? __('tbt_worker_on', ['time' => date('H:i', $workerLast)]) : __('tbt_worker_off')); ?></p>
         <p class="text-sm mt-1"><a class="text-primary hover:underline" href="<?php echo e(BasePath::url('/admin/translation_status.php')); ?>"><?php echo e(__('tss_title')); ?></a></p>
     </div>
 
@@ -151,6 +167,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
         <p id="tbtSummary" class="mt-3 text-sm text-gray-600" aria-live="polite"></p>
         <div class="mt-2 h-2 bg-gray-100 rounded" aria-hidden="true"><div id="tbtBar" class="h-2 bg-primary rounded" style="width:0"></div></div>
+        <p class="mt-2 text-xs text-gray-500"><?php echo e(__('tbt_calls', ['calls' => (string) (int) $batch['calls'], 'max' => (string) (int) $batch['max_calls']])); ?></p>
+        <?php if ((string) $batch['note'] === TranslationBatches::NOTE_BUDGET && (string) $batch['status'] === 'paused'): ?>
+        <p class="mt-2 text-sm bg-amber-50 border-l-4 border-amber-400 text-amber-800 px-3 py-2" role="status"><?php echo e(__('tbt_budget_paused')); ?></p>
+        <?php endif; ?>
     </div>
     <div class="bg-white rounded-lg shadow overflow-x-auto">
         <table class="w-full text-sm">
@@ -165,6 +185,18 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <tbody id="tbtRows"></tbody>
         </table>
     </div>
+    <?php $events = $service->events((int) $batch['id']); if ($events !== []): ?>
+    <details class="bg-white rounded-lg shadow mt-4">
+        <summary class="px-4 py-3 text-sm font-medium text-gray-700 cursor-pointer"><?php echo e(__('tbt_log')); ?></summary>
+        <ul class="px-4 pb-3 text-sm text-gray-600 space-y-1">
+            <?php foreach ($events as $event): ?>
+            <li><span class="text-gray-400"><?php echo e(date('m-d H:i:s', (int) $event['created_at'])); ?></span>
+                <?php echo e(__('tbt_ev_' . $event['event'])); ?><?php if ((int) $event['item_id'] > 0): ?> · #<?php echo (int) $event['item_id']; ?><?php endif; ?>
+                <?php if ((string) $event['detail'] !== ''): ?><span class="text-gray-500">— <?php echo e((string) $event['detail']); ?></span><?php endif; ?></li>
+            <?php endforeach; ?>
+        </ul>
+    </details>
+    <?php endif; ?>
     <script>
     const tbtLabels = <?php echo json_encode($statusLabels, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;
     const tbtText = <?php echo json_encode(['open' => __('tbt_open'), 'review' => __('tbt_review'), 'running' => __('tbt_running')], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;
@@ -202,7 +234,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         document.getElementById('tbtSummary').textContent = (tbtLoop ? tbtText.running + ' · ' : (tbtLabels[tbtState.status] || tbtState.status) + ' · ') + parts.join(' · ');
         document.getElementById('tbtBar').style.width = (total ? Math.round((total - open) * 100 / total) : 100) + '%';
         document.getElementById('tbtRun').disabled = tbtLoop || open === 0 || tbtState.status === 'cancelled';
-        document.getElementById('tbtPause').disabled = !tbtLoop;
+        // 后台执行器在跑时页面没在循环，也要能暂停
+        document.getElementById('tbtPause').disabled = !tbtLoop && tbtState.status !== 'running';
     }
     async function tbtPost(action) {
         const fd = new FormData();
@@ -223,6 +256,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             while (tbtLoop) {
                 const state = await tbtPost('step');
                 if (state.status !== 'running' || !state.items.some((item) => tbtOpen.includes(item.status) && item.status !== 'generating')) break;
+                // 这一轮什么都没动（失败后的等待期，或后台执行器正领着）：等 5 秒再问，不连着发请求
+                if (!state.progress) await new Promise((resolve) => setTimeout(resolve, 5000));
             }
         } catch (e) {
             showMessage(e.message, 'error');
@@ -250,6 +285,11 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         tbtAction('cancel');
     }
     tbtRender();
+    // 后台执行（定时任务 / 建批后立即触发）在跑时，本页不点「开始」也每 5 秒刷新一次进度
+    setInterval(() => {
+        if (tbtLoop || document.hidden || tbtState.status !== 'running') return;
+        tbtPost('status').catch(() => {});
+    }, 5000);
     </script>
     <?php endif; ?>
 </div>

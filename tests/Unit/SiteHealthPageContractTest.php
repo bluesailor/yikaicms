@@ -30,7 +30,7 @@ final class SiteHealthPageContractTest extends TestCase
         self::assertStringContainsString("DB_PREFIX . 'users'", $health);
         self::assertStringNotContainsString("DB_PREFIX . 'admin_users'", $health);
         self::assertStringContainsString('CURLINFO_RESPONSE_CODE', $health);
-        self::assertStringContainsString('httpStatusCode($http_response_header ?? [])', $health);
+        self::assertStringContainsString('httpStatusCode((function_exists(\'http_get_last_response_headers\')', $health);
         self::assertStringContainsString("credentials: 'same-origin'", $page);
         self::assertStringContainsString("redirect: 'manual'", $page);
         self::assertStringContainsString('body.slice(0, 1024)', $page);

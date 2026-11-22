@@ -15,9 +15,29 @@ if (!defined('ROOT_PATH')) {
 /**
  * 读取插件元数据
  */
+/**
+ * 已并入主程序的插件。老站升级后目录可能还在（整包覆盖不删文件）、数据库里也还标着启用：
+ * 这些一律当作不存在——不加载、不出现在插件列表、不能再从市场装回来，否则后台会出现两个同样的入口。
+ * 各自的新位置见 retiredPluginRedirect()。
+ * @return list<string>
+ */
+function retiredPlugins(): array
+{
+    return ['product-import'];   // 2.3.0：产品导入 → /admin/product_import.php
+}
+
+/** 已并入主程序的插件，旧的后台地址（plugin_page.php?plugin=…）该去哪；不是这类插件返回 null */
+function retiredPluginRedirect(string $slug): ?string
+{
+    return ['product-import' => '/admin/product_import.php'][$slug] ?? null;
+}
+
 function getPluginMeta(string $slug): ?array
 {
     static $cache = [];
+    if (in_array($slug, retiredPlugins(), true)) {
+        return null;
+    }
     if (isset($cache[$slug])) {
         return $cache[$slug];
     }
@@ -65,7 +85,7 @@ function getActivePlugins(): array
         if (!db()->tableExists('plugins')) {
             return [];
         }
-        return pluginModel()->getActiveSlugs();
+        return array_values(array_diff(pluginModel()->getActiveSlugs(), retiredPlugins()));
     } catch (\Throwable $e) {
         return [];
     }

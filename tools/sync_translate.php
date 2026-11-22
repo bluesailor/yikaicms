@@ -113,7 +113,6 @@ function ds_translate(string $cn, string $apiKey, string $model, array &$cache):
     ]);
     $resp = curl_exec($ch);
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
-    curl_close($ch);
     if ($code !== 200) {
         echo "  [!] DS HTTP $code\n";
         return $cn;

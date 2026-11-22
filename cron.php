@@ -23,8 +23,10 @@ if ($token === '' || !hash_equals(Cron::token(), $token)) {
 
 // ?task=<name>：只跑指定任务且无视间隔（如 task=demo_reset 作为站长一键重置链接收藏）
 $task = (string) ($_GET['task'] ?? '');
+// 建批后的立即触发（Cron::kick）发完请求就断开：断开后也要把任务跑完
+ignore_user_abort(true);
 if ($task !== '') {
-    Cron::beat();
+    if (!isset($_GET['kick'])) Cron::beat();   // 立即触发不是计划任务在调用，不算心跳
     $r = Cron::runOne($task);
     if (!$r['ran']) {
         http_response_code(404);

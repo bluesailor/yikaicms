@@ -22,11 +22,27 @@ if (DB_DRIVER !== 'sqlite' || parse_url(SITE_URL, PHP_URL_HOST) !== '127.0.0.1')
 }
 
 $action = $argv[1] ?? '';
-if ($action === 'package') {
-    $row = pluginModel()->findWhere(['slug' => 'product-import']);
-    if ((int) ($row['status'] ?? 0) !== 1) {
+// legacy：模拟从 2.2.x 升级上来的站点——旧插件目录还在（整包覆盖不删文件）、数据库里还标着启用
+if ($action === 'legacy') {
+    $dir = ROOT_PATH . '/plugins/product-import';
+    if (!is_dir($dir)) mkdir($dir, 0755, true);
+    file_put_contents($dir . '/plugin.json', json_encode(['name' => '产品导入', 'version' => '2.0.0', 'requires_cms' => '2.1.0']));
+    file_put_contents($dir . '/register.php', "<?php
+add_action('admin_init', function (): void {
+    register_admin_menu('product', ['key' => 'product_import', 'label' => 'LEGACY-IMPORT-MENU', 'url' => '/admin/plugin_page.php?plugin=product-import', 'perm' => '*']);
+});
+");
+    file_put_contents($dir . '/admin.php', "<?php echo 'LEGACY-IMPORT-PAGE';
+");
+    if (!pluginModel()->findWhere(['slug' => 'product-import'])) {
+        pluginModel()->create(['slug' => 'product-import', 'status' => 1, 'installed_at' => time(), 'activated_at' => time()]);
+    } else {
         pluginModel()->activate('product-import');
     }
+    echo 'ok';
+    exit;
+}
+if ($action === 'package') {
     $dir = ROOT_PATH . '/storage/product-import/incoming/e2e-washer';
     if (!is_dir($dir . '/images')) {
         mkdir($dir . '/images', 0755, true);
@@ -36,7 +52,6 @@ if ($action === 'package') {
         $img = imagecreatetruecolor(480, 480);
         imagefill($img, 0, 0, imagecolorallocate($img, $r, $g, $b));
         imagepng($img, "{$dir}/images/{$name}.png");
-        imagedestroy($img);
     }
     copy("{$dir}/images/collage.png", "{$dir}/images/washer-collage-copy.png");
     file_put_contents($dir . '/products.json', json_encode([

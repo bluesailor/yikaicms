@@ -199,7 +199,7 @@ final class AiAccessBootstrapTest extends TestCase
     {
         $body = file_get_contents($url, false, stream_context_create(['http' => ['header' => implode("\r\n", $headers), 'ignore_errors' => true, 'timeout' => 5]]));
         self::assertIsString($body);
-        return ['headers' => $http_response_header, 'body' => json_decode($body, true, 16, JSON_THROW_ON_ERROR)];
+        return ['headers' => (function_exists('http_get_last_response_headers') ? (http_get_last_response_headers() ?? []) : ($http_response_header ?? [])), 'body' => json_decode($body, true, 16, JSON_THROW_ON_ERROR)];
     }
 
     private function assertNoCookie(array $response): void

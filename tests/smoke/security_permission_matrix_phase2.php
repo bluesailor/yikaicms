@@ -64,7 +64,7 @@ $request=static function(string $actor,string $method,string $url,?array $data=n
     if(!isset($jars[$actor]))$jars[$actor]=tempnam(sys_get_temp_dir(),'phase2-cookie-');
     $ch=curl_init($base.$url);curl_setopt_array($ch,[CURLOPT_RETURNTRANSFER=>true,CURLOPT_FOLLOWLOCATION=>false,CURLOPT_TIMEOUT=>45,CURLOPT_COOKIEFILE=>$jars[$actor],CURLOPT_COOKIEJAR=>$jars[$actor],CURLOPT_HTTPHEADER=>['X-Requested-With: XMLHttpRequest']]);
     if($method==='POST'){$data??=[];if($token&&isset($csrf[$actor]))$data['_token']=$csrf[$actor];$multipart=count(array_filter($data,static fn($v)=>$v instanceof CURLFile))>0;curl_setopt_array($ch,[CURLOPT_POST=>true,CURLOPT_POSTFIELDS=>$multipart?$data:http_build_query($data)]);}
-    $body=(string)curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);curl_close($ch);$raw[]=$body;if($status>=500)$httpErrors[]=$url;return[$status,$body,json_decode($body,true)];
+    $body=(string)curl_exec($ch);$status=(int)curl_getinfo($ch,CURLINFO_HTTP_CODE);$raw[]=$body;if($status>=500)$httpErrors[]=$url;return[$status,$body,json_decode($body,true)];
 };
 $log=tempnam(sys_get_temp_dir(),'phase2-server-');$server=proc_open([PHP_BINARY,'-S','127.0.0.1:'.$port,'-t',$root],[0=>['pipe','r'],1=>['file',$log,'a'],2=>['file',$log,'a']],$pipes,$root);
 try {
