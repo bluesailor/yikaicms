@@ -195,8 +195,16 @@ final class TranslationCoverage
             if ($this->db->isMysql()) return "MD5(CONCAT_WS('|~|', " . implode(', ', $parts) . '))';
             if ($this->db->isSqlite()) {
                 $pdo = $this->db->getPdo();
-                // SQLite 没有内置 md5：注册一个（连接级，重复注册无害）
-                if (!$pdo->sqliteCreateFunction('yk_md5', static fn (mixed $value): string => md5((string) $value), 1)) return null;
+                // SQLite 没有内置 md5：注册一个（连接级，重复注册无害）。PHP 8.5 弃用了 PDO::sqliteCreateFunction()，
+                // 新写法只在 Pdo\Sqlite 连接上有；拿不到就退回整行扫描（只少一个提速，结果相同）
+                $md5 = static fn (mixed $value): string => md5((string) $value);
+                if (class_exists('Pdo\Sqlite') && $pdo instanceof \Pdo\Sqlite) {
+                    if (!$pdo->createFunction('yk_md5', $md5, 1)) return null;
+                } elseif (PHP_VERSION_ID < 80500 && method_exists($pdo, 'sqliteCreateFunction')) {
+                    if (!$pdo->sqliteCreateFunction('yk_md5', $md5, 1)) return null;
+                } else {
+                    return null;
+                }
                 return 'yk_md5(' . implode(" || '|~|' || ", $parts) . ')';
             }
         } catch (Throwable) {
