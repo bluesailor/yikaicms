@@ -80,7 +80,7 @@ test('both upgrade runtimes consume the verified package and do not hide downloa
   // Both supported runtimes upgrade from the oldest kept baseline; MySQL 8.4 upgrades from the last release.
   assert.match(upgrade, /- php: '8\.2'\s+mysql: '5\.7'\s+from: '1\.20\.1'/);
   assert.match(upgrade, /- php: '8\.4'\s+mysql: '5\.7'\s+from: '1\.20\.1'/);
-  assert.match(upgrade, /- php: '8\.2'\s+mysql: '8\.4'\s+from: '2\.2\.2'\s+from_sha256: '4826be2b8d6988b3d195b16e3cdae3215b41ed4322123ac70e7da6fd1394cf64'/);
+  assert.match(upgrade, /- php: '8\.2'\s+mysql: '8\.4'\s+from: '2\.3\.0'\s+from_sha256: '588d2eff630de59680a2b9ebfa807de90d1a85199702a859dda444970920e69f'/);
   const download = step(upgrade, 'Download verified current package');
   assert.match(download, /if: needs\.free-package\.outputs\.has_package == 'true'/);
   assert.match(download, /uses: actions\/download-artifact@v4/);
