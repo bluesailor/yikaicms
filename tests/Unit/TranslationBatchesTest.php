@@ -3,6 +3,8 @@ declare(strict_types=1);
 
 use PHPUnit\Framework\TestCase;
 
+require_once ROOT_PATH . '/includes/TranslationBatches.php';
+
 /**
  * 批量翻译任务（评审 T03）：中断可恢复、不重复调模型、不重复写、冲突不覆盖、失败可见。
  * 场景在独立进程里跑（完整表结构、假模型），见 tests/fixtures/translation-batches-probe.php。
@@ -12,6 +14,9 @@ final class TranslationBatchesTest extends TestCase
     /** @return array<string,mixed> */
     private function probe(string $scenario): array
     {
+        // 用模拟服务商的场景较慢，同一进程里只跑一次
+        static $cache = [];
+        if ($scenario === 'request_failures' && isset($cache[$scenario])) return $cache[$scenario];
         $cmd = escapeshellarg(PHP_BINARY) . ' ' . escapeshellarg(ROOT_PATH . '/tests/fixtures/translation-batches-probe.php') . ' ' . escapeshellarg($scenario);
         $lines = [];
         $exit = 0;
@@ -20,7 +25,7 @@ final class TranslationBatchesTest extends TestCase
         $decoded = json_decode(implode("\n", $lines), true);
         self::assertIsArray($decoded, '探针输出不是 JSON：' . implode("\n", $lines));
         self::assertFalse($decoded['in_transaction'], '事务必须收尾');
-        return $decoded;
+        return $cache[$scenario] = $decoded;
     }
 
     public function testBatchTranslatesEveryProductLanguagePairIntoDrafts(): void
@@ -133,6 +138,52 @@ final class TranslationBatchesTest extends TestCase
     /**
      * 2.3.1（11-26 评审第一张工单）：额度按真正发出的模型请求计。真实 AiService 对本地模拟服务商，以服务商自己的请求日志为准。
      */
+    /**
+     * 服务商出错（500、回复发到一半断开）：出错的那次算一次已发出的请求、一次尝试；已拿到的回复留着，重试只补发出错的那一次。
+     * 回复不合格：存下的回复作废，重试从头再问。以模拟服务商自己的请求日志为准。
+     */
+    public function testProviderFailuresCountEverySentRequestAndRetryOnlyTheMissingReply(): void
+    {
+        $r = $this->probe('request_failures');
+        $base = $r['baseline'];
+        self::assertSame(['applied', $base['mock']], [$base['item'], $base['batch']['requests']]);
+        foreach (['http_500', 'cut'] as $case) {
+            $f = $r[$case];
+            self::assertSame([2, 2, 1, 'pending', 1], [$f['first']['mock'], $f['first']['batch']['requests'], $f['first']['batch']['calls'], $f['first']['item']['status'], $f['first']['saved_replies']], $case);
+            self::assertSame('running', $f['first']['batch']['status'], $case . '：出错不暂停整批，这一项退避后重试');
+            self::assertSame([1, 2], $f['sent'], $case . '：第 1 个回复重放，只补发出错的第 2 个');
+            self::assertSame($f['final']['mock'], $f['final']['batch']['requests'], $case . '：批次计数 = 服务商收到的请求');
+            self::assertSame($f['final']['distinct'] + 1, $f['final']['mock'], $case);
+            self::assertSame(['applied', 2], [$f['final']['item']['status'], $f['final']['batch']['calls']], $case);
+        }
+        self::assertSame($base['mock'] + 1, $r['http_500']['final']['mock'], '同一条内容：比不出错时只多 1 次');
+        self::assertStringContainsString('cURL', $r['cut']['first']['item']['error'], '结果未知的请求照样计为已发出');
+
+        $bad = $r['bad_reply'];
+        self::assertSame(0, $bad['first']['saved_replies'], '回复不合格：存下的回复作废');
+        self::assertSame($bad['first']['mock'], $bad['first']['batch']['requests']);
+        self::assertSame(2, $bad['sent'][0], '重试从头再问');
+        self::assertSame($bad['final']['mock'], $bad['final']['batch']['requests']);
+        self::assertSame('applied', $bad['final']['item']['status']);
+    }
+
+    public function testPublishedTranslationIsUntouchedWhileAnUpdateBatchIsPausedForQuota(): void
+    {
+        $r = $this->probe('request_failures');
+        $p = $r['published_paused'];
+        self::assertSame(1, $p['created_total']);
+        self::assertSame(['translate'], $p['mock'], '额度 1：只发首轮，不发校对');
+        self::assertSame(['paused', 'budget', 1, 0], [$p['batch']['status'], $p['batch']['note'], $p['batch']['requests'], $p['batch']['calls']]);
+        self::assertSame(['pending', 0], [$p['item']['status'], $p['item']['attempts']]);
+        self::assertTrue($p['unchanged'], '暂停期间已发布的译文一个字段都不动');
+        $d = $r['published_done'];
+        self::assertSame(['translate', 'review'], $d['mock'], '继续后首轮重放，只补发校对');
+        self::assertSame(['done', 2, 1], [$d['batch']['status'], $d['batch']['requests'], $d['batch']['calls']]);
+        self::assertSame('proposed', $d['item']['status']);
+        self::assertTrue($d['unchanged'], '已发布、审过的译文只存为待审');
+        self::assertSame(1, $d['proposal']);
+    }
+
     public function testQuotaCountsEveryProviderRequestAndResumeDoesNotResend(): void
     {
         $r = $this->probe('requests');

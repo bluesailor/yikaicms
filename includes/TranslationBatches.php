@@ -361,14 +361,17 @@ final class TranslationBatches
             $this->countAttempt($batchId);
             $attempts = (int) $item['attempts'];
             $message = mb_substr($error->getMessage(), 0, 250);
-            // 失败后重试要重新问模型：存下的回复作废（可能正是它们导致失败，重放只会得到同样的结果）
             if ($attempts >= self::MAX_ATTEMPTS) {
                 if ($this->markHeld($item, 'failed', ['error' => $message, 'partial_json' => null], $now)) $this->log($batchId, $id, 'failed', $message, $now);
                 return null;
             }
+            // 服务商报错、网络中断、超时：已成功的回复留着，重试只补发没拿到回复的那一次。
+            // 回复内容不合格导致的失败：存下的回复作废（可能正是它们导致失败，重放只会得到同样的结果）
+            $partial = $context->interrupted && $context->replies !== []
+                ? json_encode($context->replies, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) : null;
             // 退避：租约时间设到「可以再试」的时刻，claim 在那之前不会领它（不占请求额度、不连打失败的接口）
             $retryAt = $now + self::backoff($attempts);
-            if ($this->markHeld($item, 'pending', ['error' => $message, 'partial_json' => null], $now, $retryAt)) {
+            if ($this->markHeld($item, 'pending', ['error' => $message, 'partial_json' => $partial], $now, $retryAt)) {
                 $this->log($batchId, $id, 'retry_later', date('H:i:s', $retryAt) . ' ' . $message, $now);
             }
             return null;

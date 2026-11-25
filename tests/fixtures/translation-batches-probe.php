@@ -52,6 +52,42 @@ $generator = static function (?Closure $hook = null) use (&$calls): Closure {
 $items = static fn (int $batch): array => db()->fetchAll('SELECT source_id, lang, status, attempts, target_id, error, lease_until FROM yikai_translation_batch_items WHERE batch_id = ? ORDER BY id', [$batch]);
 $out = [];
 
+// 用到真实 AiService 的场景：起一个本地模拟服务商（php -S），以它自己的请求日志为准
+if (in_array((string) ($argv[1] ?? ''), ['requests', 'request_failures'], true)) {
+    require_once ROOT_PATH . '/includes/AiService.php';
+    require_once ROOT_PATH . '/includes/i18n/LanguageRegistry.php';
+    $sock = stream_socket_server('tcp://127.0.0.1:0');
+    $port = (int) substr(strrchr((string) stream_socket_get_name($sock, false), ':'), 1);
+    fclose($sock);
+    $log = tempnam(sys_get_temp_dir(), 'ykmock');
+    $serverLog = tempnam(sys_get_temp_dir(), 'ykmocksrv');   // 内置服务器的访问日志，不能混进探针的 JSON 输出
+    $server = proc_open([PHP_BINARY, '-S', '127.0.0.1:' . $port, ROOT_PATH . '/tests/fixtures/ai-mock-router.php'],
+        [0 => ['pipe', 'r'], 1 => ['file', $serverLog, 'a'], 2 => ['file', $serverLog, 'a']], $pipes, null, ['AI_MOCK_LOG' => $log] + getenv());
+    for ($i = 0; $i < 100 && @fsockopen('127.0.0.1', $port) === false; $i++) usleep(50000);
+    $mockRequests = static function () use ($log): array {
+        clearstatcache(true, $log);
+        return array_values(array_filter(array_map(static fn (string $l): mixed => json_decode($l, true), file($log, FILE_IGNORE_NEW_LINES) ?: [])));
+    };
+    $realGenerator = static fn (string $path): Closure => static fn (array $source, string $lang, AiRequestContext $context): array
+        => TranslationWrite::generateWith(new AiService('deepseek', 'test-key', 'mock', 'http://127.0.0.1:' . $port . $path), $source, $lang, 120, $context);
+    $requestPrompts = static fn (array $rows): array => array_map(static function (array $r): string {
+        $messages = $r['body']['messages'] ?? [];
+        return str_starts_with((string) (end($messages)['content'] ?? ''), 'Proofread') ? 'review' : 'translate';
+    }, $rows);
+    $row = static fn (int $id): array => array_map('intval', array_intersect_key(db()->fetchOne('SELECT calls, requests, max_calls, requests_known FROM yikai_translation_batches WHERE id = ?', [$id]), ['calls' => 1, 'requests' => 1, 'max_calls' => 1, 'requests_known' => 1]))
+        + ['status' => (string) db()->fetchColumn('SELECT status FROM yikai_translation_batches WHERE id = ?', [$id]), 'note' => (string) db()->fetchColumn('SELECT note FROM yikai_translation_batches WHERE id = ?', [$id])];
+    $partial = static fn (int $id): int => count(AiRequestContext::decodeReplies((string) db()->fetchColumn('SELECT partial_json FROM yikai_translation_batch_items WHERE batch_id = ?', [$id])));
+    $control = static function (?array $faults) use ($log): void {
+        if ($faults === null) @unlink($log . '.control');
+        else file_put_contents($log . '.control', json_encode($faults));
+    };
+    register_shutdown_function(static function () use ($server, $log, $serverLog): void {
+        proc_terminate($server);
+        proc_close($server);
+        foreach ([$log, $log . '.control', $serverLog] as $file) @unlink($file);
+    });
+}
+
 switch ((string) ($argv[1] ?? '')) {
     case 'happy':
         $a = $product('液压泵');
@@ -288,76 +324,108 @@ switch ((string) ($argv[1] ?? '')) {
 
     case 'requests':
         // 2.3.1：按真正发出的 HTTP 请求计额度。真实 AiService + 本地模拟服务商（php -S），以服务商自己的请求日志为准
-        require_once ROOT_PATH . '/includes/AiService.php';
-        require_once ROOT_PATH . '/includes/i18n/LanguageRegistry.php';
-        $sock = stream_socket_server('tcp://127.0.0.1:0');
-        $port = (int) substr(strrchr((string) stream_socket_get_name($sock, false), ':'), 1);
-        fclose($sock);
-        $log = tempnam(sys_get_temp_dir(), 'ykmock');
-        $serverLog = tempnam(sys_get_temp_dir(), 'ykmocksrv');   // 内置服务器的访问日志，不能混进探针的 JSON 输出
-        $server = proc_open([PHP_BINARY, '-S', '127.0.0.1:' . $port, ROOT_PATH . '/tests/fixtures/ai-mock-router.php'],
-            [0 => ['pipe', 'r'], 1 => ['file', $serverLog, 'a'], 2 => ['file', $serverLog, 'a']], $pipes, null, ['AI_MOCK_LOG' => $log] + getenv());
-        for ($i = 0; $i < 100 && @fsockopen('127.0.0.1', $port) === false; $i++) usleep(50000);
-        $mockRequests = static function () use ($log): array {
-            clearstatcache(true, $log);
-            return array_values(array_filter(array_map(static fn (string $l): mixed => json_decode($l, true), file($log, FILE_IGNORE_NEW_LINES) ?: [])));
-        };
-        $realGenerator = static fn (string $path): Closure => static fn (array $source, string $lang, AiRequestContext $context): array
-            => TranslationWrite::generateWith(new AiService('deepseek', 'test-key', 'mock', 'http://127.0.0.1:' . $port . $path), $source, $lang, 120, $context);
-        $requestPrompts = static fn (array $rows): array => array_map(static function (array $r): string {
-            $messages = $r['body']['messages'] ?? [];
-            return str_starts_with((string) (end($messages)['content'] ?? ''), 'Proofread') ? 'review' : 'translate';
-        }, $rows);
-        $row = static fn (int $id): array => array_map('intval', array_intersect_key(db()->fetchOne('SELECT calls, requests, max_calls, requests_known FROM yikai_translation_batches WHERE id = ?', [$id]), ['calls' => 1, 'requests' => 1, 'max_calls' => 1, 'requests_known' => 1]))
-            + ['status' => (string) db()->fetchColumn('SELECT status FROM yikai_translation_batches WHERE id = ?', [$id]), 'note' => (string) db()->fetchColumn('SELECT note FROM yikai_translation_batches WHERE id = ?', [$id])];
-        $partial = static fn (int $id): int => count(AiRequestContext::decodeReplies((string) db()->fetchColumn('SELECT partial_json FROM yikai_translation_batch_items WHERE batch_id = ?', [$id])));
-        try {
-            // 1) 额度 1、短标题、默认校对：服务商只收到 1 次请求，批次在校对前暂停，什么都没写
-            $GLOBALS['probe_config']['translate_batch_max_calls'] = 1;
-            $svc = new TranslationBatches(db(), $realGenerator('/translate/v1'));
-            $id = $svc->create(1, [$product('液压泵')], ['en'], 'zh-CN', $now)['batch_id'];
-            $svc->step($id, 30, static fn (): int => $now);
-            $out['short_paused'] = ['mock' => $requestPrompts($mockRequests()), 'batch' => $row($id), 'item' => $items($id)[0]['status'],
-                'attempts' => (int) $items($id)[0]['attempts'], 'saved_replies' => $partial($id),
-                'en_rows' => (int) db()->fetchColumn("SELECT COUNT(*) FROM yikai_products WHERE lang = 'en'")];
-            // 提高额度后继续：首轮译文重放、不再发，只发校对
-            $svc->resume($id, $now + 1);
-            $svc->step($id, 30, static fn (): int => $now + 2);
-            $out['short_done'] = ['mock' => $requestPrompts($mockRequests()), 'batch' => $row($id), 'item' => $items($id)[0]['status'],
-                'saved_replies' => $partial($id), 'en_title' => (string) db()->fetchColumn("SELECT title FROM yikai_products WHERE lang = 'en'")];
+        // 1) 额度 1、短标题、默认校对：服务商只收到 1 次请求，批次在校对前暂停，什么都没写
+        $GLOBALS['probe_config']['translate_batch_max_calls'] = 1;
+        $svc = new TranslationBatches(db(), $realGenerator('/translate/v1'));
+        $id = $svc->create(1, [$product('液压泵')], ['en'], 'zh-CN', $now)['batch_id'];
+        $svc->step($id, 30, static fn (): int => $now);
+        $out['short_paused'] = ['mock' => $requestPrompts($mockRequests()), 'batch' => $row($id), 'item' => $items($id)[0]['status'],
+            'attempts' => (int) $items($id)[0]['attempts'], 'saved_replies' => $partial($id),
+            'en_rows' => (int) db()->fetchColumn("SELECT COUNT(*) FROM yikai_products WHERE lang = 'en'")];
+        // 提高额度后继续：首轮译文重放、不再发，只发校对
+        $svc->resume($id, $now + 1);
+        $svc->step($id, 30, static fn (): int => $now + 2);
+        $out['short_done'] = ['mock' => $requestPrompts($mockRequests()), 'batch' => $row($id), 'item' => $items($id)[0]['status'],
+            'saved_replies' => $partial($id), 'en_title' => (string) db()->fetchColumn("SELECT title FROM yikai_products WHERE lang = 'en'")];
 
-            // 2) 长描述（多段）：额度 3 → 暂停 → 继续，每个请求只发一次；批次的请求数 = 服务商收到的请求数
-            file_put_contents($log, '');
-            $GLOBALS['probe_config']['translate_batch_max_calls'] = 3;
-            $long = $product('回转支承');
-            db()->execute('UPDATE yikai_products SET content = ? WHERE id = ?', ['<p>' . implode('</p><p>', array_map(static fn (int $n): string => str_repeat('外圈带齿的回转支承第' . $n . '段说明。', 25), range(1, 4))) . '</p>', $long]);
-            $id = $svc->create(1, [$long], ['en'], 'zh-CN', $now)['batch_id'];
-            $svc->step($id, 30, static fn (): int => $now + 3);
-            $paused = $row($id);
-            $out['long_paused'] = ['status' => $paused['status'], 'note' => $paused['note'], 'requests' => $paused['requests'], 'mock' => count($mockRequests()), 'saved_replies' => $partial($id)];
-            for ($round = 0; $round < 5 && $row($id)['status'] !== 'done'; $round++) {
-                $svc->resume($id, $now + 4 + $round);
-                $svc->step($id, 30, static fn (): int => $now + 10 + $round);
-            }
-            $bodies = array_map(static fn (array $r): string => json_encode($r['body'] ?? null), $mockRequests());
-            $out['long_done'] = ['batch' => $row($id), 'mock' => count($bodies), 'distinct' => count(array_unique($bodies)), 'item' => $items($id)[0]['status']];
-
-            // 3) 不支持 JSON 输出的服务商：每次被拒的请求和去掉 JSON 后的重发都算
-            file_put_contents($log, '');
-            $GLOBALS['probe_config']['translate_batch_max_calls'] = 1;
-            $strict = new TranslationBatches(db(), $realGenerator('/strict/translate/v1'));
-            $id = $strict->create(1, [$product('齿轮泵')], ['en'], 'zh-CN', $now)['batch_id'];
-            $strict->step($id, 30, static fn (): int => $now + 20);
-            $out['strict_paused'] = ['batch' => $row($id), 'mock' => count($mockRequests())];
-            $strict->resume($id, $now + 21);
-            $strict->step($id, 30, static fn (): int => $now + 22);
-            $out['strict_done'] = ['batch' => $row($id), 'mock' => count($mockRequests()), 'item' => $items($id)[0]['status']];
-        } finally {
-            proc_terminate($server);
-            proc_close($server);
-            @unlink($log);
-            @unlink($serverLog);
+        // 2) 长描述（多段）：额度 3 → 暂停 → 继续，每个请求只发一次；批次的请求数 = 服务商收到的请求数
+        file_put_contents($log, '');
+        $GLOBALS['probe_config']['translate_batch_max_calls'] = 3;
+        $long = $product('回转支承');
+        db()->execute('UPDATE yikai_products SET content = ? WHERE id = ?', ['<p>' . implode('</p><p>', array_map(static fn (int $n): string => str_repeat('外圈带齿的回转支承第' . $n . '段说明。', 25), range(1, 4))) . '</p>', $long]);
+        $id = $svc->create(1, [$long], ['en'], 'zh-CN', $now)['batch_id'];
+        $svc->step($id, 30, static fn (): int => $now + 3);
+        $paused = $row($id);
+        $out['long_paused'] = ['status' => $paused['status'], 'note' => $paused['note'], 'requests' => $paused['requests'], 'mock' => count($mockRequests()), 'saved_replies' => $partial($id)];
+        for ($round = 0; $round < 5 && $row($id)['status'] !== 'done'; $round++) {
+            $svc->resume($id, $now + 4 + $round);
+            $svc->step($id, 30, static fn (): int => $now + 10 + $round);
         }
+        $bodies = array_map(static fn (array $r): string => json_encode($r['body'] ?? null), $mockRequests());
+        $out['long_done'] = ['batch' => $row($id), 'mock' => count($bodies), 'distinct' => count(array_unique($bodies)), 'item' => $items($id)[0]['status']];
+
+        // 3) 不支持 JSON 输出的服务商：每次被拒的请求和去掉 JSON 后的重发都算
+        file_put_contents($log, '');
+        $GLOBALS['probe_config']['translate_batch_max_calls'] = 1;
+        $strict = new TranslationBatches(db(), $realGenerator('/strict/translate/v1'));
+        $id = $strict->create(1, [$product('齿轮泵')], ['en'], 'zh-CN', $now)['batch_id'];
+        $strict->step($id, 30, static fn (): int => $now + 20);
+        $out['strict_paused'] = ['batch' => $row($id), 'mock' => count($mockRequests())];
+        $strict->resume($id, $now + 21);
+        $strict->step($id, 30, static fn (): int => $now + 22);
+        $out['strict_done'] = ['batch' => $row($id), 'mock' => count($mockRequests()), 'item' => $items($id)[0]['status']];
+        break;
+
+    case 'request_failures':
+        // 2.3.1：服务商出错时的计数与重用。真实 AiService + 模拟服务商，按服务商日志核对
+        require_once ROOT_PATH . '/includes/TranslationState.php';
+        unset($GLOBALS['probe_config']['translate_batch_max_calls']);   // 默认额度：每项 REQUESTS_PER_ITEM 次
+        $svc = new TranslationBatches(db(), $realGenerator('/translate/v1'));
+        $longProduct = static function (string $title) use ($product): int {
+            $id = $product($title);
+            db()->execute('UPDATE yikai_products SET content = ? WHERE id = ?', ['<p>' . implode('</p><p>', array_map(static fn (int $n): string => str_repeat($title . '第' . $n . '段说明。', 25), range(1, 4))) . '</p>', $id]);
+            return $id;
+        };
+        // 服务商日志里每个请求体（不含模型名以外的随机内容）；同一请求体出现几次 = 这个请求发了几次
+        $bodies = static fn (): array => array_map(static fn (array $r): string => (string) json_encode($r['body'] ?? null), $mockRequests());
+        $item = static fn (int $batch): array => db()->fetchOne('SELECT status, attempts, error FROM yikai_translation_batch_items WHERE batch_id = ?', [$batch]);
+        $runFault = static function (string $title, ?array $faults, int $t) use ($svc, $longProduct, $control, $log, $bodies, $row, $item, $partial, $now): array {
+            file_put_contents($log, '');
+            $control($faults);
+            $id = $svc->create(1, [$longProduct($title)], ['en'], 'zh-CN', $now)['batch_id'];
+            $svc->step($id, 30, static fn (): int => $t);
+            $first = ['mock' => count($bodies()), 'batch' => $row($id), 'item' => $item($id), 'saved_replies' => $partial($id)];
+            $control(null);
+            $svc->step($id, 30, static fn (): int => $t + 3600);   // 过了退避时间再领
+            $all = $bodies();
+            $times = array_count_values($all);
+            return ['first' => $first, 'final' => ['mock' => count($all), 'distinct' => count($times), 'batch' => $row($id), 'item' => $item($id)],
+                // 第 1、第 2 个请求各发了几次
+                'sent' => [$times[$all[0]] ?? 0, $times[$all[1]] ?? 0]];
+        };
+        // 0) 不出错时这一条要发几次请求（基准）
+        file_put_contents($log, '');
+        $id = $svc->create(1, [$longProduct('转盘轴承')], ['en'], 'zh-CN', $now)['batch_id'];
+        $svc->step($id, 30, static fn (): int => $now);
+        $out['baseline'] = ['mock' => count($bodies()), 'batch' => $row($id), 'item' => $item($id)['status']];
+        // 1) 第 2 次请求服务商回 500：算一次请求、一次尝试；第 1 次的回复留着，重试时不再发
+        $out['http_500'] = $runFault('转盘轴承', ['2' => '500'], $now + 100);
+        // 2) 第 2 次请求回复发到一半断开（超时、断网同理：请求已发出、结果未知）：照样算一次已发出的请求
+        $out['cut'] = $runFault('交叉滚子轴承', ['2' => 'cut'], $now + 200);
+        // 3) 模型回复不合格（原样交回中文）：存下的回复作废，重试重新问
+        $out['bad_reply'] = $runFault('齿圈', ['*' => 'same'], $now + 300);
+
+        // 4) 已发布的译文在「更新」批次暂停期间不受影响；继续后已发布、审过的译文也只存为待审，不覆盖
+        file_put_contents($log, '');
+        $a = $product('液压泵');
+        db()->execute('UPDATE yikai_products SET translation_group_id = id WHERE id = ?', [$a]);
+        $t = $product('Published hydraulic pump', 'en', $a);
+        db()->execute('UPDATE yikai_products SET status = 1 WHERE id = ?', [$t]);
+        (new TranslationState(db()))->markReviewed('products', $t, $a, 'en', TranslationState::rowFingerprint(productModel()->find($a), 'title', 'summary'),
+            TranslationState::rowFingerprint(productModel()->find($t), 'title', 'summary'), 7, $now);
+        db()->execute("UPDATE yikai_products SET title = '液压泵 V2' WHERE id = ?", [$a]);   // 原文改过：译文过期
+        $published = static fn (): array => db()->fetchOne('SELECT title, summary, content, status, updated_at FROM yikai_products WHERE id = ?', [$t]);
+        $before = $published();
+        $GLOBALS['probe_config']['translate_batch_max_calls'] = 1;
+        $created = $svc->create(1, [$a], ['en'], 'zh-CN', $now, 'update');
+        $id = $created['batch_id'];
+        $svc->step($id, 30, static fn (): int => $now + 400);
+        $out['published_paused'] = ['created_total' => $created['total'] ?? null, 'mock' => $requestPrompts($mockRequests()), 'batch' => $row($id),
+            'item' => $item($id), 'unchanged' => $published() === $before];
+        $svc->resume($id, $now + 401);
+        $svc->step($id, 30, static fn (): int => $now + 402);
+        $out['published_done'] = ['mock' => $requestPrompts($mockRequests()), 'batch' => $row($id), 'item' => $item($id), 'unchanged' => $published() === $before,
+            'proposal' => (int) db()->fetchColumn("SELECT COUNT(*) FROM yikai_translation_links WHERE target_id = ? AND proposal_json IS NOT NULL AND proposal_json <> ''", [$t])];
         break;
 
     case 'concurrent':

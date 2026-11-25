@@ -24,6 +24,11 @@ final class AiRequestContext
     public int $requests = 0;
     /** 本次从 $replies 重放、没有发出的请求数 */
     public int $replayed = 0;
+    /**
+     * 最近一次请求没拿到回复（服务商报错、网络中断、超时，或时间预算不够没发）。
+     * 生成因此失败时，之前已成功的回复仍然可信，重试时接着重放；回复内容不合格导致的失败则整份作废。
+     */
+    public bool $interrupted = false;
 
     /**
      * @param null|Closure():bool $reserve 占一个额度；返回 false 表示用完了。null 表示不限

@@ -65,10 +65,14 @@ final class TranslationWrite
                 $saved = $context->replies[$key];
                 return ['success' => true, 'content' => $saved['content'], 'error' => ''];
             }
-            if (microtime(true) + 61 >= $deadline) throw new RuntimeException('Translation time budget exceeded. The existing draft has not been changed.');
+            if (microtime(true) + 61 >= $deadline) {
+                if ($context !== null) $context->interrupted = true;
+                throw new RuntimeException('Translation time budget exceeded. The existing draft has not been changed.');
+            }
             $result = $ai->chat($prompt, $system, $temperature, $jsonObject);
-            if ($context !== null && !empty($result['success'])) {
-                $context->replies[$key] = ['success' => true, 'content' => (string) ($result['content'] ?? '')];
+            if ($context !== null) {
+                $context->interrupted = empty($result['success']);
+                if (!$context->interrupted) $context->replies[$key] = ['success' => true, 'content' => (string) ($result['content'] ?? '')];
             }
             return $result;
         };
