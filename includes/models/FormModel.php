@@ -127,18 +127,6 @@ class FormModel extends Model
     }
 
     /**
-     * 更新跟进状态
-     */
-    public function updateFollow(int $id, int $status, string $adminName, string $note = ''): int
-    {
-        return $this->updateById($id, [
-            'status'       => $status,
-            'follow_admin' => $adminName,
-            'follow_note'  => $note,
-        ]);
-    }
-
-    /**
      * 各状态数量统计
      */
     public function getStatusCounts(): array
