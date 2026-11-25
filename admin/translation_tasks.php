@@ -38,6 +38,32 @@ $itemView = static function (array $item) use ($languages): array {
     ];
 };
 
+/**
+ * 批次的用量与暂停原因（2.3.1）：生成次数、模型请求数 / 上限；升级前的批次请求数补不出来，显示「未知」。
+ * 因额度暂停时说明「开始 / 继续」会把上限提到多少。
+ * @param array<string,mixed> $batch @param array<string,int> $counts @return array{usage:string,pause:string,pause_kind:string}
+ */
+$batchView = static function (array $batch, array $counts): array {
+    $requests = (int) ($batch['requests'] ?? 0);
+    $max = (int) $batch['max_calls'];
+    $usage = __((int) ($batch['requests_known'] ?? 1) === 1 ? 'tbt_usage' : 'tbt_usage_unknown', [
+        'attempts' => (string) (int) $batch['calls'], 'requests' => (string) $requests, 'max' => (string) $max,
+    ]);
+    $kind = '';
+    $pause = '';
+    if ((string) $batch['status'] === 'paused') {
+        $open = 0;
+        foreach (TranslationBatches::OPEN as $status) $open += (int) ($counts[$status] ?? 0);
+        $kind = (string) $batch['note'] === TranslationBatches::NOTE_BUDGET ? 'budget' : 'manual';
+        // 与 TranslationBatches::resume() 的算法一致：已用 + 剩余项 × 每项额度
+        $pause = $kind === 'budget' ? __('tbt_pause_budget', [
+            'requests' => (string) $requests, 'max' => (string) $max, 'next' => (string) ($requests + $open * TranslationBatches::REQUESTS_PER_ITEM),
+            'open' => (string) $open, 'per' => (string) TranslationBatches::REQUESTS_PER_ITEM,
+        ]) : __('tbt_pause_manual');
+    }
+    return ['usage' => $usage, 'pause' => $pause, 'pause_kind' => $kind];
+};
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     if (!$tablesReady) error(__('tbt_need_upgrade'));
     $action = (string) ($_POST['action'] ?? '');
@@ -89,12 +115,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         error(__('operation_failed'));
     }
+    $current = $service->batch($batchId) ?? [];
+    $allCounts = $service->counts($batchId);
     success([
-        'status' => (string) ($service->batch($batchId)['status'] ?? ''),
+        'status' => (string) ($current['status'] ?? ''),
         'progress' => $progress,
-        'counts' => $counts ?? $service->counts($batchId),
+        'counts' => $counts ?? $allCounts,
         'items' => array_map($itemView, $service->items($batchId)),
-    ], '');
+    ] + ($current !== [] ? $batchView($current, $allCounts) : []), '');
 }
 
 $batchId = (int) ($_GET['id'] ?? 0);
@@ -167,13 +195,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         </div>
         <p id="tbtSummary" class="mt-3 text-sm text-gray-600" aria-live="polite"></p>
         <div class="mt-2 h-2 bg-gray-100 rounded" aria-hidden="true"><div id="tbtBar" class="h-2 bg-primary rounded" style="width:0"></div></div>
-        <?php // 2.3.1：生成次数与模型请求数分开；升级前的批次请求数补不出来，显示「未知」 ?>
-        <p class="mt-2 text-xs text-gray-500"><?php echo e(__((int) ($batch['requests_known'] ?? 1) === 1 ? 'tbt_usage' : 'tbt_usage_unknown', [
-            'attempts' => (string) (int) $batch['calls'], 'requests' => (string) (int) ($batch['requests'] ?? 0), 'max' => (string) (int) $batch['max_calls'],
-        ])); ?></p>
-        <?php if ((string) $batch['note'] === TranslationBatches::NOTE_BUDGET && (string) $batch['status'] === 'paused'): ?>
-        <p class="mt-2 text-sm bg-amber-50 border-l-4 border-amber-400 text-amber-800 px-3 py-2" role="status"><?php echo e(__('tbt_budget_paused')); ?></p>
-        <?php endif; ?>
+        <?php // 2.3.1：生成次数与模型请求数 / 上限，暂停原因与继续后的新上限；由脚本随每次刷新更新 ?>
+        <p id="tbtUsage" class="mt-2 text-xs text-gray-500" data-tbt-usage></p>
+        <p id="tbtPauseReason" class="mt-2 text-sm px-3 py-2 border-l-4" role="status" hidden></p>
     </div>
     <div class="bg-white rounded-lg shadow overflow-x-auto">
         <table class="w-full text-sm">
@@ -205,7 +229,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     const tbtText = <?php echo json_encode(['open' => __('tbt_open'), 'review' => __('tbt_review'), 'running' => __('tbt_running')], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;
     const tbtEditUrl = <?php echo json_encode(BasePath::url('/admin/product_edit.php?id='), JSON_UNESCAPED_SLASHES); ?>;
     const tbtOpen = ['pending', 'generating', 'generated'];
-    let tbtState = { status: <?php echo json_encode((string) $batch['status']); ?>, counts: <?php echo json_encode((object) $service->counts((int) $batch['id'])); ?>, items: <?php echo json_encode(array_map($itemView, $service->items((int) $batch['id'])), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?> };
+    let tbtState = <?php $initialCounts = $service->counts((int) $batch['id']); echo json_encode(['status' => (string) $batch['status'], 'counts' => (object) $initialCounts,
+        'items' => array_map($itemView, $service->items((int) $batch['id']))] + $batchView($batch, $initialCounts), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP); ?>;
     let tbtLoop = false;
 
     function tbtCell(text, link) {
@@ -236,6 +261,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         const parts = Object.entries(tbtState.counts).map(([status, n]) => (tbtLabels[status] || status) + ' ' + n);
         document.getElementById('tbtSummary').textContent = (tbtLoop ? tbtText.running + ' · ' : (tbtLabels[tbtState.status] || tbtState.status) + ' · ') + parts.join(' · ');
         document.getElementById('tbtBar').style.width = (total ? Math.round((total - open) * 100 / total) : 100) + '%';
+        document.getElementById('tbtUsage').textContent = tbtState.usage || '';
+        const reason = document.getElementById('tbtPauseReason');
+        const paused = !tbtLoop && tbtState.status === 'paused' && !!tbtState.pause;
+        reason.hidden = !paused;
+        reason.textContent = paused ? tbtState.pause : '';
+        reason.dataset.kind = paused ? tbtState.pause_kind : '';
+        reason.className = 'mt-2 text-sm px-3 py-2 border-l-4 ' + (tbtState.pause_kind === 'budget' ? 'bg-amber-50 border-amber-400 text-amber-800' : 'bg-gray-50 border-gray-300 text-gray-700');
         document.getElementById('tbtRun').disabled = tbtLoop || open === 0 || tbtState.status === 'cancelled';
         // 后台执行器在跑时页面没在循环，也要能暂停
         document.getElementById('tbtPause').disabled = !tbtLoop && tbtState.status !== 'running';
