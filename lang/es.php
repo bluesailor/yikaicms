@@ -9515,6 +9515,8 @@ return [
     'aiax_status' => 'Acceso externo',
     'aiax_on' => 'Activado',
     'aiax_off' => 'Desactivado',
+    'aiax_forced_off_status' => 'Desactivado en el archivo de configuración',
+    'aiax_forced_off_notice' => 'config.php define :constant, así que el acceso de IA está desactivado en todo el sitio: no se puede activar aquí y se rechaza cualquier token. Para restablecerlo, elimine esa línea y pulse «Volver a preparar la conexión».',
     'aiax_bridge' => 'Configuración de conexión',
     'aiax_bridge_ok' => 'Lista',
     'aiax_bridge_stale' => 'Hay que prepararla de nuevo',

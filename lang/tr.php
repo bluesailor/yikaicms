@@ -9515,6 +9515,8 @@ return [
     'aiax_status' => 'Haricî erişim',
     'aiax_on' => 'Açık',
     'aiax_off' => 'Kapalı',
+    'aiax_forced_off_status' => 'Yapılandırma dosyasında kapalı',
+    'aiax_forced_off_notice' => 'config.php içinde :constant tanımlı olduğu için yapay zekâ erişimi tüm sitede kapalı: buradan açılamaz ve her belirteç reddedilir. Geri açmak için o satırı silip «Bağlantıyı yeniden hazırla» düğmesine basın.',
     'aiax_bridge' => 'Bağlantı kurulumu',
     'aiax_bridge_ok' => 'Hazır',
     'aiax_bridge_stale' => 'Yeniden hazırlanmalı',

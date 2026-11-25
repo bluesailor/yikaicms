@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/AiAccessAuthContext.php';
+require_once __DIR__ . '/AiAccessBootstrapConfig.php';
 require_once __DIR__ . '/AiArticleDraftRules.php';
 require_once __DIR__ . '/AiPageContentRules.php';
 require_once __DIR__ . '/AiPageDocumentSource.php';
@@ -724,7 +725,7 @@ final class AiProposalService
         if (!is_array($permissions) || !array_is_list($permissions)) return 'owner_role_disabled';
         $permissions = array_values(array_filter($permissions, 'is_string'));
         if ($tokenId > 0) {
-            if (($settings['ai_access_enabled'] ?? '0') !== '1') return 'ai_access_disabled';
+            if (($settings['ai_access_enabled'] ?? '0') !== '1' || AiAccessBootstrapConfig::forcedOff()) return 'ai_access_disabled';
             if ((string) $user['username'] === 'yikai-support' || (int) $user['id'] === (int) ($settings['support_access_user_id'] ?? 0)) return 'owner_disabled';
             $scopes = json_decode((string) $token['scopes'], true);
             if (!is_array($scopes) || !array_is_list($scopes)) return 'source_token_scope_removed';

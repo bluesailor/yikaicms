@@ -9515,6 +9515,8 @@ return [
     'aiax_status' => 'Accès externe',
     'aiax_on' => 'Activé',
     'aiax_off' => 'Désactivé',
+    'aiax_forced_off_status' => 'Désactivé dans le fichier de configuration',
+    'aiax_forced_off_notice' => 'config.php définit :constant : l’accès IA est donc désactivé pour tout le site. Il ne peut pas être activé ici et tout jeton est refusé. Pour le rétablir, supprimez cette ligne puis cliquez sur « Préparer de nouveau la connexion ».',
     'aiax_bridge' => 'Configuration de la connexion',
     'aiax_bridge_ok' => 'Prête',
     'aiax_bridge_stale' => 'À préparer de nouveau',

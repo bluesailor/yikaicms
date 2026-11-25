@@ -174,6 +174,17 @@ final class AiAccessIdentityTest extends TestCase
         $this->assertDenied(fn() => $this->authenticate(), 403, 'ai_access_support_denied');
     }
 
+    /** 2.3.1：配置文件强制关闭时不查令牌、不读设置，直接拒绝 */
+    public function testConfigFileKillSwitchRefusesBeforeTheTokenIsLookedUp(): void
+    {
+        $looked = false;
+        $identity = new AiAccessIdentity(db(), false, [], true);
+        $this->assertDenied(function () use ($identity, &$looked): void {
+            $identity->authenticate('Bearer ' . str_repeat('a', 64), function () use (&$looked): array { $looked = true; return $this->token; }, self::NOW);
+        }, 403, 'ai_access_disabled');
+        self::assertFalse($looked);
+    }
+
     public function testOverridesAndBrokenPolicyStorageFailClosed(): void
     {
         $this->identity = new AiAccessIdentity(db(), false, ['ai_access_enabled' => '0']);

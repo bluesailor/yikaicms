@@ -9515,6 +9515,8 @@ return [
     'aiax_status' => 'Externer Zugriff',
     'aiax_on' => 'Ein',
     'aiax_off' => 'Aus',
+    'aiax_forced_off_status' => 'In der Konfigurationsdatei ausgeschaltet',
+    'aiax_forced_off_notice' => 'config.php definiert :constant, daher ist der KI-Zugriff für die gesamte Website ausgeschaltet: Er lässt sich hier nicht einschalten und jedes Token wird abgelehnt. Zum Wiederherstellen diese Zeile entfernen und „Verbindung erneut vorbereiten“ wählen.',
     'aiax_bridge' => 'Verbindungseinrichtung',
     'aiax_bridge_ok' => 'Bereit',
     'aiax_bridge_stale' => 'Erneut vorbereiten',

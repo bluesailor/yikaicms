@@ -9515,6 +9515,8 @@ return [
     'aiax_status' => 'Akses luaran',
     'aiax_on' => 'Hidup',
     'aiax_off' => 'Mati',
+    'aiax_forced_off_status' => 'Dimatikan dalam fail konfigurasi',
+    'aiax_forced_off_notice' => 'config.php mentakrifkan :constant, jadi akses AI dimatikan untuk seluruh laman: ia tidak boleh dihidupkan di sini dan setiap token ditolak. Untuk memulihkannya, buang baris itu kemudian klik «Sediakan semula sambungan».',
     'aiax_bridge' => 'Persediaan sambungan',
     'aiax_bridge_ok' => 'Sedia',
     'aiax_bridge_stale' => 'Perlu disediakan semula',

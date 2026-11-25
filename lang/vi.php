@@ -9515,6 +9515,8 @@ return [
     'aiax_status' => 'Truy cập từ bên ngoài',
     'aiax_on' => 'Đã bật',
     'aiax_off' => 'Đã tắt',
+    'aiax_forced_off_status' => 'Đã tắt trong tệp cấu hình',
+    'aiax_forced_off_notice' => 'config.php định nghĩa :constant nên quyền truy cập AI bị tắt trên toàn trang: không thể bật ở đây và mọi mã thông báo đều bị từ chối. Để khôi phục, hãy xóa dòng đó rồi bấm «Thiết lập lại kết nối».',
     'aiax_bridge' => 'Thiết lập kết nối',
     'aiax_bridge_ok' => 'Sẵn sàng',
     'aiax_bridge_stale' => 'Cần thiết lập lại',

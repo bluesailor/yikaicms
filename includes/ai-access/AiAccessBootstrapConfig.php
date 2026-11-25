@@ -11,6 +11,15 @@ final class AiAccessBootstrapConfig
     /** @var array{root:string,sources:array<string,string|null>}|null */
     private static ?array $preparation = null;
 
+    /** config.php 里的强制关闭开关（2.3.1）：定义了就全站关闭 AI 接入，后台开关打不开；没有「强制开启」 */
+    public const KILL_SWITCH = 'YK_AI_ACCESS_DISABLED';
+
+    /** 当前进程加载的配置里是否定义了强制关闭（后台与提案处理用；HTTP 入口读 bootstrap.json 里记下的值） */
+    public static function forcedOff(): bool
+    {
+        return defined(self::KILL_SWITCH) && (bool) constant(self::KILL_SWITCH);
+    }
+
     /** 正常准备入口在加载私有配置前调用；避免把旧常量绑定到后来改变的文件。 */
     public static function beginPreparation(string $root): void
     {
@@ -50,6 +59,7 @@ final class AiAccessBootstrapConfig
             'version' => 1, 'root' => $root, 'sources' => self::$preparation['sources'],
             'database' => $database, 'overrides' => $overrides,
             'demo' => (defined('DEMO_MODE') && (bool) DEMO_MODE) || (defined('DEMO_SANDBOX') && (bool) DEMO_SANDBOX),
+            'disabled' => self::forcedOff(),
         ];
         $path = $root . self::RELATIVE_PATH;
         $directory = dirname($path);
@@ -82,7 +92,11 @@ final class AiAccessBootstrapConfig
         }
     }
 
-    /** @return array{database:array<string,string>,overrides:array<string,string>,demo:bool} */
+    /**
+     * 改 config.php（例如加上强制关闭）后文件指纹变了，这里按过期拒绝，接入立即不可用；后台重新准备时把开关记进来。
+     * 2.3.1 之前写的文件没有 disabled 一项，按未强制关闭处理。
+     * @return array{database:array<string,string>,overrides:array<string,string>,demo:bool,disabled:bool}
+     */
     public static function read(string $root): array
     {
         $root = self::root($root);
@@ -98,13 +112,13 @@ final class AiAccessBootstrapConfig
             throw new RuntimeException('ai_access_config_invalid', 503);
         }
         if (!is_array($data) || ($data['version'] ?? null) !== 1 || ($data['root'] ?? null) !== $root
-            || ($data['sources'] ?? null) !== self::fingerprints($root) || !is_bool($data['demo'] ?? null)
+            || ($data['sources'] ?? null) !== self::fingerprints($root) || !is_bool($data['demo'] ?? null) || !is_bool($data['disabled'] ?? false)
             || !is_array($data['database'] ?? null) || !is_array($data['overrides'] ?? null)) {
             throw new RuntimeException('ai_access_config_stale_or_invalid', 503);
         }
         self::validateDatabase($data['database']);
         self::validateOverrides($data['overrides']);
-        return ['database' => $data['database'], 'overrides' => $data['overrides'], 'demo' => $data['demo']];
+        return ['database' => $data['database'], 'overrides' => $data['overrides'], 'demo' => $data['demo'], 'disabled' => (bool) ($data['disabled'] ?? false)];
     }
 
     private static function root(string $root): string

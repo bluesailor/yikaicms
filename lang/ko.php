@@ -9515,6 +9515,8 @@ return [
     'aiax_status' => '외부 접근',
     'aiax_on' => '켜짐',
     'aiax_off' => '꺼짐',
+    'aiax_forced_off_status' => '설정 파일에서 꺼짐',
+    'aiax_forced_off_notice' => 'config.php에 :constant 이(가) 정의되어 있어 사이트 전체에서 AI 접속이 꺼져 있습니다. 여기서는 켤 수 없으며 모든 토큰이 거부됩니다. 되돌리려면 그 줄을 삭제한 뒤 「연결 설정 다시 준비」를 누르세요.',
     'aiax_bridge' => '연결 설정',
     'aiax_bridge_ok' => '준비됨',
     'aiax_bridge_stale' => '다시 준비 필요',

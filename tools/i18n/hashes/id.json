@@ -736,6 +736,8 @@
     "lang/id.php|aiax_err_limit": "7af5874b0a62",
     "lang/id.php|aiax_err_revoke": "3f32424cd5ab",
     "lang/id.php|aiax_err_scope": "41c7f651aa76",
+    "lang/id.php|aiax_forced_off_notice": "bfc55cf3796e",
+    "lang/id.php|aiax_forced_off_status": "185182d669b6",
     "lang/id.php|aiax_https_warning": "5b4cb754565a",
     "lang/id.php|aiax_intro": "2ff38aee58cb",
     "lang/id.php|aiax_issue": "9cfca771375d",

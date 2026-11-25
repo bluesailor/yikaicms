@@ -19,6 +19,14 @@ final class AiMcpServer
     public const MAX_REQUEST_BYTES = 256000;
     private const META_VERSION = 'io.modelcontextprotocol/protocolVersion';
     private const META_CAPS = 'io.modelcontextprotocol/clientCapabilities';
+    /** 连接时下发给 AI 客户端的上手规则（2.3.1：原来只写文章草稿，2.2.0 起还有单页与产品） */
+    public const INSTRUCTIONS = 'YikaiCMS content proposals. You can read articles, single pages and products in one language at a time, and propose changes; '
+        . 'nothing is saved or published until a site editor reviews and accepts the proposal. '
+        . 'Articles: propose new drafts or changes to unpublished articles (article_draft_propose). '
+        . 'Single pages: propose heading text, rich text and image alt text for one page built with the page builder, addressed by element id from page_read (page_content_propose). '
+        . 'Products: propose summary, description and SEO text for unpublished products (product_content_propose); titles, models, specifications, prices and status are read-only. '
+        . 'For pages and products send the base_revision you read; if the content changed, read it again. '
+        . 'Only the tools your token allows are listed. Reuse the same idempotency_key when retrying a submission.';
     private const SERVER_INFO = ['name' => 'yikaicms', 'version' => '2.2.0'];
 
     /** 每次请求的协议观测（不含凭据/正文），供入口写诊断日志。 @var array<string,mixed> */
@@ -144,7 +152,7 @@ final class AiMcpServer
         }
         $result = match ($method) {
             'server/discover' => ['supportedVersions' => array_merge(self::MODERN, self::LEGACY), 'capabilities' => ['tools' => (object) []],
-                'instructions' => 'YikaiCMS article drafts: proposals are reviewed by a site editor before anything is saved.'],
+                'instructions' => self::INSTRUCTIONS],
             'tools/list' => ['tools' => $this->tools->definitions($context), 'ttlMs' => 0, 'cacheScope' => 'private'],
             'tools/call' => $this->call($params, $context),
             default => null,
@@ -167,7 +175,7 @@ final class AiMcpServer
             // 客户端请求的版本受支持则回同一版本，否则回本端最新旧版本，由客户端决定是否断开。不发 Mcp-Session-Id。
             $version = is_string($requested) && in_array($requested, self::LEGACY, true) ? $requested : self::LEGACY[0];
             return $this->result($id, ['protocolVersion' => $version, 'capabilities' => ['tools' => (object) []], 'serverInfo' => self::SERVER_INFO,
-                'instructions' => 'YikaiCMS article drafts: proposals are reviewed by a site editor before anything is saved.']);
+                'instructions' => self::INSTRUCTIONS]);
         }
         // 握手之后的请求必须带协商好的版本头；缺头不按 2025-03-26 猜测，直接拒绝。
         $version = $headers['mcp-protocol-version'] ?? '';

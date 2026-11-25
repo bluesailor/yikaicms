@@ -9516,6 +9516,8 @@ return [
     'aiax_status' => '外部訪問',
     'aiax_on' => '已開啟',
     'aiax_off' => '已關閉',
+    'aiax_forced_off_status' => '已在配置檔案中關閉',
+    'aiax_forced_off_notice' => 'config.php 裡定義了 :constant，AI 接入已在全站關閉：這裡不能開啟，任何令牌都調不通。要恢復，刪掉這一行後點「重新準備連線配置」。',
     'aiax_bridge' => '連線配置',
     'aiax_bridge_ok' => '正常',
     'aiax_bridge_stale' => '需要重新準備',

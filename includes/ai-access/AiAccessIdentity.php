@@ -7,8 +7,8 @@ require_once __DIR__ . '/AiAccessAuthContext.php';
 /** 不包含后台 auth，不调用插件/AI，也不写登录状态。真实令牌仓储由 S2 接入。 */
 final class AiAccessIdentity
 {
-    /** @param array<string,string> $overrides */
-    public function __construct(private Database $database, private bool $configuredDemo = false, private array $overrides = [])
+    /** @param array<string,string> $overrides @param bool $configuredOff config.php 定义了强制关闭（2.3.1） */
+    public function __construct(private Database $database, private bool $configuredDemo = false, private array $overrides = [], private bool $configuredOff = false)
     {
     }
 
@@ -21,6 +21,8 @@ final class AiAccessIdentity
         if (preg_match('/^Bearer ([A-Za-z0-9_-]{43,128})$/iD', $authorization, $match) !== 1) {
             throw new RuntimeException('ai_access_invalid_token', 401);
         }
+        // 配置文件强制关闭：不查令牌、不读设置，任何令牌都调不通
+        if ($this->configuredOff) throw new RuntimeException('ai_access_disabled', 403);
         try {
             $policy = $this->policy();
             if (($policy['ai_access_enabled'] ?? '0') !== '1' || $this->configuredDemo || ($policy['demo_mode'] ?? '0') !== '0') {

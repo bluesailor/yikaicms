@@ -26,7 +26,7 @@ final class AiAccessRuntime
         foreach ($config['database'] as $key => $value) define($key, $value);
         require_once dirname(__DIR__, 2) . '/config/database.php';
         try {
-            return new AiAccessIdentity(db(), $config['demo'], $config['overrides']);
+            return new AiAccessIdentity(db(), $config['demo'], $config['overrides'], $config['disabled']);
         } catch (Throwable) {
             throw new RuntimeException('ai_access_unavailable', 503);
         }

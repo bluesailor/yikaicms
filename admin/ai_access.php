@@ -46,6 +46,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     if ($action === 'enable' || $action === 'prepare') {
         requirePermission('*');
+        // config.php 强制关闭时不能从后台打开；重新准备照常（把关闭写进接入桥）
+        if ($action === 'enable' && AiAccessBootstrapConfig::forcedOff()) $reply(1, __('aiax_forced_off_notice', ['constant' => AiAccessBootstrapConfig::KILL_SWITCH]));
         try {
             AiAccessBootstrapConfig::prepare(ROOT_PATH);
         } catch (RuntimeException $e) {
@@ -89,7 +91,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $reply(1, 'unknown action');
 }
 
-$enabled = config('ai_access_enabled', '0') === '1';
+$forcedOff = AiAccessBootstrapConfig::forcedOff();
+$enabled = !$forcedOff && config('ai_access_enabled', '0') === '1';
 $bridge = 'missing';
 if (is_file(ROOT_PATH . '/storage/security/ai-access/bootstrap.json')) {
     try {
@@ -136,7 +139,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
         <div class="bg-white rounded-lg shadow p-4" data-testid="aiax-status">
             <div class="text-xs text-gray-500 mb-1"><?php echo e(__('aiax_status')); ?></div>
-            <div class="text-xl font-bold <?php echo $enabled ? 'text-green-600' : 'text-gray-400'; ?>"><?php echo e($enabled ? __('aiax_on') : __('aiax_off')); ?></div>
+            <div class="text-xl font-bold <?php echo $enabled ? 'text-green-600' : 'text-gray-400'; ?>"><?php echo e($enabled ? __('aiax_on') : ($forcedOff ? __('aiax_forced_off_status') : __('aiax_off'))); ?></div>
         </div>
         <div class="bg-white rounded-lg shadow p-4" data-testid="aiax-bridge">
             <div class="text-xs text-gray-500 mb-1"><?php echo e(__('aiax_bridge')); ?></div>
@@ -155,6 +158,13 @@ require_once ROOT_PATH . '/admin/includes/header.php';
     <div class="bg-white rounded-lg shadow p-6 mb-6">
         <div class="font-medium text-gray-800"><?php echo e(__('aiax_switch_title')); ?></div>
         <p class="text-sm text-gray-500 mt-1 mb-4 max-w-3xl"><?php echo e(__('aiax_switch_desc')); ?></p>
+        <?php if ($forcedOff): ?>
+        <p class="text-sm bg-amber-50 border-l-4 border-amber-400 text-amber-800 px-3 py-2 mb-4 max-w-3xl" role="status" data-testid="aiax-forced-off"><?php echo e(__('aiax_forced_off_notice', ['constant' => AiAccessBootstrapConfig::KILL_SWITCH])); ?></p>
+        <div class="flex flex-wrap gap-2">
+            <button type="button" disabled aria-disabled="true" class="bg-gray-200 text-gray-500 px-4 py-2 rounded cursor-not-allowed"><?php echo e(__('aiax_enable')); ?></button>
+            <button type="button" onclick="aiaxPost('prepare')" class="border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded"><?php echo e(__('aiax_reprepare')); ?></button>
+        </div>
+        <?php else: ?>
         <div class="flex flex-wrap gap-2">
             <?php if ($enabled): ?>
             <button type="button" onclick="aiaxPost('disable')" class="border border-gray-300 hover:bg-gray-50 px-4 py-2 rounded text-red-600"><?php echo e(__('aiax_disable')); ?></button>
@@ -163,6 +173,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             <button type="button" onclick="aiaxPost('enable')" class="bg-primary hover:opacity-90 text-white px-4 py-2 rounded"><?php echo e(__('aiax_enable')); ?></button>
             <?php endif; ?>
         </div>
+        <?php endif; ?>
     </div>
     <?php endif; ?>
 

@@ -9515,6 +9515,8 @@ return [
     'aiax_status' => 'Akses eksternal',
     'aiax_on' => 'Aktif',
     'aiax_off' => 'Nonaktif',
+    'aiax_forced_off_status' => 'Dinonaktifkan di berkas konfigurasi',
+    'aiax_forced_off_notice' => 'config.php mendefinisikan :constant, sehingga akses AI dinonaktifkan untuk seluruh situs: tidak dapat diaktifkan di sini dan setiap token ditolak. Untuk memulihkannya, hapus baris itu lalu klik «Siapkan ulang koneksi».',
     'aiax_bridge' => 'Konfigurasi koneksi',
     'aiax_bridge_ok' => 'Siap',
     'aiax_bridge_stale' => 'Perlu disiapkan ulang',

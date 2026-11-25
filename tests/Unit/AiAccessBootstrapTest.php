@@ -242,6 +242,35 @@ final class AiAccessBootstrapTest extends TestCase
         self::assertFileDoesNotExist($this->root . '/config-executed.marker');
     }
 
+    /** 2.3.1：config.php 定义 YK_AI_ACCESS_DISABLED 即全站关闭；准备时记进接入桥，HTTP 入口不读 config.php 也照样拒绝 */
+    public function testConfigFileKillSwitchRefusesEveryTokenOverHttp(): void
+    {
+        $this->configure(true);
+        file_put_contents($this->root . '/config/config.php', "
+define('YK_AI_ACCESS_DISABLED', true);
+", FILE_APPEND);
+        $this->prepare();
+        $bridge = json_decode((string) file_get_contents($this->root . '/storage/security/ai-access/bootstrap.json'), true);
+        self::assertTrue($bridge['disabled']);
+        $response = $this->request($this->startServer() . '/', ['Authorization: Bearer ' . str_repeat('a', 64)]);
+        self::assertStringContainsString('403', $response['headers'][0]);
+        self::assertSame('ai_access_disabled', $response['body']['error']);
+        $this->assertNoCookie($response);
+    }
+
+    /** 2.3.1 之前写的接入桥没有 disabled 一项：照常读取，按未强制关闭处理 */
+    public function testBridgeWrittenBeforeTheKillSwitchStillReads(): void
+    {
+        $this->configure(true);
+        $this->prepare();
+        $path = $this->root . '/storage/security/ai-access/bootstrap.json';
+        $bridge = json_decode((string) file_get_contents($path), true);
+        self::assertFalse($bridge['disabled']);
+        unset($bridge['disabled']);
+        file_put_contents($path, json_encode($bridge, JSON_UNESCAPED_SLASHES));
+        self::assertTrue($this->worker('boot')['success'], '读取旧格式的接入桥照常启动');
+    }
+
     public function testPreparedOverrideKillSwitchIsEnforcedByHttpRuntime(): void
     {
         $this->configure(true, true); $this->prepare();
