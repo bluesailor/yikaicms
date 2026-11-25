@@ -38,19 +38,46 @@ final class TranslationWrite
      * 调模型翻译一条记录。整条有时间预算：单次服务商请求最长 60 秒，预算不够就不再发下一次。
      * @param array<string,mixed> $source self::source() 的结果 @return array<string,mixed>
      */
-    public static function generate(array $source, string $toLang, float $budgetSeconds = 120): array
+    public static function generate(array $source, string $toLang, float $budgetSeconds = 120, ?AiRequestContext $context = null): array
     {
         require_once ROOT_PATH . '/includes/AiService.php';
+        $model = trim((string) config('ai_translation_model', ''));
+        // 要按请求计额度时用自己的实例：钩子不能挂在 aiService() 的共享实例上
+        $ai = $model !== '' ? new AiService(null, null, $model) : ($context !== null ? new AiService() : aiService());
+        return self::generateWith($ai, $source, $toLang, $budgetSeconds, $context);
+    }
+
+    /**
+     * 用指定的 AiService 翻译（generate 的实现；测试用它接模拟服务商）。
+     * 有 $context 时：每次真正发出请求前先占额度（AiService 的请求钩子）；已成功的回复记进 $context->replies，
+     * 同样的请求再出现（暂停后继续）就直接重放，不再发出。
+     * @param array<string,mixed> $source @return array<string,mixed>
+     */
+    public static function generateWith(AiService $ai, array $source, string $toLang, float $budgetSeconds = 120, ?AiRequestContext $context = null): array
+    {
         require_once ROOT_PATH . '/includes/content_translation.php';
         if (function_exists('set_time_limit')) @set_time_limit((int) $budgetSeconds + 60);
         $deadline = microtime(true) + $budgetSeconds;
-        $model = trim((string) config('ai_translation_model', ''));
-        $ai = $model !== '' ? new AiService(null, null, $model) : aiService();
-        $chat = static function (string $prompt, string $system = '', float $temperature = 0.7, bool $jsonObject = false) use ($deadline, $ai): array {
+        $chat = static function (string $prompt, string $system = '', float $temperature = 0.7, bool $jsonObject = false) use ($deadline, $ai, $context): array {
+            $key = $context !== null ? AiRequestContext::key($prompt, $system, $temperature, $jsonObject) : '';
+            if ($context !== null && isset($context->replies[$key])) {
+                $context->replayed++;
+                $saved = $context->replies[$key];
+                return ['success' => true, 'content' => $saved['content'], 'error' => ''];
+            }
             if (microtime(true) + 61 >= $deadline) throw new RuntimeException('Translation time budget exceeded. The existing draft has not been changed.');
-            return $ai->chat($prompt, $system, $temperature, $jsonObject);
+            $result = $ai->chat($prompt, $system, $temperature, $jsonObject);
+            if ($context !== null && !empty($result['success'])) {
+                $context->replies[$key] = ['success' => true, 'content' => (string) ($result['content'] ?? '')];
+            }
+            return $result;
         };
-        return translateContentFields($source, $toLang, $chat, true);
+        $ai->setBeforeRequest($context !== null ? static fn () => $context->beforeRequest() : null);
+        try {
+            return translateContentFields($source, $toLang, $chat, true);
+        } finally {
+            $ai->setBeforeRequest(null);
+        }
     }
 
     /**

@@ -9724,7 +9724,8 @@ return [
     'tbt_nothing_to_retry' => 'Yeniden denenecek başarısız öğe yok',
     'tbt_worker_on' => 'Arka planda çalıştırma açık (zamanlanmış görevler :time saatinde çalıştı); bu sayfayı kapatsanız da çeviri sürer.',
     'tbt_worker_off' => 'Zamanlanmış görevler son 10 dakikadır çalışmadı; bu sayfayı kapatırsanız çeviri durur. Arka planda sürmesi için zamanlanmış görevleri ayarlayın.',
-    'tbt_calls' => 'Model çağrıları: :calls / :max',
+    'tbt_usage' => 'Üretim denemesi: :attempts · Model isteği: :requests / :max',
+    'tbt_usage_unknown' => 'Üretim denemesi: :attempts · Model isteği: bilinmiyor (güncellemeden önce oluşturulan toplu iş; o zamandan beri :requests gönderildi, sınır :max)',
     'tbt_budget_paused' => 'Bu iş model çağrı sınırına ulaştı ve duraklatıldı. Öğelerin neden başarısız olduğunu kontrol edin, ardından kalan öğelere çağrı hakkı vermek için Başlat / Devam et düğmesine tıklayın.',
     'tbt_log' => 'Görev günlüğü',
     'tbt_ev_created' => 'İş oluşturuldu (öğe)',
@@ -9906,8 +9907,6 @@ return [
     'prod_edit_save_draft' => 'Çalışma taslağını kaydet',
     'prod_edit_update_current' => 'Mevcut ürünü güncelle',
     'prod_edit_draft_tip' => 'Ziyaretçiler mevcut sürümü görürken düzenlemeye devam etmek ve önizlemek için bir çalışma taslağı kaydedin.',
-
-    // 产品导入 / 导出（2.3.0 并入主程序，此前在插件 product-import 的语言包里）
     'pimp_page_title' => 'Ürün içe aktarma',
     'pimp_menu' => 'Ürünleri içe aktar',
     'pimp_tab_package' => 'İçe aktarma paketi (önerilen)',
@@ -10067,4 +10066,4 @@ return [
     'pimp_issue_content_external_image' => 'İçerikte harici URL\'lerden alınmış {count} görsel var; içe aktarımdan sonra da bu siteleri göstermeye devam ederler.',
     'pimp_issue_edited_on_site' => 'Bu site son içe aktarımdan sonra değiştirilmiş. Güncelleme bu değişikliklerin üzerine yazacak.',
     'pimp_err_export_failed' => 'Dışa aktarma başarısız',
-    ];
+];

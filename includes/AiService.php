@@ -10,6 +10,8 @@
 
 declare(strict_types=1);
 
+require_once __DIR__ . '/AiRequestBudget.php';
+
 class AiService
 {
     private string $provider;
@@ -17,6 +19,8 @@ class AiService
     private string $model;
     private string $baseUrl;
     public static string $action = '';
+    /** 每次 HTTP 请求发出之前调用（2.3.1 批量翻译按请求计额度）；可抛 AiRequestBudgetExhausted 拦下这次请求 @var null|Closure():void */
+    private ?Closure $beforeRequest = null;
 
     // 供应商配置表
     private const PROVIDERS = [
@@ -223,11 +227,22 @@ class AiService
             }
             $this->logUsage($result);
             return $result;
+        } catch (AiRequestBudgetExhausted $e) {
+            throw $e;   // 额度用尽不是请求失败：交给调用方暂停，不记成一次失败调用
         } catch (\Throwable $e) {
             $result = ['success' => false, 'content' => '', 'error' => $e->getMessage()];
             $this->logUsage($result);
             return $result;
         }
+    }
+
+    /**
+     * 设置 / 清除「每次请求前」的钩子。只给自己新建的实例设置，不要设在 aiService() 的共享实例上。
+     * @param null|Closure():void $hook
+     */
+    public function setBeforeRequest(?Closure $hook): void
+    {
+        $this->beforeRequest = $hook;
     }
 
     /**
@@ -252,6 +267,8 @@ class AiService
                 : $this->callOpenAI($parts, $system, $temperature);
             $this->logUsage($result);
             return $result;
+        } catch (AiRequestBudgetExhausted $e) {
+            throw $e;
         } catch (\Throwable $e) {
             $result = ['success' => false, 'content' => '', 'error' => $e->getMessage()];
             $this->logUsage($result);
@@ -260,7 +277,7 @@ class AiService
     }
 
     /**
-     * 中性的消息内容（文字串，或 [{type:text,text} | {type:image,mime,data}] 列表）→ 各供应商格式。
+     *中性的消息内容（文字串，或 [{type:text,text} | {type:image,mime,data}] 列表）→ 各供应商格式。
      *
      * @param string|list<array<string,string>> $prompt
      * @return string|list<array<string,mixed>>
@@ -708,6 +725,8 @@ class AiService
         if (!self::transportAvailable()) {
             return ['success' => false, 'content' => '', 'error' => __('ai_needs_curl'), 'body' => ''];
         }
+        // 真正发出之前：按请求计额度（兼容重试等每一次都算）
+        if ($this->beforeRequest !== null) ($this->beforeRequest)();
         $ch = curl_init($url);
         curl_setopt_array($ch, [
             CURLOPT_POST           => true,

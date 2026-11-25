@@ -91,9 +91,14 @@ if ($action === 'provision') {
     $deadline = microtime(true) + 20;
     while (!is_file($job['go']) && microtime(true) < $deadline) usleep(5000);
     $log = $job['calls'];
-    $svc = new TranslationBatches(db(), static function (array $source, string $lang) use ($log): array {
+    // 假模型每项发 2 次请求（翻译、校对），与真实 AiService 一样每次发出前先过额度（2.3.1）
+    $svc = new TranslationBatches(db(), static function (array $source, string $lang, AiRequestContext $context) use ($log): array {
+        foreach (['translate', 'review'] as $step) {
+            $context->beforeRequest();
+            file_put_contents($log . '.requests', $source['title'] . '|' . $lang . '|' . $step . '|' . getmypid() . "\n", FILE_APPEND | LOCK_EX);
+            usleep(40000);   // 模型请求进行中：让两个执行器的领取、占额度与写库交错
+        }
         file_put_contents($log, $source['title'] . '|' . $lang . '|' . getmypid() . "\n", FILE_APPEND | LOCK_EX);
-        usleep(80000);   // 模型请求进行中：让两个执行器的领取与写库交错
         return ['title' => $source['title'] . ' [' . $lang . ']', 'summary' => 'Summary', 'content' => '<p>Body</p>'];
     });
     $output = ['ok' => true, 'drained' => $svc->drain(30)];
@@ -108,34 +113,39 @@ if ($action === 'provision') {
     $svc = new TranslationBatches($db);
     $batch = $svc->create(1, $ids, ['en', 'ja'], 'zh-CN', time());
     $check($batch['total'] === 12, 'batch of 6 products × 2 languages created');
-    $stem = ROOT_PATH . '/storage/tworker-' . bin2hex(random_bytes(5));
-    $running = [];
-    foreach ([1, 2] as $n) {
-        $job = ['ready' => "{$stem}.{$n}.ready", 'go' => "{$stem}.go", 'calls' => "{$stem}.calls"];
-        file_put_contents("{$stem}.{$n}.job.json", json_encode($job, JSON_THROW_ON_ERROR));
-        $pipes = [];
-        $proc = proc_open([PHP_BINARY, __FILE__, 'tworker', "{$stem}.{$n}.job.json"],
-            [0 => ['pipe', 'r'], 1 => ['file', "{$stem}.{$n}.out.json", 'w'], 2 => ['file', "{$stem}.{$n}.err", 'w']], $pipes);
-        if (!is_resource($proc)) throw new RuntimeException('Worker startup failed');
-        fclose($pipes[0]);
-        $running[] = ['proc' => $proc, 'n' => $n, 'ready' => $job['ready']];
-    }
-    try {
-        $deadline = microtime(true) + 15;
-        while ((!is_file("{$stem}.1.ready") || !is_file("{$stem}.2.ready")) && microtime(true) < $deadline) usleep(5000);
-        $check(is_file("{$stem}.1.ready") && is_file("{$stem}.2.ready"), 'both workers connected before release');
-        touch("{$stem}.go");
-        $results = [];
-        foreach ($running as $worker) {
-            $deadline = microtime(true) + 60;
-            while (proc_get_status($worker['proc'])['running'] && microtime(true) < $deadline) usleep(10000);
-            if (proc_get_status($worker['proc'])['running']) throw new RuntimeException('Worker deadline exceeded');
-            proc_close($worker['proc']);
-            $results[] = json_decode((string) file_get_contents("{$stem}.{$worker['n']}.out.json"), true, 512, JSON_THROW_ON_ERROR);
+    // 两个独立进程同时 drain：等两边都连上数据库再一起放行
+    $race = static function (string $stem) use ($check): array {
+        $running = [];
+        foreach ([1, 2] as $n) {
+            $job = ['ready' => "{$stem}.{$n}.ready", 'go' => "{$stem}.go", 'calls' => "{$stem}.calls"];
+            file_put_contents("{$stem}.{$n}.job.json", json_encode($job, JSON_THROW_ON_ERROR));
+            $pipes = [];
+            $proc = proc_open([PHP_BINARY, __FILE__, 'tworker', "{$stem}.{$n}.job.json"],
+                [0 => ['pipe', 'r'], 1 => ['file', "{$stem}.{$n}.out.json", 'w'], 2 => ['file', "{$stem}.{$n}.err", 'w']], $pipes);
+            if (!is_resource($proc)) throw new RuntimeException('Worker startup failed');
+            fclose($pipes[0]);
+            $running[] = ['proc' => $proc, 'n' => $n, 'ready' => $job['ready']];
         }
-    } finally {
-        foreach ($running as $worker) if (is_resource($worker['proc'])) { proc_terminate($worker['proc']); proc_close($worker['proc']); }
-    }
+        try {
+            $deadline = microtime(true) + 15;
+            while ((!is_file("{$stem}.1.ready") || !is_file("{$stem}.2.ready")) && microtime(true) < $deadline) usleep(5000);
+            $check(is_file("{$stem}.1.ready") && is_file("{$stem}.2.ready"), 'both workers connected before release');
+            touch("{$stem}.go");
+            $results = [];
+            foreach ($running as $worker) {
+                $deadline = microtime(true) + 60;
+                while (proc_get_status($worker['proc'])['running'] && microtime(true) < $deadline) usleep(10000);
+                if (proc_get_status($worker['proc'])['running']) throw new RuntimeException('Worker deadline exceeded');
+                proc_close($worker['proc']);
+                $results[] = json_decode((string) file_get_contents("{$stem}.{$worker['n']}.out.json"), true, 512, JSON_THROW_ON_ERROR);
+            }
+        } finally {
+            foreach ($running as $worker) if (is_resource($worker['proc'])) { proc_terminate($worker['proc']); proc_close($worker['proc']); }
+        }
+        return $results;
+    };
+    $stem = ROOT_PATH . '/storage/tworker-' . bin2hex(random_bytes(5));
+    $results = $race($stem);
     $calls = array_values(array_filter(explode("\n", (string) @file_get_contents("{$stem}.calls"))));
     $pids = array_unique(array_map(static fn (string $line): string => explode('|', $line)[2], $calls));
     $check(count($results) === 2 && $results[0]['ok'] && $results[1]['ok'], 'both workers finished without errors');
@@ -147,7 +157,29 @@ if ($action === 'provision') {
     $places = implode(',', array_fill(0, count($ids), '?'));
     $dups = $db->fetchAll("SELECT translation_group_id, lang, COUNT(*) AS n FROM {$prefix}products WHERE translation_group_id IN ({$places}) AND lang IN ('en', 'ja') AND deleted_at IS NULL GROUP BY translation_group_id, lang", $ids);
     $check(count($dups) === 12 && max(array_map('intval', array_column($dups, 'n'))) === 1, 'exactly one translation per product and language, no duplicate commits');
-    $check((int) $db->fetchColumn("SELECT calls FROM {$prefix}translation_batches WHERE id = ?", [$batch['batch_id']]) === 12, 'the call counter matches the model calls actually made');
+    $requests = array_values(array_filter(explode("\n", (string) @file_get_contents("{$stem}.calls.requests"))));
+    $counters = array_map('intval', $db->fetchOne("SELECT calls, requests FROM {$prefix}translation_batches WHERE id = ?", [$batch['batch_id']]));
+    $check($counters['calls'] === 12, 'the attempt counter shows one generation attempt per item (' . $counters['calls'] . ')');
+    $check(count($requests) === 24 && $counters['requests'] === 24, 'the request counter matches the model requests actually sent (' . $counters['requests'] . ' counted, ' . count($requests) . ' sent)');
+    foreach (glob($stem . '*') ?: [] as $file) @unlink($file);
+
+    // 2.3.1：两个执行器争同一批的最后几个额度，合计不能越过上限
+    $ids2 = [];
+    for ($i = 1; $i <= 6; $i++) {
+        $ids2[] = (int) productModel()->create(['title' => 'Quota race ' . $i, 'summary' => 'S', 'content' => '<p>B</p>', 'slug' => 'quota-race-' . $i,
+            'lang' => 'zh-CN', 'status' => 1, 'created_at' => 1, 'updated_at' => 1]);
+    }
+    $batch2 = $svc->create(1, $ids2, ['en'], 'zh-CN', time());
+    $db->execute("UPDATE {$prefix}translation_batches SET max_calls = 9 WHERE id = ?", [$batch2['batch_id']]);
+    $stem = ROOT_PATH . '/storage/tworker-' . bin2hex(random_bytes(5));
+    $results = $race($stem);
+    $sent = array_values(array_filter(explode("\n", (string) @file_get_contents("{$stem}.calls.requests"))));
+    $row2 = $db->fetchOne("SELECT status, note, requests, max_calls FROM {$prefix}translation_batches WHERE id = ?", [$batch2['batch_id']]);
+    $check(count($results) === 2 && $results[0]['ok'] && $results[1]['ok'], 'both workers finished the limited batch without errors');
+    $check(count($sent) === 9 && (int) $row2['requests'] === 9, 'with a limit of 9 the two workers sent exactly 9 requests in total (' . count($sent) . ' sent, ' . (int) $row2['requests'] . ' counted)');
+    $check($row2['status'] === 'paused' && $row2['note'] === 'budget', 'the batch paused at its request limit');
+    $held = (int) $db->fetchColumn("SELECT COUNT(*) FROM {$prefix}translation_batch_items WHERE batch_id = ? AND status = 'generating'", [$batch2['batch_id']]);
+    $check($held === 0, 'no item is left claimed after the pause');
     foreach (glob($stem . '*') ?: [] as $file) @unlink($file);
 } elseif ($action === 'concurrency') {
     $db = db();

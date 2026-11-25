@@ -33,13 +33,15 @@ try {
   }
   fs.writeFileSync(path.join(site, 'config/config.php'), config);
   run(['tests/fixtures/product-drafts-mysql.php', 'provision'], '01-baseline', true);
-  for (const id of ['20261107_translation_batches', '20261108_translation_links', '20261116_translation_batch_worker']) {
+  for (const id of ['20261107_translation_batches', '20261108_translation_links', '20261116_translation_batch_worker', '20261126_translation_batch_requests']) {
     run(['bin/yikai.php', 'migrate:run', '--id=' + id, '--yes'], '02-' + id);
     run(['bin/yikai.php', 'migrate:run', '--id=' + id, '--yes'], '03-repeat-' + id);
   }
   run(['tests/fixtures/product-drafts-mysql.php', 'verify'], '04-upgrade-preservation', true);
   run(['tests/fixtures/product-drafts-mysql.php', 'partial'], '05-interrupted-ddl', true);
   run(['bin/yikai.php', 'migrate:run', '--id=20261107_translation_batches', '--yes'], '06-resume-interrupted-ddl');
+  // 重建的表是 20261107 的原始结构：后续迁移补的列（2.3.1 partial_json）照样由各自的迁移补回
+  run(['bin/yikai.php', 'migrate:run', '--id=20261126_translation_batch_requests', '--yes'], '06b-resume-later-columns');
   run(['tests/fixtures/product-drafts-mysql.php', 'verify-partial'], '07-resumed-upgrade-preservation', true);
   run(['tests/fixtures/product-drafts-mysql.php', 'translation-workers'], '08-translation-workers', true);
   run(['tests/fixtures/product-drafts-mysql.php', 'concurrency'], '09-concurrency', true);

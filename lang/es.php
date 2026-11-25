@@ -9724,7 +9724,8 @@ return [
     'tbt_nothing_to_retry' => 'No hay elementos fallidos para reintentar',
     'tbt_worker_on' => 'La ejecución en segundo plano está activa (las tareas programadas se ejecutaron a las :time); la traducción continúa aunque cierres esta página.',
     'tbt_worker_off' => 'Las tareas programadas no se han ejecutado en los últimos 10 minutos, así que la traducción se detiene al cerrar esta página. Configura las tareas programadas para que continúe en segundo plano.',
-    'tbt_calls' => 'Llamadas al modelo: :calls / :max',
+    'tbt_usage' => 'Intentos de generación: :attempts · Solicitudes al modelo: :requests / :max',
+    'tbt_usage_unknown' => 'Intentos de generación: :attempts · Solicitudes al modelo: desconocidas (lote creado antes de la actualización; :requests enviadas desde entonces, límite :max)',
     'tbt_budget_paused' => 'Este lote alcanzó su límite de llamadas al modelo y se pausó. Revisa por qué fallaron los elementos y pulsa Iniciar / Continuar para permitir más llamadas para los restantes.',
     'tbt_log' => 'Registro de la tarea',
     'tbt_ev_created' => 'Lote creado (elementos)',
@@ -9906,8 +9907,6 @@ return [
     'prod_edit_save_draft' => 'Guardar borrador de trabajo',
     'prod_edit_update_current' => 'Actualizar producto actual',
     'prod_edit_draft_tip' => 'Guarda un borrador de trabajo para seguir editándolo y previsualizarlo mientras los visitantes ven la versión actual.',
-
-    // 产品导入 / 导出（2.3.0 并入主程序，此前在插件 product-import 的语言包里）
     'pimp_page_title' => 'Importación de productos',
     'pimp_menu' => 'Importar productos',
     'pimp_tab_package' => 'Paquete de importación (recomendado)',
@@ -10067,4 +10066,4 @@ return [
     'pimp_issue_content_external_image' => 'El contenido incluye {count} imágenes de sitios externos; seguirán apuntando a esos sitios después de la importación.',
     'pimp_issue_edited_on_site' => 'Este sitio se ha editado desde la última importación. Al actualizar, se sobrescribirán esos cambios.',
     'pimp_err_export_failed' => 'Error al exportar',
-    ];
+];

@@ -3037,7 +3037,9 @@ CREATE TABLE "yikai_translation_batches" (
   "updated_at" INTEGER NOT NULL,
   "calls" INTEGER NOT NULL DEFAULT 0,
   "max_calls" INTEGER NOT NULL DEFAULT 0,
-  "note" TEXT NOT NULL DEFAULT ''
+  "note" TEXT NOT NULL DEFAULT '',
+  "requests" INTEGER NOT NULL DEFAULT 0,
+  "requests_known" INTEGER NOT NULL DEFAULT 1
 );
 CREATE INDEX "idx_translation_batches_created_yikai_translation_batches" ON "yikai_translation_batches" ("created_at");
 DROP TABLE IF EXISTS "yikai_translation_batch_events";
@@ -3063,7 +3065,8 @@ CREATE TABLE "yikai_translation_batch_items" (
   "result_json" TEXT,
   "error" TEXT NOT NULL DEFAULT '',
   "lease_until" INTEGER NOT NULL DEFAULT 0,
-  "updated_at" INTEGER NOT NULL
+  "updated_at" INTEGER NOT NULL,
+  "partial_json" TEXT
 );
 CREATE UNIQUE INDEX "uk_translation_batch_items_yikai_translation_batch_items" ON "yikai_translation_batch_items" ("batch_id", "source_id", "lang");
 CREATE INDEX "idx_translation_batch_items_status_yikai_translation_batch_items" ON "yikai_translation_batch_items" ("batch_id", "status");

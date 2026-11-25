@@ -9724,7 +9724,8 @@ return [
     'tbt_nothing_to_retry' => 'Nessun elemento non riuscito da riprovare',
     'tbt_worker_on' => 'L\'esecuzione in background è attiva (attività pianificate eseguite alle :time); la traduzione continua anche chiudendo questa pagina.',
     'tbt_worker_off' => 'Le attività pianificate non vengono eseguite da 10 minuti, quindi la traduzione si ferma chiudendo questa pagina. Configura le attività pianificate per farla proseguire in background.',
-    'tbt_calls' => 'Chiamate al modello: :calls / :max',
+    'tbt_usage' => 'Tentativi di generazione: :attempts · Richieste al modello: :requests / :max',
+    'tbt_usage_unknown' => 'Tentativi di generazione: :attempts · Richieste al modello: sconosciute (lotto creato prima dell\'aggiornamento; :requests inviate da allora, limite :max)',
     'tbt_budget_paused' => 'Questo lotto ha raggiunto il limite di chiamate al modello ed è stato messo in pausa. Controlla perché gli elementi non sono riusciti, poi fai clic su Avvia / Continua per consentire altre chiamate per quelli rimanenti.',
     'tbt_log' => 'Registro attività',
     'tbt_ev_created' => 'Lotto creato (elementi)',
@@ -9906,8 +9907,6 @@ return [
     'prod_edit_save_draft' => 'Salva bozza di lavoro',
     'prod_edit_update_current' => 'Aggiorna prodotto attuale',
     'prod_edit_draft_tip' => 'Salva una bozza di lavoro per continuare a modificarla e visualizzarla in anteprima mentre i visitatori vedono la versione attuale.',
-
-    // 产品导入 / 导出（2.3.0 并入主程序，此前在插件 product-import 的语言包里）
     'pimp_page_title' => 'Importazione prodotti',
     'pimp_menu' => 'Importa prodotti',
     'pimp_tab_package' => 'Pacchetto di importazione (consigliato)',
@@ -10067,4 +10066,4 @@ return [
     'pimp_issue_content_external_image' => 'Il contenuto include {count} immagini da URL esterni; continueranno a puntare ai siti esterni anche dopo l’importazione.',
     'pimp_issue_edited_on_site' => 'Questo sito è stato modificato dopo l’ultima importazione. L’aggiornamento sovrascriverà tali modifiche.',
     'pimp_err_export_failed' => 'Esportazione non riuscita',
-    ];
+];

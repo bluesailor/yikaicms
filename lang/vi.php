@@ -9724,7 +9724,8 @@ return [
     'tbt_nothing_to_retry' => 'Không có mục lỗi nào cần thử lại',
     'tbt_worker_on' => 'Chạy nền đang bật (tác vụ định kỳ chạy lúc :time); đóng trang này việc dịch vẫn tiếp tục.',
     'tbt_worker_off' => 'Tác vụ định kỳ chưa chạy trong 10 phút gần đây nên đóng trang này việc dịch sẽ dừng. Hãy thiết lập tác vụ định kỳ để dịch tiếp trong nền.',
-    'tbt_calls' => 'Lượt gọi mô hình: :calls / :max',
+    'tbt_usage' => 'Lượt tạo: :attempts · Yêu cầu tới mô hình: :requests / :max',
+    'tbt_usage_unknown' => 'Lượt tạo: :attempts · Yêu cầu tới mô hình: không rõ (lô tạo trước khi nâng cấp; đã gửi :requests từ đó, giới hạn :max)',
     'tbt_budget_paused' => 'Tác vụ này đã đạt giới hạn lượt gọi mô hình và đã tạm dừng. Hãy kiểm tra lý do các mục bị lỗi rồi bấm Bắt đầu / Tiếp tục để cấp thêm lượt gọi cho các mục còn lại.',
     'tbt_log' => 'Nhật ký tác vụ',
     'tbt_ev_created' => 'Đã tạo tác vụ (số mục)',
@@ -9906,8 +9907,6 @@ return [
     'prod_edit_save_draft' => 'Lưu bản nháp làm việc',
     'prod_edit_update_current' => 'Cập nhật sản phẩm hiện tại',
     'prod_edit_draft_tip' => 'Lưu bản nháp làm việc để tiếp tục chỉnh sửa và xem trước trong khi khách truy cập vẫn thấy phiên bản hiện tại.',
-
-    // 产品导入 / 导出（2.3.0 并入主程序，此前在插件 product-import 的语言包里）
     'pimp_page_title' => 'Nhập sản phẩm',
     'pimp_menu' => 'Nhập sản phẩm',
     'pimp_tab_package' => 'Gói nhập (khuyên dùng)',
@@ -10067,4 +10066,4 @@ return [
     'pimp_issue_content_external_image' => 'Nội dung có {count} ảnh từ URL bên ngoài; sau khi nhập, các ảnh này vẫn trỏ đến trang bên ngoài.',
     'pimp_issue_edited_on_site' => 'Trang này đã được sửa sau lần nhập trước. Cập nhật sẽ ghi đè các thay đổi đó.',
     'pimp_err_export_failed' => 'Xuất thất bại',
-    ];
+];

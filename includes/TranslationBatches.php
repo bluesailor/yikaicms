@@ -15,6 +15,7 @@
 declare(strict_types=1);
 
 require_once __DIR__ . '/TranslationWrite.php';
+require_once __DIR__ . '/AiRequestBudget.php';
 
 final class TranslationBatches
 {
@@ -28,16 +29,25 @@ final class TranslationBatches
     public const BACKOFF_SECONDS = 60;
     /** 已完成、已取消的批次保留天数（含逐项结果与日志），过期由定时任务清理；设置项 translate_batch_keep_days 可改 */
     public const KEEP_DAYS = 30;
-    /** 暂停原因：模型调用次数到了这一批的上限 */
+    /** 暂停原因：模型请求数到了这一批的上限 */
     public const NOTE_BUDGET = 'budget';
+    /**
+     * 每项默认的模型请求额度（2.3.1 起按请求计，见 AiRequestBudget.php）。
+     * 一条产品通常 2–6 次请求（每段正文一次、校对一次，修补与兼容重试另算），16 次够一项连同失败重试；这是防失控的上限，不是预估用量
+     */
+    public const REQUESTS_PER_ITEM = 16;
 
-    /** @var Closure(array<string,mixed>, string): array<string,mixed> */
+    /** @var Closure(array<string,mixed>, string, AiRequestContext): array<string,mixed> */
     private Closure $generator;
 
-    /** @param null|Closure(array<string,mixed>, string): array<string,mixed> $generator 测试注入；默认调模型 */
+    /**
+     * @param null|Closure(array<string,mixed>, string, AiRequestContext): array<string,mixed> $generator 测试注入；默认调模型。
+     *        生成器每发一次模型请求前都要调 $context->beforeRequest()（默认生成器由 AiService 的请求钩子调）
+     */
     public function __construct(private Database $db, ?Closure $generator = null)
     {
-        $this->generator = $generator ?? static fn (array $source, string $lang): array => TranslationWrite::generate($source, $lang);
+        $this->generator = $generator ?? static fn (array $source, string $lang, AiRequestContext $context): array
+            => TranslationWrite::generate($source, $lang, 120, $context);
     }
 
     /**
@@ -91,11 +101,11 @@ final class TranslationBatches
                     $total++;
                 }
             }
-            // 调用上限：设置项 translate_batch_max_calls（每批模型调用次数）> 0 时用它；
-            // 否则按每项最多 MAX_ATTEMPTS 次封顶，防止一批无限重试
+            // 请求上限：设置项 translate_batch_max_calls（每批模型请求次数）> 0 时用它；
+            // 否则每项 REQUESTS_PER_ITEM 次，防止一批无限重试、无限花费
             $configured = (int) config('translate_batch_max_calls', 0);
             $this->db->execute('UPDATE ' . DB_PREFIX . 'translation_batches SET total = ?, max_calls = ? WHERE id = ?',
-                [$total, $configured > 0 ? $configured : $total * self::MAX_ATTEMPTS, $batchId]);
+                [$total, $configured > 0 ? $configured : $total * self::REQUESTS_PER_ITEM, $batchId]);
             $this->log($batchId, 0, 'created', (string) $total, $now);
             $this->db->commit();
         } catch (Throwable $error) {
@@ -121,13 +131,9 @@ final class TranslationBatches
             if ($item === null) break;
             $seen[(int) $item['id']] = true;
             if ($item['status'] === 'generating') {
-                // 调模型前先占一次额度；到上限就把这一项放回去、整批暂停，等人看过再继续
-                if (!$this->reserveCall($batchId)) {
-                    $this->release($item, $clock());
-                    $this->pauseForBudget($batchId, $clock());
-                    break;
-                }
+                // 额度在每次真正发出模型请求前才占（AiRequestContext）；用完时这一项已放回、整批已暂停
                 $item = $this->generateItem($item, $clock());
+                if ($item === false) break;
             }
             if ($item !== null && $item['status'] === 'generated') $this->applyItem($item, $clock());
         }
@@ -175,13 +181,13 @@ final class TranslationBatches
     /** failed 与 conflict 重新排队；conflict 的旧结果作废（源已变，必须重新生成） */
     public function retry(int $batchId, int $now): int
     {
-        $n = $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batch_items SET status = 'pending', attempts = 0, error = '', result_json = NULL, source_fp = '', lease_until = 0, updated_at = ?"
+        $n = $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batch_items SET status = 'pending', attempts = 0, error = '', result_json = NULL, partial_json = NULL, source_fp = '', lease_until = 0, updated_at = ?"
             . " WHERE batch_id = ? AND status IN ('failed', 'conflict')", [$now, $batchId]);
         if ($n > 0) {
-            // 人点了重试就是同意再花：额度至少留够这些项各 MAX_ATTEMPTS 次
+            // 人点了重试就是同意再花：请求额度至少留够这些项各 REQUESTS_PER_ITEM 次
             $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET status = 'running', note = '', updated_at = ?,"
-                . ' max_calls = CASE WHEN max_calls < calls + ? THEN calls + ? ELSE max_calls END WHERE id = ?',
-                [$now, $n * self::MAX_ATTEMPTS, $n * self::MAX_ATTEMPTS, $batchId]);
+                . ' max_calls = CASE WHEN max_calls > 0 AND max_calls < requests + ? THEN requests + ? ELSE max_calls END WHERE id = ?',
+                [$now, $n * self::REQUESTS_PER_ITEM, $n * self::REQUESTS_PER_ITEM, $batchId]);
             $this->log($batchId, 0, 'retried', (string) $n, $now);
         }
         return $n;
@@ -194,13 +200,13 @@ final class TranslationBatches
         }
     }
 
-    /** 继续。因调用额度暂停的，继续时给剩下的项各 MAX_ATTEMPTS 次额度（人看过、同意再花） */
+    /** 继续。因请求额度暂停的，继续时给剩下的项各 REQUESTS_PER_ITEM 次请求额度（人看过、同意再花） */
     public function resume(int $batchId, int $now): void
     {
         $open = (int) $this->db->fetchColumn('SELECT COUNT(*) FROM ' . DB_PREFIX . "translation_batch_items WHERE batch_id = ? AND status IN ('pending', 'generating', 'generated')", [$batchId]);
-        $grant = $open * self::MAX_ATTEMPTS;
+        $grant = $open * self::REQUESTS_PER_ITEM;
         $n = $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET status = 'running', updated_at = ?,"
-            . ' max_calls = CASE WHEN note = ? THEN calls + ? ELSE max_calls END, note = \'\' WHERE id = ? AND status = \'paused\'',
+            . ' max_calls = CASE WHEN note = ? THEN requests + ? ELSE max_calls END, note = \'\' WHERE id = ? AND status = \'paused\'',
             [$now, self::NOTE_BUDGET, $grant, $batchId]);
         if ($n === 1) $this->log($batchId, 0, 'resumed', '', $now);
         $this->finishIfDone($batchId, $now);
@@ -315,8 +321,11 @@ final class TranslationBatches
         return null;
     }
 
-    /** @param array<string,mixed> $item @return array<string,mixed>|null 生成成功返回更新后的项 */
-    private function generateItem(array $item, int $now): ?array
+    /**
+     * @param array<string,mixed> $item
+     * @return array<string,mixed>|null|false 生成成功返回更新后的项；false = 请求额度用完，这一项已放回、整批已暂停
+     */
+    private function generateItem(array $item, int $now): array|null|false
     {
         $id = (int) $item['id'];
         $src = $this->product((int) $item['source_id']);
@@ -336,27 +345,40 @@ final class TranslationBatches
             return null;
         }
         require_once ROOT_PATH . '/includes/content_translation.php';
+        $batchId = (int) $item['batch_id'];
+        // 上次因额度暂停时已成功的模型回复：这次原样重放，不再发出、不再占额度
+        $context = new AiRequestContext(fn (): bool => $this->reserveRequest($batchId), AiRequestContext::decodeReplies(
+            isset($item['partial_json']) ? (string) $item['partial_json'] : null));
         try {
-            $translated = ($this->generator)(TranslationWrite::source($src, 'title', 'summary', $src, translationBodyField($src)), (string) $item['lang']);
+            $translated = ($this->generator)(TranslationWrite::source($src, 'title', 'summary', $src, translationBodyField($src)), (string) $item['lang'], $context);
+        } catch (AiRequestBudgetExhausted) {
+            // 额度用完：这一项放回去、不算一次尝试；已成功的回复存下，继续时接着用
+            $this->release($item, $now, ['partial_json' => $context->replies === [] ? null
+                : json_encode($context->replies, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE)]);
+            $this->pauseForBudget($batchId, $now);
+            return false;
         } catch (Throwable $error) {
+            $this->countAttempt($batchId);
             $attempts = (int) $item['attempts'];
             $message = mb_substr($error->getMessage(), 0, 250);
+            // 失败后重试要重新问模型：存下的回复作废（可能正是它们导致失败，重放只会得到同样的结果）
             if ($attempts >= self::MAX_ATTEMPTS) {
-                if ($this->markHeld($item, 'failed', ['error' => $message], $now)) $this->log((int) $item['batch_id'], $id, 'failed', $message, $now);
+                if ($this->markHeld($item, 'failed', ['error' => $message, 'partial_json' => null], $now)) $this->log($batchId, $id, 'failed', $message, $now);
                 return null;
             }
-            // 退避：租约时间设到「可以再试」的时刻，claim 在那之前不会领它（不占调用额度、不连打失败的接口）
+            // 退避：租约时间设到「可以再试」的时刻，claim 在那之前不会领它（不占请求额度、不连打失败的接口）
             $retryAt = $now + self::backoff($attempts);
-            if ($this->markHeld($item, 'pending', ['error' => $message], $now, $retryAt)) {
-                $this->log((int) $item['batch_id'], $id, 'retry_later', date('H:i:s', $retryAt) . ' ' . $message, $now);
+            if ($this->markHeld($item, 'pending', ['error' => $message, 'partial_json' => null], $now, $retryAt)) {
+                $this->log($batchId, $id, 'retry_later', date('H:i:s', $retryAt) . ' ' . $message, $now);
             }
             return null;
         }
+        $this->countAttempt($batchId);
         // 租约留着：本请求接着写库，别的页面这时领不走它。
         // 调模型期间被取消、或租约过期被别的页面重新领走，这份结果就作废，不落库（评审 F03）
         $kept = $this->markHeld($item, 'generated', [
             'result_json' => json_encode($translated, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE),
-            'source_fp' => TranslationWrite::fingerprint($src), 'error' => '',
+            'partial_json' => null, 'source_fp' => TranslationWrite::fingerprint($src), 'error' => '',
         ], $now, (int) $item['lease_until']);
         if (!$kept) return null;
         return $this->db->fetchOne('SELECT * FROM ' . DB_PREFIX . 'translation_batch_items WHERE id = ?', [$id]);
@@ -456,16 +478,25 @@ final class TranslationBatches
         }
     }
 
-    /** 占一次模型调用额度；批次不在 running 或额度用完时返回 false */
-    private function reserveCall(int $batchId): bool
+    /**
+     * 占一个模型请求额度（每次真正发出请求前）。一条 UPDATE 完成判断与加一：几个执行器同时跑也不会一起越过上限。
+     * 批次不在 running（被暂停、取消）或额度用完时返回 false，这次请求不发
+     */
+    private function reserveRequest(int $batchId): bool
     {
-        return $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET calls = calls + 1 WHERE id = ? AND status = 'running' AND (max_calls = 0 OR calls < max_calls)", [$batchId]) === 1;
+        return $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET requests = requests + 1 WHERE id = ? AND status = 'running' AND (max_calls = 0 OR requests < max_calls)", [$batchId]) === 1;
     }
 
-    /** 刚领到、还没调模型的项放回去：本次不算一次尝试 @param array<string,mixed> $held */
-    private function release(array $held, int $now): void
+    /** 记一次生成尝试（成功或失败；因额度放回的不算） */
+    private function countAttempt(int $batchId): void
     {
-        $this->db->update('translation_batch_items', ['status' => 'pending', 'attempts' => max(0, (int) $held['attempts'] - 1), 'lease_until' => 0, 'updated_at' => $now],
+        $this->db->execute('UPDATE ' . DB_PREFIX . 'translation_batches SET calls = calls + 1 WHERE id = ?', [$batchId]);
+    }
+
+    /** 领到的项放回去：本次不算一次尝试 @param array<string,mixed> $held @param array<string,mixed> $fields */
+    private function release(array $held, int $now, array $fields = []): void
+    {
+        $this->db->update('translation_batch_items', ['status' => 'pending', 'attempts' => max(0, (int) $held['attempts'] - 1), 'lease_until' => 0, 'updated_at' => $now] + $fields,
             'id = ? AND status = ? AND lease_until = ? AND attempts = ?',
             [(int) $held['id'], (string) $held['status'], (int) $held['lease_until'], (int) $held['attempts']]);
     }
@@ -475,7 +506,7 @@ final class TranslationBatches
         $n = $this->db->execute('UPDATE ' . DB_PREFIX . "translation_batches SET status = 'paused', note = ?, updated_at = ? WHERE id = ? AND status = 'running'", [self::NOTE_BUDGET, $now, $batchId]);
         if ($n === 1) {
             $row = $this->batch($batchId);
-            $this->log($batchId, 0, 'budget_paused', (int) ($row['calls'] ?? 0) . '/' . (int) ($row['max_calls'] ?? 0), $now);
+            $this->log($batchId, 0, 'budget_paused', (int) ($row['requests'] ?? 0) . '/' . (int) ($row['max_calls'] ?? 0), $now);
         }
     }
 

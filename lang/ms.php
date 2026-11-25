@@ -9724,7 +9724,8 @@ return [
     'tbt_nothing_to_retry' => 'Tiada item gagal untuk dicuba semula',
     'tbt_worker_on' => 'Pelaksanaan latar belakang aktif (tugas berjadual berjalan pada :time); terjemahan diteruskan walaupun halaman ini ditutup.',
     'tbt_worker_off' => 'Tugas berjadual tidak berjalan dalam 10 minit lalu, jadi terjemahan berhenti apabila halaman ini ditutup. Tetapkan tugas berjadual supaya ia diteruskan di latar belakang.',
-    'tbt_calls' => 'Panggilan model: :calls / :max',
+    'tbt_usage' => 'Cubaan penjanaan: :attempts · Permintaan kepada model: :requests / :max',
+    'tbt_usage_unknown' => 'Cubaan penjanaan: :attempts · Permintaan kepada model: tidak diketahui (kelompok dicipta sebelum naik taraf; :requests dihantar sejak itu, had :max)',
     'tbt_budget_paused' => 'Kelompok ini mencapai had panggilan model dan dijeda. Semak sebab item gagal, kemudian klik Mula / Teruskan untuk membenarkan lebih banyak panggilan bagi item yang tinggal.',
     'tbt_log' => 'Log tugas',
     'tbt_ev_created' => 'Kelompok dicipta (item)',
@@ -9906,8 +9907,6 @@ return [
     'prod_edit_save_draft' => 'Simpan draf kerja',
     'prod_edit_update_current' => 'Kemas kini produk semasa',
     'prod_edit_draft_tip' => 'Simpan draf kerja untuk meneruskan penyuntingan dan melihat pratonton sementara pelawat melihat versi semasa.',
-
-    // 产品导入 / 导出（2.3.0 并入主程序，此前在插件 product-import 的语言包里）
     'pimp_page_title' => 'Import produk',
     'pimp_menu' => 'Import produk',
     'pimp_tab_package' => 'Pakej import (disyorkan)',
@@ -10067,4 +10066,4 @@ return [
     'pimp_issue_content_external_image' => 'Kandungan mengandungi {count} imej daripada laman luar; imej itu masih merujuk ke laman tersebut selepas diimport',
     'pimp_issue_edited_on_site' => 'Produk ini telah diedit di laman ini sejak import terakhir; kemas kini akan menulis ganti suntingan tersebut',
     'pimp_err_export_failed' => 'Eksport gagal',
-    ];
+];

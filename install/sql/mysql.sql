@@ -2040,6 +2040,8 @@ CREATE TABLE `yikai_translation_batches` (
   `calls` int(11) UNSIGNED NOT NULL DEFAULT 0,
   `max_calls` int(11) UNSIGNED NOT NULL DEFAULT 0,
   `note` varchar(32) NOT NULL DEFAULT '',
+  `requests` int(11) UNSIGNED NOT NULL DEFAULT 0,
+  `requests_known` tinyint(1) UNSIGNED NOT NULL DEFAULT 1,
   PRIMARY KEY (`id`),
   KEY `idx_translation_batches_created` (`created_at`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci COMMENT='批量翻译任务';
@@ -2068,6 +2070,7 @@ CREATE TABLE `yikai_translation_batch_items` (
   `error` varchar(255) NOT NULL DEFAULT '',
   `lease_until` int(11) UNSIGNED NOT NULL DEFAULT 0,
   `updated_at` int(11) UNSIGNED NOT NULL,
+  `partial_json` mediumtext NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `uk_translation_batch_items` (`batch_id`, `source_id`, `lang`),
   KEY `idx_translation_batch_items_status` (`batch_id`, `status`)

@@ -9724,7 +9724,8 @@ return [
     'tbt_nothing_to_retry' => '다시 시도할 실패 항목이 없습니다',
     'tbt_worker_on' => '백그라운드 실행이 켜져 있습니다(예약 작업 :time 실행). 이 페이지를 닫아도 번역이 계속됩니다.',
     'tbt_worker_off' => '최근 10분 동안 예약 작업이 실행되지 않아 이 페이지를 닫으면 번역이 멈춥니다. 예약 작업을 설정하면 백그라운드에서 계속됩니다.',
-    'tbt_calls' => '모델 호출 :calls / :max회',
+    'tbt_usage' => '생성 :attempts회 · 모델 요청 :requests / :max회',
+    'tbt_usage_unknown' => '생성 :attempts회 · 모델 요청 수 알 수 없음(업그레이드 전에 만든 배치. 이후 :requests회 전송, 한도 :max회)',
     'tbt_budget_paused' => '이 배치는 모델 호출 한도에 도달해 일시 중지되었습니다. 실패 원인을 확인한 뒤 「시작 / 계속」을 누르면 남은 항목에 호출 한도가 추가됩니다.',
     'tbt_log' => '작업 로그',
     'tbt_ev_created' => '작업 생성(항목 수)',
@@ -9906,8 +9907,6 @@ return [
     'prod_edit_save_draft' => '작업 초안 저장',
     'prod_edit_update_current' => '현재 제품 업데이트',
     'prod_edit_draft_tip' => '작업 초안을 저장하면 방문자에게는 현재 버전을 보여 주면서 편집을 계속하고 미리 볼 수 있습니다.',
-
-    // 产品导入 / 导出（2.3.0 并入主程序，此前在插件 product-import 的语言包里）
     'pimp_page_title' => '제품 가져오기',
     'pimp_menu' => '제품 가져오기',
     'pimp_tab_package' => '가져오기 패키지 (추천)',
@@ -10067,4 +10066,4 @@ return [
     'pimp_issue_content_external_image' => '상세 내용에 외부 URL 이미지가 {count}개 있습니다. 가져온 뒤에도 외부 사이트를 계속 가리킵니다.',
     'pimp_issue_edited_on_site' => '지난번 가져오기 이후 이 사이트에서 수정되었습니다. 업데이트하면 수정 내용이 덮어쓰입니다.',
     'pimp_err_export_failed' => '내보내지 못했습니다',
-    ];
+];

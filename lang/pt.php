@@ -9724,7 +9724,8 @@ return [
     'tbt_nothing_to_retry' => 'Não há itens com falha para tentar novamente',
     'tbt_worker_on' => 'A execução em segundo plano está ativa (tarefas agendadas executadas às :time); a tradução continua depois de fechar esta página.',
     'tbt_worker_off' => 'As tarefas agendadas não foram executadas nos últimos 10 minutos, por isso a tradução para ao fechar esta página. Configure as tarefas agendadas para que continue em segundo plano.',
-    'tbt_calls' => 'Chamadas ao modelo: :calls / :max',
+    'tbt_usage' => 'Tentativas de geração: :attempts · Pedidos ao modelo: :requests / :max',
+    'tbt_usage_unknown' => 'Tentativas de geração: :attempts · Pedidos ao modelo: desconhecido (lote criado antes da atualização; :requests enviados desde então, limite :max)',
     'tbt_budget_paused' => 'Este lote atingiu o limite de chamadas ao modelo e foi pausado. Verifique por que os itens falharam e clique em Iniciar / Continuar para permitir mais chamadas para os restantes.',
     'tbt_log' => 'Registro da tarefa',
     'tbt_ev_created' => 'Lote criado (itens)',
@@ -9906,8 +9907,6 @@ return [
     'prod_edit_save_draft' => 'Salvar rascunho de trabalho',
     'prod_edit_update_current' => 'Atualizar produto atual',
     'prod_edit_draft_tip' => 'Salve um rascunho de trabalho para continuar editando e visualizar uma prévia enquanto os visitantes veem a versão atual.',
-
-    // 产品导入 / 导出（2.3.0 并入主程序，此前在插件 product-import 的语言包里）
     'pimp_page_title' => 'Importação de produtos',
     'pimp_menu' => 'Importar produtos',
     'pimp_tab_package' => 'Pacote de importação (recomendado)',
@@ -10067,4 +10066,4 @@ return [
     'pimp_issue_content_external_image' => 'O conteúdo tem {count} imagens de URLs externas; elas continuarão apontando para os sites externos após a importação.',
     'pimp_issue_edited_on_site' => 'Este site foi alterado desde a última importação. A atualização substituirá essas alterações.',
     'pimp_err_export_failed' => 'Falha ao exportar',
-    ];
+];

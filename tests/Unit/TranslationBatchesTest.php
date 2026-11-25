@@ -121,13 +121,64 @@ final class TranslationBatchesTest extends TestCase
     {
         $r = $this->probe('budget');
         self::assertSame(['applied' => 2, 'pending' => 1], $r['first']);
-        self::assertSame(['paused', 'budget', 2, 2, 2], $r['paused'], '到上限即暂停，不多调一次模型');
+        self::assertSame(['paused', 'budget', 2, 2, 2], $r['paused'], '到上限即暂停，不多发一次请求');
         self::assertSame(['pending', 0, 0], $r['released'][2], '放回去的项不算一次尝试、可以马上再领');
-        self::assertSame(['running', '', 2 + 3], $r['resumed'], '继续时给剩下 1 项再分配 3 次');
+        self::assertSame(['running', '', 2 + TranslationBatches::REQUESTS_PER_ITEM], $r['resumed'], '继续时给剩下 1 项再分配一项的请求额度');
         self::assertSame(['applied' => 3], $r['second']);
         self::assertSame(['done', 3, 3], $r['done']);
         self::assertSame(['created', 'budget_paused', 'resumed', 'done'], $r['log']);
-        self::assertSame(2 * 3, $r['default_cap'], '没设上限时按每项 3 次封顶');
+        self::assertSame(2 * TranslationBatches::REQUESTS_PER_ITEM, $r['default_cap'], '没设上限时按每项 REQUESTS_PER_ITEM 次请求封顶');
+    }
+
+    /**
+     * 2.3.1（11-26 评审第一张工单）：额度按真正发出的模型请求计。真实 AiService 对本地模拟服务商，以服务商自己的请求日志为准。
+     */
+    public function testQuotaCountsEveryProviderRequestAndResumeDoesNotResend(): void
+    {
+        $r = $this->probe('requests');
+        // 额度 1、短标题、默认校对：服务商只收到 1 次请求，在校对前暂停，什么都没写
+        self::assertSame(['translate'], $r['short_paused']['mock']);
+        self::assertSame(['calls' => 0, 'requests' => 1, 'max_calls' => 1, 'requests_known' => 1, 'status' => 'paused', 'note' => 'budget'], $r['short_paused']['batch']);
+        self::assertSame(['pending', 0, 1, 0], [$r['short_paused']['item'], $r['short_paused']['attempts'], $r['short_paused']['saved_replies'], $r['short_paused']['en_rows']],
+            '这一项放回、不算尝试；首轮译文存下；没写任何译文');
+        // 提高额度后继续：首轮译文重放、不再发，只补发校对
+        self::assertSame(['translate', 'review'], $r['short_done']['mock']);
+        self::assertSame(['done', 2, 1], [$r['short_done']['batch']['status'], $r['short_done']['batch']['requests'], $r['short_done']['batch']['calls']]);
+        self::assertSame(['applied', 0], [$r['short_done']['item'], $r['short_done']['saved_replies']], '写完后存下的回复清掉');
+        self::assertStringStartsWith('Translated ', $r['short_done']['en_title']);
+
+        // 长描述：分段多、几次暂停后继续，每个请求只发一次，批次计数与服务商收到的请求数一致
+        self::assertSame(['paused', 'budget', 3, 3, 3], array_values($r['long_paused']));
+        self::assertSame($r['long_done']['mock'], $r['long_done']['distinct'], '继续时不重发已经成功的请求');
+        self::assertSame($r['long_done']['mock'], $r['long_done']['batch']['requests']);
+        self::assertGreaterThan(4, $r['long_done']['mock']);
+        self::assertSame(['done', 'applied'], [$r['long_done']['batch']['status'], $r['long_done']['item']]);
+
+        // 不支持 JSON 输出的服务商：被拒的那次和去掉 JSON 后的重发都算
+        self::assertSame([1, 1, 'paused'], [$r['strict_paused']['mock'], $r['strict_paused']['batch']['requests'], $r['strict_paused']['batch']['status']]);
+        self::assertSame($r['strict_done']['mock'], $r['strict_done']['batch']['requests']);
+        self::assertSame(['done', 'applied'], [$r['strict_done']['batch']['status'], $r['strict_done']['item']]);
+    }
+
+    public function testTwoWorkersCannotBothTakeTheLastRequest(): void
+    {
+        $r = $this->probe('concurrent');
+        self::assertSame([true, false, false], $r['reserved']);
+        self::assertSame(1, $r['requests']);
+    }
+
+    public function testMigrationMarksExistingBatchesAsUnknownAndIsRepeatable(): void
+    {
+        $r = $this->probe('migration');
+        self::assertFalse($r['check_before']);
+        self::assertTrue($r['check_after']);
+        self::assertSame([['calls' => 4, 'requests' => 0, 'requests_known' => 0], ['calls' => 0, 'requests' => 0, 'requests_known' => 1]], $r['rows'],
+            '升级前的批次保留生成次数、请求数记为未知；迁移再跑一次不影响新批次');
+    }
+
+    public function testSavedRepliesAreDiscardedUnlessWellFormed(): void
+    {
+        self::assertSame([1, 0, 0, 0, 0], $this->probe('partial-decode')['decoded']);
     }
 
     public function testPurgeRemovesOnlyExpiredFinishedBatchesAndKeepsTranslations(): void

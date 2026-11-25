@@ -9724,7 +9724,8 @@ return [
     'tbt_nothing_to_retry' => 'Keine fehlgeschlagenen Einträge zum Wiederholen',
     'tbt_worker_on' => 'Hintergrundausführung ist aktiv (geplante Aufgaben liefen um :time); die Übersetzung läuft weiter, auch wenn Sie diese Seite schließen.',
     'tbt_worker_off' => 'Geplante Aufgaben sind in den letzten 10 Minuten nicht gelaufen, daher stoppt die Übersetzung, wenn Sie diese Seite schließen. Richten Sie geplante Aufgaben ein, damit sie im Hintergrund weiterläuft.',
-    'tbt_calls' => 'Modellaufrufe: :calls / :max',
+    'tbt_usage' => 'Generierungsversuche: :attempts · Modellanfragen: :requests / :max',
+    'tbt_usage_unknown' => 'Generierungsversuche: :attempts · Modellanfragen: unbekannt (Stapel vor dem Update erstellt; seitdem :requests gesendet, Limit :max)',
     'tbt_budget_paused' => 'Dieser Auftrag hat sein Limit für Modellaufrufe erreicht und wurde pausiert. Prüfen Sie, warum Einträge fehlgeschlagen sind, und klicken Sie dann auf Starten / Fortsetzen, um weitere Aufrufe für die restlichen Einträge zu erlauben.',
     'tbt_log' => 'Aufgabenprotokoll',
     'tbt_ev_created' => 'Auftrag erstellt (Einträge)',
@@ -9906,8 +9907,6 @@ return [
     'prod_edit_save_draft' => 'Bearbeitungsentwurf speichern',
     'prod_edit_update_current' => 'Aktuelles Produkt aktualisieren',
     'prod_edit_draft_tip' => 'Speichern Sie einen Bearbeitungsentwurf, um weiterzuarbeiten und eine Vorschau anzusehen, während Besucher die aktuelle Version sehen.',
-
-    // 产品导入 / 导出（2.3.0 并入主程序，此前在插件 product-import 的语言包里）
     'pimp_page_title' => 'Produktimport',
     'pimp_menu' => 'Produkte importieren',
     'pimp_tab_package' => 'Importpaket (empfohlen)',
@@ -10067,4 +10066,4 @@ return [
     'pimp_issue_content_external_image' => 'Der Inhalt enthält {count} Bilder von externen URLs. Sie verweisen auch nach dem Import weiterhin auf die externen Websites.',
     'pimp_issue_edited_on_site' => 'Diese Website wurde seit dem letzten Import geändert. Beim Aktualisieren werden diese Änderungen überschrieben.',
     'pimp_err_export_failed' => 'Export fehlgeschlagen',
-    ];
+];

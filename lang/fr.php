@@ -9724,7 +9724,8 @@ return [
     'tbt_nothing_to_retry' => 'Aucun élément en échec à relancer',
     'tbt_worker_on' => 'L\'exécution en arrière-plan est active (tâches planifiées exécutées à :time) ; la traduction continue après la fermeture de cette page.',
     'tbt_worker_off' => 'Les tâches planifiées ne se sont pas exécutées depuis 10 minutes : la traduction s\'arrête si vous fermez cette page. Configurez les tâches planifiées pour qu\'elle continue en arrière-plan.',
-    'tbt_calls' => 'Appels au modèle : :calls / :max',
+    'tbt_usage' => 'Tentatives de génération : :attempts · Requêtes au modèle : :requests / :max',
+    'tbt_usage_unknown' => 'Tentatives de génération : :attempts · Requêtes au modèle : inconnu (lot créé avant la mise à jour ; :requests envoyées depuis, limite :max)',
     'tbt_budget_paused' => 'Ce lot a atteint sa limite d\'appels au modèle et a été mis en pause. Vérifiez pourquoi les éléments ont échoué, puis cliquez sur Démarrer / Continuer pour autoriser d\'autres appels pour les éléments restants.',
     'tbt_log' => 'Journal de la tâche',
     'tbt_ev_created' => 'Lot créé (éléments)',
@@ -9906,8 +9907,6 @@ return [
     'prod_edit_save_draft' => 'Enregistrer le brouillon de travail',
     'prod_edit_update_current' => 'Mettre à jour le produit actuel',
     'prod_edit_draft_tip' => 'Enregistrez un brouillon de travail pour poursuivre les modifications et le prévisualiser pendant que les visiteurs voient la version actuelle.',
-
-    // 产品导入 / 导出（2.3.0 并入主程序，此前在插件 product-import 的语言包里）
     'pimp_page_title' => 'Importation de produits',
     'pimp_menu' => 'Importer des produits',
     'pimp_tab_package' => 'Package d’importation (recommandé)',
@@ -10067,4 +10066,4 @@ return [
     'pimp_issue_content_external_image' => 'Le contenu contient {count} images provenant d’URL externes ; elles pointeront toujours vers ces sites après l’importation.',
     'pimp_issue_edited_on_site' => 'Ce site a été modifié depuis la dernière importation. La mise à jour écrasera ces modifications.',
     'pimp_err_export_failed' => 'Échec de l’exportation',
-    ];
+];
