@@ -91,6 +91,14 @@ if ($action === 'provision') {
     $deadline = microtime(true) + 20;
     while (!is_file($job['go']) && microtime(true) < $deadline) usleep(5000);
     $log = $job['calls'];
+    if (isset($job['endpoint'])) {
+        // 真实 AiService 接本地模拟服务商：请求数以服务商自己的日志为准
+        require_once ROOT_PATH . '/includes/AiService.php';
+        $svc = new TranslationBatches(db(), static fn (array $source, string $lang, AiRequestContext $context): array
+            => TranslationWrite::generateWith(new AiService('deepseek', 'test-key', 'mock', (string) $job['endpoint']), $source, $lang, 120, $context));
+        $output = ['ok' => true, 'drained' => $svc->drain(60)];
+        goto done;
+    }
     // 假模型每项发 2 次请求（翻译、校对），与真实 AiService 一样每次发出前先过额度（2.3.1）
     $svc = new TranslationBatches(db(), static function (array $source, string $lang, AiRequestContext $context) use ($log): array {
         foreach (['translate', 'review'] as $step) {
@@ -102,6 +110,7 @@ if ($action === 'provision') {
         return ['title' => $source['title'] . ' [' . $lang . ']', 'summary' => 'Summary', 'content' => '<p>Body</p>'];
     });
     $output = ['ok' => true, 'drained' => $svc->drain(30)];
+    done:
 } elseif ($action === 'translation-workers') {
     $db = db();
     $prefix = DB_PREFIX;
@@ -114,10 +123,10 @@ if ($action === 'provision') {
     $batch = $svc->create(1, $ids, ['en', 'ja'], 'zh-CN', time());
     $check($batch['total'] === 12, 'batch of 6 products × 2 languages created');
     // 两个独立进程同时 drain：等两边都连上数据库再一起放行
-    $race = static function (string $stem) use ($check): array {
+    $race = static function (string $stem, ?string $endpoint = null) use ($check): array {
         $running = [];
         foreach ([1, 2] as $n) {
-            $job = ['ready' => "{$stem}.{$n}.ready", 'go' => "{$stem}.go", 'calls' => "{$stem}.calls"];
+            $job = ['ready' => "{$stem}.{$n}.ready", 'go' => "{$stem}.go", 'calls' => "{$stem}.calls"] + ($endpoint !== null ? ['endpoint' => $endpoint] : []);
             file_put_contents("{$stem}.{$n}.job.json", json_encode($job, JSON_THROW_ON_ERROR));
             $pipes = [];
             $proc = proc_open([PHP_BINARY, __FILE__, 'tworker', "{$stem}.{$n}.job.json"],
@@ -181,6 +190,103 @@ if ($action === 'provision') {
     $held = (int) $db->fetchColumn("SELECT COUNT(*) FROM {$prefix}translation_batch_items WHERE batch_id = ? AND status = 'generating'", [$batch2['batch_id']]);
     $check($held === 0, 'no item is left claimed after the pause');
     foreach (glob($stem . '*') ?: [] as $file) @unlink($file);
+
+    // 2.3.1：真实 AiService + 本地模拟服务商（php -S）。服务商自己的请求日志是唯一依据
+    require_once ROOT_PATH . '/includes/TranslationState.php';
+    $stem = ROOT_PATH . '/storage/tmock-' . bin2hex(random_bytes(5));
+    $mockLog = "{$stem}.mock.log";
+    touch($mockLog);
+    $sock = stream_socket_server('tcp://127.0.0.1:0');
+    $port = (int) substr(strrchr((string) stream_socket_get_name($sock, false), ':'), 1);
+    fclose($sock);
+    $mockPipes = [];
+    $mock = proc_open([PHP_BINARY, '-S', '127.0.0.1:' . $port, ROOT_PATH . '/tests/fixtures/ai-mock-router.php'],
+        [0 => ['pipe', 'r'], 1 => ['file', "{$stem}.mock.out", 'a'], 2 => ['file', "{$stem}.mock.out", 'a']], $mockPipes, null, ['AI_MOCK_LOG' => $mockLog] + getenv());
+    for ($i = 0; $i < 100 && @fsockopen('127.0.0.1', $port) === false; $i++) usleep(50000);
+    $endpoint = 'http://127.0.0.1:' . $port . '/translate/v1';
+    $mockBodies = static function () use ($mockLog): array {
+        clearstatcache(true, $mockLog);
+        return array_map(static fn (string $l): string => (string) json_encode(json_decode($l, true)['body'] ?? null), file($mockLog, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: []);
+    };
+    $published = static fn (array $ids): string => hash('sha256', json_encode($db->fetchAll("SELECT * FROM {$prefix}products WHERE id IN (" . implode(',', array_map('intval', $ids)) . ') ORDER BY id'), JSON_THROW_ON_ERROR));
+    try {
+        // M1：两个执行器共用一批的额度 5，每项要 2 次请求（翻译、校对）：服务商恰好收到 5 次，整批暂停；提高额度继续后不重发
+        $ids3 = [];
+        foreach (['液压泵', '齿轮泵', '柱塞泵', '叶片泵'] as $i => $title) {
+            $ids3[] = (int) productModel()->create(['title' => $title, 'summary' => '摘要', 'content' => '<p>正文</p>', 'slug' => 'mock-race-' . $i,
+                'lang' => 'zh-CN', 'status' => 1, 'created_at' => 1, 'updated_at' => 1]);
+        }
+        $batch3 = $svc->create(1, $ids3, ['en'], 'zh-CN', time());
+        $db->execute("UPDATE {$prefix}translation_batches SET max_calls = 5 WHERE id = ?", [$batch3['batch_id']]);
+        $results = $race("{$stem}.m1", $endpoint);
+        $row3 = $db->fetchOne("SELECT status, note, requests, max_calls FROM {$prefix}translation_batches WHERE id = ?", [$batch3['batch_id']]);
+        $check(count($results) === 2 && $results[0]['ok'] && $results[1]['ok'], 'mock provider: both workers finished without errors');
+        $check(count($mockBodies()) === 5 && (int) $row3['requests'] === 5, 'mock provider: limit 5 shared by two workers, the provider received exactly 5 requests (' . count($mockBodies()) . ' received, ' . (int) $row3['requests'] . ' counted)');
+        $check($row3['status'] === 'paused' && $row3['note'] === 'budget', 'mock provider: the batch paused at its request limit');
+        $svc->resume($batch3['batch_id'], time());
+        $results = $race("{$stem}.m1b", $endpoint);
+        $bodies = $mockBodies();
+        $row3 = $db->fetchOne("SELECT status, requests FROM {$prefix}translation_batches WHERE id = ?", [$batch3['batch_id']]);
+        $check($row3['status'] === 'done' && $svc->counts($batch3['batch_id']) === ['applied' => 4], 'mock provider: after raising the limit both workers finished the batch');
+        $check(count($bodies) === 8 && count(array_unique($bodies)) === 8 && (int) $row3['requests'] === 8,
+            'mock provider: 4 items × 2 requests = 8 received in total, none repeated after the pause (' . count($bodies) . ' received, ' . count(array_unique($bodies)) . ' distinct, ' . (int) $row3['requests'] . ' counted)');
+        $places = implode(',', array_fill(0, count($ids3), '?'));
+        $dups = $db->fetchAll("SELECT translation_group_id, COUNT(*) AS n FROM {$prefix}products WHERE translation_group_id IN ({$places}) AND lang = 'en' AND deleted_at IS NULL GROUP BY translation_group_id", $ids3);
+        $check(count($dups) === 4 && max(array_map('intval', array_column($dups, 'n'))) === 1, 'mock provider: exactly one draft per product, no duplicates');
+
+        // M2：长描述（多段）+ 已发布、审过的英文版，原文改过后排「更新」批次。
+        // 执行器在第 3 个请求途中被杀；接手的执行器重放前 2 个回复，只补发第 3 个起的请求；已发布译文自始至终不变
+        file_put_contents($mockLog, '');
+        $long = (int) productModel()->create(['title' => '回转支承', 'summary' => '摘要', 'slug' => 'mock-long',
+            'content' => '<p>' . implode('</p><p>', array_map(static fn (int $n): string => str_repeat('外圈带齿的回转支承第' . $n . '段说明。', 25), range(1, 4))) . '</p>',
+            'lang' => 'zh-CN', 'status' => 1, 'created_at' => 1, 'updated_at' => 1]);
+        $db->execute("UPDATE {$prefix}products SET translation_group_id = id WHERE id = ?", [$long]);
+        $en = (int) productModel()->create(['title' => 'Published slewing bearing', 'summary' => 'Published summary', 'content' => '<p>Published body</p>', 'slug' => 'mock-long-en',
+            'lang' => 'en', 'translation_group_id' => $long, 'status' => 1, 'created_at' => 1, 'updated_at' => 1]);
+        (new TranslationState($db))->markReviewed('products', $en, $long, 'en', TranslationState::rowFingerprint(productModel()->find($long), 'title', 'summary'),
+            TranslationState::rowFingerprint(productModel()->find($en), 'title', 'summary'), 1, time());
+        $db->execute("UPDATE {$prefix}products SET summary = '新摘要' WHERE id = ?", [$long]);
+        $before = $published([$en]);
+        $batch4 = $svc->create(1, [$long], ['en'], 'zh-CN', time(), 'update');
+        $check($batch4['total'] === 1, 'mock provider: the outdated published translation is queued for update');
+        file_put_contents("{$mockLog}.control", json_encode(['3' => 'slow:6']));
+        $job = ['ready' => "{$stem}.m2.ready", 'go' => "{$stem}.m2.go", 'calls' => "{$stem}.m2.calls", 'endpoint' => $endpoint];
+        file_put_contents("{$stem}.m2.job.json", json_encode($job, JSON_THROW_ON_ERROR));
+        touch($job['go']);
+        $workerPipes = [];
+        $worker = proc_open([PHP_BINARY, __FILE__, 'tworker', "{$stem}.m2.job.json"], [0 => ['pipe', 'r'], 1 => ['file', "{$stem}.m2.out", 'w'], 2 => ['file', "{$stem}.m2.err", 'w']], $workerPipes);
+        $deadline = microtime(true) + 30;
+        while (count($mockBodies()) < 3 && microtime(true) < $deadline) usleep(20000);
+        proc_terminate($worker, 9);   // 第 3 个请求发出、回复未到：直接杀掉
+        proc_close($worker);
+        $item4 = $db->fetchOne("SELECT status, attempts, partial_json FROM {$prefix}translation_batch_items WHERE batch_id = ?", [$batch4['batch_id']]);
+        $saved = count(AiRequestContext::decodeReplies((string) ($item4['partial_json'] ?? '')));
+        $check(count($mockBodies()) === 3 && $item4['status'] === 'generating' && $saved === 2,
+            'mock provider: worker killed during request 3 of a long translation, the first 2 replies are already saved (' . $saved . ' saved, item ' . $item4['status'] . ')');
+        $check($published([$en]) === $before, 'mock provider: the published translation is unchanged after the crash');
+        @unlink("{$mockLog}.control");
+        $db->execute("UPDATE {$prefix}translation_batch_items SET lease_until = 0 WHERE batch_id = ?", [$batch4['batch_id']]);   // 租约到期（模拟过了 5 分钟）
+        file_put_contents($job['calls'], '');
+        $worker = proc_open([PHP_BINARY, __FILE__, 'tworker', "{$stem}.m2.job.json"], [0 => ['pipe', 'r'], 1 => ['file', "{$stem}.m2b.out", 'w'], 2 => ['file', "{$stem}.m2b.err", 'w']], $workerPipes);
+        $deadline = microtime(true) + 60;
+        while (proc_get_status($worker)['running'] && microtime(true) < $deadline) usleep(20000);
+        proc_close($worker);
+        $bodies = $mockBodies();
+        $times = array_count_values($bodies);
+        $row4 = $db->fetchOne("SELECT status, requests, calls FROM {$prefix}translation_batches WHERE id = ?", [$batch4['batch_id']]);
+        $item4 = $db->fetchOne("SELECT status, attempts FROM {$prefix}translation_batch_items WHERE batch_id = ?", [$batch4['batch_id']]);
+        $check($row4['status'] === 'done' && $item4['status'] === 'proposed', 'mock provider: the restarted worker finished the item (' . $row4['status'] . ', ' . $item4['status'] . ')');
+        $check(count($bodies) >= 4 && $times[$bodies[0]] === 1 && $times[$bodies[1]] === 1 && $times[$bodies[2]] === 2 && count($bodies) === count($times) + 1,
+            'mock provider: replies 1–2 were reused, only the in-flight request 3 was sent again (' . count($bodies) . ' received, ' . count($times) . ' distinct)');
+        $check((int) $row4['requests'] === count($bodies), 'mock provider: the batch counted every request the provider received, including the one in flight at the crash (' . (int) $row4['requests'] . ')');
+        $check($published([$en]) === $before, 'mock provider: the published, reviewed translation is still unchanged (stored as a proposal)');
+        $check((int) $db->fetchColumn("SELECT COUNT(*) FROM {$prefix}products WHERE translation_group_id = ? AND lang = 'en' AND deleted_at IS NULL", [$long]) === 1, 'mock provider: no duplicate English row');
+        $output['mock_requests'] = ['shared_limit_5' => 5, 'after_resume' => 8, 'crash_restart' => count($bodies), 'crash_restart_distinct' => count($times)];
+    } finally {
+        proc_terminate($mock);
+        proc_close($mock);
+        foreach (glob($stem . '*') ?: [] as $file) @unlink($file);
+    }
 } elseif ($action === 'concurrency') {
     $db = db();
     $prefix = DB_PREFIX;

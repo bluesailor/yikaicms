@@ -72,7 +72,7 @@ final class TranslationWrite
             $result = $ai->chat($prompt, $system, $temperature, $jsonObject);
             if ($context !== null) {
                 $context->interrupted = empty($result['success']);
-                if (!$context->interrupted) $context->replies[$key] = ['success' => true, 'content' => (string) ($result['content'] ?? '')];
+                if (!$context->interrupted) $context->remember($key, (string) ($result['content'] ?? ''));
             }
             return $result;
         };

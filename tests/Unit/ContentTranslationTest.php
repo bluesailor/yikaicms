@@ -170,6 +170,32 @@ final class ContentTranslationTest extends TestCase
         }
     }
 
+    /** 带工程符号、数字的自然语言说明仍然要翻译：只有纯数值才原样保留 */
+    public function testNaturalLanguageSpecificationTextWithSymbolsStillTranslates(): void
+    {
+        $sentences = [
+            '工作环境' => '适用于 -20 ℃ 至 80 ℃ 的户外环境',
+            '精度' => '精度等级 P5，径向跳动≤5 μm',
+            '尺寸' => '可选 Ø320 mm 或 Ø400 mm',
+            '承载' => 'Rated torque 35 kN·m for continuous duty',
+            '安装' => '安装面平面度 ±0.02 mm，请按说明书紧固螺栓',
+        ];
+        foreach ($sentences as $text) self::assertFalse(translationIsMeasurement($text), $text . ' 是句子，不是纯数值');
+        $source = ['title' => '回转支承', 'specs' => json_encode(['参数' => $sentences + ['公差' => '±0.02 mm']], JSON_UNESCAPED_UNICODE)];
+        $sent = [];
+        $result = translateContentFields($source, 'de', static function (string $prompt) use (&$sent): array {
+            $values = json_decode(explode('Input: ', $prompt, 2)[1], true);
+            $sent = array_merge($sent, array_values($values));
+            return ['success' => true, 'content' => json_encode(array_map(static fn(string $value): string => 'DE(' . crc32($value) . ')', $values), JSON_UNESCAPED_UNICODE)];
+        });
+        foreach ($sentences as $text) self::assertContains($text, $sent, $text . ' 要送去翻译');
+        self::assertNotContains('±0.02 mm', $sent, '纯数值不送');
+        $specs = array_values(json_decode($result['specs'], true))[0];
+        $values = array_values($specs);
+        foreach (array_values($sentences) as $i => $text) self::assertSame('DE(' . crc32($text) . ')', $values[$i], $text . ' 用了译文');
+        self::assertSame('±0.02 mm', $values[5], '纯数值逐字符保留');
+    }
+
     public function testUntranslatedProductNameIsRetriedOnce(): void
     {
         $calls = 0;

@@ -428,6 +428,23 @@ switch ((string) ($argv[1] ?? '')) {
             'proposal' => (int) db()->fetchColumn("SELECT COUNT(*) FROM yikai_translation_links WHERE target_id = ? AND proposal_json IS NOT NULL AND proposal_json <> ''", [$t])];
         break;
 
+    case 'checkpoint':
+        // 每收到一个成功回复就存进这一项：执行器在下一个请求途中被杀，接手的执行器也拿得到
+        $seen = [];
+        $svc = new TranslationBatches(db(), static function (array $source, string $lang, AiRequestContext $context) use (&$seen): array {
+            foreach (['a', 'b'] as $n) {
+                $context->beforeRequest();
+                $context->remember(str_repeat($n, 64), 'reply ' . $n);
+                $seen[] = count(AiRequestContext::decodeReplies((string) db()->fetchColumn('SELECT partial_json FROM yikai_translation_batch_items')));
+            }
+            return ['title' => 'Pump', 'summary' => 'Summary', 'content' => '<p>Body</p>'];
+        });
+        $id = $svc->create(1, [$product('液压泵')], ['en'], 'zh-CN', $now)['batch_id'];
+        $svc->step($id, 30, static fn (): int => $now);
+        $out['seen'] = $seen;
+        $out['after'] = db()->fetchColumn('SELECT partial_json FROM yikai_translation_batch_items');
+        break;
+
     case 'concurrent':
         // 两个执行器争最后 1 个额度：一条 UPDATE 判断加一，只有一个拿得到
         $GLOBALS['probe_config']['translate_batch_max_calls'] = 1;

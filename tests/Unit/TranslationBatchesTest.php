@@ -142,6 +142,13 @@ final class TranslationBatchesTest extends TestCase
      * 服务商出错（500、回复发到一半断开）：出错的那次算一次已发出的请求、一次尝试；已拿到的回复留着，重试只补发出错的那一次。
      * 回复不合格：存下的回复作废，重试从头再问。以模拟服务商自己的请求日志为准。
      */
+    public function testEveryReplyIsSavedAsItArrivesAndClearedOnceTheItemIsDone(): void
+    {
+        $r = $this->probe('checkpoint');
+        self::assertSame([1, 2], $r['seen'], '每个成功回复到达后立刻存进这一项');
+        self::assertNull($r['after'], '生成完成后清掉');
+    }
+
     public function testProviderFailuresCountEverySentRequestAndRetryOnlyTheMissingReply(): void
     {
         $r = $this->probe('request_failures');

@@ -346,15 +346,19 @@ final class TranslationBatches
         }
         require_once ROOT_PATH . '/includes/content_translation.php';
         $batchId = (int) $item['batch_id'];
-        // 上次因额度暂停时已成功的模型回复：这次原样重放，不再发出、不再占额度
+        // 上次中断（额度暂停、服务商出错、执行器被杀）前已成功的模型回复：这次原样重放，不再发出、不再占额度。
+        // 每收到一个成功回复就存进这一项（仍由本执行器持有时才写），接手的执行器从这里接着来
         $context = new AiRequestContext(fn (): bool => $this->reserveRequest($batchId), AiRequestContext::decodeReplies(
-            isset($item['partial_json']) ? (string) $item['partial_json'] : null));
+            isset($item['partial_json']) ? (string) $item['partial_json'] : null),
+            function (array $replies) use ($id, $item): void {
+                $this->db->update('translation_batch_items', ['partial_json' => AiRequestContext::encodeReplies($replies)],
+                    'id = ? AND status = ? AND lease_until = ? AND attempts = ?', [$id, (string) $item['status'], (int) $item['lease_until'], (int) $item['attempts']]);
+            });
         try {
             $translated = ($this->generator)(TranslationWrite::source($src, 'title', 'summary', $src, translationBodyField($src)), (string) $item['lang'], $context);
         } catch (AiRequestBudgetExhausted) {
             // 额度用完：这一项放回去、不算一次尝试；已成功的回复存下，继续时接着用
-            $this->release($item, $now, ['partial_json' => $context->replies === [] ? null
-                : json_encode($context->replies, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE)]);
+            $this->release($item, $now, ['partial_json' => AiRequestContext::encodeReplies($context->replies)]);
             $this->pauseForBudget($batchId, $now);
             return false;
         } catch (Throwable $error) {
@@ -367,8 +371,7 @@ final class TranslationBatches
             }
             // 服务商报错、网络中断、超时：已成功的回复留着，重试只补发没拿到回复的那一次。
             // 回复内容不合格导致的失败：存下的回复作废（可能正是它们导致失败，重放只会得到同样的结果）
-            $partial = $context->interrupted && $context->replies !== []
-                ? json_encode($context->replies, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE) : null;
+            $partial = $context->interrupted ? AiRequestContext::encodeReplies($context->replies) : null;
             // 退避：租约时间设到「可以再试」的时刻，claim 在那之前不会领它（不占请求额度、不连打失败的接口）
             $retryAt = $now + self::backoff($attempts);
             if ($this->markHeld($item, 'pending', ['error' => $message, 'partial_json' => $partial], $now, $retryAt)) {

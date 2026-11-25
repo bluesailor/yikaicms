@@ -5,8 +5,8 @@
  * 一次翻译不止一次模型请求：每段正文一次、校对一次，修补与「不支持 JSON 输出」的兼容重试还会再发。
  * 批量翻译原来每领一项只占 1 个额度，额度说的「调用次数」与实际请求对不上。现在：
  *   - AiService 在每次 HTTP 请求发出之前调用 beforeRequest()，占不到额度就抛 AiRequestBudgetExhausted，这次请求不发；
- *   - 这一次生成里已经成功的模型回复按请求内容记下（replies），额度用尽暂停后再继续时原样重放，
- *     已经翻好的分块、首轮译文不再重发、不再计费。
+ *   - 这一次生成里已经成功的模型回复按请求内容记下（replies），每收到一个就存盘；额度用尽暂停、服务商出错重试、
+ *     执行器中途被杀后再继续时原样重放，已经翻好的分块、首轮译文不再重发、不再计费。
  */
 
 declare(strict_types=1);
@@ -32,11 +32,26 @@ final class AiRequestContext
 
     /**
      * @param null|Closure():bool $reserve 占一个额度；返回 false 表示用完了。null 表示不限
-     * @param array<string,array{success:bool,content:string}> $replies 上次暂停前已成功的回复
+     * @param array<string,array{success:bool,content:string}> $replies 上次中断前已成功的回复
+     * @param null|Closure(array<string,array{success:bool,content:string}>):void $checkpoint 每收到一个成功回复后调用，
+     *        把目前所有回复存下来：执行器中途被杀、断电，接手的执行器也能接着用
      */
-    public function __construct(private ?Closure $reserve = null, array $replies = [])
+    public function __construct(private ?Closure $reserve = null, array $replies = [], private ?Closure $checkpoint = null)
     {
         $this->replies = $replies;
+    }
+
+    /** 记下一个成功的回复并存盘 */
+    public function remember(string $key, string $content): void
+    {
+        $this->replies[$key] = ['success' => true, 'content' => $content];
+        if ($this->checkpoint !== null) ($this->checkpoint)($this->replies);
+    }
+
+    /** 存库用的 JSON；没有回复时为 null */
+    public static function encodeReplies(array $replies): ?string
+    {
+        return $replies === [] ? null : json_encode($replies, JSON_THROW_ON_ERROR | JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE);
     }
 
     /** 在每次真正发出请求之前调用 */

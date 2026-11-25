@@ -11,6 +11,7 @@
  *   "500"   上游故障
  *   "cut"   收到并处理了请求，但回复只发出一半就断开（客户端拿不到结果、不知道服务商是否已计费）
  *   "same"  翻译请求原样交回原文（模型回复不合格）
+ *   "slow:N" 先等 N 秒再正常应答（测试在这段时间里杀掉执行器）
  *   其余          OpenAI 兼容格式，回复里带上路径和模型，便于核对请求真正到了哪
  */
 
@@ -36,6 +37,10 @@ $fault = '';
 if (is_array($control)) {
     $seq = count(file($log, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES) ?: []);
     $fault = (string) ($control[(string) $seq] ?? $control['*'] ?? '');
+}
+if (str_starts_with($fault, 'slow:')) {
+    sleep((int) substr($fault, 5));
+    $fault = '';
 }
 if ($fault === '500') {
     http_response_code(500);
