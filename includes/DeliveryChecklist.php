@@ -31,9 +31,12 @@ final class DeliveryChecklist
             'description' => trim((string) config('site_description', '')) !== '',
             'languages' => array_map('strval', $languages),
             'translation_gaps' => self::translationGaps($default, $codes),
-            // 2.3.0：文章等内容、栏目与单页也要算，不然只有产品译文齐了就显示就绪
+            // 2.3.0：文章等内容、栏目与单页也要算，不然只有产品译文齐了就显示就绪。
+            // 2.3.1：产品分类单列（产品都译了、分类没译，买家看到的目录仍不完整）；单页与普通栏目分开，普通栏目记下第一个要处理的栏目
             'content_translation_gaps' => self::translationGaps($default, $codes, 'contents'),
-            'channel_translation_gaps' => self::translationGaps($default, $codes, 'channels'),
+            'page_translation_gaps' => self::translationGaps($default, $codes, 'pages'),
+            'category_translation_gaps' => self::translationGaps($default, $codes, 'categories'),
+        ] + self::sectionGaps($default, $codes) + [
             'latest_inquiry' => db()->tableExists('forms') ? (int) db()->fetchColumn('SELECT MAX(created_at) FROM ' . DB_PREFIX . 'forms') : 0,
         ];
     }
@@ -49,6 +52,17 @@ final class DeliveryChecklist
     {
         require_once __DIR__ . '/TranslationCoverage.php';
         return (new TranslationCoverage(db()))->gapsByLanguage($default, $languages, $kind);
+    }
+
+    /**
+     * 普通栏目（不含单页）的缺口，以及第一个要处理的栏目：翻译工作中心没有栏目一栏，入口直接进那个栏目的设置页
+     * @param list<string> $languages @return array{section_translation_gaps:array<string,array{missing:int,draft:int,outdated:int}>,section_first_gap:int}
+     */
+    private static function sectionGaps(string $default, array $languages): array
+    {
+        require_once __DIR__ . '/TranslationCoverage.php';
+        ['gaps' => $gaps, 'first' => $first] = (new TranslationCoverage(db()))->gaps($default, $languages, 'sections');
+        return ['section_translation_gaps' => $gaps, 'section_first_gap' => $first];
     }
 
     /** @return array{accept:array<string,array{admin_id:int,name:string,at:int}>,run:array<string,mixed>} */
@@ -143,15 +157,23 @@ final class DeliveryChecklist
                 $gaps === [] ? '' : 'dlv_translations_gaps',
                 ['list' => implode(', ', array_map(static fn (string $lang, array $g): string => ($facts['languages'][$lang] ?? $lang)
                     . ' ' . $g['missing'] . '/' . $g['draft'] . '/' . $g['outdated'], array_keys($gaps), $gaps))]);
-            // 文章等内容、栏目与单页：同样的三类计数。它们还没有专门的译文状态页（2.3.0 翻译工作中心会补），入口先指到各自的列表
+            // 文章等内容、单页、产品分类、普通栏目：同样的三类计数。2.3.1 起入口直达要改的地方：
+            // 前三种进翻译工作中心的对应一栏并按最先要处理的一类筛选；普通栏目（工作中心没有这一栏）进第一个要处理的栏目
+            $sectionFirst = (int) ($facts['section_first_gap'] ?? 0);
             foreach ([
-                'translations_contents' => ['content_translation_gaps', 'dlv_translations_contents', '/admin/article.php'],
-                'translations_channels' => ['channel_translation_gaps', 'dlv_translations_channels', '/admin/channel.php'],
-            ] as $key => [$factKey, $label, $url]) {
+                'translations_contents' => ['content_translation_gaps', 'dlv_translations_contents', static fn (string $f): string => '/admin/translation_status.php?kind=contents&filter=' . $f],
+                'translations_pages' => ['page_translation_gaps', 'dlv_translations_pages', static fn (string $f): string => '/admin/translation_status.php?kind=pages&filter=' . $f],
+                'translations_categories' => ['category_translation_gaps', 'dlv_translations_categories', static fn (string $f): string => '/admin/translation_status.php?kind=categories&filter=' . $f],
+                'translations_sections' => ['section_translation_gaps', 'dlv_translations_sections', static fn (string $_f): string => $sectionFirst > 0 ? '/admin/channel.php?edit=' . $sectionFirst . '&tab=main' : '/admin/channel.php'],
+            ] as $key => [$factKey, $label, $link]) {
                 /** @var array<string,array{missing:int,draft:int,outdated:int}> $kindFacts */
                 $kindFacts = is_array($facts[$factKey] ?? null) ? $facts[$factKey] : [];
                 $kindGaps = array_filter($kindFacts, static fn (array $g): bool => $g['missing'] + $g['draft'] + $g['outdated'] > 0);
-                $data[] = $item($key, $label, $kindGaps === [] ? 'done' : 'todo', $url, $kindGaps === [] ? '' : 'dlv_translations_gaps',
+                $kindFirst = 'missing';
+                foreach (['missing', 'draft', 'outdated'] as $kind) {
+                    if (array_sum(array_column($kindGaps, $kind)) > 0) { $kindFirst = $kind; break; }
+                }
+                $data[] = $item($key, $label, $kindGaps === [] ? 'done' : 'todo', $link($kindFirst), $kindGaps === [] ? '' : 'dlv_translations_gaps',
                     ['list' => implode(', ', array_map(static fn (string $lang, array $g): string => ($facts['languages'][$lang] ?? $lang)
                         . ' ' . $g['missing'] . '/' . $g['draft'] . '/' . $g['outdated'], array_keys($kindGaps), $kindGaps))]);
             }

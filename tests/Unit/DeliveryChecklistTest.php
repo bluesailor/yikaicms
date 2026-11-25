@@ -173,12 +173,69 @@ final class DeliveryChecklistTest extends TestCase
 
         $facts = self::facts(true) + [
             'content_translation_gaps' => ['en' => ['missing' => 0, 'draft' => 1, 'outdated' => 0]],
-            'channel_translation_gaps' => ['en' => ['missing' => 0, 'draft' => 0, 'outdated' => 0]],
+            'page_translation_gaps' => ['en' => ['missing' => 0, 'draft' => 0, 'outdated' => 0]],
+            'section_translation_gaps' => ['en' => ['missing' => 0, 'draft' => 0, 'outdated' => 0]],
+            'section_first_gap' => 0,
+            'category_translation_gaps' => ['en' => ['missing' => 0, 'draft' => 0, 'outdated' => 0]],
         ];
         $data = self::byKey(DeliveryChecklist::evaluate($facts, ['accept' => [], 'run' => []])['data']);
         self::assertSame('done', $data['translations']['status']);
-        self::assertSame(['todo', '/admin/article.php', 'English 0/1/0'], [$data['translations_contents']['status'], $data['translations_contents']['url'], $data['translations_contents']['params']['list']],
-            '产品译文齐了、文章译文还是草稿：清单不能显示就绪');
-        self::assertSame('done', $data['translations_channels']['status']);
+        self::assertSame(['todo', '/admin/translation_status.php?kind=contents&filter=draft', 'English 0/1/0'],
+            [$data['translations_contents']['status'], $data['translations_contents']['url'], $data['translations_contents']['params']['list']],
+            '产品译文齐了、文章译文还是草稿：清单不能显示就绪；入口进工作中心的文章一栏、筛出草稿（2.3.1）');
+        self::assertSame(['done', 'done', 'done'], [$data['translations_pages']['status'], $data['translations_sections']['status'], $data['translations_categories']['status']]);
+    }
+
+    /**
+     * 2.3.1（11-26 评审）：产品分类单列——日文产品已发布、日文分类缺失时清单要报出来；
+     * 每类问题的入口直达要改的地方：工作中心对应一栏按最先要处理的一类筛选，普通栏目进第一个要处理的栏目。
+     */
+    public function testCategoryGapsAndDirectLinksToTheRecordsToFix(): void
+    {
+        db()->execute("CREATE TABLE product_categories (id INTEGER PRIMARY KEY AUTOINCREMENT, lang TEXT, translation_group_id INTEGER DEFAULT 0, parent_id INTEGER DEFAULT 0, name TEXT, description TEXT DEFAULT '', status INTEGER DEFAULT 1)");
+        db()->execute("CREATE TABLE channels (id INTEGER PRIMARY KEY AUTOINCREMENT, lang TEXT, translation_group_id INTEGER DEFAULT 0, parent_id INTEGER DEFAULT 0, name TEXT, description TEXT DEFAULT '', content TEXT DEFAULT '', type TEXT DEFAULT 'list', status INTEGER DEFAULT 1)");
+        db()->execute("CREATE TABLE contents (id INTEGER PRIMARY KEY AUTOINCREMENT, lang TEXT, translation_group_id INTEGER DEFAULT 0, channel_id INTEGER DEFAULT 0, type TEXT DEFAULT 'article', title TEXT, summary TEXT DEFAULT '', content TEXT DEFAULT '', status INTEGER DEFAULT 1, deleted_at INTEGER DEFAULT NULL)");
+        try {
+            // 产品：日文版已发布，产品译文齐了
+            db()->execute("INSERT INTO products (id, lang, translation_group_id, title, status) VALUES (1, 'zh-CN', 1, '回转支承', 1), (2, 'ja', 1, '旋回輪', 1)");
+            // 分类：「泵」没有日文版；「阀」的日文版是草稿；未启用的分类不需要译文
+            db()->execute("INSERT INTO product_categories (id, lang, translation_group_id, name, status) VALUES (1, 'zh-CN', 0, '泵', 1), (2, 'zh-CN', 2, '阀', 1), (3, 'ja', 2, 'バルブ', 0), (4, 'zh-CN', 0, '停用', 0)");
+            // 栏目：「关于」单页有日文版；普通栏目「新闻」「案例」都缺日文版
+            db()->execute("INSERT INTO channels (id, lang, translation_group_id, name, type, status) VALUES (5, 'zh-CN', 0, '关于', 'page', 1), (6, 'ja', 5, '会社概要', 'page', 1), (7, 'zh-CN', 0, '新闻', 'list', 1), (8, 'zh-CN', 0, '案例', 'list', 1)");
+
+            self::assertSame(['ja' => ['missing' => 0, 'draft' => 0, 'outdated' => 0]], DeliveryChecklist::translationGaps('zh-CN', ['ja']), '产品译文齐了');
+            self::assertSame(['ja' => ['missing' => 1, 'draft' => 1, 'outdated' => 0]], DeliveryChecklist::translationGaps('zh-CN', ['ja'], 'categories'),
+                '「泵」缺日文分类、「阀」的日文分类未发布；停用的分类不算');
+            self::assertSame(['ja' => ['missing' => 0, 'draft' => 0, 'outdated' => 0]], DeliveryChecklist::translationGaps('zh-CN', ['ja'], 'pages'));
+            self::assertSame(['ja' => ['missing' => 2, 'draft' => 0, 'outdated' => 0]], DeliveryChecklist::translationGaps('zh-CN', ['ja'], 'sections'), '普通栏目不含单页');
+
+            $sections = (new \TranslationCoverage(db()))->gaps('zh-CN', ['ja'], 'sections');
+            self::assertSame(8, $sections['first'], '第一个要处理的普通栏目：与翻译工作中心同一顺序，新建的在前');
+            $facts = self::facts(true) + [
+                'content_translation_gaps' => DeliveryChecklist::translationGaps('zh-CN', ['ja'], 'contents'),
+                'page_translation_gaps' => DeliveryChecklist::translationGaps('zh-CN', ['ja'], 'pages'),
+                'category_translation_gaps' => DeliveryChecklist::translationGaps('zh-CN', ['ja'], 'categories'),
+                'section_translation_gaps' => $sections['gaps'],
+                'section_first_gap' => $sections['first'],
+            ];
+            $facts['translation_gaps'] = DeliveryChecklist::translationGaps('zh-CN', ['ja']);
+        } finally {
+            foreach (['product_categories', 'channels', 'contents'] as $table) db()->execute('DROP TABLE ' . $table);
+        }
+
+        $facts['languages'] = ['ja' => '日本語'];
+        $data = self::byKey(DeliveryChecklist::evaluate($facts, ['accept' => [], 'run' => []])['data']);
+        self::assertSame('done', $data['translations']['status']);
+        self::assertSame(['todo', '/admin/translation_status.php?kind=categories&filter=missing', '日本語 1/1/0'],
+            [$data['translations_categories']['status'], $data['translations_categories']['url'], $data['translations_categories']['params']['list']],
+            '产品都译了、分类缺译：清单报出分类缺口，入口进工作中心的分类一栏');
+        self::assertSame(['todo', '/admin/channel.php?edit=8&tab=main'], [$data['translations_sections']['status'], $data['translations_sections']['url']],
+            '普通栏目的问题进那个栏目的设置页');
+        self::assertSame('done', $data['translations_pages']['status']);
+        self::assertArrayNotHasKey('translations_channels', $data, '「栏目与单页」一条已拆成单页与栏目两条');
+
+        $facts['page_translation_gaps'] = ['ja' => ['missing' => 0, 'draft' => 0, 'outdated' => 2]];
+        $data = self::byKey(DeliveryChecklist::evaluate($facts, ['accept' => [], 'run' => []])['data']);
+        self::assertSame('/admin/translation_status.php?kind=pages&filter=outdated', $data['translations_pages']['url'], '只有过期的单页：筛出过期');
     }
 }

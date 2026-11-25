@@ -4,7 +4,7 @@
  * 「译文状态」页与交付检查清单共用这一份判断（路线图 CORE-02），不另起一套状态。
  *
  * 内容种类（KINDS）：产品；内容（文章、案例等，不含单页的正文行）；栏目（含单页，单页的正文在栏目下的正文行里）；
- * 单页（栏目里 type=page 的那部分，翻译工作中心单列）；产品分类。
+ * 单页（栏目里 type=page 的那部分，翻译工作中心单列）；普通栏目（type<>'page'，交付检查单列，2.3.1）；产品分类。
  * 一格（$cells[lang]）：['id' => 译文 id（0=缺失）, 'status' => TranslationState::status() 或 null, 'draft' => 未发布]
  * 「未发布」只看这一行自己的 status：前台各入口（product.php、detail.php、page.php、产品分类查询）都以 status = 1 为准，
  * 审阅状态（已审 / 人改过）与是否发布是两回事，一格里分开给出。
@@ -24,6 +24,7 @@ final class TranslationCoverage
         'contents' => ['table' => 'contents', 'title' => 'title', 'summary' => 'summary', 'trash' => true, 'where' => "type <> 'page'", 'pages' => false],
         'channels' => ['table' => 'channels', 'title' => 'name', 'summary' => 'description', 'trash' => false, 'where' => '', 'pages' => true],
         'pages' => ['table' => 'channels', 'title' => 'name', 'summary' => 'description', 'trash' => false, 'where' => "type = 'page'", 'pages' => true],
+        'sections' => ['table' => 'channels', 'title' => 'name', 'summary' => 'description', 'trash' => false, 'where' => "type <> 'page'", 'pages' => false],
         'categories' => ['table' => 'product_categories', 'title' => 'name', 'summary' => 'description', 'trash' => false, 'where' => '', 'pages' => false],
     ];
     /** 编辑接下来该做的事，按先后：补译 → 审阅待审译文 → 更新过期译文 → 发布 → 核对来历不明的译文 */
@@ -339,14 +340,25 @@ final class TranslationCoverage
      */
     public function gapsByLanguage(string $defaultLang, array $langs, string $kind = 'products'): array
     {
+        return $this->gaps($defaultLang, $langs, $kind)['gaps'];
+    }
+
+    /**
+     * 同 gapsByLanguage，另给出第一处缺口所在的原文 id（交付检查的直达链接用，2.3.1；顺序与翻译工作中心相同，新建的在前）；没有缺口时 first = 0。一次扫描算完
+     * @param list<string> $langs @return array{gaps:array<string,array{missing:int,draft:int,outdated:int}>,first:int}
+     */
+    public function gaps(string $defaultLang, array $langs, string $kind = 'products'): array
+    {
         $gaps = array_fill_keys($langs, ['missing' => 0, 'draft' => 0, 'outdated' => 0]);
-        $this->scan($defaultLang, $langs, static function (array $source, array $cells) use (&$gaps): void {
+        $first = 0;
+        $this->scan($defaultLang, $langs, static function (array $source, array $cells) use (&$gaps, &$first): void {
             foreach ($cells as $lang => $cell) {
-                if ($cell['id'] === 0) $gaps[$lang]['missing']++;
-                elseif ($cell['draft']) $gaps[$lang]['draft']++;
-                elseif ($cell['status'] !== null && $cell['status']['outdated']) $gaps[$lang]['outdated']++;
+                $type = $cell['id'] === 0 ? 'missing' : ($cell['draft'] ? 'draft' : ($cell['status'] !== null && $cell['status']['outdated'] ? 'outdated' : ''));
+                if ($type === '') continue;
+                $gaps[$lang][$type]++;
+                if ($first === 0) $first = (int) ($source['id'] ?? 0);
             }
         }, '', true, $kind);
-        return $gaps;
+        return ['gaps' => $gaps, 'first' => $first];
     }
 }
