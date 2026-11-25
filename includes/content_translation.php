@@ -23,6 +23,18 @@ function translationTerms(string $language): array
 }
 
 /** Validate every field, including reviewed terminology, before any draft is replaced. */
+/**
+ * 规格值是不是「纯数值」：含数字，只由数字、拉丁字母（单位与型号）、常见工程符号组成，且最多两段（如「320 mm」「YK-320」「±0.02 mm」）。
+ * 这类值原样保留、不送模型改写。超过两段或夹着汉字等文字的仍翻译。
+ */
+function translationIsMeasurement(string $value): bool
+{
+    $value = trim($value);
+    if ($value === '' || preg_match('/\d/', $value) !== 1) return false;
+    if (preg_match('/^[a-zA-Z0-9\s.,+%°×x\/()_\-±Øø⌀·•≤≥<>=~≈μµΩ℃℉′″\'"²³^:]+$/u', $value) !== 1) return false;
+    return count(preg_split('/\s+/u', $value) ?: []) <= 2;
+}
+
 function translationNeedsRepair(string $original, mixed $value, string $language): bool
 {
     if (!is_string($value) || ($original !== '' && trim($value) === '')) return true;
@@ -161,7 +173,8 @@ function translateContentFields(array $source, string $language, callable $chat,
             }
         } elseif (is_string($value) && trim($value) !== '' && !in_array((string) end($path), ['id', 'key', 'code', 'unit'], true)) {
             // Pure measurements and model numbers must not be reformatted by the model.
-            if (preg_match('/\d/', $value) && preg_match('/^[a-zA-Z0-9\s.,+%°×x\/()_-]+$/u', $value) && count(preg_split('/\s+/', trim($value))) <= 2) return;
+            // 2.3.1：工程符号也算「纯数值」（±0.02 mm、Ø320 mm、35 kN·m、≤5 μm、20 ℃、10 Ω），原样保留；按属性的翻译规则在 2.4.0 做
+            if (translationIsMeasurement($value)) return;
             $token = 'spec_' . count($specBindings);
             $texts[$token] = $value;
             $specBindings[$token] = ['path' => $path, 'key' => false];

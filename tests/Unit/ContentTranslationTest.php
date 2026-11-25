@@ -136,6 +136,40 @@ final class ContentTranslationTest extends TestCase
         self::assertSame('GW-100', $specs['model']);
     }
 
+    /** 2.3.1（11-26 评审）：带工程符号的数值原样保留，根本不送给模型 */
+    public function testEngineeringSymbolsInSpecificationsAreNeverSentToTheModel(): void
+    {
+        $values = ['公差' => '±0.02 mm', '外径' => 'Ø320 mm', '扭矩' => '35 kN·m', '跳动' => '≤5 μm', '工作温度' => '20 ℃', '材质' => '铝合金'];
+        $source = ['title' => '回转支承', 'specs' => json_encode(['参数' => $values], JSON_UNESCAPED_UNICODE)];
+        $dictionary = ['回转支承' => 'Slewing bearing', '参数' => 'Parameters', '公差' => 'Tolerance', '外径' => 'Outer diameter', '扭矩' => 'Torque',
+            '跳动' => 'Runout', '工作温度' => 'Operating temperature', '材质' => 'Material', '铝合金' => 'Aluminium'];
+        $prompts = [];
+        $result = translateContentFields($source, 'en', static function (string $prompt) use (&$prompts, $dictionary): array {
+            $prompts[] = $prompt;
+            $values = json_decode(explode('Input: ', $prompt, 2)[1], true);
+            return ['success' => true, 'content' => json_encode(array_map(static fn(string $value): string => $dictionary[$value] ?? $value, $values), JSON_UNESCAPED_UNICODE)];
+        });
+        $sent = implode("
+", $prompts);
+        foreach (['±0.02 mm', 'Ø320 mm', '35 kN·m', '≤5 μm', '20 ℃'] as $kept) {
+            self::assertStringNotContainsString(json_encode($kept), $sent, $kept . ' 不送模型');
+        }
+        $specs = json_decode($result['specs'], true)['Parameters'];
+        self::assertSame(['Tolerance' => '±0.02 mm', 'Outer diameter' => 'Ø320 mm', 'Torque' => '35 kN·m', 'Runout' => '≤5 μm', 'Operating temperature' => '20 ℃'],
+            array_slice($specs, 0, 5), '原样保留，逐字符一致；名称照常翻译');
+        self::assertSame('Aluminium', $specs['Material'], '普通文字照常翻译');
+    }
+
+    public function testMeasurementRuleKeepsValuesAndTranslatesText(): void
+    {
+        foreach (['320 mm', 'YK-320', '±0.02 mm', 'Ø320 mm', '35 kN·m', '≤5 μm', '20 ℃', '10 Ω', 'M20×1.5', '45 HRC', 'IP65', '≥ 200'] as $kept) {
+            self::assertTrue(translationIsMeasurement($kept), $kept);
+        }
+        foreach (['铝合金', '100 mm 铝', 'kN·m', 'Grade A steel 304', '3 x 5 mm', ''] as $translated) {
+            self::assertFalse(translationIsMeasurement($translated), $translated);
+        }
+    }
+
     public function testUntranslatedProductNameIsRetriedOnce(): void
     {
         $calls = 0;
