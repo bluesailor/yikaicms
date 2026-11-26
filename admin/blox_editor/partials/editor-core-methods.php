@@ -3933,12 +3933,19 @@ declare(strict_types=1);
                     if (!obj.id || seen[obj.id]) obj.id = self.uid(prefix);
                     seen[obj.id] = true;
                 };
+                // 元素 data 必须是对象：PHP 把空的 {} 编码成 []，在数组上写 data.key 不会被保存，
+                // 控件改了也不生效（2.3.1：内置产品详情模板的相册就是这样）。顺带整棵子树都处理。
+                var fixData = function (e) {
+                    if (!e.data || typeof e.data !== "object" || Array.isArray(e.data)) e.data = {};
+                    (Array.isArray(e.data.children) ? e.data.children : []).forEach(fixData);
+                };
                 (this.sections || []).forEach(function (s) {
                     fix(s, "s");
                     (s.columns || []).forEach(function (c) {
                         fix(c, "c");
                         (c.elements || []).forEach(function (e) {
                             fix(e, "e");
+                            fixData(e);
                             (((e.data || {}).children) || []).forEach(function (k) { fix(k, "e"); });
                         });
                     });

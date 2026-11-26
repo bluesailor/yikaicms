@@ -30,3 +30,22 @@ test('draft summary caches remain private to each editor instance', () => {
   assert.equal(second.draftSummary().total, 2);
   assert.equal(first.draftSummary().total, 1);
 });
+
+test('element data loaded as an empty PHP array becomes an object so control edits are kept (2.3.1)', () => {
+  const window = {};
+  vm.runInNewContext(source, { window });
+  // PHP encodes an empty {} as []; built-in templates (Classic Product Detail gallery) arrive like this
+  const sections = [{ id: 's1', columns: [{ id: 'c1', elements: [
+    { id: 'e1', type: 'product-gallery', data: [] },
+    { id: 'e2', type: 'container', data: { children: [{ id: 'e3', type: 'text', data: [] }] } },
+    { id: 'e4', type: 'heading' },
+  ] }] }];
+  const app = window.BloxEditorRuntime.create({ sections, docSettings: {}, runtimeText: {}, cmdText: {}, uid: (p) => p + Math.random() });
+  app.normalizeIds();
+  const [gallery, container, heading] = sections[0].columns[0].elements;
+  assert.equal(Array.isArray(gallery.data), false);
+  gallery.data.image_ratio = 'square';
+  assert.equal(JSON.stringify(gallery.data), '{"image_ratio":"square"}');
+  assert.equal(Array.isArray(container.data.children[0].data), false);
+  assert.equal(JSON.stringify(heading.data), '{}');
+});
