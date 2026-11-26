@@ -358,19 +358,19 @@ function showDetail(item) {
     document.getElementById('detailId').value = item.id;
     let productLine = '';
     if (item.product_id && parseInt(item.product_id) > 0) {
-        productLine = `<p><span class="text-gray-500"><?php echo __('inq_field_product'); ?>：</span><a href="${window.YK_BASE || ''}/product/${item.product_id}.html" target="_blank" class="text-primary hover:underline">${escapeHtml(item.product_title)}</a></p>`;
+        productLine = `<p><span class="text-gray-500">${<?= jsString(e(__('inq_field_product'))) ?>}：</span><a href="${window.YK_BASE || ''}/product/${item.product_id}.html" target="_blank" class="text-primary hover:underline">${escapeHtml(item.product_title)}</a></p>`;
     }
     document.getElementById('detailContent').innerHTML = `
         <div class="space-y-3">
             ${productLine}
-            <p><span class="text-gray-500"><?php echo __('inq_th_name'); ?>：</span>${escapeHtml(item.name)}</p>
-            <p><span class="text-gray-500"><?php echo __('inq_th_phone'); ?>：</span>${escapeHtml(item.phone)}</p>
-            <p><span class="text-gray-500"><?php echo __('inq_th_email'); ?>：</span>${escapeHtml(item.email)}</p>
-            <p><span class="text-gray-500"><?php echo __('inq_th_company'); ?>：</span>${escapeHtml(item.company)}</p>
-            <p><span class="text-gray-500"><?php echo __('inq_th_content'); ?>：</span>${escapeHtml(item.content)}</p>
+            <p><span class="text-gray-500">${<?= jsString(e(__('inq_th_name'))) ?>}：</span>${escapeHtml(item.name)}</p>
+            <p><span class="text-gray-500">${<?= jsString(e(__('inq_th_phone'))) ?>}：</span>${escapeHtml(item.phone)}</p>
+            <p><span class="text-gray-500">${<?= jsString(e(__('inq_th_email'))) ?>}：</span>${escapeHtml(item.email)}</p>
+            <p><span class="text-gray-500">${<?= jsString(e(__('inq_th_company'))) ?>}：</span>${escapeHtml(item.company)}</p>
+            <p><span class="text-gray-500">${<?= jsString(e(__('inq_th_content'))) ?>}：</span>${escapeHtml(item.content)}</p>
             ${(item.extra_fields || []).map(field => `<p data-testid="form-extra-field"><span class="text-gray-500">${escapeHtml(field.label)}：</span>${field.file_url ? `<a class="text-primary hover:underline" href="${field.file_url}" download>${escapeHtml(field.value)}</a>` : escapeHtml(field.value)}</p>`).join('')}
-            <p><span class="text-gray-500"><?php echo __('inq_field_ip'); ?>：</span>${escapeHtml(item.ip)}</p>
-            <p><span class="text-gray-500"><?php echo __('inq_field_note'); ?>：</span>${escapeHtml(item.follow_note)}</p>
+            <p><span class="text-gray-500">${<?= jsString(e(__('inq_field_ip'))) ?>}：</span>${escapeHtml(item.ip)}</p>
+            <p><span class="text-gray-500">${<?= jsString(e(__('inq_field_note'))) ?>}：</span>${escapeHtml(item.follow_note)}</p>
         </div>
     `;
     document.querySelector('#statusForm select').value = item.status;
@@ -439,7 +439,7 @@ document.getElementById('statusForm').addEventListener('submit', async function(
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('inq_update_success'); ?>');
+        showMessage(<?= jsString(__('inq_update_success')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -447,14 +447,14 @@ document.getElementById('statusForm').addEventListener('submit', async function(
 });
 
 async function deleteForm(id) {
-    if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
+    if (!confirm(<?= jsString(__('admin_confirm_delete')) ?>)) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -464,7 +464,7 @@ async function deleteForm(id) {
 async function batchDelete() {
     const checked = document.querySelectorAll('input[name="ids[]"]:checked');
     if (checked.length === 0) {
-        showMessage('<?php echo __('admin_please_select'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_please_select')) ?>, 'error');
         return;
     }
     if (!confirm(`<?php echo sprintf(__('inq_confirm_batch_del'), 0); ?>`.replace('0', checked.length))) return;
@@ -474,7 +474,7 @@ async function batchDelete() {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');

@@ -530,7 +530,7 @@ document.getElementById('fileInput').addEventListener('change', async function()
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('<?php echo __('admin_fail'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
     }
 
     this.value = '';
@@ -563,12 +563,12 @@ document.getElementById('attachmentFileInput').addEventListener('change', async 
 
         if (data.code === 0) {
             document.getElementById('attachmentInput').value = data.data.url;
-            showMessage('<?php echo __('admin_success'); ?>');
+            showMessage(<?= jsString(__('admin_success')) ?>);
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('<?php echo __('admin_fail'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
     }
 
     this.value = '';
@@ -624,7 +624,7 @@ document.getElementById('galleryFileInput').addEventListener('change', async fun
             var data = await safeJson(resp);
             if (data.code === 0) galleryImages.push(data.data.url);
             else showMessage(data.msg, 'error');
-        } catch (err) { showMessage('<?php echo __('admin_fail'); ?>', 'error'); }
+        } catch (err) { showMessage(<?= jsString(__('admin_fail')) ?>, 'error'); }
     }
     gallerySync();
     this.value = '';

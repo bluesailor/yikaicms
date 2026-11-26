@@ -752,7 +752,7 @@ new Sortable(document.getElementById('sortableList'), {
 });
 
 function openEditModal(item = null) {
-    document.getElementById('modalTitle').textContent = item ? '<?php echo __("banner_edit"); ?>' : '<?php echo __("banner_add"); ?>';
+    document.getElementById('modalTitle').textContent = item ? <?= jsString(__("banner_edit")) ?> : <?= jsString(__("banner_add")) ?>;
     document.getElementById('editId').value = item?.id || 0;
     document.getElementById('editTitle').value = item?.title || '';
     document.getElementById('editSubtitle').value = item?.subtitle || '';
@@ -940,7 +940,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
         const response = await fetch('', { method: 'POST', body: formData });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('<?php echo __('admin_saved'); ?>');
+            showMessage(<?= jsString(__('admin_saved')) ?>);
             setTimeout(() => location.reload(), 1000);
         } else {
             showMessage(data.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
@@ -968,14 +968,14 @@ async function toggleStatus(id, btn) {
 }
 
 async function deleteBanner(id) {
-    if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
+    if (!confirm(<?= jsString(__('admin_confirm_delete')) ?>)) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -1034,12 +1034,12 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
 
         if (data.code === 0) {
             setBannerImage(bannerImageUploadTarget, data.data.url);
-            showMessage('<?php echo __('admin_success'); ?>');
+            showMessage(<?= jsString(__('admin_success')) ?>);
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('<?php echo __('admin_fail'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
     }
 
     this.value = '';
@@ -1342,7 +1342,7 @@ function setGroupChoice(key, value) {
 }
 
 function openGroupModal(item = null) {
-    document.getElementById('groupModalTitle').textContent = item ? '<?php echo __("banner_edit_group"); ?>' : '<?php echo __("banner_add_group"); ?>';
+    document.getElementById('groupModalTitle').textContent = item ? <?= jsString(__("banner_edit_group")) ?> : <?= jsString(__("banner_add_group")) ?>;
     document.getElementById('groupId').value = item?.id || 0;
     document.getElementById('groupName').value = item?.name || '';
     document.getElementById('groupSlug').value = item?.slug || '';
@@ -1441,7 +1441,7 @@ document.getElementById('groupForm').addEventListener('submit', async function(e
         const data = await safeJson(response);
         if (data.code === 0) {
             saved = true;
-            showMessage('<?php echo __('admin_saved'); ?>');
+            showMessage(<?= jsString(__('admin_saved')) ?>);
             setTimeout(() => location.reload(), 1000);
         } else {
             showMessage(data.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
@@ -1466,10 +1466,10 @@ async function toggleGroupStatus(id, btn) {
     if (data.code === 0) {
         if (data.data.status) {
             btn.className = 'text-xs px-2 py-1 rounded bg-green-100 text-green-600';
-            btn.textContent = '<?php echo __('admin_enabled'); ?>';
+            btn.textContent = <?= jsString(__('admin_enabled')) ?>;
         } else {
             btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-500';
-            btn.textContent = '<?php echo __('admin_disabled'); ?>';
+            btn.textContent = <?= jsString(__('admin_disabled')) ?>;
         }
     }
 }
@@ -1482,7 +1482,7 @@ async function deleteGroup(id) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg || <?php echo json_encode(__('admin_delete_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');

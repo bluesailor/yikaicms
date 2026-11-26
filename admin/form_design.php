@@ -524,15 +524,15 @@ function applyFormPreset(key) {
 }
 
 var tagTypeNames = {
-    'text': '<?php echo __("fd_tag_text"); ?>', 'email': '<?php echo __("fd_tag_email"); ?>', 'tel': '<?php echo __("fd_tag_tel"); ?>',
-    'textarea': '<?php echo __("fd_tag_textarea"); ?>', 'number': '<?php echo __("fd_tag_number"); ?>', 'date': '<?php echo __("fd_tag_date"); ?>',
-    'file': '<?php echo __("fd_tag_file"); ?>', 'hidden': '<?php echo __("fd_tag_hidden"); ?>',
-    'select': '<?php echo __("fd_tag_select"); ?>', 'radio': '<?php echo __("fd_tag_radio"); ?>', 'checkbox': '<?php echo __("fd_tag_checkbox"); ?>'
+    'text': <?= jsString(__("fd_tag_text")) ?>, 'email': <?= jsString(__("fd_tag_email")) ?>, 'tel': <?= jsString(__("fd_tag_tel")) ?>,
+    'textarea': <?= jsString(__("fd_tag_textarea")) ?>, 'number': <?= jsString(__("fd_tag_number")) ?>, 'date': <?= jsString(__("fd_tag_date")) ?>,
+    'file': <?= jsString(__("fd_tag_file")) ?>, 'hidden': <?= jsString(__("fd_tag_hidden")) ?>,
+    'select': <?= jsString(__("fd_tag_select")) ?>, 'radio': <?= jsString(__("fd_tag_radio")) ?>, 'checkbox': <?= jsString(__("fd_tag_checkbox")) ?>
 };
 
 function openEditModal(item) {
     var isEdit = !!item;
-    document.getElementById('modalTitle').textContent = isEdit ? '<?php echo __("fd_modal_edit"); ?>' : '<?php echo __("fd_modal_add"); ?>';
+    document.getElementById('modalTitle').textContent = isEdit ? <?= jsString(__("fd_modal_edit")) ?> : <?= jsString(__("fd_modal_add")) ?>;
     document.getElementById('editId').value = item ? item.id : 0;
     document.getElementById('editName').value = item ? item.name : '';
     document.getElementById('editSlug').value = item ? item.slug : '';
@@ -553,7 +553,7 @@ function closeModal() {
 // 标签生成器
 function openTagGen(type) {
     currentTagType = type;
-    document.getElementById('tagGenTitle').textContent = '<?php echo __("fd_taggen_title"); ?>: ' + (tagTypeNames[type] || type);
+    document.getElementById('tagGenTitle').textContent = (<?= jsString(__("fd_taggen_title")) ?> + ': ') + (tagTypeNames[type] || type);
     document.getElementById('tagName').value = '';
     document.getElementById('tagRequired').checked = false;
     document.getElementById('tagPlaceholder').value = '';
@@ -576,10 +576,10 @@ function openTagGen(type) {
         var optLabel = document.getElementById('tagOptionsLabel');
         var optArea = document.getElementById('tagOptions');
         if (type === 'select') {
-            optLabel.textContent = '<?php echo __("fd_taggen_options"); ?>';
+            optLabel.textContent = <?= jsString(__("fd_taggen_options")) ?>;
             optArea.placeholder = '<?php echo str_replace("\n", "\\n", __("fd_taggen_options_ph_select")); ?>';
         } else {
-            optLabel.textContent = '<?php echo __("fd_taggen_options_simple"); ?>';
+            optLabel.textContent = <?= jsString(__("fd_taggen_options_simple")) ?>;
             optArea.placeholder = '<?php echo str_replace("\n", "\\n", __("fd_taggen_options_ph_simple")); ?>';
         }
     }
@@ -629,7 +629,7 @@ function buildTagString() {
 }
 
 function updateTagPreview() {
-    document.getElementById('tagPreview').textContent = buildTagString() || '<?php echo __("fd_taggen_preview_empty"); ?>';
+    document.getElementById('tagPreview').textContent = buildTagString() || <?= jsString(__("fd_taggen_preview_empty")) ?>;
 }
 
 // 监听输入更新预览
@@ -644,7 +644,7 @@ document.getElementById('tagOptions').addEventListener('input', updateTagPreview
 function insertTag() {
     var tagStr = buildTagString();
     if (!tagStr) {
-        showMessage('<?php echo __("fd_taggen_err_name"); ?>', 'error');
+        showMessage(<?= jsString(__("fd_taggen_err_name")) ?>, 'error');
         return;
     }
     insertAtCursor(tagStr);
@@ -652,7 +652,7 @@ function insertTag() {
 }
 
 function insertSubmit() {
-    insertAtCursor('[submit "<?php echo addslashes(__('form_submit')); ?>"]');
+    insertAtCursor('[submit "' + <?= jsString(__('form_submit')) ?> + '"]');
 }
 
 function insertAtCursor(text) {
@@ -674,13 +674,13 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
         var response = await fetch('', { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} });
         var data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('<?php echo __('admin_saved'); ?>');
+            showMessage(<?= jsString(__('admin_saved')) ?>);
             setTimeout(function() { location.reload(); }, 1000);
         } else {
             showMessage(data.msg, 'error');
         }
     } catch(err) {
-        showMessage('<?php echo __("fd_request_failed"); ?>', 'error');
+        showMessage(<?= jsString(__("fd_request_failed")) ?>, 'error');
     }
 });
 
@@ -693,16 +693,16 @@ async function toggleStatus(id, btn) {
     if (data.code === 0) {
         if (data.data.status) {
             btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-green-100 text-green-600';
-            btn.textContent = '<?php echo __('admin_enabled'); ?>';
+            btn.textContent = <?= jsString(__('admin_enabled')) ?>;
         } else {
             btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-red-100 text-red-600';
-            btn.textContent = '<?php echo __('admin_disabled'); ?>';
+            btn.textContent = <?= jsString(__('admin_disabled')) ?>;
         }
     }
 }
 
 async function deleteTemplate(id) {
-    if (!confirm('<?php echo __("fd_confirm_delete"); ?>')) return;
+    if (!confirm(<?= jsString(__("fd_confirm_delete")) ?>)) return;
     var formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);
@@ -710,18 +710,18 @@ async function deleteTemplate(id) {
         var response = await fetch('', { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} });
         var data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('<?php echo __('admin_deleted'); ?>');
+            showMessage(<?= jsString(__('admin_deleted')) ?>);
             setTimeout(function() { location.reload(); }, 1000);
         } else {
             showMessage(data.msg, 'error');
         }
     } catch(err) {
-        showMessage('<?php echo __("fd_request_failed"); ?>', 'error');
+        showMessage(<?= jsString(__("fd_request_failed")) ?>, 'error');
     }
 }
 
 function copyShortcode(el) {
-    navigator.clipboard.writeText(el.textContent).then(function() { showMessage('<?php echo __("fd_copied"); ?>'); });
+    navigator.clipboard.writeText(el.textContent).then(function() { showMessage(<?= jsString(__("fd_copied")) ?>); });
 }
 <?php foreach ($templates as $editTarget): ?>
 <?php if ((string) get('edit', '') !== '' && (string) $editTarget['slug'] === (string) get('edit', '')): ?>

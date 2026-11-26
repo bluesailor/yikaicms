@@ -614,12 +614,12 @@ document.getElementById('coverFileInput').addEventListener('change', async funct
             coverImg.src = data.data.url;
             coverImg.className = 'w-full rounded';
             document.getElementById('coverPreview').appendChild(coverImg);
-            showMessage('<?php echo __('admin_success'); ?>');
+            showMessage(<?= jsString(__('admin_success')) ?>);
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('<?php echo __('admin_fail'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
     }
 
     this.value = '';
@@ -660,7 +660,7 @@ function renderGallery() {
     var box = document.getElementById('galleryPreview');
     if (!box) return;
     if (galleryImages.length === 0) {
-        box.innerHTML = '<div class="col-span-full text-sm text-gray-400 py-8 text-center border-2 border-dashed border-gray-300 rounded"><?php echo __('admin_gallery_empty'); ?></div>';
+        box.innerHTML = ('<div class="col-span-full text-sm text-gray-400 py-8 text-center border-2 border-dashed border-gray-300 rounded">' + <?= jsString(e(__('admin_gallery_empty'))) ?> + '</div>');
         return;
     }
     box.innerHTML = galleryImages.map(function(url, i) {
@@ -670,7 +670,7 @@ function renderGallery() {
                '  <div class="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition flex items-center justify-center gap-1">' +
                (i > 0 ? '    <button type="button" onclick="galleryMove(' + i + ',-1)" class="text-white bg-gray-700/80 hover:bg-gray-600 rounded w-7 h-7 text-sm" title="<?php echo e(__('admin_move_left')); ?>">←</button>' : '') +
                (i < galleryImages.length - 1 ? '    <button type="button" onclick="galleryMove(' + i + ',1)" class="text-white bg-gray-700/80 hover:bg-gray-600 rounded w-7 h-7 text-sm" title="<?php echo e(__('admin_move_right')); ?>">→</button>' : '') +
-               '    <button type="button" onclick="removeGalleryImage(' + i + ')" class="text-white bg-red-500 hover:bg-red-600 rounded w-7 h-7 text-sm" title="<?php echo __('btn_delete'); ?>">×</button>' +
+               '    <button type="button" onclick="removeGalleryImage(' + i + (')" class="text-white bg-red-500 hover:bg-red-600 rounded w-7 h-7 text-sm" title="' + <?= jsString(__('btn_delete')) ?> + '">×</button>') +
                '  </div>' +
                '  <div class="absolute top-1 left-1 bg-black/60 text-white text-xs px-1.5 py-0.5 rounded pointer-events-none">' + (i + 1) + '</div>' +
                '</div>';
@@ -726,7 +726,7 @@ function uploadGalleryImage() {
                 var data = await safeJson(response);
                 if (data.code === 0) addGalleryImage(data.data.url);
                 else showMessage(data.msg, 'error');
-            } catch (err) { showMessage('<?php echo __('admin_upload_failed'); ?>', 'error'); }
+            } catch (err) { showMessage(<?= jsString(__('admin_upload_failed')) ?>, 'error'); }
         }
     };
     input.click();
@@ -745,15 +745,15 @@ try { specsData = JSON.parse(document.getElementById('specsInput').value || '{}'
 
 // 规格键名标签映射
 var specLabels = {
-    'material': '<?php echo __("spec_material"); ?>',
-    'material_label': '<?php echo __("spec_material_label"); ?>',
-    'scene': '<?php echo __("spec_scene"); ?>',
-    'size': '<?php echo __("spec_size"); ?>',
-    'method': '<?php echo __("spec_method"); ?>',
-    'finish': '<?php echo __("spec_finish"); ?>',
-    'mount': '<?php echo __("spec_mount"); ?>',
-    'use': '<?php echo __("spec_use"); ?>',
-    'corner': '<?php echo __("spec_corner"); ?>',
+    'material': <?= jsString(__("spec_material")) ?>,
+    'material_label': <?= jsString(__("spec_material_label")) ?>,
+    'scene': <?= jsString(__("spec_scene")) ?>,
+    'size': <?= jsString(__("spec_size")) ?>,
+    'method': <?= jsString(__("spec_method")) ?>,
+    'finish': <?= jsString(__("spec_finish")) ?>,
+    'mount': <?= jsString(__("spec_mount")) ?>,
+    'use': <?= jsString(__("spec_use")) ?>,
+    'corner': <?= jsString(__("spec_corner")) ?>,
 };
 // 预置参数（产品设置配置）：显示名并入标签映射；「从预置补齐」按缺哪补哪，不覆盖已填值
 var specPresets = <?php echo json_encode($specPresets, JSON_UNESCAPED_UNICODE); ?>;
@@ -784,7 +784,7 @@ function renderSpecs() {
     var presetOrder = Array.isArray(specsData) ? [] : Object.keys(specPresets).filter(function (k) { return Object.prototype.hasOwnProperty.call(specsData, k); });
     var customKeys = Object.keys(specsData).filter(function (k) { return !presetOrder.includes(k); });
     if (presetOrder.length + customKeys.length === 0) {
-        list.innerHTML = '<div class="text-sm text-gray-400 py-2"><?php echo __("admin_no_specs"); ?></div>';
+        list.innerHTML = ('<div class="text-sm text-gray-400 py-2">' + <?= jsString(e(__("admin_no_specs"))) ?> + '</div>');
         return;
     }
     presetOrder.forEach(function (key) {

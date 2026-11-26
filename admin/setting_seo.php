@@ -411,7 +411,7 @@ $__seoPluginHere = is_dir(ROOT_PATH . '/plugins/seo');
 // 保存 SEO 设置
 document.getElementById('settingForm')?.addEventListener('submit', function (e) {
     e.preventDefault();
-    adminSave(this, { successMsg: '<?php echo __('admin_saved'); ?>' });
+    adminSave(this, { successMsg: <?= jsString(__('admin_saved')) ?> });
 });
 
 // 保存 robots.txt

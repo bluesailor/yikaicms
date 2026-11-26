@@ -262,7 +262,7 @@ document.getElementById('settingForm').addEventListener('submit', async function
         const response = await fetch('', { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('<?php echo __('admin_saved'); ?>');
+            showMessage(<?= jsString(__('admin_saved')) ?>);
         } else {
             showMessage(data.msg, 'error');
         }

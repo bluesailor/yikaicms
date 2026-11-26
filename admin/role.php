@@ -390,7 +390,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
         const response = await fetch('', { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('<?php echo __('admin_saved'); ?>');
+            showMessage(<?= jsString(__('admin_saved')) ?>);
             setTimeout(() => location.reload(), 1000);
         } else {
             showMessage(data.msg, 'error');
@@ -409,7 +409,7 @@ async function deleteRole(id) {
         const response = await fetch('', { method: 'POST', body: formData, headers: {'X-Requested-With': 'XMLHttpRequest'} });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('<?php echo __('admin_deleted'); ?>');
+            showMessage(<?= jsString(__('admin_deleted')) ?>);
             setTimeout(() => location.reload(), 1000);
         } else {
             showMessage(data.msg, 'error');

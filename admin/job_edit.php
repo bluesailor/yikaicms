@@ -271,7 +271,7 @@ document.getElementById('coverFileInput').addEventListener('change', async funct
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('<?php echo __('admin_fail'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
     }
     this.value = '';
 });

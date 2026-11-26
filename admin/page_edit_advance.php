@@ -495,7 +495,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
         <div class="px-6 py-4 border-b flex items-center justify-between gap-3">
             <div class="flex items-center gap-2">
                 <h2 class="font-bold text-gray-800"><?php echo __('label_layout_content'); ?></h2>
-                <span class="text-xs text-gray-400" x-text="sections.length + ' <?php echo e(__('home_layout_section_unit')); ?>'"></span>
+                <span class="text-xs text-gray-400" x-text="sections.length + (' ' + <?= e(jsString(__('home_layout_section_unit'))) ?>)"></span>
             </div>
             <div class="flex items-center gap-3">
                 <button type="button" @click="expandAllSections()"
@@ -538,7 +538,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                     <span class="text-sm font-medium text-gray-700" x-text="sectionLabel(section, si)"></span>
                                 </button>
                                 <span class="text-xs text-gray-400" x-show="!section.library_id" x-text="sectionColumnLabel(section)"></span>
-                                <span class="text-xs text-gray-400" x-show="!isSectionOpen(section.id)" x-text="sectionElementCount(section) + ' <?php echo e(__('home_layout_element_unit')); ?>'"></span>
+                                <span class="text-xs text-gray-400" x-show="!isSectionOpen(section.id)" x-text="sectionElementCount(section) + (' ' + <?= e(jsString(__('home_layout_element_unit'))) ?>)"></span>
                                 <template x-if="section.library_id">
                                     <span class="text-xs text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded inline-flex items-center gap-1">
                                         <i class="ti ti-link"></i><span x-text="<?php echo (string) json_encode(__('pea_reference_of'), JSON_UNESCAPED_UNICODE); ?>.replace(':name', section.library_name || ('#' + section.library_id))"></span>
@@ -578,7 +578,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <button type="button" @click="toggleSectionHidden(si)"
                                         class="p-1 cursor-pointer"
                                         :class="section.settings && section.settings.hidden ? 'text-amber-500 hover:text-amber-600' : 'text-gray-400 hover:text-gray-600'"
-                                        :title="section.settings && section.settings.hidden ? '<?php echo e(__('page_section_show')); ?>' : '<?php echo e(__('page_section_hide')); ?>'">
+                                        :title="section.settings && section.settings.hidden ? <?= e(jsString(__('page_section_show'))) ?> : <?= e(jsString(__('page_section_hide'))) ?>">
                                     <i class="ti text-base" :class="section.settings && section.settings.hidden ? 'ti-eye-off' : 'ti-eye'"></i>
                                 </button>
                                 <button type="button" @click="removeSection(si)"
@@ -653,7 +653,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                 <button type="button" @click="full = !full"
                                                                         class="text-xs text-gray-400 hover:text-primary cursor-pointer inline-flex items-center gap-0.5">
                                                                     <i class="ti text-sm" :class="full ? 'ti-chevrons-up' : 'ti-chevrons-down'"></i>
-                                                                    <span x-text="full ? '<?php echo e(__('admin_collapse')); ?>' : '<?php echo e(__('admin_expand')); ?>'"></span>
+                                                                    <span x-text="full ? <?= e(jsString(__('admin_collapse'))) ?> : <?= e(jsString(__('admin_expand'))) ?>"></span>
                                                                 </button>
                                                                 <button type="button" @click="editText(si,ci,ei)" class="text-xs text-primary hover:underline cursor-pointer"><?php echo e(__('pea_edit_content')); ?></button>
                                                             </div>
@@ -993,7 +993,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                         <template x-for="(item, statIndex) in el.data.stats_items" :key="statIndex">
                                                                             <div class="bg-white/90 border border-gray-200 p-3 text-center shadow-sm backdrop-blur-sm">
                                                                                 <label class="text-[11px] text-gray-500 block mb-1"><?php echo e(__('blox_home_stats_icon')); ?></label>
-                                                                                <button type="button" @click="statIconPick = statIconPick === (el.id + ':' + statIndex) ? '' : (el.id + ':' + statIndex)" class="mx-auto w-11 h-11 border border-primary/20 bg-primary text-white flex items-center justify-center cursor-pointer hover:bg-secondary" :title="'<?php echo e(__('blox_home_stats_icon')); ?>'">
+                                                                                <button type="button" @click="statIconPick = statIconPick === (el.id + ':' + statIndex) ? '' : (el.id + ':' + statIndex)" class="mx-auto w-11 h-11 border border-primary/20 bg-primary text-white flex items-center justify-center cursor-pointer hover:bg-secondary" :title="<?= e(jsString(__('blox_home_stats_icon'))) ?>">
                                                                                     <i class="ti text-3xl" :class="item.icon && item.icon !== 'none' ? 'ti-' + item.icon : 'ti-ban'"></i>
                                                                                 </button>
                                                                                 <div x-show="statIconPick === (el.id + ':' + statIndex)" x-cloak class="mt-2 grid grid-cols-5 gap-1.5 border border-gray-200 bg-white/95 p-2 shadow-sm">
@@ -1122,9 +1122,9 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                     <template x-for="(item, advantageIndex) in el.data.advantage_items" :key="advantageIndex">
                                                                         <div class="border border-white/20 bg-white/10 p-3 text-center">
                                                                             <i class="ti text-3xl text-white" :class="'ti-' + item.icon"></i>
-                                                                            <input type="text" x-model="item.icon" :placeholder="'<?php echo e(__('blox_home_advantage_icon')); ?>'" class="mt-2 w-full border border-white/20 bg-black/20 text-white rounded px-2 py-1 text-xs text-center">
-                                                                            <input type="text" x-model="item.title" :placeholder="'<?php echo e(__('blox_home_advantage_item_title')); ?>'" class="mt-2 w-full border border-white/20 bg-black/20 text-white rounded px-2 py-1 text-sm font-medium text-center">
-                                                                            <textarea x-model="item.description" rows="3" :placeholder="'<?php echo e(__('blox_home_advantage_item_description')); ?>'" class="mt-2 w-full border border-white/20 bg-black/20 text-white rounded px-2 py-1 text-xs"></textarea>
+                                                                            <input type="text" x-model="item.icon" :placeholder="<?= e(jsString(__('blox_home_advantage_icon'))) ?>" class="mt-2 w-full border border-white/20 bg-black/20 text-white rounded px-2 py-1 text-xs text-center">
+                                                                            <input type="text" x-model="item.title" :placeholder="<?= e(jsString(__('blox_home_advantage_item_title'))) ?>" class="mt-2 w-full border border-white/20 bg-black/20 text-white rounded px-2 py-1 text-sm font-medium text-center">
+                                                                            <textarea x-model="item.description" rows="3" :placeholder="<?= e(jsString(__('blox_home_advantage_item_description'))) ?>" class="mt-2 w-full border border-white/20 bg-black/20 text-white rounded px-2 py-1 text-xs"></textarea>
                                                                         </div>
                                                                     </template>
                                                                 </div>
@@ -1136,10 +1136,10 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                 <div class="relative min-h-52 flex items-center justify-center px-6 py-10 text-center text-white bg-primary"
                                                                      :style="ctaPreviewStyle(el)">
                                                                     <div class="relative z-10 max-w-2xl">
-                                                                        <h3 class="text-2xl md:text-3xl font-bold leading-tight" x-text="el.data.override_title || '<?php echo e(__('home_cta_title')); ?>'"></h3>
-                                                                        <p class="mt-3 text-sm md:text-base text-white/85" x-text="el.data.override_description || '<?php echo e(__('home_cta_desc')); ?>'"></p>
+                                                                        <h3 class="text-2xl md:text-3xl font-bold leading-tight" x-text="el.data.override_title || <?= e(jsString(__('home_cta_title'))) ?>"></h3>
+                                                                        <p class="mt-3 text-sm md:text-base text-white/85" x-text="el.data.override_description || <?= e(jsString(__('home_cta_desc'))) ?>"></p>
                                                                         <span class="mt-6 inline-flex items-center gap-2 bg-white text-primary px-5 py-2.5 rounded font-medium shadow-sm">
-                                                                            <span x-text="el.data.override_button_text || '<?php echo e(__('detail_consult')); ?>'"></span>
+                                                                            <span x-text="el.data.override_button_text || <?= e(jsString(__('detail_consult'))) ?>"></span>
                                                                             <i class="ti ti-arrow-right"></i>
                                                                         </span>
                                                                     </div>
@@ -1228,14 +1228,14 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                                                         <div class="bg-white border p-3 space-y-2">
                                                                             <div class="flex items-center gap-2">
                                                                                 <i class="ti ti-quote text-2xl text-primary"></i>
-                                                                                <input type="text" x-model="item.name" :placeholder="'<?php echo e(__('blox_home_testimonial_name')); ?>'" class="min-w-0 flex-1 border rounded px-2 py-1 text-sm font-medium">
+                                                                                <input type="text" x-model="item.name" :placeholder="<?= e(jsString(__('blox_home_testimonial_name'))) ?>" class="min-w-0 flex-1 border rounded px-2 py-1 text-sm font-medium">
                                                                                 <button type="button" @click="moveTestimonialItem(el, testimonialIndex, -1)" :disabled="testimonialIndex === 0" class="text-gray-400 hover:text-gray-700 disabled:opacity-30"><i class="ti ti-chevron-up"></i></button>
                                                                                 <button type="button" @click="moveTestimonialItem(el, testimonialIndex, 1)" :disabled="testimonialIndex === el.data.testimonial_items.length - 1" class="text-gray-400 hover:text-gray-700 disabled:opacity-30"><i class="ti ti-chevron-down"></i></button>
                                                                             </div>
-                                                                            <input type="text" x-model="item.company" :placeholder="'<?php echo e(__('blox_home_testimonial_company')); ?>'" class="w-full border rounded px-2 py-1 text-xs">
-                                                                            <textarea x-model="item.content" rows="3" :placeholder="'<?php echo e(__('blox_home_testimonial_content')); ?>'" class="w-full border rounded px-2 py-1 text-xs"></textarea>
+                                                                            <input type="text" x-model="item.company" :placeholder="<?= e(jsString(__('blox_home_testimonial_company'))) ?>" class="w-full border rounded px-2 py-1 text-xs">
+                                                                            <textarea x-model="item.content" rows="3" :placeholder="<?= e(jsString(__('blox_home_testimonial_content'))) ?>" class="w-full border rounded px-2 py-1 text-xs"></textarea>
                                                                             <div class="flex gap-1.5">
-                                                                                <input type="text" x-model="item.avatar" :placeholder="'<?php echo e(__('blox_home_testimonial_avatar')); ?>'" class="min-w-0 flex-1 border rounded px-2 py-1 text-xs">
+                                                                                <input type="text" x-model="item.avatar" :placeholder="<?= e(jsString(__('blox_home_testimonial_avatar'))) ?>" class="min-w-0 flex-1 border rounded px-2 py-1 text-xs">
                                                                                 <button type="button" @click="pickObjectImage(item, 'avatar')" class="px-2 border rounded text-xs text-primary bg-white cursor-pointer"><?php echo e(__('admin_media_library')); ?></button>
                                                                                 <button type="button" @click="removeTestimonialItem(el, testimonialIndex)" class="px-2 border rounded text-xs text-red-500 bg-white cursor-pointer" title="<?php echo e(__('admin_delete')); ?>"><i class="ti ti-trash"></i></button>
                                                                             </div>
@@ -1735,9 +1735,9 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                 document.getElementById('imageInput').parentNode.parentNode.appendChild(preview);
             }
             preview.src = data.data.url;
-            showMessage('<?php echo __('admin_success'); ?>');
+            showMessage(<?= jsString(__('admin_success')) ?>);
         } else { showMessage(data.msg, 'error'); }
-    } catch (err) { showMessage('<?php echo __('admin_fail'); ?>', 'error'); }
+    } catch (err) { showMessage(<?= jsString(__('admin_fail')) ?>, 'error'); }
     this.value = '';
 });
 function pickImageFromMedia() {
@@ -1808,9 +1808,9 @@ document.getElementById('sectionBgFileInput').addEventListener('change', async f
         var data = await safeJson(resp);
         if (data.code === 0) {
             document.getElementById('settingBgImage').value = data.data.url;
-            showMessage('<?php echo __('admin_success'); ?>');
+            showMessage(<?= jsString(__('admin_success')) ?>);
         } else { showMessage(data.msg || <?php echo (string) json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error'); }
-    } catch (e) { showMessage('<?php echo __('admin_fail'); ?>', 'error'); }
+    } catch (e) { showMessage(<?= jsString(__('admin_fail')) ?>, 'error'); }
     this.value = '';
 });
 function setSectionCols(n) {

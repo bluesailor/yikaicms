@@ -209,12 +209,12 @@ async function saveTag() {
     }
     const r = await fetch('', { method: 'POST', body: fd });
     const d = await safeJson(r);
-    if (d.code === 0) { showMessage('<?php echo __('admin_saved'); ?>'); setTimeout(() => location.href = (window.YK_BASE || '') + '/admin/product_tag.php', 1000); }
+    if (d.code === 0) { showMessage(<?= jsString(__('admin_saved')) ?>); setTimeout(() => location.href = (window.YK_BASE || '') + '/admin/product_tag.php', 1000); }
     else showMessage(d.msg, 'error');
 }
 
 async function deleteTag(id) {
-    if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
+    if (!confirm(<?= jsString(__('admin_confirm_delete')) ?>)) return;
     const fd = new FormData(); fd.append('action', 'delete'); fd.append('id', id);
     const r = await fetch('', { method: 'POST', body: fd });
     const d = await safeJson(r);

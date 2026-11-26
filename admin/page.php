@@ -495,7 +495,7 @@ function closeCreateModal() {
 
 async function createPage() {
     var name = document.getElementById('createName').value.trim();
-    if (!name) { showMessage('<?php echo __('page_name_required'); ?>', 'error'); return; }
+    if (!name) { showMessage(<?= jsString(__('page_name_required')) ?>, 'error'); return; }
     var formData = new FormData();
     formData.append('action', 'create');
     formData.append('name', name);
@@ -519,7 +519,7 @@ async function deletePage(id, name) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(function() { location.reload(); }, 800);
     } else {
         showMessage(data.msg, 'error');

@@ -293,7 +293,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 <?php /* 付费标识：统一金色 PRO；已授权时加勾并在 title 说明 */ ?>
                                 <template x-if="p.paid">
                                     <span class="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-amber-100 text-amber-700 whitespace-nowrap inline-flex items-center gap-0.5"
-                                          :title="p.entitled ? '<?php echo e(__('plugin_badge_licensed')); ?>' : '<?php echo e(__('plugin_tier_freemium_note')); ?>'">
+                                          :title="p.entitled ? <?= e(jsString(__('plugin_badge_licensed'))) ?> : <?= e(jsString(__('plugin_tier_freemium_note'))) ?>">
                                         PRO
                                         <template x-if="p.entitled">
                                             <i class="ti ti-check text-xs"></i>
@@ -331,8 +331,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         <p class="text-xs text-amber-700 flex items-center gap-1">
                             <i class="ti ti-lock text-sm"></i>
                             <span x-text="p.tier === 'freemium'
-                                ? '<?php echo e(__('plugin_tier_freemium_note')); ?>'
-                                : '<?php echo e(__('plugin_tier_pro_note')); ?>'"></span>
+                                ? <?= e(jsString(__('plugin_tier_freemium_note'))) ?>
+                                : <?= e(jsString(__('plugin_tier_pro_note'))) ?>"></span>
                             <a href="https://www.yikaicms.com/pro.php" target="_blank" rel="noopener"
                                class="underline hover:no-underline"><?php echo e(__('plugin_view_license')); ?></a>
                         </p>

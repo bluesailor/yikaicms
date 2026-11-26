@@ -434,7 +434,7 @@ async function runUpgrade() {
 
     var btn = document.getElementById('btnUpgrade');
     btn.disabled = true;
-    btn.textContent = '<?php echo __('upgrade_running'); ?>';
+    btn.textContent = <?= jsString(__('upgrade_running')) ?>;
 
     var formData = new FormData();
     formData.append('_token', '<?php echo csrfToken(); ?>');
@@ -460,14 +460,14 @@ async function runUpgrade() {
                 if (badge) {
                     if (item.status === 'success') {
                         badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700';
-                        badge.textContent = '<?php echo __('upgrade_success'); ?>';
+                        badge.textContent = <?= jsString(__('upgrade_success')) ?>;
                     } else if (item.status === 'error') {
                         badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-700';
-                        badge.textContent = '<?php echo __('upgrade_failed'); ?>';
+                        badge.textContent = <?= jsString(__('upgrade_failed')) ?>;
                         allSuccess = false;
                     } else {
                         badge.className = 'inline-block px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-500';
-                        badge.textContent = '<?php echo __('upgrade_skipped'); ?>';
+                        badge.textContent = <?= jsString(__('upgrade_skipped')) ?>;
                     }
                 }
 
@@ -492,14 +492,14 @@ async function runUpgrade() {
             setTimeout(function () { location.reload(); }, 5000);
             return;
         } else {
-            showMessage(data.msg || '<?php echo __('upgrade_failed'); ?>', 'error');
+            showMessage(data.msg || <?= jsString(__('upgrade_failed')) ?>, 'error');
         }
     } catch (err) {
         showMessage(<?php echo json_encode(__('admin_request_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
     }
 
     btn.disabled = false;
-    btn.textContent = '<?php echo __('upgrade_execute'); ?>';
+    btn.textContent = <?= jsString(__('upgrade_execute')) ?>;
 }
 </script>
 <?php endif; ?>

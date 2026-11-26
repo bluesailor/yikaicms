@@ -340,7 +340,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
 <?php echo adminRowSortScript('ccatRows'); ?>
 <script>
 function openEditModal(item = null) {
-    document.getElementById('modalTitle').textContent = item ? '<?php echo __('admin_edit'); ?>' : '<?php echo __('admin_category_add'); ?>';
+    document.getElementById('modalTitle').textContent = item ? <?= jsString(__('admin_edit')) ?> : <?= jsString(__('admin_category_add')) ?>;
     document.getElementById('editId').value = item?.id || 0;
     document.getElementById('editParentId').value = item?.parent_id || 0;
     document.getElementById('editName').value = item?.name || '';
@@ -357,15 +357,15 @@ function closeModal() { document.getElementById('editModal').classList.add('hidd
 document.getElementById('editForm').addEventListener('submit', async function (e) {
     e.preventDefault();
     const data = await safeJson(await fetch('', { method: 'POST', body: new FormData(this) }));
-    if (data.code === 0) { showMessage('<?php echo __('admin_saved'); ?>'); setTimeout(() => location.reload(), 800); }
+    if (data.code === 0) { showMessage(<?= jsString(__('admin_saved')) ?>); setTimeout(() => location.reload(), 800); }
     else showMessage(data.msg, 'error');
 });
 
 async function deleteCategory(id) {
-    if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
+    if (!confirm(<?= jsString(__('admin_confirm_delete')) ?>)) return;
     const fd = new FormData(); fd.append('action', 'delete'); fd.append('id', id);
     const data = await safeJson(await fetch('', { method: 'POST', body: fd }));
-    if (data.code === 0) { showMessage('<?php echo __('admin_deleted'); ?>'); setTimeout(() => location.reload(), 800); }
+    if (data.code === 0) { showMessage(<?= jsString(__('admin_deleted')) ?>); setTimeout(() => location.reload(), 800); }
     else showMessage(data.msg, 'error');
 }
 
@@ -395,8 +395,8 @@ async function toggleStatus(id, btn) {
     const fd = new FormData(); fd.append('action', 'toggle_status'); fd.append('id', id);
     const data = await safeJson(await fetch('', { method: 'POST', body: fd }));
     if (data.code === 0) {
-        if (data.data.status) { btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-green-100 text-green-600'; btn.textContent = '<?php echo __('admin_enabled'); ?>'; }
-        else { btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-gray-100 text-gray-500'; btn.textContent = '<?php echo __('admin_disabled'); ?>'; }
+        if (data.data.status) { btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-green-100 text-green-600'; btn.textContent = <?= jsString(__('admin_enabled')) ?>; }
+        else { btn.className = 'text-xs px-2 py-1 rounded cursor-pointer bg-gray-100 text-gray-500'; btn.textContent = <?= jsString(__('admin_disabled')) ?>; }
     }
 }
 async function toggleNav(id, btn) {

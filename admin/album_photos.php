@@ -432,7 +432,7 @@ async function uploadFiles(files) {
         xhr.send(formData);
     } catch (e) {
         progress.classList.add('hidden');
-        showMessage('<?php echo __('admin_fail'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
     }
 
     fileInput.value = '';
@@ -529,7 +529,7 @@ async function savePhoto(e) {
     const response = await fetch('', { method: 'POST', body: formData });
     const result = await safeJson(response);
     if (result.code === 0) {
-        showMessage(replacement ? <?php echo json_encode(__('ap_replaced'), JSON_UNESCAPED_UNICODE); ?> : '<?php echo __('admin_saved'); ?>');
+        showMessage(replacement ? <?php echo json_encode(__('ap_replaced'), JSON_UNESCAPED_UNICODE); ?> : <?= jsString(__('admin_saved')) ?>);
         closeEditModal();
     } else {
         showMessage(result.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
@@ -547,7 +547,7 @@ async function deletePhoto(photoId) {
     if (result.code === 0) {
         document.querySelector(`.photo-item[data-id="${photoId}"]`).remove();
         document.getElementById('photoCount').textContent = document.querySelectorAll('.photo-item').length;
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
     }
 }
 
@@ -564,7 +564,7 @@ async function batchDelete() {
     const response = await fetch('', { method: 'POST', body: formData });
     const result = await safeJson(response);
     if (result.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(() => location.reload(), 1000);
     }
 }

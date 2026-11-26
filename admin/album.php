@@ -408,7 +408,7 @@ async function deleteAlbum(id, name) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(() => location.reload(), 1000);
     }
 }

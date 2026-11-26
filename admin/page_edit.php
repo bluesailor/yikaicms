@@ -380,12 +380,12 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                 document.getElementById('imageInput').parentNode.parentNode.appendChild(preview);
             }
             preview.src = data.data.url;
-            showMessage('<?php echo __('admin_success'); ?>');
+            showMessage(<?= jsString(__('admin_success')) ?>);
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('<?php echo __('admin_fail'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
     }
     this.value = '';
 });
@@ -493,10 +493,10 @@ const ORG_DEMO_HTML = <?php echo json_encode($orgDemoHtml, JSON_UNESCAPED_UNICOD
 function insertOrgDemo() {
     if (typeof editor === 'undefined' || !editor) return;
     var cur = (editor.getHtml() || '').replace(/<[^>]*>/g, '').trim();
-    if (cur && !confirm('<?php echo __('page_insert_org_demo_confirm'); ?>')) return;
+    if (cur && !confirm(<?= jsString(__('page_insert_org_demo_confirm')) ?>)) return;
     editor.setHtml(ORG_DEMO_HTML);
     document.getElementById('contentInput').value = ORG_DEMO_HTML;
-    showMessage('<?php echo __('admin_success'); ?>');
+    showMessage(<?= jsString(__('admin_success')) ?>);
 }
 
 // 切换组织架构图配色：已有图则只换修饰类（保留姓名/部门），无图则插入示例并套用
@@ -512,7 +512,7 @@ function applyOrgStyle(style) {
     editor.setHtml(html);
     document.getElementById('contentInput').value = html;
     if (sel) sel.value = '';
-    showMessage('<?php echo __('admin_success'); ?>');
+    showMessage(<?= jsString(__('admin_success')) ?>);
 }
 </script>
 

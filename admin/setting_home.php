@@ -1168,13 +1168,13 @@ function addTestimonial() {
         '<button type="button" class="tm-upload-btn text-gray-400 hover:text-primary" title="<?php echo e(__('shome_upload_avatar')); ?>">' +
         '<i class="ti ti-photo text-base"></i>' +
         '</button></div></div>' +
-        '<div class="w-24 flex-shrink-0"><label class="text-xs text-gray-400 block mb-1"><?php echo __('home_testimonial_name'); ?></label>' +
+        ('<div class="w-24 flex-shrink-0"><label class="text-xs text-gray-400 block mb-1">' + <?= jsString(__('home_testimonial_name')) ?> + '</label>') +
         '<input type="text" class="tm-name w-full border rounded px-2 py-1.5 text-sm"></div>' +
-        '<div class="w-32 flex-shrink-0"><label class="text-xs text-gray-400 block mb-1"><?php echo __('home_testimonial_company'); ?></label>' +
+        ('<div class="w-32 flex-shrink-0"><label class="text-xs text-gray-400 block mb-1">' + <?= jsString(__('home_testimonial_company')) ?> + '</label>') +
         '<input type="text" class="tm-company w-full border rounded px-2 py-1.5 text-sm"></div>' +
-        '<div class="flex-1"><label class="text-xs text-gray-400 block mb-1"><?php echo __('home_testimonial_content'); ?></label>' +
+        ('<div class="flex-1"><label class="text-xs text-gray-400 block mb-1">' + <?= jsString(__('home_testimonial_content')) ?> + '</label>') +
         '<input type="text" class="tm-content w-full border rounded px-2 py-1.5 text-sm"></div>' +
-        '<button type="button" class="tm-remove text-gray-300 hover:text-red-400 pt-5 flex-shrink-0" title="<?php echo __('admin_delete'); ?>">' +
+        ('<button type="button" class="tm-remove text-gray-300 hover:text-red-400 pt-5 flex-shrink-0" title="' + <?= jsString(__('admin_delete')) ?> + '">') +
         '<i class="ti ti-x text-base"></i>' +
         '</button></div>';
     editor.appendChild(div);
@@ -1306,12 +1306,12 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                 }
                 preview.src = data.data.url;
             }
-            showMessage('<?php echo __('admin_success'); ?>');
+            showMessage(<?= jsString(__('admin_success')) ?>);
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('<?php echo __('admin_fail'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
     }
 
     this.value = '';
@@ -1336,7 +1336,7 @@ function saveHomeSettings() {
     collectBlocksConfig();
     collectTestimonials();
     collectCustomBlocks();
-    adminSave(document.getElementById('settingForm'), { successMsg: '<?php echo __('admin_saved'); ?>' });
+    adminSave(document.getElementById('settingForm'), { successMsg: <?= jsString(__('admin_saved')) ?> });
 }
 
 // 自定义版块：把轻量编辑器里的字段回填进各自的 section JSON

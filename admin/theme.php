@@ -648,7 +648,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                         </form>
                     </dialog>
                     <?php if ($theme['slug'] !== 'default'): ?>
-                    <form method="POST" class="inline" onsubmit="return confirm('<?php echo e(__('theme_delete_confirm')); ?>')">
+                    <form method="POST" class="inline" onsubmit="return confirm(<?= e(jsString(__('theme_delete_confirm'))) ?>)">
                         <?php echo csrfField(); ?>
                         <input type="hidden" name="action" value="delete_theme">
                         <input type="hidden" name="slug" value="<?php echo e($theme['slug']); ?>">
@@ -726,7 +726,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                                 :disabled="installing === t.slug || !!t.download_blocked"
                                 data-testid="theme-market-install"
                                 class="px-4 py-2 bg-primary text-white text-sm rounded-lg hover:opacity-90 transition cursor-pointer disabled:opacity-50">
-                                <span x-show="installing !== t.slug" x-text="statusOf(t) === 'upgrade' ? '<?php echo __('theme_market_upgrade'); ?>' : '<?php echo __('theme_market_install'); ?>'"></span>
+                                <span x-show="installing !== t.slug" x-text="statusOf(t) === 'upgrade' ? <?= e(jsString(__('theme_market_upgrade'))) ?> : <?= e(jsString(__('theme_market_install'))) ?>"></span>
                                 <span x-show="installing === t.slug"><?php echo __('theme_market_installing'); ?></span>
                             </button>
                             <span x-show="statusOf(t) === 'installed'" class="px-4 py-2 bg-gray-100 text-gray-500 text-sm rounded-lg inline-block"><?php echo __('theme_market_installed'); ?></span>
@@ -1021,10 +1021,10 @@ function themeManager() {
                     this.items = (data.data && data.data.themes) || [];
                     this.loaded = true;
                 } else {
-                    this.error = data.msg || '<?php echo __('theme_market_error'); ?>';
+                    this.error = data.msg || <?= jsString(__('theme_market_error')) ?>;
                 }
             } catch (e) {
-                this.error = '<?php echo __('theme_market_neterr'); ?>：' + e.message;
+                this.error = (<?= jsString(__('theme_market_neterr')) ?> + '：') + e.message;
             }
             this.loading = false;
         },
@@ -1050,7 +1050,7 @@ function themeManager() {
             if (t.download_blocked) { showMessage(t.download_message, 'error'); return; }
             var st = this.statusOf(t);
             if (st === 'installed') return;
-            var verb = st === 'upgrade' ? '<?php echo __('theme_market_upgrade'); ?>' : '<?php echo __('theme_market_install'); ?>';
+            var verb = st === 'upgrade' ? <?= jsString(__('theme_market_upgrade')) ?> : <?= jsString(__('theme_market_install')) ?>;
             var prompt = verb + '「' + t.name + '」 v' + t.version + ' ?';
             if (t.slug === 'default') prompt += '\n\n' + <?php echo json_encode(__('theme_default_update_notice'), JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP); ?>;
             var target = this.targetOf(t);
@@ -1080,7 +1080,7 @@ function themeManager() {
                     showMessage(data.msg, 'error');
                 }
             } catch (e) {
-                showMessage('<?php echo __('theme_market_error'); ?>', 'error');
+                showMessage(<?= jsString(__('theme_market_error')) ?>, 'error');
             }
             this.installing = '';
         }

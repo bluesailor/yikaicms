@@ -285,6 +285,12 @@ function e(?string $str): string
     return htmlspecialchars($str ?? '', ENT_QUOTES, 'UTF-8');
 }
 
+/** Emit a JavaScript string literal for an inline script. HTML attributes also need e(). */
+function jsString(string $value): string
+{
+    return json_encode($value, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_THROW_ON_ERROR);
+}
+
 /**
  * 获取GET参数
  */

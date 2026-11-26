@@ -288,7 +288,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_saved'); ?>');
+        showMessage(<?= jsString(__('admin_saved')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -307,7 +307,7 @@ async function toggleStatus(id, btn) {
             btn.textContent = <?php echo json_encode(__('user_status_ok'), JSON_UNESCAPED_UNICODE); ?>;
         } else {
             btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-500';
-            btn.textContent = '<?php echo __('admin_disabled'); ?>';
+            btn.textContent = <?= jsString(__('admin_disabled')) ?>;
         }
     } else {
         showMessage(data.msg, 'error');
@@ -322,7 +322,7 @@ async function deleteUser(id) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');

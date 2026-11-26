@@ -257,7 +257,7 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                 <?php // 折叠态点 Logo/标题 = 展开侧栏（拦掉跳转，带连点冷却）；展开态照常回控制台 ?>
                 <a href="/admin/" class="flex items-center gap-2 px-2 min-w-0"
                    @click="if (collapsed && window.innerWidth >= 1024) { $event.preventDefault(); expandFromBlank(); }"
-                   :title="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : ''">
+                   :title="collapsed ? <?= e(jsString(__('admin_sidebar_expand'))) ?> : ''">
                     <?php // 收起态品牌区留空：64px 放不下 Logo/完整品牌名，截首字常无意义
                           //（「后台管理」→「后」），而展开入口已有两处（侧栏边缘把手 + 顶栏开关），
                           // 不再重复放图标。点击空白区仍可展开（expandFromBlank）。 ?>
@@ -290,7 +290,7 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                 <a href="/admin/" class="sidebar-link sidebar-dashboard flex items-center px-4 py-2 rounded-lg mb-0.5 <?php echo $currentMenu === 'dashboard' ? 'active' : ''; ?>"
                    <?= $currentMenu === 'dashboard' ? 'aria-current="page"' : '' ?>
                    :class="collapsed ? 'lg:justify-center' : ''"
-                   :title="collapsed ? '<?php echo e(__('admin_dashboard')); ?>' : ''">
+                   :title="collapsed ? <?= e(jsString(__('admin_dashboard'))) ?> : ''">
                     <i class="ti ti-layout-dashboard text-lg flex-shrink-0 mr-3" :class="{ 'lg:mr-0': collapsed }"></i>
                     <span x-show="!collapsed || mobileMenu"><?php echo e(__('admin_dashboard')); ?></span>
                     <span class="sidebar-short-label"><?= e(__('admin_nav_short_dashboard')) ?></span>
@@ -371,8 +371,8 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                 @click.stop="toggleCollapsed()"
                 class="hidden lg:flex fixed top-1/2 -translate-y-1/2 -translate-x-1/2 z-[70] w-8 h-8 items-center justify-center rounded-full border border-gray-200 bg-white text-gray-500 shadow-md transition-all duration-300 hover:border-blue-300 hover:text-blue-600 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-blue-400"
                 :class="collapsed ? 'left-16' : 'left-64'"
-                :title="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>'"
-                :aria-label="collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>'">
+                :title="collapsed ? <?= e(jsString(__('admin_sidebar_expand'))) ?> : <?= e(jsString(__('admin_sidebar_collapse'))) ?>"
+                :aria-label="collapsed ? <?= e(jsString(__('admin_sidebar_expand'))) ?> : <?= e(jsString(__('admin_sidebar_collapse'))) ?>">
             <i class="ti text-base" :class="collapsed ? 'ti-chevron-right' : 'ti-chevron-left'"></i>
         </button>
 
@@ -513,9 +513,9 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                 <button type="button"
                         @click="mobileView ? (mobileMenu ? closeMobileMenu() : openMobileMenu($event)) : (Date.now() - (_sbT || 0) > 250 && toggleCollapsed())"
                         class="text-gray-500 hover:text-gray-700 mr-1"
-                        :title="mobileView ? '' : (collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>')"
+                        :title="mobileView ? '' : (collapsed ? <?= e(jsString(__('admin_sidebar_expand'))) ?> : <?= e(jsString(__('admin_sidebar_collapse'))) ?>)"
                         aria-label="<?php echo e(__('admin_sidebar_collapse')); ?>"
-                        :aria-label="mobileView ? '<?php echo e(__('admin_main_menu')); ?>' : (collapsed ? '<?php echo e(__('admin_sidebar_expand')); ?>' : '<?php echo e(__('admin_sidebar_collapse')); ?>')"
+                        :aria-label="mobileView ? <?= e(jsString(__('admin_main_menu'))) ?> : (collapsed ? <?= e(jsString(__('admin_sidebar_expand'))) ?> : <?= e(jsString(__('admin_sidebar_collapse'))) ?>)"
                         :aria-expanded="mobileView ? mobileMenu : !collapsed"
                         aria-controls="admin-sidebar">
                     <i class="ti ti-menu-2 text-xl lg:hidden"></i>

@@ -557,7 +557,7 @@ document.getElementById('settingForm')?.addEventListener('submit', async functio
         const response = await fetch('', { method: 'POST', body: formData });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('<?php echo __('admin_saved'); ?>');
+            showMessage(<?= jsString(__('admin_saved')) ?>);
         } else {
             showMessage(data.msg, 'error');
         }

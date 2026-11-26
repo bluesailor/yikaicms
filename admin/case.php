@@ -315,33 +315,33 @@ async function toggle(id, field, value, btn) {
 }
 
 async function deleteItem(id) {
-    if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
+    if (!confirm(<?= jsString(__('admin_confirm_delete')) ?>)) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(() => location.reload(), 1000);
     }
 }
 
 async function batchAction(action) {
     const checked = document.querySelectorAll('input[name="ids[]"]:checked');
-    if (checked.length === 0) { showMessage('<?php echo __('admin_please_select'); ?>', 'error'); return; }
+    if (checked.length === 0) { showMessage(<?= jsString(__('admin_please_select')) ?>, 'error'); return; }
     const labels = {
-        batch_publish: '<?php echo __('admin_published'); ?>',
-        batch_unpublish: '<?php echo __('admin_unpublished'); ?>',
-        batch_delete: '<?php echo __('admin_move_to_trash'); ?>'
+        batch_publish: <?= jsString(__('admin_published')) ?>,
+        batch_unpublish: <?= jsString(__('admin_unpublished')) ?>,
+        batch_delete: <?= jsString(__('admin_move_to_trash')) ?>
     };
-    if (!confirm('<?php echo __('admin_bulk_confirm_prefix'); ?>' + (labels[action] || '') + ' ' + checked.length + ' <?php echo __('admin_bulk_confirm_suffix'); ?>')) return;
+    if (!confirm(<?= jsString(__('admin_bulk_confirm_prefix')) ?> + (labels[action] || '') + ' ' + checked.length + (' ' + <?= jsString(__('admin_bulk_confirm_suffix')) ?>))) return;
     const formData = new FormData();
     formData.append('action', action);
     checked.forEach(el => formData.append('ids[]', el.value));
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
-    if (data.code === 0) { showMessage('<?php echo __('admin_success'); ?>'); setTimeout(() => location.reload(), 1000); }
+    if (data.code === 0) { showMessage(<?= jsString(__('admin_success')) ?>); setTimeout(() => location.reload(), 1000); }
     else { showMessage(data.msg, 'error'); }
 }
 
@@ -352,7 +352,7 @@ async function duplicateItem(id) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_duplicated'); ?>');
+        showMessage(<?= jsString(__('admin_duplicated')) ?>);
         setTimeout(() => location.href = (window.YK_BASE || '') + '/admin/content_edit.php?id=' + data.data.id, 700);
     } else { showMessage(data.msg, 'error'); }
 }

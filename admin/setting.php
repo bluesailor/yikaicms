@@ -1132,7 +1132,7 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
             data = JSON.parse(text);
         } catch (e) {
             console.error('upload response:', text);
-            showMessage('<?php echo __('setting_upload_error'); ?>', 'error');
+            showMessage(<?= jsString(__('setting_upload_error')) ?>, 'error');
             return;
         }
 
@@ -1151,13 +1151,13 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                 preview.src = data.data.url;
             }
             clearImageResourceWarning(currentImageKey);
-            showMessage('<?php echo __('admin_success'); ?>');
+            showMessage(<?= jsString(__('admin_success')) ?>);
         } else {
-            showMessage(data.msg || '<?php echo __('setting_upload_failed'); ?>', 'error');
+            showMessage(data.msg || <?= jsString(__('setting_upload_failed')) ?>, 'error');
         }
     } catch (err) {
         console.error('upload error:', err);
-        showMessage('<?php echo __('setting_upload_failed'); ?>: ' + err.message, 'error');
+        showMessage((<?= jsString(__('setting_upload_failed')) ?> + ': ') + err.message, 'error');
     }
 
     this.value = '';
@@ -1278,13 +1278,13 @@ document.querySelectorAll('.restore-btn').forEach(function(btn) {
             }
         }
         this.remove();
-        showMessage('<?php echo __('setting_restored_save'); ?>');
+        showMessage(<?= jsString(__('setting_restored_save')) ?>);
     });
 });
 
 // 恢复全部默认值
 async function restoreAllDefaults() {
-    if (!confirm('<?php echo __('setting_restore_all_confirm'); ?>')) return;
+    if (!confirm(<?= jsString(__('setting_restore_all_confirm')) ?>)) return;
     const formData = new FormData();
     <?php if ($tab === 'url'): ?>
     if (!confirm(<?= json_encode(__('url_check_confirm'), JSON_HEX_TAG | JSON_UNESCAPED_UNICODE) ?>)) return;
@@ -1296,10 +1296,10 @@ async function restoreAllDefaults() {
     const response = await fetch(location.href, { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('setting_restored'); ?>');
+        showMessage(<?= jsString(__('setting_restored')) ?>);
         setTimeout(function() { location.reload(); }, 800);
     } else {
-        showMessage(data.msg || '<?php echo __('setting_restore_failed'); ?>', 'error');
+        showMessage(data.msg || <?= jsString(__('setting_restore_failed')) ?>, 'error');
     }
 }
 
@@ -1316,8 +1316,8 @@ document.getElementById('settingForm')?.addEventListener('submit', function (e) 
     adminSave(this, {
         url: location.href,
         reload: Boolean(mode),
-        successMsg: '<?php echo __('admin_saved'); ?>',
-        errorMsg:   '<?php echo __('admin_request_failed'); ?>',
+        successMsg: <?= jsString(__('admin_saved')) ?>,
+        errorMsg:   <?= jsString(__('admin_request_failed')) ?>,
     });
 });
 document.getElementById('channelPaginationForm')?.addEventListener('submit', function (event) {
@@ -1348,14 +1348,14 @@ function renderNavGroup(group, gi) {
     });
     return '<div class="fnav-group border rounded-lg p-3 bg-white" data-gi="' + gi + '">' +
         '<div class="flex items-center gap-3 mb-2">' +
-            '<input type="text" class="fnav-title flex-1 border rounded px-3 py-1.5 text-sm" placeholder="<?php echo __('setting_nav_group_placeholder'); ?>" value="' + escHtml(group.title) + '">' +
-            '<button type="button" onclick="removeFooterNavGroup(' + gi + ')" class="text-gray-300 hover:text-red-400 cursor-pointer" title="<?php echo __('setting_delete_group'); ?>">' +
+            ('<input type="text" class="fnav-title flex-1 border rounded px-3 py-1.5 text-sm" placeholder="' + <?= jsString(__('setting_nav_group_placeholder')) ?> + '" value="') + escHtml(group.title) + '">' +
+            '<button type="button" onclick="removeFooterNavGroup(' + gi + (')" class="text-gray-300 hover:text-red-400 cursor-pointer" title="' + <?= jsString(__('setting_delete_group')) ?> + '">') +
                 '<i class="ti ti-x text-base"></i>' +
             '</button>' +
         '</div>' +
         '<div class="fnav-links space-y-2 ml-6">' + linksHtml + '</div>' +
         '<button type="button" onclick="addFooterNavLink(' + gi + ')" class="ml-6 mt-2 text-xs text-primary hover:text-secondary cursor-pointer inline-flex items-center gap-1">' +
-            '<i class="ti ti-plus text-sm"></i> <?php echo __('setting_add_link'); ?>' +
+            ('<i class="ti ti-plus text-sm"></i> ' + <?= jsString(__('setting_add_link')) ?>) +
         '</button>' +
     '</div>';
 }
@@ -1364,11 +1364,11 @@ function renderNavLink(link, gi, li) {
     var selSelf = (link.target || '_self') !== '_blank' ? ' selected' : '';
     var selBlank = (link.target || '_self') === '_blank' ? ' selected' : '';
     return '<div class="fnav-link flex items-center gap-2">' +
-        '<input type="text" class="fnav-name border rounded px-2 py-1 text-sm w-28" placeholder="<?php echo __('setting_link_name'); ?>" value="' + escHtml(link.name) + '">' +
-        '<input type="text" class="fnav-url flex-1 border rounded px-2 py-1 text-sm" placeholder="<?php echo __('setting_link_url_placeholder'); ?>" value="' + escHtml(link.url) + '">' +
+        ('<input type="text" class="fnav-name border rounded px-2 py-1 text-sm w-28" placeholder="' + <?= jsString(__('setting_link_name')) ?> + '" value="') + escHtml(link.name) + '">' +
+        ('<input type="text" class="fnav-url flex-1 border rounded px-2 py-1 text-sm" placeholder="' + <?= jsString(__('setting_link_url_placeholder')) ?> + '" value="') + escHtml(link.url) + '">' +
         '<select class="fnav-target border rounded px-2 py-1 text-sm w-24">' +
-            '<option value="_self"' + selSelf + '><?php echo __('setting_target_self'); ?></option>' +
-            '<option value="_blank"' + selBlank + '><?php echo __('setting_target_blank'); ?></option>' +
+            '<option value="_self"' + selSelf + ('>' + <?= jsString(__('setting_target_self')) ?> + '</option>') +
+            '<option value="_blank"' + selBlank + ('>' + <?= jsString(__('setting_target_blank')) ?> + '</option>') +
         '</select>' +
         '<button type="button" onclick="this.closest(\'.fnav-link\').remove()" class="text-gray-300 hover:text-red-400 cursor-pointer">' +
             '<i class="ti ti-x text-sm"></i>' +

@@ -326,21 +326,21 @@ async function deleteItem(id) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(() => location.reload(), 1000);
     }
 }
 
 async function batchAction(action) {
     const checked = document.querySelectorAll('input[name="ids[]"]:checked');
-    if (checked.length === 0) { showMessage('<?php echo __('admin_please_select'); ?>', 'error'); return; }
-    if (!confirm('<?php echo __('admin_bulk_confirm_prefix'); ?> ' + checked.length + ' <?php echo __('admin_bulk_confirm_suffix'); ?>')) return;
+    if (checked.length === 0) { showMessage(<?= jsString(__('admin_please_select')) ?>, 'error'); return; }
+    if (!confirm((<?= jsString(__('admin_bulk_confirm_prefix')) ?> + ' ') + checked.length + (' ' + <?= jsString(__('admin_bulk_confirm_suffix')) ?>))) return;
     const formData = new FormData();
     formData.append('action', action);
     checked.forEach(el => formData.append('ids[]', el.value));
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
-    if (data.code === 0) { showMessage('<?php echo __('admin_success'); ?>'); setTimeout(() => location.reload(), 1000); }
+    if (data.code === 0) { showMessage(<?= jsString(__('admin_success')) ?>); setTimeout(() => location.reload(), 1000); }
     else { showMessage(data.msg, 'error'); }
 }
 </script>

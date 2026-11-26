@@ -130,12 +130,12 @@ document.getElementById('settingForm').addEventListener('submit', async function
         var response = await fetch(location.href, { method: 'POST', body: new FormData(this) });
         var data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('<?php echo __('social_saved'); ?>');
+            showMessage(<?= jsString(__('social_saved')) ?>);
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('<?php echo __('social_request_failed'); ?>', 'error');
+        showMessage(<?= jsString(__('social_request_failed')) ?>, 'error');
     }
 });
 </script>

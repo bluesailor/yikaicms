@@ -405,16 +405,16 @@ async function toggleStatus(id, btn) {
     if (data.code === 0) {
         if (data.data.status) {
             btn.className = 'text-xs px-2 py-1 rounded bg-green-100 text-green-600';
-            btn.textContent = '<?php echo __('admin_published'); ?>';
+            btn.textContent = <?= jsString(__('admin_published')) ?>;
         } else {
             btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-500';
-            btn.textContent = '<?php echo __('admin_unpublished'); ?>';
+            btn.textContent = <?= jsString(__('admin_unpublished')) ?>;
         }
         const rowAction = document.querySelector('[data-row-status-action="' + id + '"]');
         if (rowAction) {
             rowAction.textContent = data.data.status
-                ? '<?php echo __('status_off'); ?>'
-                : '<?php echo __('status_on'); ?>';
+                ? <?= jsString(__('status_off')) ?>
+                : <?= jsString(__('status_on')) ?>;
         }
     }
 }
@@ -435,7 +435,7 @@ async function toggleTop(id, btn) {
     if (data.code === 0) {
         if (data.data.is_top) {
             btn.className = 'text-xs px-2 py-1 rounded bg-orange-100 text-orange-600';
-            btn.textContent = '<?php echo __('admin_top'); ?>';
+            btn.textContent = <?= jsString(__('admin_top')) ?>;
         } else {
             btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-400';
             btn.textContent = '-';
@@ -452,7 +452,7 @@ async function toggleRecommend(id, btn) {
     if (data.code === 0) {
         if (data.data.is_recommend) {
             btn.className = 'text-xs px-2 py-1 rounded bg-purple-100 text-purple-600';
-            btn.textContent = '<?php echo __('admin_recommend'); ?>';
+            btn.textContent = <?= jsString(__('admin_recommend')) ?>;
         } else {
             btn.className = 'text-xs px-2 py-1 rounded bg-gray-100 text-gray-400';
             btn.textContent = '-';
@@ -461,14 +461,14 @@ async function toggleRecommend(id, btn) {
 }
 
 async function deleteProduct(id) {
-    if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
+    if (!confirm(<?= jsString(__('admin_confirm_delete')) ?>)) return;
     const formData = new FormData();
     formData.append('action', 'delete');
     formData.append('id', id);
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -479,7 +479,7 @@ async function deleteProduct(id) {
 async function batchAction(action) {
     const checked = document.querySelectorAll('input[name="ids[]"]:checked');
     if (checked.length === 0) {
-        showMessage('<?php echo __('admin_please_select'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_please_select')) ?>, 'error');
         return;
     }
     if (action === 'batch_translate') {
@@ -487,18 +487,18 @@ async function batchAction(action) {
         return;
     }
     const labels = {
-        batch_publish: '<?php echo __('admin_published'); ?>',
-        batch_unpublish: '<?php echo __('admin_unpublished'); ?>',
-        batch_delete: '<?php echo __('admin_move_to_trash'); ?>'
+        batch_publish: <?= jsString(__('admin_published')) ?>,
+        batch_unpublish: <?= jsString(__('admin_unpublished')) ?>,
+        batch_delete: <?= jsString(__('admin_move_to_trash')) ?>
     };
-    if (!confirm('<?php echo __('admin_bulk_confirm_prefix'); ?>' + (labels[action] || '') + ' ' + checked.length + ' <?php echo __('admin_bulk_confirm_suffix'); ?>')) return;
+    if (!confirm(<?= jsString(__('admin_bulk_confirm_prefix')) ?> + (labels[action] || '') + ' ' + checked.length + (' ' + <?= jsString(__('admin_bulk_confirm_suffix')) ?>))) return;
     const formData = new FormData();
     formData.append('action', action);
     checked.forEach(el => formData.append('ids[]', el.value));
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_success'); ?>');
+        showMessage(<?= jsString(__('admin_success')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -512,7 +512,7 @@ async function duplicateItem(id) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_duplicated'); ?>');
+        showMessage(<?= jsString(__('admin_duplicated')) ?>);
         setTimeout(() => location.href = (window.YK_BASE || '') + '/admin/product_edit.php?id=' + data.data.id, 700);
     } else {
         showMessage(data.msg, 'error');

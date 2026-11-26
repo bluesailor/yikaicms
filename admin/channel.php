@@ -1360,7 +1360,7 @@ document.getElementById('channelForm').addEventListener('submit', async function
         const data = await safeJson(response);
 
         if (data.code === 0) {
-            showMessage('<?php echo __('admin_saved'); ?>');
+            showMessage(<?= jsString(__('admin_saved')) ?>);
             setTimeout(function() { location.href = '?tab=' + currentTab; }, 1000);
         } else {
             showMessage(data.msg, 'error');

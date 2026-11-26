@@ -373,7 +373,7 @@ async function toggleField(id, field, value) {
 
 // 删除内容
 async function deleteContent(id) {
-    if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
+    if (!confirm(<?= jsString(__('admin_confirm_delete')) ?>)) return;
 
     const formData = new FormData();
     formData.append('action', 'delete');
@@ -383,7 +383,7 @@ async function deleteContent(id) {
     const data = await safeJson(response);
 
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -394,11 +394,11 @@ async function deleteContent(id) {
 async function batchDelete() {
     const checked = document.querySelectorAll('input[name="ids[]"]:checked');
     if (checked.length === 0) {
-        showMessage('<?php echo __('admin_please_select'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_please_select')) ?>, 'error');
         return;
     }
 
-    if (!confirm('<?php echo __('admin_confirm_batch_delete'); ?>')) return;
+    if (!confirm(<?= jsString(__('admin_confirm_batch_delete')) ?>)) return;
 
     const formData = new FormData();
     formData.append('action', 'batch_delete');
@@ -408,7 +408,7 @@ async function batchDelete() {
     const data = await safeJson(response);
 
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');

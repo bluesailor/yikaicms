@@ -524,12 +524,12 @@ document.getElementById('imageFileInput').addEventListener('change', async funct
                 document.getElementById('input_' + currentImageKey).parentNode.appendChild(preview);
             }
             preview.src = data.data.url;
-            showMessage('<?php echo __('admin_success'); ?>');
+            showMessage(<?= jsString(__('admin_success')) ?>);
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('<?php echo __('admin_fail'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
     }
 
     this.value = '';
@@ -590,12 +590,12 @@ cardUploadInput.addEventListener('change', async function() {
             var textarea = cardUploadTarget.querySelector('.card-value');
             textarea.value = data.data.url;
             updateCardImgPreview(cardUploadTarget, data.data.url);
-            showMessage('<?php echo __('admin_success'); ?>');
+            showMessage(<?= jsString(__('admin_success')) ?>);
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('<?php echo __('admin_fail'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
     }
     this.value = '';
 });
@@ -669,7 +669,7 @@ document.getElementById('settingForm').addEventListener('submit', function (e) {
     e.preventDefault();
     collectContactCards();
     collectFormFields();
-    adminSave(this, { url: location.href, successMsg: '<?php echo __('admin_saved'); ?>' });
+    adminSave(this, { url: location.href, successMsg: <?= jsString(__('admin_saved')) ?> });
 });
 </script>
 

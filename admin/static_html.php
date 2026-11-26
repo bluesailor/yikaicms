@@ -275,7 +275,7 @@ document.getElementById('saveBtn').addEventListener('click', async function() {
 });
 
 document.getElementById('clearBtn').addEventListener('click', async function() {
-    if (!confirm('<?php echo __('sh_clear_confirm'); ?>')) return;
+    if (!confirm(<?= jsString(__('sh_clear_confirm')) ?>)) return;
     const d = await SH.post({ action: 'clear' });
     showMessage(d.msg, d.code === 0 ? 'success' : 'error');
     if (d.code === 0) setTimeout(() => location.reload(), 800);
@@ -297,7 +297,7 @@ document.getElementById('genBtn').addEventListener('click', async function() {
     const start = await SH.post({ action: 'start' });
     if (start.code !== 0) { showMessage(start.msg, 'error'); genBtn.disabled = false; clearBtn.disabled = false; return; }
     const total = start.data.total;
-    if (!total) { showMessage('<?php echo __('sh_nothing'); ?>', 'error'); genBtn.disabled = false; clearBtn.disabled = false; return; }
+    if (!total) { showMessage(<?= jsString(__('sh_nothing')) ?>, 'error'); genBtn.disabled = false; clearBtn.disabled = false; return; }
 
     // 2) 分批
     let offset = 0, okSum = 0, skipSum = 0, extraSum = 0, failSum = 0;
@@ -321,10 +321,10 @@ document.getElementById('genBtn').addEventListener('click', async function() {
 
     if (failedList.length) {
         failText.classList.remove('hidden');
-        failText.textContent = '<?php echo __('sh_failed_prefix'); ?>' + failedList.slice(0, 10).join(', ') + (failedList.length > 10 ? ' …' : '');
+        failText.textContent = <?= jsString(__('sh_failed_prefix')) ?> + failedList.slice(0, 10).join(', ') + (failedList.length > 10 ? ' …' : '');
     }
     document.getElementById('statFiles').textContent = okSum + extraSum;
-    showMessage('<?php echo __('sh_done'); ?>', 'success');
+    showMessage(<?= jsString(__('sh_done')) ?>, 'success');
     genBtn.disabled = false; clearBtn.disabled = false; genBtn.classList.remove('opacity-60');
 });
 </script>

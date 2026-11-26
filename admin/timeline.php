@@ -670,7 +670,7 @@ document.getElementById('editForm')?.addEventListener('submit', async function(e
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_saved'); ?>');
+        showMessage(<?= jsString(__('admin_saved')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -702,7 +702,7 @@ async function deleteItem(id) {
     const response = await fetch('', { method: 'POST', body: formData });
     const data = await safeJson(response);
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');
@@ -738,12 +738,12 @@ document.getElementById('imageFileInput')?.addEventListener('change', async func
             uploadedImg.src = data.data.url;
             uploadedImg.className = 'h-20 rounded';
             document.getElementById('imagePreview').appendChild(uploadedImg);
-            showMessage('<?php echo __('admin_success'); ?>');
+            showMessage(<?= jsString(__('admin_success')) ?>);
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('<?php echo __('admin_fail'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
     }
     this.value = '';
 });

@@ -1854,7 +1854,7 @@ function confirmAreaPublish(form) {
                                         <i class="ti <?php echo (int) $template['status'] === 1 ? 'ti-player-pause' : 'ti-send'; ?>"></i>
                                     </button>
                                 </form>
-                                <form method="post" class="inline" onsubmit="return confirm('<?php echo e(__('blox_tpl_delete_confirm')); ?>');">
+                                <form method="post" class="inline" onsubmit="return confirm(<?= e(jsString(__('blox_tpl_delete_confirm'))) ?>);">
                                     <?php echo csrfField(); ?>
                                     <input type="hidden" name="action" value="delete">
                                     <input type="hidden" name="id" value="<?php echo (int) $template['id']; ?>">

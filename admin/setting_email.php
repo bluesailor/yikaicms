@@ -428,7 +428,7 @@ if ($_emailLangAware) {
 <script>
 document.getElementById('settingForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    adminSave(this, { successMsg: '<?php echo __('admin_saved'); ?>' });
+    adminSave(this, { successMsg: <?= jsString(__('admin_saved')) ?> });
 });
 
 // 服务商预设联动：填服务器三参数（host/port/加密），账号密码仍由用户填
@@ -660,7 +660,7 @@ function retryAllFailed(button) {
 <script>
 document.getElementById('tplForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    adminSave(this, { successMsg: '<?php echo __('admin_saved'); ?>' });
+    adminSave(this, { successMsg: <?= jsString(__('admin_saved')) ?> });
 });
 
 function insertVar(varName) {

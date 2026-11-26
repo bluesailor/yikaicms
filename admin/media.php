@@ -849,7 +849,7 @@ async function deleteMedia(id) {
         showMessage(usage.message, 'error');
         return;
     }
-    if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
+    if (!confirm(<?= jsString(__('admin_confirm_delete')) ?>)) return;
 
     const formData = new FormData();
     formData.append('action', 'delete');
@@ -859,7 +859,7 @@ async function deleteMedia(id) {
     const data = await safeJson(response);
 
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         document.querySelector(`[data-id="${id}"]`)?.remove();
     } else {
         showMessage(data.msg, 'error');
@@ -915,7 +915,7 @@ async function batchDelete() {
     const data = await safeJson(response);
 
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(data.msg, 'error');

@@ -235,7 +235,7 @@ async function saveBrand() {
     const fd = new FormData(document.getElementById('brandForm'));
     const r = await fetch('', { method: 'POST', body: fd });
     const d = await safeJson(r);
-    if (d.code === 0) { showMessage('<?php echo __('admin_saved'); ?>'); setTimeout(() => location.href = (window.YK_BASE || '') + '/admin/product_brand.php', 1000); }
+    if (d.code === 0) { showMessage(<?= jsString(__('admin_saved')) ?>); setTimeout(() => location.href = (window.YK_BASE || '') + '/admin/product_brand.php', 1000); }
     else showMessage(d.msg, 'error');
 }
 document.getElementById('checkAll').addEventListener('change', function() {
@@ -250,7 +250,7 @@ async function batchDeleteBrands() {
     checked.forEach(el => fd.append('ids[]', el.value));
     const r = await fetch('', { method: 'POST', body: fd });
     const d = await safeJson(r);
-    if (d.code === 0) { showMessage('<?php echo __('admin_deleted'); ?>'); setTimeout(() => location.reload(), 1000); }
+    if (d.code === 0) { showMessage(<?= jsString(__('admin_deleted')) ?>); setTimeout(() => location.reload(), 1000); }
 }
 async function uploadLogo(input) {
     if (!input.files[0]) return;
@@ -261,7 +261,7 @@ async function uploadLogo(input) {
     const d = await safeJson(r);
     if (d.code === 0) {
         document.getElementById('brandLogo').value = d.data.url;
-        showMessage('<?php echo __('admin_success'); ?>');
+        showMessage(<?= jsString(__('admin_success')) ?>);
     } else showMessage(d.msg, 'error');
     input.value = '';
 }

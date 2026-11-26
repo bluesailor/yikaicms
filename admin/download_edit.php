@@ -320,7 +320,7 @@ document.getElementById('coverFileInput').addEventListener('change', async funct
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('<?php echo __('admin_fail'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
     }
     this.value = '';
 });
@@ -381,7 +381,7 @@ document.getElementById('fileInput').addEventListener('change', async function()
                     document.getElementById('uploadedFileSize').textContent = formatFileSize(file.size);
                     document.getElementById('uploadedFile').classList.remove('hidden');
 
-                    showMessage('<?php echo __('admin_success'); ?>');
+                    showMessage(<?= jsString(__('admin_success')) ?>);
                 } else {
                     showMessage(data.msg, 'error');
                 }
@@ -390,14 +390,14 @@ document.getElementById('fileInput').addEventListener('change', async function()
 
         xhr.onerror = function() {
             document.getElementById('uploadProgress').classList.add('hidden');
-            showMessage('<?php echo __('admin_fail'); ?>', 'error');
+            showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
         };
 
         xhr.open('POST', (window.YK_BASE || '') + '/admin/upload.php', true);
         xhr.send(formData);
     } catch (err) {
         document.getElementById('uploadProgress').classList.add('hidden');
-        showMessage('<?php echo __('admin_fail'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
     }
 
     this.value = '';
@@ -453,7 +453,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
         const response = await fetch('', { method: 'POST', body: formData });
         const data = await safeJson(response);
         if (data.code === 0) {
-            showMessage('<?php echo __('admin_saved'); ?>');
+            showMessage(<?= jsString(__('admin_saved')) ?>);
             <?php if (!$isEdit): ?>
             setTimeout(() => location.href = (window.YK_BASE || '') + '/admin/download_edit.php?id=' + data.data.id, 1000);
             <?php endif; ?>

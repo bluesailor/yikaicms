@@ -127,7 +127,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
 <script>
 document.getElementById('settingForm').addEventListener('submit', function (e) {
     e.preventDefault();
-    adminSave(this, { successMsg: '<?php echo __('admin_saved'); ?>' });
+    adminSave(this, { successMsg: <?= jsString(__('admin_saved')) ?> });
 });
 
 function copyToClipboard(elId, btn) {
@@ -135,10 +135,10 @@ function copyToClipboard(elId, btn) {
     if (!el) return;
     el.select(); el.setSelectionRange(0, 999);
     navigator.clipboard.writeText(el.value).then(function() {
-        showMessage('<?php echo __('admin_copied'); ?>');
+        showMessage(<?= jsString(__('admin_copied')) ?>);
     }).catch(function() {
-        try { document.execCommand('copy'); showMessage('<?php echo __('admin_copied'); ?>'); }
-        catch (e) { showMessage('<?php echo __('admin_copy_failed'); ?>', 'error'); }
+        try { document.execCommand('copy'); showMessage(<?= jsString(__('admin_copied')) ?>); }
+        catch (e) { showMessage(<?= jsString(__('admin_copy_failed')) ?>, 'error'); }
     });
     window.getSelection().removeAllRanges();
 }

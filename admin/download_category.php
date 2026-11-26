@@ -314,7 +314,7 @@ async function saveItem(e) {
     const result = await safeJson(response);
 
     if (result.code === 0) {
-        showMessage('<?php echo __('admin_saved'); ?>');
+        showMessage(<?= jsString(__('admin_saved')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(result.msg || <?php echo json_encode(__('admin_save_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
@@ -346,7 +346,7 @@ async function deleteItem(id, name) {
     const result = await safeJson(response);
 
     if (result.code === 0) {
-        showMessage('<?php echo __('admin_deleted'); ?>');
+        showMessage(<?= jsString(__('admin_deleted')) ?>);
         setTimeout(() => location.reload(), 1000);
     } else {
         showMessage(result.msg || <?php echo json_encode(__('admin_delete_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');

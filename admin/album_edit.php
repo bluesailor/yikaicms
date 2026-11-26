@@ -265,7 +265,7 @@ document.getElementById('coverFile').addEventListener('change', async function()
             showMessage(result.msg || <?php echo json_encode(__('admin_upload_failed'), JSON_UNESCAPED_UNICODE); ?>, 'error');
         }
     } catch (e) {
-        showMessage('<?php echo __('admin_fail'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
     }
 
     this.value = '';
@@ -321,7 +321,7 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
         const result = await safeJson(response);
 
         if (result.code === 0) {
-            showMessage('<?php echo __('admin_saved'); ?>');
+            showMessage(<?= jsString(__('admin_saved')) ?>);
             setTimeout(() => {
                 <?php if ($album): ?>
                 location.reload();

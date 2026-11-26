@@ -576,7 +576,7 @@ async function clearOldLogs() {
 
 <script>
 async function clearErrorLog() {
-    if (!confirm('<?php echo __('sys_error_log_clear_confirm'); ?>')) return;
+    if (!confirm(<?= jsString(__('sys_error_log_clear_confirm')) ?>)) return;
 
     const formData = new FormData();
     formData.append('action', 'clear_errorlog');
@@ -586,7 +586,7 @@ async function clearErrorLog() {
     const data = await safeJson(response);
 
     if (data.code === 0) {
-        showMessage('<?php echo __('sys_error_log_cleared'); ?>');
+        showMessage(<?= jsString(__('sys_error_log_cleared')) ?>);
         setTimeout(() => location.href = (window.YK_BASE || '') + '/admin/system.php?tab=errorlog', 800);
     } else {
         showMessage(data.msg, 'error');

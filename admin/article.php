@@ -428,14 +428,14 @@ async function toggleRecommend(id) {
     if (data.code === 0) location.reload();
 }
 async function deleteItem(id) {
-    if (!confirm('<?php echo __('admin_confirm_delete'); ?>')) return;
+    if (!confirm(<?= jsString(__('admin_confirm_delete')) ?>)) return;
     const data = await postAction('delete', { id });
-    if (data.code === 0) { document.getElementById('row-' + id)?.remove(); showMessage('<?php echo __('admin_deleted'); ?>'); }
+    if (data.code === 0) { document.getElementById('row-' + id)?.remove(); showMessage(<?= jsString(__('admin_deleted')) ?>); }
 }
 async function duplicateItem(id) {
     const data = await postAction('duplicate', { id });
     if (data.code === 0) {
-        showMessage('<?php echo __('admin_duplicated'); ?>');
+        showMessage(<?= jsString(__('admin_duplicated')) ?>);
         setTimeout(() => location.href = (window.YK_BASE || '') + '/admin/article_edit.php?id=' + data.data.id, 700);
     } else {
         showMessage(data.msg, 'error');
@@ -443,29 +443,29 @@ async function duplicateItem(id) {
 }
 function applyBulk() {
     const sel = document.getElementById('bulkAction');
-    if (!sel.value) { showMessage('<?php echo __('admin_bulk_pick_action'); ?>', 'error'); return; }
+    if (!sel.value) { showMessage(<?= jsString(__('admin_bulk_pick_action')) ?>, 'error'); return; }
     batchAction(sel.value);
 }
 // 选中数量实时提示，动作前心里有数
 function refreshBulkCount() {
     const n = document.querySelectorAll('.row-check:checked').length;
     const el = document.getElementById('bulkCount');
-    if (el) el.textContent = n ? ('<?php echo __('admin_selected_prefix'); ?>' + n) : '';
+    if (el) el.textContent = n ? (<?= jsString(__('admin_selected_prefix')) ?> + n) : '';
 }
 document.addEventListener('change', function (e) {
     if (e.target.classList && (e.target.classList.contains('row-check') || e.target.id === 'checkAll')) refreshBulkCount();
 });
 async function batchAction(action) {
     const ids = [...document.querySelectorAll('.row-check:checked')].map(cb => cb.value);
-    if (!ids.length) { showMessage('<?php echo __('admin_please_select'); ?>', 'error'); return; }
+    if (!ids.length) { showMessage(<?= jsString(__('admin_please_select')) ?>, 'error'); return; }
     const labels = {
-        batch_publish: '<?php echo __('admin_published'); ?>',
-        batch_unpublish: '<?php echo __('admin_unpublished'); ?>',
-        batch_delete: '<?php echo __('admin_move_to_trash'); ?>'
+        batch_publish: <?= jsString(__('admin_published')) ?>,
+        batch_unpublish: <?= jsString(__('admin_unpublished')) ?>,
+        batch_delete: <?= jsString(__('admin_move_to_trash')) ?>
     };
-    if (!confirm('<?php echo __('admin_bulk_confirm_prefix'); ?>' + (labels[action] || '') + ' ' + ids.length + ' <?php echo __('admin_bulk_confirm_suffix'); ?>')) return;
+    if (!confirm(<?= jsString(__('admin_bulk_confirm_prefix')) ?> + (labels[action] || '') + ' ' + ids.length + (' ' + <?= jsString(__('admin_bulk_confirm_suffix')) ?>))) return;
     const data = await postAction(action, { ids });
-    if (data.code === 0) { showMessage('<?php echo __('admin_success'); ?>'); setTimeout(() => location.reload(), 1000); }
+    if (data.code === 0) { showMessage(<?= jsString(__('admin_success')) ?>); setTimeout(() => location.reload(), 1000); }
 }
 </script>
 

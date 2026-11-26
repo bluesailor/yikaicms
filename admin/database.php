@@ -250,7 +250,7 @@ adminModuleTabStart([
             <option value="default"><?php echo e(__('db_backup_format_default')); ?></option>
             <option value="mysql57_utf8"><?php echo e(__('db_backup_format_mysql57')); ?></option>
         </select>
-        <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded-lg transition inline-flex items-center gap-2 text-sm font-medium" onclick="this.innerHTML='<svg class=\'w-4 h-4 animate-spin\' viewBox=\'0 0 24 24\' fill=\'none\'><circle cx=\'12\' cy=\'12\' r=\'10\' stroke=\'currentColor\' stroke-width=\'4\' class=\'opacity-25\'></circle><path fill=\'currentColor\' d=\'M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 010-16z\' class=\'opacity-75\'></path></svg> <?php echo e(__('db_backing_up')); ?>'">
+        <button type="submit" class="bg-primary hover:bg-secondary text-white px-6 py-2.5 rounded-lg transition inline-flex items-center gap-2 text-sm font-medium" onclick="this.innerHTML=('<svg class=\'w-4 h-4 animate-spin\' viewBox=\'0 0 24 24\' fill=\'none\'><circle cx=\'12\' cy=\'12\' r=\'10\' stroke=\'currentColor\' stroke-width=\'4\' class=\'opacity-25\'></circle><path fill=\'currentColor\' d=\'M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 010-16z\' class=\'opacity-75\'></path></svg> ' + <?= e(jsString(e(__('db_backing_up')))) ?>)">
             <i class="ti ti-database text-lg"></i>
             <?php echo e(__('db_backup_now')); ?>
         </button>

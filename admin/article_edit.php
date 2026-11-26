@@ -562,12 +562,12 @@ document.getElementById('coverFileInput').addEventListener('change', async funct
             coverImg.src = data.data.url;
             coverImg.className = 'w-full rounded';
             document.getElementById('coverPreview').appendChild(coverImg);
-            showMessage('<?php echo __('admin_success'); ?>');
+            showMessage(<?= jsString(__('admin_success')) ?>);
         } else {
             showMessage(data.msg, 'error');
         }
     } catch (err) {
-        showMessage('<?php echo __('admin_fail'); ?>', 'error');
+        showMessage(<?= jsString(__('admin_fail')) ?>, 'error');
     }
 
     this.value = '';
