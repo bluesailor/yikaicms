@@ -69,6 +69,21 @@ test('list filters, row checkboxes and settings fields expose accessible names @
   await page.goto('/admin/setting.php');
   await expect(page.locator('input[name="settings[site_name]"]')).toHaveAccessibleName(/.+/);
 
-  // 顶栏语言与账号菜单在窄屏只剩图标，也要有名称
-  await expect(page.locator('header button[aria-haspopup="true"]').first()).toHaveAccessibleName(/.+/);
+  // 顶栏应验证当前可操作的入口。窄屏语言入口移入「更多」，隐藏的顶栏按钮不进入无障碍树。
+  const account = page.getByTestId('admin-account-menu').locator('button[aria-haspopup="true"]');
+  await expect(account).toBeVisible();
+  await expect(account).toHaveAccessibleName(/.+/);
+
+  const language = page.locator('[data-yk-tb-item="language"] button[aria-haspopup="true"]');
+  await expect(language).toHaveCount(1);
+  if (await language.isVisible()) {
+    await expect(language).toHaveAccessibleName(/.+/);
+  } else {
+    const more = page.getByTestId('admin-toolbar-more-button');
+    await expect(more).toHaveAccessibleName(/.+/);
+    await more.click();
+    const languageInMore = page.locator('[data-yk-tb-more="language"] > button');
+    await expect(languageInMore).toBeVisible();
+    await expect(languageInMore).toHaveAccessibleName(/.+/);
+  }
 });
