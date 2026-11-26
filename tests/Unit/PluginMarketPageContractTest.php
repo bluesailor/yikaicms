@@ -55,4 +55,24 @@ final class PluginMarketPageContractTest extends TestCase
         self::assertStringContainsString("'status' => 0", $market);
         self::assertStringContainsString('pluginMarketDecorate', $page);
     }
+
+    public function testBuiltInPluginsShowBadgeAndLinkInsteadOfInstall(): void
+    {
+        $page = (string) file_get_contents(ROOT_PATH . '/admin/plugin.php');
+        $decorate = substr($page, (int) strpos($page, 'function pluginMarketDecorate('), 2000);
+        // 已内置判定在来源检查之前（老站残留的旧插件目录没有安装回执，来源检查会误报）
+        $builtIn = strpos($decorate, 'MarketBuiltInPlugins::matches($item, retiredPlugins())');
+        self::assertIsInt($builtIn);
+        self::assertLessThan((int) strpos($decorate, '->assertOrigin('), $builtIn);
+        // 地址带子目录前缀，且只给能进内置页面的账号
+        self::assertStringContainsString("hasPermission('*') ? BasePath::url(\$target) : null", $decorate);
+
+        $status = substr($page, (int) strpos($page, 'statusOf(p) {'), 400);
+        self::assertLessThan((int) strpos($status, 'p.slug in this.local'), (int) strpos($status, "if (p.built_in) return 'builtin';"));
+        self::assertStringContainsString("x-if=\"statusOf(p) === 'builtin'\"", $page);
+        self::assertStringContainsString(':href="p.built_in_url"', $page);
+        self::assertStringContainsString("__('pl_market_built_in')", $page);
+        // 已安装插件的「可升级」检测不把内置条目算进去
+        self::assertStringContainsString('if (!it.built_in && it.slug in this.local', $page);
+    }
 }

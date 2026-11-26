@@ -4113,6 +4113,7 @@ return [
     'pl_market_offline' => '플러그인 마켓에 연결할 수 없습니다',
     'pl_not_in_market' => '마켓에 해당 플러그인이 없습니다',
     'pl_built_in' => '이 기능은 본체에 통합되어 플러그인을 설치할 필요가 없습니다',
+    'pl_market_built_in' => '본체에 내장',
     'pl_download_failed' => '플러그인 패키지 다운로드에 실패했습니다',
     'pl_hash_failed' => 'SHA256 검증에 실패했습니다. 패키지가 손상되었거나 변조되었을 수 있어 폐기했습니다',
     'pl_download_untrusted' => '플러그인 다운로드 주소가 공식 마켓 주소가 아니어서 거부했습니다',

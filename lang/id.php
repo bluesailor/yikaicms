@@ -4113,6 +4113,7 @@ return [
     'pl_market_offline' => 'Tidak dapat menjangkau pasar plugin',
     'pl_not_in_market' => 'Plugin tidak ditemukan di pasar',
     'pl_built_in' => 'Fitur ini sekarang sudah termasuk dalam CMS; plugin tidak diperlukan lagi',
+    'pl_market_built_in' => 'Bawaan CMS',
     'pl_download_failed' => 'Unduhan paket plugin gagal',
     'pl_hash_failed' => 'Pemeriksaan SHA256 gagal - paket mungkin rusak atau dirusak; dibuang',
     'pl_download_untrusted' => 'Alamat unduhan plugin bukan alamat pasar resmi dan ditolak',

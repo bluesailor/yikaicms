@@ -4113,6 +4113,7 @@ return [
     'pl_market_offline' => 'Tidak dapat menghubungi pasaran pemalam',
     'pl_not_in_market' => 'Pemalam tidak ditemui dalam pasaran',
     'pl_built_in' => 'Ciri ini kini terbina dalam CMS; pemalam tidak diperlukan lagi',
+    'pl_market_built_in' => 'Terbina dalam CMS',
     'pl_download_failed' => 'Muat turun pakej pemalam gagal',
     'pl_hash_failed' => 'Semakan SHA256 gagal - pakej mungkin rosak atau diusik; dibuang',
     'pl_download_untrusted' => 'Alamat muat turun pemalam bukan alamat pasaran rasmi dan telah ditolak',

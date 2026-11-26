@@ -4114,6 +4114,7 @@ return [
     'pl_market_offline' => '無法連線外掛市場',
     'pl_not_in_market' => '市場中不存在該外掛',
     'pl_built_in' => '這項功能已併入主程式，不需要再裝外掛',
+    'pl_market_built_in' => '已內建',
     'pl_download_failed' => '外掛包下載失敗',
     'pl_hash_failed' => 'SHA256 校驗不通過，包可能損壞或被篡改，已丟棄',
     'pl_download_untrusted' => '外掛下載地址不是官方市場地址，已拒絕',

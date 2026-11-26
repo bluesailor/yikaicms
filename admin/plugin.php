@@ -13,6 +13,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/security.php';   // zipUnsafeEntry()：插件安装/解压前的 zip-slip 校验依赖它（init.php 只在前台加载）
 require_once ROOT_PATH . '/includes/MarketDownloadStatus.php';
 require_once ROOT_PATH . '/includes/PluginIcons.php';
+require_once ROOT_PATH . '/includes/MarketBuiltInPlugins.php';
 require_once ROOT_PATH . '/includes/MarketCatalogItems.php';
 require_once ROOT_PATH . '/includes/MarketCatalogRequest.php';
 require_once ROOT_PATH . '/includes/MarketDownloadUrl.php';
@@ -50,6 +51,14 @@ function pluginMarketDecorate(array $item): array
         : '';
     // 图标只用自托管的 Tabler 字体类名；社区条目不采用目录图标（见 PluginIcons）
     $item['icon'] = PluginIcons::forMarket($item);
+    // 已并入主程序的插件（2.3.0 起的产品导入）：显示「已内置」并直达内置页面，不走安装与来源检查。
+    // 老站升级后旧插件目录可能还在、没有安装回执，来源检查会误报「来源不明」，所以放在它前面。
+    if (MarketBuiltInPlugins::matches($item, retiredPlugins())) {
+        $target = retiredPluginRedirect((string) $item['slug']);
+        // 内置页面与本页一样只给超级管理员；以后放开时这里跟着页面的要求走
+        $url = $target !== null && hasPermission('*') ? BasePath::url($target) : null;
+        return MarketDownloadStatus::decorate(MarketBuiltInPlugins::decorate($item, retiredPlugins(), $url));
+    }
     if (MarketDownloadStatus::reason($item) === '') {
         try {
             (new PluginInstaller(ROOT_PATH . '/plugins', ROOT_PATH . '/storage'))->assertOrigin(
@@ -303,6 +312,15 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                             </div>
                             <div class="text-xs text-gray-400" x-text="(p.author || '') + (p.size_kb ? ' · ' + p.size_kb + ' KB' : '')"></div>
                         </div>
+                        <template x-if="statusOf(p) === 'builtin'">
+                            <span class="flex items-center gap-2 whitespace-nowrap">
+                                <span data-testid="plugin-market-builtin" class="text-xs px-2.5 py-1 rounded bg-green-50 text-green-700 inline-flex items-center gap-1"><i class="ti ti-circle-check text-sm" aria-hidden="true"></i><?php echo e(__('pl_market_built_in')); ?></span>
+                                <template x-if="p.built_in_url">
+                                    <a :href="p.built_in_url" data-testid="plugin-market-builtin-link"
+                                       class="text-sm px-3 py-1.5 rounded bg-primary hover:bg-secondary text-white transition whitespace-nowrap"><?php echo e(__('admin_open')); ?></a>
+                                </template>
+                            </span>
+                        </template>
                         <template x-if="statusOf(p) === 'installed'">
                             <span class="text-xs px-2.5 py-1 rounded bg-gray-100 text-gray-400 whitespace-nowrap"><?php echo e(__('pl_installed_tab')); ?></span>
                         </template>
@@ -327,7 +345,8 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                     <p class="text-sm text-gray-500" x-text="p.description"></p>
                     <p x-show="p.download_blocked" x-text="p.download_message" data-testid="plugin-market-restriction" class="mt-2 text-sm text-gray-600"></p>
-                    <template x-if="p.paid && !p.entitled">
+                    <p x-show="p.built_in" data-testid="plugin-market-builtin-note" class="text-sm text-gray-600"><?php echo e(__('pl_built_in')); ?></p>
+                    <template x-if="p.paid && !p.entitled && !p.built_in">
                         <p class="text-xs text-amber-700 flex items-center gap-1">
                             <i class="ti ti-lock text-sm"></i>
                             <span x-text="p.tier === 'freemium'
@@ -535,7 +554,7 @@ function pluginMarket() {
                 var u = {};
                 for (var i = 0; i < marketItems.length; i++) {
                     var it = marketItems[i];
-                    if (it.slug in this.local && this.verCmp(it.version, this.local[it.slug]) > 0) u[it.slug] = it;
+                    if (!it.built_in && it.slug in this.local && this.verCmp(it.version, this.local[it.slug]) > 0) u[it.slug] = it;
                 }
                 this.upd = u;
             } catch (e) { /* 静默：检测失败不打扰 */ }
@@ -595,6 +614,8 @@ function pluginMarket() {
             return 0;
         },
         statusOf(p) {
+            // 已并入主程序（pluginMarketDecorate 标的 built_in）：不管旧插件目录还在不在，都不给安装/升级按钮
+            if (p.built_in) return 'builtin';
             if (!(p.slug in this.local)) return 'none';
             return this.verCmp(p.version, this.local[p.slug]) > 0 ? 'upgrade' : 'installed';
         },

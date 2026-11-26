@@ -4113,6 +4113,7 @@ return [
     'pl_market_offline' => 'Não é possível acessar o mercado de plugins',
     'pl_not_in_market' => 'Plugin não encontrado no mercado',
     'pl_built_in' => 'Esta funcionalidade já está integrada no CMS; o plugin já não é necessário',
+    'pl_market_built_in' => 'Integrado no CMS',
     'pl_download_failed' => 'Falha ao baixar o pacote do plugin',
     'pl_hash_failed' => 'A verificação SHA256 falhou. O pacote pode estar corrompido ou ter sido adulterado e foi descartado.',
     'pl_download_untrusted' => 'O endereço de download do plugin não pertence ao mercado oficial e foi rejeitado',

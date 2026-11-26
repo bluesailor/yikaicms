@@ -4113,6 +4113,7 @@ return [
     'pl_market_offline' => 'Không thể kết nối chợ plugin',
     'pl_not_in_market' => 'Chợ không có plugin này',
     'pl_built_in' => 'Tính năng này đã được tích hợp vào CMS; không cần cài plugin nữa',
+    'pl_market_built_in' => 'Đã tích hợp sẵn',
     'pl_download_failed' => 'Tải xuống gói plugin thất bại',
     'pl_hash_failed' => 'Kiểm tra SHA256 không đạt, gói có thể bị hỏng hoặc bị sửa đổi, đã loại bỏ',
     'pl_download_untrusted' => 'Địa chỉ tải xuống plugin không phải địa chỉ chợ chính thức, đã từ chối',

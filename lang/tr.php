@@ -4113,6 +4113,7 @@ return [
     'pl_market_offline' => 'Eklenti pazarına ulaşılamıyor',
     'pl_not_in_market' => 'Eklenti pazarda bulunamadı',
     'pl_built_in' => 'Bu özellik artık CMS içinde yerleşik; eklentiye gerek yok',
+    'pl_market_built_in' => 'Yerleşik',
     'pl_download_failed' => 'Eklenti paketi indirilemedi',
     'pl_hash_failed' => 'SHA256 denetimi başarısız - paket bozuk veya kurcalanmış olabilir; atıldı',
     'pl_download_untrusted' => 'Eklenti indirme adresi resmi pazar adresi değil ve reddedildi',

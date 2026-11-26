@@ -4113,6 +4113,7 @@ return [
     'pl_market_offline' => 'Impossible de joindre le marché des extensions',
     'pl_not_in_market' => 'Extension introuvable dans le marché',
     'pl_built_in' => 'Cette fonction est désormais intégrée au CMS ; le plugin n\'est plus nécessaire',
+    'pl_market_built_in' => 'Intégré au CMS',
     'pl_download_failed' => 'Impossible de télécharger le paquet d’extension',
     'pl_hash_failed' => 'Échec de la vérification SHA256 ; le paquet est peut-être endommagé ou falsifié. Il a été écarté.',
     'pl_download_untrusted' => 'Impossible de télécharger depuis une adresse qui ne provient pas du marché officiel des extensions ; requête refusée',
