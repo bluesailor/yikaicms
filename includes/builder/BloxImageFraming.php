@@ -180,8 +180,9 @@ final class BloxImageFraming
         $customTerms = array_merge($terms, [['image_ratio', '=', 'custom']]);
         // 跟随排版本身没有框（详情主图默认按原图显示）时，只有选了比例填充方式才有意义
         $fitTerms = array_merge($terms, [['image_ratio', 'not_in', $fitNeedsFrame ? ['auto', 'default'] : ['auto']]]);
+        // 普通下拉而不是带预览的图块：带预览的控件在设置面板里集中排在最上面，
+        // 「自定义」的宽高栏会离比例很远；下拉按顺序排，宽高紧跟在比例下面，说明文字也能显示
         $ratio = ['key' => 'image_ratio', 'type' => 'select', 'label' => __('blox_image_ratio'), 'default' => 'default', 'tab' => 'style',
-            'option_preview' => 'image-ratio',
             'options' => [
                 'default' => __('blox_pimg_follow_layout'),
                 'square' => '1:1', 'landscape' => '4:3', 'portrait' => '3:4', 'wide' => '16:9',
@@ -199,7 +200,7 @@ final class BloxImageFraming
             $side('image_ratio_w', 'blox_pimg_ratio_width'),
             $side('image_ratio_h', 'blox_pimg_ratio_height'),
             ['key' => 'image_fit', 'type' => 'select', 'label' => __('blox_image_fit'), 'default' => '', 'tab' => 'style',
-                'option_preview' => 'image-fit', 'visible_when' => ['terms' => $fitTerms],
+                'visible_when' => ['terms' => $fitTerms],
                 'options' => [
                     '' => __('blox_pimg_follow_layout'),
                     'contain' => __('blox_pimg_fit_contain'),

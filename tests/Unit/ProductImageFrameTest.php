@@ -115,7 +115,10 @@ final class ProductImageFrameTest extends TestCase
         self::assertSame('default', $ratio['default']);
         self::assertSame(['default', 'square', 'landscape', 'portrait', 'wide', 'auto', 'custom'], array_keys($ratio['options']));
         self::assertSame('style', $ratio['tab']);
+        // 普通下拉：带 option_preview 的控件会被面板集中排到最上面，自定义宽高就离比例很远（浏览器验收发现）
+        self::assertArrayNotHasKey('option_preview', $ratio);
         $fit = array_values(array_filter((new ProductCatalogElement())->controls(), static fn (array $c): bool => $c['key'] === 'image_fit'))[0];
+        self::assertArrayNotHasKey('option_preview', $fit);
         self::assertSame(['', 'contain', 'cover'], array_keys($fit['options']));
         $width = array_values(array_filter((new ProductCatalogElement())->controls(), static fn (array $c): bool => $c['key'] === 'image_ratio_w'))[0];
         self::assertSame([['image_ratio', '=', 'custom']], $width['visible_when']['terms']);
