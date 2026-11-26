@@ -437,6 +437,7 @@
                 "optimize",
                 "orphans",
                 "replace",
+                "settings",
                 "usage"
             ]
         },
