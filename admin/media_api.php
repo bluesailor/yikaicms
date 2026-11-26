@@ -117,6 +117,10 @@ if ($action === 'remote_list') {
     if (!canUploadImage()) {
         ma_deny('没有媒体库权限');
     }
+    // 媒体库设置里关了「显示官方素材」：不请求远程目录（2.3.1）
+    if (!RemoteOfficialMedia::enabled()) {
+        ma_deny(__('official_media_disabled'));
+    }
     try {
         $data = RemoteOfficialMedia::list([
             'page' => $_GET['page'] ?? 1,
@@ -144,6 +148,9 @@ if ($action === 'remote_import' && $_SERVER['REQUEST_METHOD'] === 'POST') {
         ma_deny('没有上传图片的权限');
     }
     verifyCsrf();
+    if (!RemoteOfficialMedia::enabled()) {
+        ma_deny(__('official_media_disabled'));
+    }
     try {
         $data = RemoteOfficialMedia::import((string) ($_POST['asset_id'] ?? ''), (int) ($_SESSION['admin_id'] ?? 0));
         adminLog('media', 'add', '导入官方素材：' . (string) ($_POST['asset_id'] ?? ''));

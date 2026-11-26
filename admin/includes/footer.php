@@ -349,6 +349,7 @@
     <?php // 别名（给第三方插件）与界面语言 → 编辑器语言包的映射，两个页面共用 ?>
     <script src="/assets/js/rich-editor.js?v=<?php echo (int) @filemtime(ROOT_PATH . '/assets/js/rich-editor.js'); ?>"></script>
     <script src="/assets/js/official-media-client.js?v=<?php echo (int) filemtime(ROOT_PATH . '/assets/js/official-media-client.js'); ?>"></script>
+    <?php require_once ROOT_PATH . '/includes/RemoteOfficialMedia.php'; $_mpOfficialOn = RemoteOfficialMedia::enabled(); ?>
 
     <?php /* 媒体库选择弹窗 */ ?>
     <div id="mediaPickerModal" class="fixed inset-0 hidden" style="z-index:9999">
@@ -404,6 +405,8 @@
         var _mpUsage = '';
         var _mpImporting = '';
         var _mpEntitlement = { canImport: false, reason: '' };
+        // 媒体库设置「显示官方素材」（2.3.1）：关闭时只开本站媒体，不显示官方页签、不请求官方目录
+        var _mpOfficialEnabled = <?php echo $_mpOfficialOn ? 'true' : 'false'; ?>;
         var _mpOfficialText = <?php echo json_encode([
             'preview' => __('official_media_preview'),
             'import' => __('official_media_import_use'),
@@ -420,7 +423,7 @@
             _mpType = options.type || 'image';
             if (_mpType !== 'video') _mpType = 'image';
             _mpUsage = String(options.usage || '');
-            _mpSource = options.source === 'official' && _mpType === 'image' ? 'official' : 'local';
+            _mpSource = options.source === 'official' && _mpType === 'image' && _mpOfficialEnabled ? 'official' : 'local';
             _mpImporting = '';
             _mpEntitlement = { canImport: false, reason: '' };
             _mpPage = 1;
@@ -445,7 +448,7 @@
         };
 
         window._mpSetSource = function(source) {
-            if (source === 'official' && _mpType !== 'image') return;
+            if (source === 'official' && (_mpType !== 'image' || !_mpOfficialEnabled)) return;
             _mpSource = source === 'official' ? 'official' : 'local';
             _mpSelected = null;
             _mpImporting = '';
@@ -459,7 +462,7 @@
             var official = document.getElementById('mpSourceOfficial');
             var upload = document.getElementById('mpUploadBtn');
             var confirm = document.getElementById('mpConfirmBtn');
-            var showOfficial = _mpType === 'image';
+            var showOfficial = _mpType === 'image' && _mpOfficialEnabled;
             document.getElementById('mpSourceTabs').classList.toggle('hidden', !showOfficial);
             official.classList.toggle('hidden', !showOfficial);
             local.className = 'px-3 py-1.5 rounded text-sm font-medium transition ' + (_mpSource === 'local' ? 'bg-gray-900 text-white' : 'text-gray-500 hover:bg-gray-100');
@@ -471,7 +474,7 @@
         }
 
         window._mpLoad = async function(page) {
-            if (_mpSource === 'official') {
+            if (_mpSource === 'official' && _mpOfficialEnabled) {
                 await _mpLoadOfficial(page);
                 return;
             }

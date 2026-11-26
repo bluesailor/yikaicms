@@ -411,7 +411,7 @@ declare(strict_types=1);
                     <i class="ti ti-video" aria-hidden="true"></i><?= e(__('media_type_video')) ?>
                 </button>
             </div>
-            <div x-show="mediaType === 'image'" class="h-10 px-3 border-b border-gray-100 shrink-0 flex items-center gap-1" role="tablist" aria-label="<?= e(__('official_media_source_label')) ?>">
+            <div x-show="mediaType === 'image' && officialMediaEnabled" class="h-10 px-3 border-b border-gray-100 shrink-0 flex items-center gap-1" role="tablist" aria-label="<?= e(__('official_media_source_label')) ?>">
                 <button type="button" role="tab" @click="setMediaSource('local')"
                         :aria-selected="mediaSource === 'local'"
                         class="h-7 px-3 rounded text-xs font-semibold inline-flex items-center gap-1.5 transition"

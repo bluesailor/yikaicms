@@ -28,8 +28,26 @@ final class RemoteOfficialMedia
     private const ALLOWED_INDUSTRIES = ['technology', 'service', 'manufacturing', 'corporate', 'office', 'industrial', 'energy', 'medical', 'education', 'trade'];
 
     /** @return array<string,mixed> */
+    /** 设置键：媒体库设置里的「显示官方素材」，缺省开启（2.3.1）。 */
+    public const SETTING_KEY = 'media_official_assets';
+
+    /** 站点是否显示官方素材。关闭时选图弹窗不显示该页签，也不向官方目录发任何请求。 */
+    public static function enabled(): bool
+    {
+        return (string) config(self::SETTING_KEY, '1') !== '0';
+    }
+
+    /** 关闭时拒绝浏览与导入，且在发出任何远程请求之前。 */
+    private static function assertEnabled(): void
+    {
+        if (!self::enabled()) {
+            throw new RuntimeException(__('official_media_disabled'));
+        }
+    }
+
     public static function list(array $query): array
     {
+        self::assertEnabled();
         $params = [
             'page' => max(1, (int) ($query['page'] ?? 1)),
             'per_page' => min(60, max(1, (int) ($query['per_page'] ?? 24))),
@@ -74,6 +92,7 @@ final class RemoteOfficialMedia
     /** @return array<string,mixed> */
     public static function import(string $assetId, int $adminId): array
     {
+        self::assertEnabled();
         $assetId = trim($assetId);
         if (!self::validAssetId($assetId)) {
             throw new RuntimeException('素材 ID 不合法');

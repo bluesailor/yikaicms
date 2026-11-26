@@ -49,7 +49,7 @@ declare(strict_types=1);
                 this._mediaImageUsage = String(options.usage || "");
                 this.mediaUsage = this.mediaType === "image" ? this._mediaImageUsage : "";
                 this.mediaPreferredMinWidth = this.mediaUsage === "hero-bg" ? 1920 : 0;
-                this.mediaSource = options.source === "official" && this.mediaType === "image" ? "official" : "local";
+                this.mediaSource = options.source === "official" && this.mediaType === "image" && this.officialMediaEnabled ? "official" : "local";
                 this.mediaEntitlement = { canImport: false, reason: "" };
                 this.mediaImporting = "";
                 this.mediaOpen = true;
@@ -91,7 +91,7 @@ declare(strict_types=1);
             },
 
             setMediaSource(source) {
-                if (source === "official" && this.mediaType !== "image") return;
+                if (source === "official" && (this.mediaType !== "image" || !this.officialMediaEnabled)) return;
                 this.mediaSource = source === "official" ? "official" : "local";
                 this.mediaEntitlement = { canImport: false, reason: "" };
                 this.mediaImporting = "";
@@ -105,7 +105,7 @@ declare(strict_types=1);
                 var requestId = this.mediaRequestGuard.begin();
                 this.mediaLoading = true;
                 this.mediaPage = page;
-                var request = this.mediaSource === "official"
+                var request = this.mediaSource === "official" && this.officialMediaEnabled
                     ? window.OfficialMediaClient.list((window.YK_BASE || "") + "/admin/media_api.php", page, this.mediaKeyword, { usage: this.mediaUsage })
                     : window.BloxMediaClient.list((window.YK_BASE || "") + "/admin/media_api.php", page, this.mediaKeyword, {
                         usage: this.mediaUsage,

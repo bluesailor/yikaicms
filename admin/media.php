@@ -30,6 +30,18 @@ $auditMediaUsage = static function (array $rows): array {
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $action = post('action');
 
+    // 媒体库设置（2.3.1）：只有站点管理员能改；媒体管理员和内容编辑照常使用选图弹窗
+    if ($action === 'settings') {
+        if (!hasPermission('*')) {
+            error(__('media_settings_denied'));
+        }
+        require_once ROOT_PATH . '/includes/RemoteOfficialMedia.php';
+        $showOfficial = post('show_official_assets') === '1' ? '1' : '0';
+        settingModel()->set(RemoteOfficialMedia::SETTING_KEY, $showOfficial, 'media');
+        adminLog('media', 'settings', 'Show official assets: ' . ($showOfficial === '1' ? 'on' : 'off'));
+        success(['show_official_assets' => $showOfficial === '1'], __('media_settings_saved'));
+    }
+
     if ($action === 'usage') {
         $ids = MediaOptimization::normalizeIds($_POST['ids'] ?? []);
         $id = postInt('id');
@@ -358,6 +370,25 @@ $mediaUrl = static function (array $overrides = []) use ($type, $keyword, $sort,
             </button>
         </div>
         </div>
+
+        <?php if (!$selectMode && hasPermission('*')): ?>
+        <?php require_once ROOT_PATH . '/includes/RemoteOfficialMedia.php'; ?>
+        <details class="mt-4 rounded-lg border border-gray-200 bg-gray-50" data-testid="media-settings">
+            <summary class="cursor-pointer select-none px-4 py-2 text-sm font-medium text-gray-700 inline-flex items-center gap-1.5">
+                <i class="ti ti-settings text-base" aria-hidden="true"></i><?php echo e(__('media_settings')); ?>
+            </summary>
+            <div class="px-4 pb-4 pt-1">
+                <label class="flex items-start gap-3">
+                    <input type="checkbox" id="mediaShowOfficialAssets" data-testid="media-show-official-assets" class="mt-1 h-4 w-4"
+                           <?php echo RemoteOfficialMedia::enabled() ? 'checked' : ''; ?> onchange="saveMediaSettings(this)">
+                    <span>
+                        <span class="block text-sm font-medium text-gray-800"><?php echo e(__('media_show_official_assets')); ?></span>
+                        <span class="block text-xs text-gray-500 mt-0.5"><?php echo e(__('media_show_official_assets_help')); ?></span>
+                    </span>
+                </label>
+            </div>
+        </details>
+        <?php endif; ?>
 
         <?php if (!$selectMode): ?>
         <?php // 服务器图像编码能力（决定衍生文件能生成什么）：只做检测展示，不改变行为 ?>
@@ -863,6 +894,25 @@ async function deleteMedia(id) {
         document.querySelector(`[data-id="${id}"]`)?.remove();
     } else {
         showMessage(data.msg, 'error');
+    }
+}
+
+async function saveMediaSettings(box) {
+    box.disabled = true;
+    try {
+        var body = new FormData();
+        body.append('action', 'settings');
+        body.append('show_official_assets', box.checked ? '1' : '0');
+        body.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+        var resp = await fetch(window.location.pathname, { method: 'POST', body: body, headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+        var data = await resp.json();
+        if (data.code !== 0) { box.checked = !box.checked; }
+        showMessage(data.msg || '', data.code === 0 ? 'success' : 'error');
+    } catch (e) {
+        box.checked = !box.checked;
+        showMessage(<?php echo jsString(__('media_settings_failed')); ?>, 'error');
+    } finally {
+        box.disabled = false;
     }
 }
 

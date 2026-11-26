@@ -1890,6 +1890,8 @@ if ($templateId <= 0 && ($isHomeBlox || $id > 0)) {
                 'duplicateItem' => __('blox_ctx_duplicate_item'),
                 'deleteItem' => __('blox_ctx_delete_item'),
             ], JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT); ?>,
+            // 媒体库设置「显示官方素材」（2.3.1）
+            officialMediaEnabled: <?php require_once ROOT_PATH . '/includes/RemoteOfficialMedia.php'; echo RemoteOfficialMedia::enabled() ? 'true' : 'false'; ?>,
             uiText: <?php echo json_encode([
                 'cssUnset' => __('blox_css_unset_hint'),
                 'mediaFailed' => __('blox_media_failed'),

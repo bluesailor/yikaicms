@@ -11,7 +11,8 @@ final class OfficialMediaPickerContractTest extends TestCase
         $footer = $this->source('admin/includes/footer.php');
 
         self::assertStringContainsString('/assets/js/official-media-client.js', $footer);
-        self::assertStringContainsString("_mpSource = options.source === 'official' && _mpType === 'image' ? 'official' : 'local';", $footer);
+        // 2.3.1：媒体库设置关闭「显示官方素材」时不进官方页签
+        self::assertStringContainsString("_mpSource = options.source === 'official' && _mpType === 'image' && _mpOfficialEnabled ? 'official' : 'local';", $footer);
         self::assertStringContainsString("_mpSetSource('official')", $footer);
         self::assertStringContainsString('window._mpImportOfficial', $footer);
         self::assertStringContainsString("OfficialMediaClient.importAsset((window.YK_BASE || '') + '/admin/media_api.php', assetId", $footer);
@@ -24,8 +25,8 @@ final class OfficialMediaPickerContractTest extends TestCase
         $overlays = $this->source('admin/blox_editor/partials/overlays.php');
 
         self::assertStringContainsString('/assets/js/official-media-client.js', $editor);
-        self::assertStringContainsString('this.mediaSource = options.source === "official" && this.mediaType === "image" ? "official" : "local";', $editor);
-        self::assertStringContainsString('if (source === "official" && this.mediaType !== "image") return;', $editor);
+        self::assertStringContainsString('this.mediaSource = options.source === "official" && this.mediaType === "image" && this.officialMediaEnabled ? "official" : "local";', $editor);
+        self::assertStringContainsString('if (source === "official" && (this.mediaType !== "image" || !this.officialMediaEnabled)) return;', $editor);
         self::assertStringContainsString('setMediaSource(source)', $editor);
         self::assertStringContainsString('window.OfficialMediaClient.list', $editor);
         self::assertStringContainsString('window.OfficialMediaClient.importAsset', $editor);
