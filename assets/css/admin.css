@@ -315,3 +315,60 @@ input[type="radio"] {
 .nm-item-row.nm-row-hidden { border-style: dashed; background-color: var(--color-gray-50); }
 /* 上面的加深只适合浅底；深底（gray-800/900、侧栏）里的灰字反而要提亮，否则更看不清。 */
 :is(.bg-gray-800, .bg-gray-900, .bg-sidebar) :is(.text-gray-400, .text-gray-500) { color: var(--color-gray-300); }
+
+/* ============================================================
+   顶栏设置（2.3.1）：账号菜单 → 顶栏设置，见 assets/js/admin-toolbar.js
+   data-pinned="0" 的入口收进「更多」；查找页面 / 提醒 / AI 助手（data-yk-tb-detach）
+   收起时组件不卸载，只移出顶栏排版、藏起按钮，快捷键和计数照常，面板仍能从「更多」打开。
+   放不下时脚本给入口临时加 data-overflow（不改保存的设置），窄屏（< 640px）上
+   data-yk-tb-narrow 的入口直接进「更多」——两种情况都给账号菜单留位置。
+   ============================================================ */
+/* Tailwind 预检把 <dialog> 的 margin 清零了，会贴在左上角 */
+#ykToolbarSettings { margin: auto; max-width: min(24rem, calc(100vw - 2rem)); }
+#ykToolbarSettings::backdrop { background: rgb(15 23 42 / 0.35); }
+.yk-tb-more,
+.yk-tb-more-entry,
+.yk-tb-more-badge { display: none; }
+[data-yk-toolbar]:not([data-yk-tb-hidden=""]) .yk-tb-more,
+[data-yk-toolbar][data-yk-tb-overflowing] .yk-tb-more { display: block; }
+[data-yk-tb-hidden~="notifications"] .yk-tb-more-badge { display: inline-flex; }
+.yk-tb-more-entry[data-pinned="0"],
+.yk-tb-more-entry[data-overflow] { display: flex; }
+[data-yk-tb-item][data-pinned="0"]:not([data-yk-tb-detach]),
+[data-yk-tb-item][data-overflow]:not([data-yk-tb-detach]) { display: none !important; }
+[data-yk-tb-item][data-pinned="0"][data-yk-tb-detach],
+[data-yk-tb-item][data-overflow][data-yk-tb-detach] {
+    position: absolute;
+    inset-inline-end: 1.5rem;
+    top: 14px;
+    width: 36px;
+    height: 36px;
+    pointer-events: none;
+}
+[data-yk-tb-item][data-pinned="0"][data-yk-tb-detach] [data-yk-tb-trigger],
+[data-yk-tb-item][data-overflow][data-yk-tb-detach] [data-yk-tb-trigger] { visibility: hidden; }
+[data-yk-tb-item][data-pinned="0"][data-yk-tb-detach] [data-yk-tb-panel],
+[data-yk-tb-item][data-overflow][data-yk-tb-detach] [data-yk-tb-panel] { pointer-events: auto; }
+[data-yk-tb-item][data-pinned="0"][data-yk-tb-detach] [data-yk-tb-panel="drop"],
+[data-yk-tb-item][data-overflow][data-yk-tb-detach] [data-yk-tb-panel="drop"] { top: 100%; }
+[data-yk-tb-item][data-pinned="0"][data-yk-tb-detach] .yk-tb-search-box:not(.yk-tb-expanded) { display: none !important; }
+/* 展开的输入框贴着锚点右端往左铺开（编译产物里 .relative 排在 .absolute 后面，类名压不住） */
+[data-yk-tb-item][data-pinned="0"][data-yk-tb-detach] .yk-tb-search-box.yk-tb-expanded { position: absolute; inset-inline-end: 0; }
+@media (min-width: 640px) {
+    [data-yk-tb-item][data-pinned="0"][data-yk-tb-detach] [data-yk-tb-panel="drop-sm"] { top: 100%; }
+}
+@media (max-width: 639.98px) {
+    .yk-tb-more { display: block; }
+    .yk-tb-more-entry[data-yk-tb-narrow] { display: flex; }
+    [data-yk-tb-item][data-yk-tb-narrow]:not([data-yk-tb-detach]) { display: none !important; }
+    [data-yk-tb-item][data-yk-tb-narrow][data-yk-tb-detach] {
+        position: absolute;
+        inset-inline-end: 1.5rem;
+        top: 14px;
+        width: 36px;
+        height: 36px;
+        pointer-events: none;
+    }
+    [data-yk-tb-item][data-yk-tb-narrow][data-yk-tb-detach] [data-yk-tb-trigger] { visibility: hidden; }
+    [data-yk-tb-item][data-yk-tb-narrow][data-yk-tb-detach] [data-yk-tb-panel] { pointer-events: auto; top: 100%; }
+}

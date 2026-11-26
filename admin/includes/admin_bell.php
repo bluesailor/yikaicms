@@ -20,9 +20,10 @@ $__bellInit = [
     ],
 ];
 ?>
-<div class="relative" x-data="adminBell(<?php echo e(json_encode($__bellInit, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT)); ?>)" @keydown.escape.window="open = false" @yk-update-found.window="addUpdate($event.detail)" data-testid="admin-bell">
+<?php // 顶栏设置收进「更多」时由 header.php 传来 data-yk-tb-* 属性：组件照常挂载（计数、新版本推送不断），按钮藏起，面板从「更多」打开 ?>
+<div class="relative" x-data="adminBell(<?php echo e(json_encode($__bellInit, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT)); ?>)" @keydown.escape.window="open = false" @yk-update-found.window="addUpdate($event.detail)" @yk-toolbar-open.window="if ($event.detail === 'notifications') open = true" data-testid="admin-bell"<?php echo $__bellToolbarAttr ?? ''; ?>>
     <button type="button" @click="open = !open" :aria-expanded="open.toString()" aria-haspopup="true"
-            data-testid="admin-bell-button"
+            data-testid="admin-bell-button" data-yk-tb-trigger
             class="relative flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
             :aria-label="count ? <?php echo e(json_encode(__('notice_bell_count'), JSON_UNESCAPED_UNICODE)); ?>.replace(':n', count) : <?php echo e(json_encode(__('notice_bell'), JSON_UNESCAPED_UNICODE)); ?>"
             title="<?php echo e(__('notice_bell')); ?>">
@@ -30,7 +31,7 @@ $__bellInit = [
         <span x-show="count > 0" x-cloak x-text="count > 9 ? '9+' : count" data-testid="admin-bell-count"
               class="absolute -right-0.5 -top-0.5 inline-flex min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-[18px] text-white"></span>
     </button>
-    <div x-show="open" x-cloak @click.away="open = false" data-testid="admin-bell-panel"
+    <div x-show="open" x-cloak @click.away="open = false" data-testid="admin-bell-panel" data-yk-tb-panel="drop-sm"
          class="fixed inset-x-4 top-16 z-50 overflow-hidden rounded-lg bg-white shadow-xl ring-1 ring-gray-300 sm:absolute sm:inset-x-auto sm:right-0 sm:top-auto sm:mt-2 sm:w-[26rem] sm:max-w-[calc(100vw-2rem)]">
         <div class="flex items-center justify-between border-b border-gray-100 px-4 py-2.5">
             <span class="text-sm font-semibold text-gray-800"><?php echo e(__('notice_bell')); ?></span>
@@ -75,6 +76,13 @@ $__bellInit = [
 function adminBell(init) {
     return {
         open: false, count: init.count, token: init.token, text: init.text,
+        // 计数广播给顶栏「更多」按钮：提醒收进「更多」后角标挂在那里
+        init: function () {
+            var self = this;
+            var emit = function () { window.dispatchEvent(new CustomEvent('yk-bell-count', { detail: self.count })); };
+            emit();
+            this.$watch('count', emit);
+        },
         post: async function (endpoint, fields) {
             var body = new FormData();
             body.set('_token', this.token);

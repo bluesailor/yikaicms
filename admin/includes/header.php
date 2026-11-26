@@ -533,19 +533,73 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                     <h1 class="text-sm font-normal text-gray-500 sm:text-lg sm:font-semibold sm:text-gray-800 truncate"><?php echo $pageTitle ?? __('admin_dashboard'); ?></h1>
                 </div>
 
+                <?php
+                // 顶栏设置（2.3.1）：每个账号自己选哪些入口固定在顶栏，其余进「更多」（includes/AdminToolbarPrefs.php）。
+                // 各入口能不能用的规则不变：语言 ≥ 2 种、提醒只给超级管理员、AI 助手要先配置且不在助手大页显示。
+                require_once ROOT_PATH . '/includes/AdminToolbarPrefs.php';
+                $currentAdminLang = config('admin_lang', 'zh-CN');
+                // 语言集合来自注册表 + 已装语言包；英文沿用原来的「EN」短写，其余用本族语名
+                $langLabels = adminLanguages();
+                if (isset($langLabels['en'])) $langLabels['en'] = 'EN';
+                // 「基本设置 → 后台语言」；没设（或仍是旧安装原值）= 全部可用的语言包
+                $availableLangs = adminLanguageChoices();
+                $__tbAiReady = class_exists('AiService') && aiService()->isConfigured();
+                $__tbAvailable = array_values(array_filter(AdminToolbarPrefs::ITEMS, static fn (string $key): bool => match ($key) {
+                    'language' => count($availableLangs) >= 2,
+                    'notifications' => hasPermission('*'),
+                    'ai' => $__tbAiReady,
+                    default => true,
+                }));
+                $__tbRendered = array_values(array_filter($__tbAvailable, static fn (string $key): bool => $key !== 'ai' || $currentMenu !== 'ai_assistant'));
+                $__tbHidden = AdminToolbarPrefs::hidden((int) ($adminInfo['id'] ?? 0));
+                $__tbLabels = [
+                    'search' => __('admin_toolbar_item_search'),
+                    'language' => __('admin_toolbar_item_language'),
+                    'notifications' => __('admin_toolbar_item_notifications'),
+                    'help' => __('admin_toolbar_item_help'),
+                    'visit' => __('admin_toolbar_item_visit'),
+                    'cache' => __('admin_toolbar_item_cache'),
+                    'ai' => __('admin_toolbar_item_ai'),
+                ];
+                $__tbIcons = ['search' => 'search', 'language' => 'world', 'notifications' => 'bell', 'help' => 'help-circle',
+                    'visit' => 'external-link', 'cache' => 'database', 'ai' => 'robot'];
+                // 窄屏（< 640px）上这几项一律进「更多」，顶栏只留查找页面、提醒、更多和账号菜单
+                $__tbNarrow = ['language', 'help', 'visit', 'cache', 'ai'];
+                $__tbPinned = static fn (string $key): string => in_array($key, $__tbHidden, true) ? '0' : '1';
+                $__tbAttr = static fn (string $key): string => ' data-yk-tb-item="' . $key . '" data-pinned="' . $__tbPinned($key) . '"'
+                    . (in_array($key, $__tbNarrow, true) ? ' data-yk-tb-narrow' : '')
+                    . (in_array($key, ['search', 'notifications', 'ai'], true) ? ' data-yk-tb-detach' : '');
+                $__tbMoreAttr = static fn (string $key): string => ' data-yk-tb-more="' . $key . '" data-pinned="' . $__tbPinned($key) . '"'
+                    . (in_array($key, $__tbNarrow, true) ? ' data-yk-tb-narrow' : '');
+                $__tbConfig = [
+                    'items' => AdminToolbarPrefs::ITEMS,
+                    'rendered' => $__tbRendered,
+                    'hidden' => $__tbHidden,
+                    'token' => csrfToken(),
+                    'text' => [
+                        'saved' => __('admin_toolbar_saved'),
+                        'restored' => __('admin_toolbar_restored'),
+                        'failed' => __('admin_toolbar_save_failed'),
+                    ],
+                ];
+                $__bellToolbarAttr = $__tbAttr('notifications');
+                ?>
                 <?php /* 右侧工具栏 */ ?>
-                <div class="flex items-center gap-4 flex-shrink-0">
+                <div class="flex items-center gap-4 flex-shrink-0" data-testid="admin-toolbar"
+                     data-yk-toolbar="<?php echo e(json_encode($__tbConfig, JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES | JSON_THROW_ON_ERROR)); ?>"
+                     data-yk-tb-hidden="<?php echo e(implode(' ', array_values(array_intersect($__tbHidden, $__tbRendered)))); ?>">
                     <?php /* 后台命令面板搜索 */ ?>
-                    <div class="relative" x-data="adminSearch()" x-init="init()" @click.away="open = false; mExpand = false">
+                    <div class="relative" x-data="adminSearch()" x-init="init()" @click.away="open = false; mExpand = false"
+                         @yk-toolbar-open.window="if ($event.detail === 'search') reveal()"<?php echo $__tbAttr('search'); ?>>
                         <?php // 手机：先显示放大镜图标，点开后输入框覆盖顶栏（桌面端一直是输入框） ?>
                         <button type="button" class="md:hidden flex items-center justify-center w-9 h-9 rounded-full text-gray-500 hover:text-primary hover:bg-gray-50 transition"
-                                @click="mExpand = true; $nextTick(() => $refs.input.focus())"
+                                @click="mExpand = true; $nextTick(() => $refs.input.focus())" data-yk-tb-trigger
                                 x-show="!mExpand" aria-label="<?php echo e(__('admin_quick_search')); ?>">
                             <i class="ti ti-search text-lg"></i>
                         </button>
                         <?php // 不能用内联 display（会压过 hidden 类）：桌面常显，手机仅展开时以浮层出现 ?>
-                        <div class="relative hidden md:inline-block"
-                             :class="{ '!block absolute right-0 top-1/2 -translate-y-1/2 z-50 bg-white rounded-full': mExpand }">
+                        <div class="relative hidden md:inline-block yk-tb-search-box" data-yk-tb-panel="box"
+                             :class="{ '!block absolute right-0 top-1/2 -translate-y-1/2 z-50 bg-white rounded-full': mExpand, 'yk-tb-expanded': mExpand }">
                             <input x-ref="input" id="adminSearchInput" name="admin_search" type="search"
                                    role="searchbox" autocomplete="off" aria-label="<?php echo __('admin_quick_search'); ?>"
                                    x-model="query"
@@ -560,7 +614,7 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                             <i class="ti ti-search text-sm text-gray-400" style="position:absolute; left:12px; top:50%; transform:translateY(-50%); pointer-events:none;"></i>
                             <kbd style="position:absolute; right:8px; top:50%; transform:translateY(-50%); pointer-events:none; font-size:10px; padding:2px 4px; line-height:1;" class="font-mono text-gray-400 border border-gray-200 rounded bg-gray-50 hidden lg:inline-block" title="Ctrl/⌘+K">⌘K</kbd>
                         </div>
-                        <div x-show="open" x-cloak
+                        <div x-show="open" x-cloak data-yk-tb-panel="drop"
                              class="absolute right-0 mt-1 w-[min(85vw,20rem)] bg-white rounded-lg shadow-xl border border-gray-200 py-1 max-h-96 overflow-y-auto z-50">
                             <?php // 未输入态：收藏 + 最近使用（数据来自 ykFav 模块）；一输入即切回搜索结果 ?>
                             <template x-if="!query.trim()">
@@ -613,11 +667,17 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                                 window.addEventListener('keydown', (e) => {
                                     if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
                                         e.preventDefault();
-                                        this.$refs.input.focus();
-                                        this.$refs.input.select();
-                                        this.open = true;
+                                        this.reveal();
                                     }
                                 });
+                            },
+                            // Ctrl/⌘+K 与「更多 → 查找页面」共用：输入框不在版面上（收进更多、手机窄屏）就先展开成浮层
+                            reveal() {
+                                const focus = () => { this.$refs.input.focus(); this.$refs.input.select(); };
+                                this.open = true;
+                                if (this.$refs.input.offsetParent) { focus(); return; }
+                                this.mExpand = true;
+                                this.$nextTick(focus);
                             },
                             favItems() { return (window.ykFav && ykFav.favItems()) || []; },
                             recentItems() { return (window.ykFav && ykFav.recent) || []; },
@@ -649,16 +709,8 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                     </script>
 
                     <?php /* 语言切换：动态基于 admin_languages 设置；为空时列出全部已安装的语言包（availableLanguages）*/ ?>
-                    <?php
-                    $currentAdminLang = config('admin_lang', 'zh-CN');
-                    // 语言集合来自注册表 + 已装语言包；英文沿用原来的「EN」短写，其余用本族语名
-                    $langLabels = adminLanguages();
-                    if (isset($langLabels['en'])) $langLabels['en'] = 'EN';
-                    // 「基本设置 → 后台语言」；没设（或仍是旧安装原值）= 全部可用的语言包
-                    $availableLangs = adminLanguageChoices();
-                    ?>
                     <?php if (count($availableLangs) >= 2): ?>
-                    <div class="relative" x-data="{ open: false }">
+                    <div class="relative" x-data="{ open: false }"<?php echo $__tbAttr('language'); ?>>
                         <button @click="open = !open" :aria-expanded="open.toString()" aria-haspopup="true" aria-label="<?php echo e(__('login_language') . ': ' . ($langLabels[$currentAdminLang] ?? $currentAdminLang)); ?>" class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50">
                             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
@@ -680,35 +732,36 @@ if ($_sbCompactPage) $_sbCollapsed = true;
 
                     <?php /* 官方使用教程：入口保持全后台可见。伪静态专项说明另见控制台提醒与站点体检页。 */ ?>
                     <a href="<?php echo e($adminTutorialUrl); ?>" target="_blank" rel="noopener noreferrer"
-                       data-testid="admin-help-link"
+                       data-testid="admin-help-link"<?php echo $__tbAttr('help'); ?>
                        class="flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
                        title="<?php echo e(__('admin_help_tutorial')); ?>"
                        aria-label="<?php echo e(__('admin_help_tutorial')); ?>">
                         <i class="ti ti-help-circle text-xl" aria-hidden="true"></i>
                     </a>
 
-                    <a href="/" target="_blank" class="flex items-center gap-1.5 text-sm text-white bg-primary hover:bg-secondary px-3 py-1.5 rounded-full shadow-sm transition whitespace-nowrap" title="<?php echo __('admin_visit_frontend'); ?>">
+                    <a href="/" target="_blank"<?php echo $__tbAttr('visit'); ?> class="flex items-center gap-1.5 text-sm text-white bg-primary hover:bg-secondary px-3 py-1.5 rounded-full shadow-sm transition whitespace-nowrap" title="<?php echo __('admin_visit_frontend'); ?>">
                         <i class="ti ti-external-link text-base"></i>
                         <span class="hidden sm:inline"><?php echo __('admin_visit_frontend'); ?></span>
                     </a>
 
                     <?php /* HTML 缓存设置 */ ?>
-                    <a href="/admin/setting_cache.php" class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50 <?php echo ($currentMenu ?? '') === 'setting_cache' ? 'text-primary' : ''; ?>" title="<?php echo e(__('admin_cache_title')); ?>">
+                    <a href="/admin/setting_cache.php"<?php echo $__tbAttr('cache'); ?> class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50 <?php echo ($currentMenu ?? '') === 'setting_cache' ? 'text-primary' : ''; ?>" title="<?php echo e(__('admin_cache_title')); ?>">
                         <i class="ti ti-database text-lg"></i>
                         <span class="hidden sm:inline"><?php echo e(__('admin_cache_short')); ?></span>
                     </a>
 
                     <?php /* AI 助手浮窗（仅在已配置 AI 且不在助手大页时显示） */ ?>
-                    <?php if (class_exists('AiService') && aiService()->isConfigured() && $currentMenu !== 'ai_assistant'): ?>
-                    <div class="relative" x-data="aiBubble()" x-init="init()">
-                        <button @click="toggle()" class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary relative px-2 py-1 rounded hover:bg-gray-50" title="<?php echo __('admin_ai_assistant'); ?>">
+                    <?php if (in_array('ai', $__tbRendered, true)): ?>
+                    <div class="relative" x-data="aiBubble()" x-init="init()"
+                         @yk-toolbar-open.window="if ($event.detail === 'ai') open = true"<?php echo $__tbAttr('ai'); ?>>
+                        <button @click="toggle()" data-yk-tb-trigger class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary relative px-2 py-1 rounded hover:bg-gray-50" title="<?php echo __('admin_ai_assistant'); ?>">
                             <i class="ti ti-robot text-lg"></i>
                             <span class="hidden sm:inline"><?php echo __('admin_ai_assistant'); ?></span>
                             <span x-show="busy" class="absolute -top-0.5 -right-0.5 w-2 h-2 bg-amber-400 rounded-full animate-pulse"></span>
                         </button>
 
                         <?php /* 聊天面板 */ ?>
-                        <div x-show="open" x-cloak @click.away="open = false"
+                        <div x-show="open" x-cloak @click.away="open = false" data-yk-tb-panel="drop"
                              x-transition:enter="transition ease-out duration-200"
                              x-transition:enter-start="opacity-0 -translate-y-2"
                              x-transition:enter-end="opacity-100 translate-y-0"
@@ -899,8 +952,72 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                     </script>
                     <?php endif; ?>
 
+                    <?php /* 「更多」：收起的入口（顶栏设置里没勾的，窄屏上另有几项）都在这里，各自的权限 / 可用规则与顶栏相同 */ ?>
+                    <?php $__tbEntry = 'yk-tb-more-entry w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left'; ?>
+                    <div class="relative yk-tb-more" data-testid="admin-toolbar-more"
+                         x-data="{ open: false, langOpen: false, bellCount: <?php echo isset($__notices) ? count($__notices) : 0; ?> }"
+                         @yk-bell-count.window="bellCount = Number($event.detail) || 0" @keydown.escape="open = false">
+                        <button type="button" @click="open = !open" :aria-expanded="open.toString()" aria-haspopup="true"
+                                data-testid="admin-toolbar-more-button"
+                                aria-label="<?php echo e(__('admin_toolbar_more')); ?>" title="<?php echo e(__('admin_toolbar_more')); ?>"
+                                class="relative flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">
+                            <i class="ti ti-dots text-xl" aria-hidden="true"></i>
+                            <span class="yk-tb-more-badge absolute -right-0.5 -top-0.5" data-testid="admin-toolbar-more-badge">
+                                <span x-show="bellCount > 0" x-cloak x-text="bellCount > 9 ? '9+' : bellCount"
+                                      class="inline-flex min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-[18px] text-white"></span>
+                            </span>
+                        </button>
+                        <div x-show="open" x-cloak @click.away="open = false" data-testid="admin-toolbar-more-menu"
+                             class="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg py-2 z-50 max-h-[70vh] overflow-y-auto">
+                            <button type="button"<?php echo $__tbMoreAttr('search'); ?> class="<?php echo $__tbEntry; ?>" @click="open = false; YikaiAdminToolbar.open('search')">
+                                <i class="ti ti-search text-base text-gray-400" aria-hidden="true"></i><span class="flex-1"><?php echo e($__tbLabels['search']); ?></span>
+                                <kbd class="font-mono text-[10px] text-gray-400 border border-gray-200 rounded bg-gray-50 px-1">⌘K</kbd>
+                            </button>
+                            <?php if (in_array('language', $__tbRendered, true)): ?>
+                            <div<?php echo $__tbMoreAttr('language'); ?> class="yk-tb-more-entry flex-col">
+                                <button type="button" @click="langOpen = !langOpen" :aria-expanded="langOpen.toString()" class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left">
+                                    <i class="ti ti-world text-base text-gray-400" aria-hidden="true"></i>
+                                    <span class="flex-1"><?php echo e($__tbLabels['language']); ?> · <?php echo e($langLabels[$currentAdminLang] ?? $currentAdminLang); ?></span>
+                                    <i class="ti ti-chevron-down text-sm text-gray-400" aria-hidden="true"></i>
+                                </button>
+                                <div x-show="langOpen" x-cloak class="pb-1">
+                                    <?php foreach ($availableLangs as $code): ?>
+                                    <button type="button" onclick="switchAdminLang(<?php echo e(jsString((string) $code)); ?>)" class="block w-full text-left pl-10 pr-4 py-1.5 text-sm <?php echo $currentAdminLang === $code ? 'text-primary font-medium bg-blue-50' : 'text-gray-700 hover:bg-gray-100'; ?>"><?php echo e($langLabels[$code]); ?></button>
+                                    <?php endforeach; ?>
+                                </div>
+                            </div>
+                            <?php endif; ?>
+                            <?php if (in_array('notifications', $__tbRendered, true)): ?>
+                            <button type="button"<?php echo $__tbMoreAttr('notifications'); ?> class="<?php echo $__tbEntry; ?>" @click="open = false; YikaiAdminToolbar.open('notifications')">
+                                <i class="ti ti-bell text-base text-gray-400" aria-hidden="true"></i><span class="flex-1"><?php echo e($__tbLabels['notifications']); ?></span>
+                                <span x-show="bellCount > 0" x-cloak x-text="bellCount > 9 ? '9+' : bellCount" data-testid="admin-toolbar-more-bell-count"
+                                      class="inline-flex min-w-[18px] items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-semibold leading-[18px] text-white"></span>
+                            </button>
+                            <?php endif; ?>
+                            <a href="<?php echo e($adminTutorialUrl); ?>" target="_blank" rel="noopener noreferrer"<?php echo $__tbMoreAttr('help'); ?> class="<?php echo $__tbEntry; ?>" @click="open = false">
+                                <i class="ti ti-help-circle text-base text-gray-400" aria-hidden="true"></i><?php echo e($__tbLabels['help']); ?>
+                            </a>
+                            <a href="/" target="_blank"<?php echo $__tbMoreAttr('visit'); ?> class="<?php echo $__tbEntry; ?>" @click="open = false">
+                                <i class="ti ti-external-link text-base text-gray-400" aria-hidden="true"></i><?php echo e($__tbLabels['visit']); ?>
+                            </a>
+                            <a href="/admin/setting_cache.php"<?php echo $__tbMoreAttr('cache'); ?> class="<?php echo $__tbEntry; ?><?php echo ($currentMenu ?? '') === 'setting_cache' ? ' text-primary' : ''; ?>">
+                                <i class="ti ti-database text-base text-gray-400" aria-hidden="true"></i><?php echo e($__tbLabels['cache']); ?>
+                            </a>
+                            <?php if (in_array('ai', $__tbRendered, true)): ?>
+                            <button type="button"<?php echo $__tbMoreAttr('ai'); ?> class="<?php echo $__tbEntry; ?>" @click="open = false; YikaiAdminToolbar.open('ai')">
+                                <i class="ti ti-robot text-base text-gray-400" aria-hidden="true"></i><?php echo e($__tbLabels['ai']); ?>
+                            </button>
+                            <?php endif; ?>
+                            <hr class="my-2">
+                            <button type="button" class="flex w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left"
+                                    @click="open = false; document.getElementById('ykToolbarSettings').showModal()">
+                                <i class="ti ti-adjustments text-base text-gray-400" aria-hidden="true"></i><?php echo e(__('admin_toolbar_settings')); ?>
+                            </button>
+                        </div>
+                    </div>
+
                     <?php /* 用户菜单 */ ?>
-                    <div class="relative" x-data="{ open: false }">
+                    <div class="relative" x-data="{ open: false }" data-testid="admin-account-menu">
                         <button @click="open = !open" :aria-expanded="open.toString()" aria-haspopup="true" aria-label="<?php echo e(trim(__('admin_profile') . ' · ' . ($adminInfo['nickname'] ?? ''), ' ·')); ?>" class="flex items-center gap-2 text-gray-700 hover:text-primary">
                             <?php $adminAvatar = $adminInfo['avatar'] ?? ''; ?>
                             <?php if ($adminAvatar): ?>
@@ -919,6 +1036,11 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                             <a href="/admin/profile.php" class="flex items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100">
                                 <i class="ti ti-user-cog text-base text-gray-400"></i><?php echo __('admin_profile'); ?>
                             </a>
+                            <button type="button" data-testid="admin-toolbar-settings-open"
+                                    class="flex w-full items-center gap-2 px-4 py-2 text-gray-700 hover:bg-gray-100 text-left"
+                                    @click="open = false; document.getElementById('ykToolbarSettings').showModal()">
+                                <i class="ti ti-adjustments text-base text-gray-400"></i><?php echo e(__('admin_toolbar_settings')); ?>
+                            </button>
                             <hr class="my-2">
                             <a href="/admin/logout.php" class="flex items-center gap-2 px-4 py-2 text-red-600 hover:bg-gray-100">
                                 <i class="ti ti-logout text-base"></i><?php echo __('admin_logout'); ?>
@@ -927,6 +1049,36 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                     </div>
                 </div>
             </header>
+
+            <?php /* 顶栏设置：勾选 = 固定在顶栏，取消 = 收进「更多」；逐项立即保存到当前账号（assets/js/admin-toolbar.js） */ ?>
+            <dialog id="ykToolbarSettings" class="rounded-lg shadow-xl p-0 w-full max-w-sm" aria-labelledby="ykToolbarSettingsTitle" data-testid="admin-toolbar-settings">
+                <div class="p-5">
+                    <div class="flex items-center justify-between mb-2">
+                        <h2 id="ykToolbarSettingsTitle" class="font-semibold text-gray-800"><?php echo e(__('admin_toolbar_settings')); ?></h2>
+                        <button type="button" onclick="this.closest('dialog').close()" class="p-1 text-gray-400 hover:text-gray-700 rounded hover:bg-gray-100" aria-label="<?php echo e(__('admin_close')); ?>">
+                            <i class="ti ti-x text-base" aria-hidden="true"></i>
+                        </button>
+                    </div>
+                    <p class="text-xs text-gray-500 mb-3"><?php echo e(__('admin_toolbar_intro')); ?></p>
+                    <fieldset class="mb-3">
+                        <legend class="sr-only"><?php echo e(__('admin_toolbar_settings')); ?></legend>
+                        <?php foreach ($__tbAvailable as $__tbKey): ?>
+                        <label class="flex items-center gap-3 rounded px-2 py-1.5 text-sm text-gray-700 hover:bg-gray-50">
+                            <input type="checkbox" value="<?php echo e($__tbKey); ?>" data-yk-tb-check data-testid="admin-toolbar-check-<?php echo e($__tbKey); ?>"<?php echo $__tbPinned($__tbKey) === '1' ? ' checked' : ''; ?>>
+                            <i class="ti ti-<?php echo e($__tbIcons[$__tbKey]); ?> text-base text-gray-400" aria-hidden="true"></i>
+                            <span><?php echo e($__tbLabels[$__tbKey]); ?></span>
+                        </label>
+                        <?php endforeach; ?>
+                    </fieldset>
+                    <p class="text-xs text-gray-400 mb-4"><?php echo e(__('admin_toolbar_narrow_note')); ?></p>
+                    <div class="flex items-center gap-2">
+                        <button type="button" data-yk-tb-reset data-testid="admin-toolbar-reset" class="border px-3 py-1.5 rounded text-sm text-gray-700 hover:bg-gray-50"><?php echo e(__('admin_toolbar_restore')); ?></button>
+                        <span data-yk-tb-status role="status" aria-live="polite" class="flex-1 text-center text-xs text-gray-500"></span>
+                        <button type="button" onclick="this.closest('dialog').close()" class="bg-primary text-white px-4 py-1.5 rounded text-sm"><?php echo e(__('admin_toolbar_done')); ?></button>
+                    </div>
+                </div>
+            </dialog>
+            <script src="<?php echo assetVer('/assets/js/admin-toolbar.js'); ?>"></script>
 
 
             <?php if (defined('DEMO_MODE') && DEMO_MODE): ?>

@@ -794,6 +794,12 @@
                 "toggle_status"
             ]
         },
+        "admin/toolbar_prefs_api.php": {
+            "action_candidates": [
+                "reset",
+                "set_item"
+            ]
+        },
         "admin/translation_status.php": {
             "action_candidates": [
                 "publish"

@@ -88,6 +88,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         userModel()->deleteById($id);
         adminLog('user', 'delete', "删除用户ID: $id");
         $revokeAiTokens($id);
+        require_once ROOT_PATH . '/includes/AdminToolbarPrefs.php';
+        AdminToolbarPrefs::forget($id);
         success();
     }
 
