@@ -24,7 +24,9 @@ $pluginSlug = trim($_GET['plugin'] ?? '');
 $retiredTarget = retiredPluginRedirect($pluginSlug);
 if ($retiredTarget !== null) {
     $keep = array_intersect_key($_GET, ['tab' => true]);
-    header('Location: ' . BasePath::url($retiredTarget . ($keep !== [] ? '?' . http_build_query($keep) : '')), true, 302);
+    // 写根相对地址：子目录前缀由 BasePath::prefixLocationHeader() 在发头前统一补上。
+    // 这里再套 BasePath::url() 会补两次（/sub/sub/admin/…，2.3.0 子目录站的旧书签打不开）。
+    header('Location: ' . $retiredTarget . ($keep !== [] ? '?' . http_build_query($keep) : ''), true, 302);
     exit;
 }
 $pluginMetaEarly = getPluginMeta($pluginSlug);

@@ -74,4 +74,27 @@ final class MarketBuiltInPluginsTest extends TestCase
         self::assertNull(retiredPluginRedirect('seo'));
         self::assertFileExists(ROOT_PATH . '/admin/product_import.php');
     }
+
+    /** 子目录站：旧地址 plugin_page.php?plugin=product-import 只补一次前缀（2.3.0 起曾跳到 /sub/sub/admin/…） */
+    public function testRetiredPluginRedirectGetsTheSubdirectoryPrefixOnce(): void
+    {
+        require_once ROOT_PATH . '/includes/BasePath.php';
+        require_once ROOT_PATH . '/includes/plugin.php';
+        $page = (string) file_get_contents(ROOT_PATH . '/admin/plugin_page.php');
+        self::assertStringContainsString("header('Location: ' . \$retiredTarget", $page);
+        self::assertSame('/sub/admin/product_import.php', \BasePath::prefixLocation((string) retiredPluginRedirect('product-import'), '/sub'));
+
+        // 发头回调已统一补前缀：任何 Location 头都不能再先套 BasePath::url()
+        $offenders = [];
+        foreach (['admin', 'includes', 'member', 'api'] as $dir) {
+            $files = new \RecursiveIteratorIterator(new \RecursiveDirectoryIterator(ROOT_PATH . '/' . $dir, \FilesystemIterator::SKIP_DOTS));
+            foreach ($files as $file) {
+                if ($file->getExtension() !== 'php') continue;
+                if (preg_match("/(?:Location:\\s*'\\s*\\.\\s*|redirect\\(\\s*)BasePath::url\\(/", (string) file_get_contents($file->getPathname())) === 1) {
+                    $offenders[] = substr($file->getPathname(), strlen(ROOT_PATH) + 1);
+                }
+            }
+        }
+        self::assertSame([], $offenders);
+    }
 }
