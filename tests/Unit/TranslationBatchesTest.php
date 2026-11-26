@@ -230,8 +230,12 @@ final class TranslationBatchesTest extends TestCase
         $r = $this->probe('migration');
         self::assertFalse($r['check_before']);
         self::assertTrue($r['check_after']);
-        self::assertSame([['calls' => 4, 'requests' => 0, 'requests_known' => 0], ['calls' => 0, 'requests' => 0, 'requests_known' => 1]], $r['rows'],
+        self::assertSame([['calls' => 4, 'requests' => 0, 'requests_known' => 0], ['calls' => 1, 'requests' => 0, 'requests_known' => 0], ['calls' => 1, 'requests' => 0, 'requests_known' => 0],
+            ['calls' => 1, 'requests' => 0, 'requests_known' => 0], ['calls' => 1, 'requests' => 0, 'requests_known' => 0], ['calls' => 0, 'requests' => 0, 'requests_known' => 1]], $r['rows'],
             '升级前的批次保留生成次数、请求数记为未知；迁移再跑一次不影响新批次');
+        $per = TranslationBatches::REQUESTS_PER_ITEM;
+        self::assertSame([2 * $per, 2 * $per, 6, 0, 1, 0], $r['limits'],
+            '旧上限按生成次数算：手动暂停的、进行中的按剩余项（2 项）换成请求额度；已完成的、因额度暂停的保留原值（继续时再给）；不限次数的仍不限；新批次不受影响');
     }
 
     public function testSavedRepliesAreDiscardedUnlessWellFormed(): void

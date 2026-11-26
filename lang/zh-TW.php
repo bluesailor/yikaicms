@@ -9731,6 +9731,7 @@ return [
     'tbt_usage_unknown' => '已生成 :attempts 次 · 模型請求數未知（升級前建的批次；升級後已發 :requests 次，上限 :max 次）',
     'tbt_pause_budget' => '已暫停：本批模型請求已用到上限（:requests / :max 次）。點「開始 / 繼續」會把上限提高到 :next 次（剩下 :open 項，每項 :per 次）並接著跑；已收到的回覆直接重用，不會重發，也不再計數。',
     'tbt_pause_manual' => '已手動暫停。點「開始 / 繼續」接著跑，請求上限不變。',
+    'tbt_pause_budget_legacy' => '已暫停：升級前按「生成次數」計的上限已用完（:attempts / :max 次）。點「開始 / 繼續」後改按模型請求計，上限設為 :next 次（剩下 :open 項，每項 :per 次）並接著跑。',
     'tbt_log' => '任務日誌',
     'tbt_ev_created' => '建立任務（項數）',
     'tbt_ev_retry_later' => '失敗，稍後自動重試',

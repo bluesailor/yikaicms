@@ -56,10 +56,13 @@ $batchView = static function (array $batch, array $counts): array {
         foreach (TranslationBatches::OPEN as $status) $open += (int) ($counts[$status] ?? 0);
         $kind = (string) $batch['note'] === TranslationBatches::NOTE_BUDGET ? 'budget' : 'manual';
         // 与 TranslationBatches::resume() 的算法一致：已用 + 剩余项 × 每项额度
-        $pause = $kind === 'budget' ? __('tbt_pause_budget', [
-            'requests' => (string) $requests, 'max' => (string) $max, 'next' => (string) ($requests + $open * TranslationBatches::REQUESTS_PER_ITEM),
-            'open' => (string) $open, 'per' => (string) TranslationBatches::REQUESTS_PER_ITEM,
-        ]) : __('tbt_pause_manual');
+        $next = ['next' => (string) ($requests + $open * TranslationBatches::REQUESTS_PER_ITEM), 'open' => (string) $open, 'per' => (string) TranslationBatches::REQUESTS_PER_ITEM];
+        // 升级前因额度暂停的批次：当时的上限按生成次数算，说明这一点，不显示「请求已用到上限」
+        $pause = match (true) {
+            $kind === 'manual' => __('tbt_pause_manual'),
+            (int) ($batch['requests_known'] ?? 1) === 1 => __('tbt_pause_budget', ['requests' => (string) $requests, 'max' => (string) $max] + $next),
+            default => __('tbt_pause_budget_legacy', ['attempts' => (string) (int) $batch['calls'], 'max' => (string) $max] + $next),
+        };
     }
     return ['usage' => $usage, 'pause' => $pause, 'pause_kind' => $kind];
 };

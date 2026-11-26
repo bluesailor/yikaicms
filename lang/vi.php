@@ -9730,6 +9730,7 @@ return [
     'tbt_usage_unknown' => 'Lượt tạo: :attempts · Yêu cầu tới mô hình: không rõ (lô tạo trước khi nâng cấp; đã gửi :requests từ đó, giới hạn :max)',
     'tbt_pause_budget' => 'Đã tạm dừng: lô này đã dùng hết giới hạn yêu cầu gửi đến mô hình (:requests / :max). Nhấn “Bắt đầu / tiếp tục” để nâng giới hạn lên :next (:per cho mỗi mục trong :open mục còn lại) và chạy tiếp. Các phản hồi đã nhận được dùng lại, không gửi lại và không tính lại.',
     'tbt_pause_manual' => 'Quản trị viên đã tạm dừng. Nhấn “Bắt đầu / tiếp tục” để chạy tiếp; giới hạn yêu cầu giữ nguyên.',
+    'tbt_pause_budget_legacy' => 'Đã tạm dừng: giới hạn đặt trước khi nâng cấp, vốn tính theo số lần tạo bản dịch, đã dùng hết (:attempts / :max). Nhấn “Bắt đầu / tiếp tục” để chuyển sang tính theo số yêu cầu gửi đến mô hình, với giới hạn :next (:per cho mỗi mục trong :open mục còn lại), rồi chạy tiếp.',
     'tbt_log' => 'Nhật ký tác vụ',
     'tbt_ev_created' => 'Đã tạo tác vụ (số mục)',
     'tbt_ev_retry_later' => 'Lỗi, sẽ tự động thử lại',

@@ -9730,6 +9730,7 @@ return [
     'tbt_usage_unknown' => 'Generierungsversuche: :attempts · Modellanfragen: unbekannt (Stapel vor dem Update erstellt; seitdem :requests gesendet, Limit :max)',
     'tbt_pause_budget' => 'Pausiert: Dieser Stapel hat sein Limit für Modellanfragen erreicht (:requests / :max). Klicken Sie auf „Starten / fortsetzen“, um das Limit auf :next zu erhöhen (:per für jedes der :open verbleibenden Elemente) und weiterzumachen. Bereits erhaltene Antworten werden wiederverwendet und weder erneut gesendet noch erneut gezählt.',
     'tbt_pause_manual' => 'Von einem Administrator pausiert. Klicken Sie auf „Starten / fortsetzen“, um weiterzumachen; das Anfragelimit bleibt unverändert.',
+    'tbt_pause_budget_legacy' => 'Pausiert: Das vor dem Update festgelegte Limit, das Generierungsversuche zählte, ist ausgeschöpft (:attempts / :max). Klicken Sie auf „Starten / fortsetzen“, um auf das Zählen von Modellanfragen umzustellen – mit einem Limit von :next (:per für jedes der :open verbleibenden Elemente) – und weiterzumachen.',
     'tbt_log' => 'Aufgabenprotokoll',
     'tbt_ev_created' => 'Auftrag erstellt (Einträge)',
     'tbt_ev_retry_later' => 'Fehlgeschlagen, wird automatisch wiederholt',

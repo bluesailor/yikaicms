@@ -9730,6 +9730,7 @@ return [
     'tbt_usage_unknown' => 'Percobaan pembuatan: :attempts · Permintaan ke model: tidak diketahui (batch dibuat sebelum pembaruan; :requests terkirim sejak itu, batas :max)',
     'tbt_pause_budget' => 'Dijeda: batch ini telah mencapai batas permintaan ke model (:requests / :max). Klik “Mulai / lanjutkan” untuk menaikkan batas menjadi :next (:per untuk setiap :open item yang tersisa) dan melanjutkan. Balasan yang sudah diterima dipakai ulang, tidak dikirim atau dihitung lagi.',
     'tbt_pause_manual' => 'Dijeda oleh administrator. Klik “Mulai / lanjutkan” untuk melanjutkan; batas permintaan tetap sama.',
+    'tbt_pause_budget_legacy' => 'Dijeda: batas yang ditetapkan sebelum pembaruan, yang menghitung percobaan pembuatan, sudah habis (:attempts / :max). Klik “Mulai / lanjutkan” untuk beralih menghitung permintaan ke model, dengan batas :next (:per untuk setiap :open item yang tersisa), lalu melanjutkan.',
     'tbt_log' => 'Log tugas',
     'tbt_ev_created' => 'Batch dibuat (item)',
     'tbt_ev_retry_later' => 'Gagal, akan dicoba ulang otomatis',

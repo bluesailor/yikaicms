@@ -9730,6 +9730,7 @@ return [
     'tbt_usage_unknown' => 'Intentos de generación: :attempts · Solicitudes al modelo: desconocidas (lote creado antes de la actualización; :requests enviadas desde entonces, límite :max)',
     'tbt_pause_budget' => 'En pausa: este lote ha agotado su límite de solicitudes al modelo (:requests / :max). Haga clic en «Iniciar / continuar» para ampliar el límite a :next (:per por cada uno de los :open elementos restantes) y seguir. Las respuestas ya recibidas se reutilizan; no se vuelven a enviar ni a contar.',
     'tbt_pause_manual' => 'Pausado por un administrador. Haga clic en «Iniciar / continuar» para seguir; el límite de solicitudes no cambia.',
+    'tbt_pause_budget_legacy' => 'En pausa: se agotó el límite fijado antes de la actualización, que contaba intentos de generación (:attempts / :max). Haga clic en «Iniciar / continuar» para pasar a contar solicitudes al modelo, con un límite de :next (:per por cada uno de los :open elementos restantes), y seguir.',
     'tbt_log' => 'Registro de la tarea',
     'tbt_ev_created' => 'Lote creado (elementos)',
     'tbt_ev_retry_later' => 'Falló, se reintentará automáticamente',

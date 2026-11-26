@@ -9730,6 +9730,7 @@ return [
     'tbt_usage_unknown' => 'Cubaan penjanaan: :attempts · Permintaan kepada model: tidak diketahui (kelompok dicipta sebelum naik taraf; :requests dihantar sejak itu, had :max)',
     'tbt_pause_budget' => 'Dijeda: kelompok ini telah mencapai had permintaan model (:requests / :max). Klik “Mula / teruskan” untuk menaikkan had kepada :next (:per bagi setiap :open item yang tinggal) dan meneruskan kerja. Balasan yang sudah diterima digunakan semula, tidak dihantar atau dikira semula.',
     'tbt_pause_manual' => 'Dijeda oleh pentadbir. Klik “Mula / teruskan” untuk meneruskan; had permintaan kekal sama.',
+    'tbt_pause_budget_legacy' => 'Dijeda: had yang ditetapkan sebelum naik taraf, yang mengira cubaan penjanaan, telah habis (:attempts / :max). Klik “Mula / teruskan” untuk bertukar kepada mengira permintaan model, dengan had :next (:per bagi setiap :open item yang tinggal), dan meneruskan kerja.',
     'tbt_log' => 'Log tugas',
     'tbt_ev_created' => 'Kelompok dicipta (item)',
     'tbt_ev_retry_later' => 'Gagal, akan dicuba semula secara automatik',

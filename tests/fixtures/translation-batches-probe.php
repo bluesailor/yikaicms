@@ -463,6 +463,13 @@ switch ((string) ($argv[1] ?? '')) {
             foreach ($columns as $column) db()->execute('ALTER TABLE yikai_' . $table . ' DROP COLUMN ' . $column);
         }
         db()->execute("INSERT INTO yikai_translation_batches (admin_id, content_type, langs, status, total, created_at, updated_at, calls, max_calls) VALUES (1, 'product', '[\"en\"]', 'paused', 2, 1, 1, 4, 6)");
+        // 2.3.0 的上限按生成次数（默认每项 3 次）：进行中 / 暂停的按剩余项换成请求额度；已完成的、不限次数的不动
+        foreach ([['running', 9, 3, ['applied', 'pending', 'generating'], ''], ['done', 6, 2, ['applied', 'applied'], ''], ['running', 0, 1, ['pending'], ''], ['paused', 1, 2, ['applied', 'pending'], 'budget']] as [$status, $max, $total, $states, $note]) {
+            db()->execute("INSERT INTO yikai_translation_batches (admin_id, content_type, langs, status, total, created_at, updated_at, calls, max_calls, note) VALUES (1, 'product', '[\"en\"]', ?, ?, 1, 1, 1, ?, ?)", [$status, $total, $max, $note]);
+            $batch = (int) db()->getPdo()->lastInsertId();
+            foreach ($states as $n => $state) db()->execute('INSERT INTO yikai_translation_batch_items (batch_id, source_id, lang, status, updated_at) VALUES (?, ?, ?, ?, 1)', [$batch, $n + 1, 'en', $state]);
+        }
+        db()->execute('INSERT INTO yikai_translation_batch_items (batch_id, source_id, lang, status, updated_at) VALUES (1, 1, ?, ?, 1), (1, 2, ?, ?, 1)', ['en', 'pending', 'ja', 'pending']);
         $migration = require ROOT_PATH . '/migrations/20261126_translation_batch_requests.php';
         $out['check_before'] = ($migration['check'])();
         $out['first_run'] = ($migration['php'])();
@@ -470,6 +477,7 @@ switch ((string) ($argv[1] ?? '')) {
         $out['second_run'] = ($migration['php'])();
         $out['check_after'] = ($migration['check'])();
         $out['rows'] = array_map(static fn (array $r): array => array_map('intval', $r), db()->fetchAll('SELECT calls, requests, requests_known FROM yikai_translation_batches ORDER BY id'));
+        $out['limits'] = array_map('intval', array_column(db()->fetchAll('SELECT max_calls FROM yikai_translation_batches ORDER BY id'), 'max_calls'));
         break;
 
     case 'partial-decode':

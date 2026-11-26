@@ -9730,6 +9730,7 @@ return [
     'tbt_usage_unknown' => 'Üretim denemesi: :attempts · Model isteği: bilinmiyor (güncellemeden önce oluşturulan toplu iş; o zamandan beri :requests gönderildi, sınır :max)',
     'tbt_pause_budget' => 'Duraklatıldı: bu toplu iş model istek sınırını doldurdu (:requests / :max). Sınırı :next değerine yükseltmek (kalan :open öğenin her biri için :per) ve devam etmek için “Başlat / devam et”e tıklayın. Önceden alınan yanıtlar yeniden kullanılır; tekrar gönderilmez ve tekrar sayılmaz.',
     'tbt_pause_manual' => 'Bir yönetici tarafından duraklatıldı. Devam etmek için “Başlat / devam et”e tıklayın; istek sınırı değişmez.',
+    'tbt_pause_budget_legacy' => 'Duraklatıldı: güncellemeden önce belirlenen ve üretim denemelerini sayan sınır doldu (:attempts / :max). Model isteklerini saymaya geçmek, sınırı :next yapmak (kalan :open öğenin her biri için :per) ve devam etmek için “Başlat / devam et”e tıklayın.',
     'tbt_log' => 'Görev günlüğü',
     'tbt_ev_created' => 'İş oluşturuldu (öğe)',
     'tbt_ev_retry_later' => 'Başarısız, otomatik olarak yeniden denenecek',
