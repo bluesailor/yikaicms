@@ -7,9 +7,10 @@ const vm = require('node:vm');
 function editor(data) {
     const source = fs.readFileSync(path.resolve(__dirname, '../../admin/product_edit.php'), 'utf8');
     const start = source.indexOf('function specName(');
-    const script = source.slice(start, source.indexOf('\nrenderSpecs();', start)).replace(/<\?php[\s\S]*?\?>/g, php => {
+    // Strings appear as <?php echo __() ?>, json_encode(__()) or, since 2.3.1, <?= jsString(__()) ?>; the last two emit a quoted JS string.
+    const script = source.slice(start, source.indexOf('\nrenderSpecs();', start)).replace(/<\?(?:php|=)[\s\S]*?\?>/g, php => {
         const key = php.match(/__\(['"]([^'"]+)['"]\)/)[1];
-        return php.includes('json_encode') ? JSON.stringify(key) : key;
+        return php.includes('json_encode') || php.includes('jsString(') ? JSON.stringify(key) : key;
     });
     let focused;
     const element = () => ({
