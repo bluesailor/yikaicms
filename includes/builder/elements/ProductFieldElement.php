@@ -43,6 +43,9 @@ final class ProductFieldElement extends AbstractElement
     public function controls(): array
     {
         $controls = [];
+        // 详情主图的比例与填充（2.3.1）：换成产品图那一套（多了跟随排版、自定义）；
+        // 跟随排版＝按原图显示，与升级前一致
+        $imageFrame = $this->field === 'image' ? BloxImageFraming::productControls([], 'blox_pimg_help_detail', true) : [];
         foreach ($this->delegate()->controls() as $control) {
             $key = $control['key'];
             if (str_starts_with($key, 'site_') || str_starts_with($key, 'loop_')
@@ -50,6 +53,14 @@ final class ProductFieldElement extends AbstractElement
                 || ($key === 'text' && $this->field !== 'button')) continue;
             if ($key === 'level') $control['default'] = 'h1';
             if ($key === 'text') $control['default'] = __('blox_product_link_label');
+            if ($imageFrame !== [] && $key === 'image_ratio') {
+                array_push($controls, $imageFrame[0], $imageFrame[1], $imageFrame[2]);
+                continue;
+            }
+            if ($imageFrame !== [] && $key === 'image_fit') {
+                $controls[] = $imageFrame[3];
+                continue;
+            }
             $controls[] = $control;
         }
         if ($this->field === 'gallery') {
@@ -58,6 +69,8 @@ final class ProductFieldElement extends AbstractElement
                     'grid' => __('blox_product_gallery_layout_grid'),
                     'thumbs' => __('blox_product_gallery_layout_thumbs'),
                 ]]);
+            // 相册大图的比例与填充（2.3.1）：默认跟随排版＝方形；缩略图条不变
+            array_push($controls, ...BloxImageFraming::productControls([], 'blox_pimg_help_detail'));
         }
         return self::withoutOrphanedRules($controls);
     }
@@ -84,9 +97,10 @@ final class ProductFieldElement extends AbstractElement
                 }
                 if ($images === []) return '';
                 if (($data['gallery_layout'] ?? 'grid') === 'thumbs' && count($images) > 1) {
-                    $data['html'] = $this->galleryWithThumbs($images, $title);
+                    $data['html'] = $this->galleryWithThumbs($images, $title, $data);
                     break;
                 }
+                $frame = self::galleryFrame($data, 'object-cover');
                 $items = [];
                 foreach ($images as $image) {
                     // 锚点带原图 href：PhotoSwipe 接管时用它做大图，脚本缺失时退化为普通链接
@@ -94,10 +108,10 @@ final class ProductFieldElement extends AbstractElement
                         . ' data-yk-gallery-full="' . e($image) . '"'
                         . ' data-yk-gallery-alt="' . e($title) . '"'
                         . ' aria-label="' . e(__('blox_product_gallery_zoom')) . '"'
-                        . ' class="block aspect-square overflow-hidden rounded-lg bg-gray-100">'
+                        . $frame['anchor']
                         . '<img alt="' . e($title) . '" loading="lazy" decoding="async" '
                         . responsiveImageAttributes($image, 'medium', '(min-width: 1024px) 25vw, 50vw')
-                        . ' class="w-full h-full object-cover"></a>';
+                        . $frame['img'] . '></a>';
                 }
                 if ($items === []) return '';
                 $data['html'] = '<div class="yk-product-gallery grid grid-cols-2 md:grid-cols-3 gap-3" data-yk-gallery>'
@@ -176,18 +190,19 @@ final class ProductFieldElement extends AbstractElement
      * 缩略图按钮切换显示哪张。灯箱仍按全部锚点的顺序浏览，脚本缺失时停在第一张、照样能点开原图。
      * @param list<string> $images
      */
-    private function galleryWithThumbs(array $images, string $title): string
+    private function galleryWithThumbs(array $images, string $title, array $data = []): string
     {
+        $frame = self::galleryFrame($data, 'object-contain');
         $main = $thumbs = '';
         foreach ($images as $i => $image) {
             $label = __('blox_product_gallery_show', ['n' => (string) ($i + 1), 'total' => (string) count($images)]);
             $main .= '<a href="' . e($image) . '" data-yk-gallery-item data-yk-gallery-full="' . e($image) . '"'
                 . ' data-yk-gallery-alt="' . e($title) . '" aria-label="' . e(__('blox_product_gallery_zoom')) . '"'
                 . ($i > 0 ? ' hidden' : '')
-                . ' class="block aspect-square overflow-hidden rounded-lg bg-gray-100">'
+                . $frame['anchor']
                 . '<img alt="' . e($title) . '" decoding="async" ' . ($i === 0 ? 'fetchpriority="high" ' : 'loading="lazy" ')
                 . responsiveImageAttributes($image, 'medium', '(min-width: 1024px) 40vw, 100vw')
-                . ' class="w-full h-full object-contain"></a>';
+                . $frame['img'] . '></a>';
             $thumbs .= '<button type="button" data-yk-gallery-thumb="' . $i . '" aria-label="' . e($label) . '"'
                 . ($i === 0 ? ' aria-current="true"' : '')
                 . ' class="shrink-0 w-16 h-16 overflow-hidden rounded-md border-2 bg-gray-100 '
@@ -197,6 +212,21 @@ final class ProductFieldElement extends AbstractElement
         }
         return '<div class="yk-product-gallery" data-yk-gallery data-yk-gallery-layout="thumbs">' . $main
             . '<div class="mt-3 flex gap-2 overflow-x-auto" data-yk-gallery-thumbs>' . $thumbs . '</div></div>';
+    }
+
+    /**
+     * 相册大图的显示框属性（锚点 class/style 与 img class/style）。跟随排版时与升级前逐字节一致：
+     * 方形框，网格裁切铺满、大图+缩略图完整显示。锚点 href 仍是原图，灯箱放大看的是原图。
+     *
+     * @return array{anchor:string,img:string}
+     */
+    private static function galleryFrame(array $data, string $followFit): array
+    {
+        $f = BloxImageFraming::productFrame($data, 'aspect-square', $followFit);
+        $anchorClass = trim('block ' . $f['frameClass'] . ' overflow-hidden rounded-lg bg-gray-100');
+        $anchor = ' class="' . e($anchorClass) . '"' . ($f['frameStyle'] !== '' ? ' style="' . e($f['frameStyle']) . '"' : '') . '>';
+        $img = ' class="w-full ' . e($f['imgClass']) . '"' . ($f['imgStyle'] !== '' ? ' style="' . e($f['imgStyle']) . '"' : '');
+        return ['anchor' => $anchor, 'img' => $img];
     }
 
     /** 与 TextElement 同款外观壳（prose + 圆角 + 颜色 + 动画），区别是不做富文本净化。 */

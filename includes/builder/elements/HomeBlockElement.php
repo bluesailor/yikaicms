@@ -56,6 +56,14 @@ final class HomeBlockElement extends AbstractElement
     {
         // 主题声明的区块文案（tc_*）也是正式控件：设置面板可见，保存管线按类型清洗。
         $controls = array_merge(HomeBloxBlockSchema::controls(), HomeBloxBlockSchema::themeFieldControls());
+        // 产品栏目来源的图片比例与填充（2.3.1）：每个区块各存一份，默认跟随排版（主题原来的 4:3 裁切铺满）
+        $productSources = self::productSources();
+        if ($productSources !== []) {
+            $controls = array_merge($controls, BloxImageFraming::productControls(
+                [['block_type', 'in', $productSources]],
+                'blox_pimg_help_card'
+            ));
+        }
         $surfaceTypes = [];
         foreach (function_exists('getThemes') ? getThemes() : [] as $theme) {
             if (($theme['slug'] ?? '') === currentTheme()) {
@@ -110,6 +118,26 @@ final class HomeBlockElement extends AbstractElement
         }
         unset($control);
         return $controls;
+    }
+
+    /**
+     * 产品类栏目对应的来源键（channel:<id>）。
+     * @return list<string>
+     */
+    private static function productSources(): array
+    {
+        try {
+            $channels = function_exists('channelModel') ? channelModel()->getByParent(0, true, false, siteLang()) : [];
+        } catch (Throwable) {
+            $channels = [];
+        }
+        $sources = [];
+        foreach ($channels as $channel) {
+            if (($channel['type'] ?? '') === 'product' && (int) ($channel['id'] ?? 0) > 0) {
+                $sources[] = 'channel:' . (int) $channel['id'];
+            }
+        }
+        return $sources;
     }
 
     public function render(array $data, string $children = ''): string

@@ -42,8 +42,16 @@ final class ProductCatalogLayout
                 continue;
             }
             if (array_key_exists($key, $data)) {
+                // 图片比例存的是「跟随排版」（2.3.1 的默认值）不算动过新字段，旧文档仍走旧路径
+                if ($key === 'image_ratio' && in_array($data[$key], ['', 'default'], true)) {
+                    continue;
+                }
                 return self::legacyMode($data);
             }
+        }
+        // 只选了填充方式也要走新路径，旧 partial 不认这个设置
+        if (in_array($data['image_fit'] ?? '', ['contain', 'cover'], true)) {
+            return self::legacyMode($data);
         }
         return null;
     }
@@ -100,6 +108,7 @@ final class ProductCatalogLayout
             'show_summary' => self::flag($data, 'show_summary'),
             'show_button' => self::flag($data, 'show_button'),
             'image_ratio' => self::enum($data, 'image_ratio', ['square', 'landscape', 'portrait'], 'landscape'),
+            'image_frame' => self::imageFrame($data),
             'gap' => self::enum($data, 'card_gap', ['sm', 'md', 'lg'], 'md'),
             'align' => self::enum($data, 'content_align', ['left', 'center'], 'left'),
             'sidebar_width' => self::enum($data, 'sidebar_width', ['sm', 'md', 'lg'], 'md'),
@@ -173,6 +182,22 @@ final class ProductCatalogLayout
             'md' => 'lg:w-64',
             'lg' => 'lg:w-80',
         ][$width] ?? 'lg:w-64';
+    }
+
+    /**
+     * 卡片图片的显示框（2.3.1）。旧的三档比例仍用原来的类名，没选新比例与填充方式时输出不变；
+     * 主题覆盖的 card-*.php 可直接用这四个值。
+     *
+     * @param array<string,mixed> $data
+     * @return array{frameClass:string,frameStyle:string,imgClass:string,imgStyle:string,custom:bool}
+     */
+    public static function imageFrame(array $data): array
+    {
+        $ratio = is_string($data['image_ratio'] ?? null) ? $data['image_ratio'] : '';
+        if (in_array($ratio, ['square', 'landscape', 'portrait'], true)) {
+            return BloxImageFraming::productFrame(['image_ratio' => 'default'] + $data, self::imageRatioClass($ratio));
+        }
+        return BloxImageFraming::productFrame($data, self::imageRatioClass('landscape'));
     }
 
     /** 图片比例 → Tailwind aspect 类。 */

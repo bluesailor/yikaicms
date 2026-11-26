@@ -25,6 +25,7 @@ $pcGrid = ProductCatalogLayout::gridClasses((int) $catalog['columns']);
 $pcAlign = $catalog['align'] === 'center' ? 'text-center' : '';
 $pcSidebarWidth = ProductCatalogLayout::sidebarWidthClass((string) $catalog['sidebar_width']);
 $pcImageRatio = ProductCatalogLayout::imageRatioClass((string) $catalog['image_ratio']);
+$pcImageFrame = is_array($catalog['image_frame'] ?? null) ? $catalog['image_frame'] : ProductCatalogLayout::imageFrame([]);
 $pcUsesSidebar = $pcNav === 'sidebar' && ($pcShowNav || !empty($catalog['show_search']));
 $pcNavVariant = in_array($pcNav, ['sidebar', 'top', 'toolbar'], true) ? $pcNav : 'top';
 $pcToolbarVariant = $pcNav === 'sidebar' ? 'main' : 'full';

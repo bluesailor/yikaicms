@@ -44,17 +44,23 @@ $pcBadges = static function () use ($item, $pcHasBadges): void {
     <?php
 };
 
-$pcCoverBlock = static function (string $extraClass = '') use ($pcCover, $pcTitle, $pcImageRatio, $pcBadges, $catalog): void {
+// 图片显示框（2.3.1）：跟随排版时类名与升级前相同；选了比例/填充方式改走行内样式，原图不变
+$pcFrame = isset($pcImageFrame) && is_array($pcImageFrame) ? $pcImageFrame
+    : ['frameClass' => $pcImageRatio, 'frameStyle' => '', 'imgClass' => 'h-full object-cover', 'imgStyle' => '', 'custom' => false];
+$pcCoverBlock = static function (string $extraClass = '') use ($pcCover, $pcTitle, $pcFrame, $pcBadges, $catalog): void {
     if (empty($catalog['show_image'])) {
         return;
     }
+    $frameStyle = (string) $pcFrame['frameStyle'];
+    $imgStyle = (string) $pcFrame['imgStyle'];
+    $noFrame = $pcFrame['frameClass'] === '' && $frameStyle === '';
     ?>
-    <div class="<?php echo e(trim($pcImageRatio . ' overflow-hidden relative ' . $extraClass)); ?>">
+    <div class="<?php echo e(trim($pcFrame['frameClass'] . ' overflow-hidden relative ' . $extraClass)); ?>"<?php echo $frameStyle !== '' ? ' style="' . e($frameStyle) . '"' : ''; ?>>
         <?php if ($pcCover !== ''): ?>
         <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($pcCover, 'medium', '(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 100vw'); ?>
-             alt="<?php echo e($pcTitle); ?>" class="w-full h-full object-cover group-hover:scale-110 transition duration-500">
+             alt="<?php echo e($pcTitle); ?>" class="w-full <?php echo e($pcFrame['imgClass']); ?> group-hover:scale-110 transition duration-500"<?php echo $imgStyle !== '' ? ' style="' . e($imgStyle) . '"' : ''; ?>>
         <?php else: ?>
-        <div class="w-full h-full bg-gray-200 flex items-center justify-center text-gray-400"><?php echo __('admin_no_image'); ?></div>
+        <div class="w-full <?php echo $noFrame ? 'aspect-[4/3]' : 'h-full'; ?> bg-gray-200 flex items-center justify-center text-gray-400"><?php echo __('admin_no_image'); ?></div>
         <?php endif; ?>
         <?php $pcBadges(); ?>
     </div>

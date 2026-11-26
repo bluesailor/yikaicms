@@ -108,12 +108,186 @@ final class BloxImageFraming
         $data = self::withPreset($data);
         $ratio = $data['image_ratio'] ?? null;
         $default = $forCard ? 'default' : 'auto';
+        if ($ratio === 'custom') {
+            // 自定义比例（2.3.1 产品图）：宽高不合法时退回默认，保存时另有服务端校验拒收
+            return self::customRatioCss($data) !== null ? 'custom' : $default;
+        }
         return is_string($ratio) && (isset(self::RATIOS[$ratio]) || $ratio === 'auto' || $ratio === $default) ? $ratio : $default;
     }
 
-    public static function ratioCss(string $ratio): string
+    public static function ratioCss(string $ratio, array $data = []): string
     {
+        if ($ratio === 'custom') {
+            return self::customRatioCss($data) ?? '';
+        }
         return self::RATIOS[$ratio] ?? '';
+    }
+
+    // ── 产品图片比例（2.3.1）────────────────────────────────────────────
+    // 首页产品区块、产品目录卡片、详情页主图/相册各自一份设置，键名与通用图片相同
+    // （image_ratio / image_fit），多了「跟随排版」「自定义」两档。默认值＝跟随排版，
+    // 即渲染与升级前逐字节一致，直到客户自己选了比例或填充方式。
+
+    /** 自定义宽高的取值范围与最极端的比例（1:10 至 10:1）。 */
+    public const CUSTOM_MIN = 1;
+    public const CUSTOM_MAX = 1000;
+    public const CUSTOM_MAX_RATIO = 10;
+
+    /** 自定义比例的 CSS 值；任一边不合法返回 null。 */
+    public static function customRatioCss(array $data): ?string
+    {
+        $w = self::customSide($data['image_ratio_w'] ?? null);
+        $h = self::customSide($data['image_ratio_h'] ?? null);
+        if ($w === null || $h === null) {
+            return null;
+        }
+        $r = $w / $h;
+        if ($r > self::CUSTOM_MAX_RATIO || $r < 1 / self::CUSTOM_MAX_RATIO) {
+            return null;
+        }
+        return self::number($w) . ' / ' . self::number($h);
+    }
+
+    private static function customSide(mixed $value): ?float
+    {
+        if (is_string($value)) {
+            $value = trim($value);
+        }
+        if ($value === null || $value === '' || is_bool($value) || is_array($value) || !is_numeric($value)) {
+            return null;
+        }
+        $n = (float) $value;
+        // 最多两位小数：1.91:1 这类常见值能填，更长的小数多半是误输入
+        if ($n < self::CUSTOM_MIN || $n > self::CUSTOM_MAX || abs(round($n, 2) - $n) > 1e-9) {
+            return null;
+        }
+        return $n;
+    }
+
+    private static function number(float $value): string
+    {
+        return rtrim(rtrim(number_format($value, 2, '.', ''), '0'), '.');
+    }
+
+    /**
+     * 产品图片的比例与填充控件。$terms 是整组的显示条件（如首页区块只对产品栏目来源显示）。
+     *
+     * @param list<array<int,mixed>> $terms
+     * @return list<array<string,mixed>>
+     */
+    public static function productControls(array $terms = [], string $helpKey = '', bool $fitNeedsFrame = false): array
+    {
+        $customTerms = array_merge($terms, [['image_ratio', '=', 'custom']]);
+        // 跟随排版本身没有框（详情主图默认按原图显示）时，只有选了比例填充方式才有意义
+        $fitTerms = array_merge($terms, [['image_ratio', 'not_in', $fitNeedsFrame ? ['auto', 'default'] : ['auto']]]);
+        $ratio = ['key' => 'image_ratio', 'type' => 'select', 'label' => __('blox_image_ratio'), 'default' => 'default', 'tab' => 'style',
+            'option_preview' => 'image-ratio',
+            'options' => [
+                'default' => __('blox_pimg_follow_layout'),
+                'square' => '1:1', 'landscape' => '4:3', 'portrait' => '3:4', 'wide' => '16:9',
+                'auto' => __('blox_pimg_original'),
+                'custom' => __('blox_pimg_custom'),
+            ]];
+        if ($helpKey !== '') {
+            $ratio['help'] = __($helpKey);
+        }
+        $side = static fn (string $key, string $label): array => ['key' => $key, 'type' => 'number', 'label' => __($label),
+            'default' => '', 'tab' => 'style', 'min' => self::CUSTOM_MIN, 'max' => self::CUSTOM_MAX, 'step' => 1,
+            'visible_when' => ['terms' => $customTerms]];
+        $controls = [
+            $ratio,
+            $side('image_ratio_w', 'blox_pimg_ratio_width'),
+            $side('image_ratio_h', 'blox_pimg_ratio_height'),
+            ['key' => 'image_fit', 'type' => 'select', 'label' => __('blox_image_fit'), 'default' => '', 'tab' => 'style',
+                'option_preview' => 'image-fit', 'visible_when' => ['terms' => $fitTerms],
+                'options' => [
+                    '' => __('blox_pimg_follow_layout'),
+                    'contain' => __('blox_pimg_fit_contain'),
+                    'cover' => __('blox_pimg_fit_cover'),
+                ]],
+        ];
+        if ($terms !== []) {
+            $controls[0]['visible_when'] = ['terms' => $terms];
+        }
+        return $controls;
+    }
+
+    /**
+     * 产品图片的显示框。跟随排版（比例与填充都没选）时原样返回排版自己的类名，
+     * 输出与升级前一致；选了的部分改用行内样式。原图（灯箱、放大）不受影响，只改显示框。
+     *
+     * @param string $followRatioClass 排版默认的比例类（如 aspect-[4/3]）
+     * @param string $followFitClass   排版默认的填充类（object-cover / object-contain）
+     * @return array{frameClass:string,frameStyle:string,imgClass:string,imgStyle:string,custom:bool}
+     */
+    public static function productFrame(array $data, string $followRatioClass, string $followFitClass = 'object-cover'): array
+    {
+        $ratio = is_string($data['image_ratio'] ?? null) ? $data['image_ratio'] : 'default';
+        $css = match (true) {
+            $ratio === 'custom' => self::customRatioCss($data) ?? '',
+            isset(self::RATIOS[$ratio]) => self::RATIOS[$ratio],
+            default => '',
+        };
+        $original = $ratio === 'auto';
+        $followRatio = !$original && $css === '';
+        $fit = in_array($data['image_fit'] ?? '', ['contain', 'cover'], true) ? (string) $data['image_fit'] : '';
+
+        if ($followRatio && $fit === '') {
+            return ['frameClass' => $followRatioClass, 'frameStyle' => '', 'imgClass' => 'h-full ' . $followFitClass, 'imgStyle' => '', 'custom' => false];
+        }
+        $frameClass = $followRatio ? $followRatioClass : '';
+        $frameStyle = $css !== '' ? 'aspect-ratio:' . $css . ';' : '';
+        if ($original) {
+            // 原比例：不设框，图片按自身宽高显示，填充方式无意义
+            return ['frameClass' => '', 'frameStyle' => '', 'imgClass' => 'h-auto', 'imgStyle' => '', 'custom' => true];
+        }
+        $imgClass = 'h-full' . ($fit === '' ? ' ' . $followFitClass : '');
+        $imgStyle = $fit !== '' ? 'object-fit:' . $fit . ';' : '';
+        return ['frameClass' => $frameClass, 'frameStyle' => $frameStyle, 'imgClass' => $imgClass, 'imgStyle' => $imgStyle, 'custom' => true];
+    }
+
+    /**
+     * 服务端校验：选了「自定义」的元素必须带合法宽高（各 1–1000、最多两位小数、比例在 1:10 至 10:1 之间）。
+     * 在保存管线归一化之前对原始提交执行——归一化会把越界数字静默夹取，那样错误的输入看起来像生效了。
+     *
+     * @param array<int,mixed> $sections
+     */
+    public static function assertSectionsValid(array $sections): void
+    {
+        $walk = static function (mixed $elements, string $path) use (&$walk): void {
+            foreach (is_array($elements) ? array_values($elements) : [] as $index => $element) {
+                if (!is_array($element)) {
+                    continue;
+                }
+                $data = is_array($element['data'] ?? null) ? $element['data'] : [];
+                $elementPath = $path . ' / ' . __('blox_element_word', ['n' => $index + 1]);
+                if (($data['image_ratio'] ?? null) === 'custom' && self::customRatioCss($data) === null) {
+                    throw new RuntimeException(__('blox_pimg_custom_invalid', [
+                        'path' => $elementPath,
+                        'min' => (string) self::CUSTOM_MIN,
+                        'max' => (string) self::CUSTOM_MAX,
+                        'ratio' => (string) self::CUSTOM_MAX_RATIO,
+                    ]));
+                }
+                $walk($data['children'] ?? [], $elementPath);
+            }
+        };
+        foreach (array_values($sections) as $sectionIndex => $section) {
+            if (!is_array($section)) {
+                continue;
+            }
+            $sectionPath = __('blox_section_word', ['n' => $sectionIndex + 1]);
+            $columns = $section['columns'] ?? [];
+            if (!is_array($columns)) {
+                continue;
+            }
+            $columnNumber = 0;
+            foreach ($columns as $column) {
+                $columnNumber++;
+                $elements = is_array($column) ? ($column['elements'] ?? []) : [];
+                $walk($elements, $sectionPath . ' / ' . __('blox_col_word', ['n' => $columnNumber]));
+            }
+        }
     }
 
     /**
@@ -193,7 +367,7 @@ final class BloxImageFraming
     public static function standaloneStyle(array $data, string $extraCss = ''): string
     {
         $preset = self::presetFrameStyle($data['image_preset'] ?? '');
-        $ratio = self::ratioCss(self::ratio($data));
+        $ratio = self::ratioCss(self::ratio($data), $data);
         if ($ratio === '') {
             // 没有裁切比例时，预设的外观（圆形／白底）仍要生效
             return ($preset . $extraCss) === '' ? '' : ' style="' . $preset . $extraCss . '"';

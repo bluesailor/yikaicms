@@ -104,6 +104,8 @@ final class BloxDocumentPipeline
         }
 
         BloxDocumentValidator::assertValidSections($sections);
+        // 产品图自定义比例：在归一化夹取数值之前拒收不合法的宽高（2.3.1）
+        BloxImageFraming::assertSectionsValid($sections);
         self::assertAuthoringAllowed($sections, $trustedJson);
         $normalized = self::normalizeSections($sections, $idPrefix);
         BloxDocumentValidator::assertValidSections($normalized);

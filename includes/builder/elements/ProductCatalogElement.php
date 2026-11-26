@@ -54,7 +54,8 @@ final class ProductCatalogElement extends AbstractElement
                 'keys' => [
                     'layout_mode', 'layout', 'columns', 'card_style',
                     'show_image', 'show_title', 'show_summary', 'show_button',
-                    'image_ratio', 'card_gap', 'content_align', 'sidebar_width',
+                    'image_ratio', 'image_ratio_w', 'image_ratio_h', 'image_fit',
+                    'card_gap', 'content_align', 'sidebar_width',
                     'empty_text', 'button_text',
                 ],
             ],
@@ -131,14 +132,9 @@ final class ProductCatalogElement extends AbstractElement
                 'key' => 'columns', 'type' => 'select', 'label' => __('blox_dynamic_columns'),
                 'default' => '4', 'options' => ['2' => '2', '3' => '3', '4' => '4'], 'tab' => 'style',
             ],
-            [
-                'key' => 'image_ratio', 'type' => 'select', 'label' => __('blox_product_catalog_image_ratio'),
-                'default' => 'landscape', 'tab' => 'style', 'options' => [
-                    'landscape' => __('blox_product_catalog_ratio_landscape'),
-                    'square' => __('blox_product_catalog_ratio_square'),
-                    'portrait' => __('blox_product_catalog_ratio_portrait'),
-                ],
-            ],
+            // 卡片图片比例与填充（2.3.1）：默认跟随排版＝升级前的 4:3 裁切铺满；
+            // 旧文档里存的 landscape / square / portrait 照旧有效
+            ...BloxImageFraming::productControls([], 'blox_pimg_help_card'),
             [
                 'key' => 'card_gap', 'type' => 'select', 'label' => __('blox_product_catalog_card_gap'),
                 'default' => 'md', 'tab' => 'style', 'options' => [
