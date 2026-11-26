@@ -1057,7 +1057,7 @@ function ykPickChannelIcon(name) {
 
                 <div>
                     <label class="block text-gray-700 text-sm mb-1"><?= __('admin_type') ?></label>
-                    <select name="type" id="channelType" onchange="ykSyncProductSlugLock()" class="w-full border rounded px-3 py-2">
+                    <select name="type" id="channelType" onchange="if (typeof ykSyncProductSlugLock === 'function') ykSyncProductSlugLock()" class="w-full border rounded px-3 py-2">
                         <?php foreach ($channelTypes as $key => $label): ?>
                         <option value="<?php echo $key; ?>" <?php echo ($editChannel['type'] ?? 'list') === $key ? 'selected' : ''; ?>>
                             <?php echo $label; ?>
