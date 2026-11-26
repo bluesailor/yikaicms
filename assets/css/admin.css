@@ -345,18 +345,21 @@ input[type="radio"] {
     height: 36px;
     pointer-events: none;
 }
+/* 按钮不只是藏起来（visibility），要 display:none：带文字的按钮（如 AI 助手）比 36px 锚点宽，会把顶栏撑出溢出 */
 [data-yk-tb-item][data-pinned="0"][data-yk-tb-detach] [data-yk-tb-trigger],
-[data-yk-tb-item][data-overflow][data-yk-tb-detach] [data-yk-tb-trigger] { visibility: hidden; }
+[data-yk-tb-item][data-overflow][data-yk-tb-detach] [data-yk-tb-trigger] { display: none !important; }
 [data-yk-tb-item][data-pinned="0"][data-yk-tb-detach] [data-yk-tb-panel],
 [data-yk-tb-item][data-overflow][data-yk-tb-detach] [data-yk-tb-panel] { pointer-events: auto; }
 [data-yk-tb-item][data-pinned="0"][data-yk-tb-detach] [data-yk-tb-panel="drop"],
-[data-yk-tb-item][data-overflow][data-yk-tb-detach] [data-yk-tb-panel="drop"] { top: 100%; }
+[data-yk-tb-item][data-overflow][data-yk-tb-detach] [data-yk-tb-panel="drop"] { top: 100%; right: auto; inset-inline-end: 0; }
 [data-yk-tb-item][data-pinned="0"][data-yk-tb-detach] .yk-tb-search-box:not(.yk-tb-expanded) { display: none !important; }
 /* 展开的输入框贴着锚点右端往左铺开（编译产物里 .relative 排在 .absolute 后面，类名压不住） */
 [data-yk-tb-item][data-pinned="0"][data-yk-tb-detach] .yk-tb-search-box.yk-tb-expanded { position: absolute; inset-inline-end: 0; }
 @media (min-width: 640px) {
-    [data-yk-tb-item][data-pinned="0"][data-yk-tb-detach] [data-yk-tb-panel="drop-sm"] { top: 100%; }
+    [data-yk-tb-item][data-pinned="0"][data-yk-tb-detach] [data-yk-tb-panel="drop-sm"] { top: 100%; right: auto; inset-inline-end: 0; }
 }
+/* 「更多」菜单从按钮的行尾一侧展开：从右到左的语言里也在屏幕内 */
+[data-testid="admin-toolbar-more-menu"] { right: auto; inset-inline-end: 0; }
 @media (max-width: 639.98px) {
     .yk-tb-more { display: block; }
     .yk-tb-more-entry[data-yk-tb-narrow] { display: flex; }
@@ -369,6 +372,6 @@ input[type="radio"] {
         height: 36px;
         pointer-events: none;
     }
-    [data-yk-tb-item][data-yk-tb-narrow][data-yk-tb-detach] [data-yk-tb-trigger] { visibility: hidden; }
-    [data-yk-tb-item][data-yk-tb-narrow][data-yk-tb-detach] [data-yk-tb-panel] { pointer-events: auto; top: 100%; }
+    [data-yk-tb-item][data-yk-tb-narrow][data-yk-tb-detach] [data-yk-tb-trigger] { display: none !important; }
+    [data-yk-tb-item][data-yk-tb-narrow][data-yk-tb-detach] [data-yk-tb-panel] { pointer-events: auto; top: 100%; right: auto; inset-inline-end: 0; }
 }

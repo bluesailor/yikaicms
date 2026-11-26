@@ -3,7 +3,7 @@ const test = require("node:test");
 
 global.window = global;
 require("../../assets/js/admin-toolbar.js");
-const { normalize, withItem, attributeValue, create, fit, open } = global.YikaiAdminToolbar;
+const { normalize, withItem, attributeValue, create, fit, open, focusFirst } = global.YikaiAdminToolbar;
 const ORDER = ["search", "language", "notifications", "help", "visit", "cache", "ai"];
 const TEXT = { saved: "Saved", restored: "Defaults restored", failed: "Could not save" };
 
@@ -161,4 +161,29 @@ test("when the toolbar does not fit, low-priority shortcuts move into More until
     assert.deepEqual(fit(root, overflows, visible), [], "wider again: everything returns");
     assert.equal("data-yk-tb-overflowing" in attrs, false);
     assert.equal(nodes["item:cache"].hasAttribute("data-overflow"), false);
+});
+
+test("a panel opened from More gets focus once it is actually shown, fixed panels included", async function () {
+    let shown = false;
+    const focused = [];
+    const item = (name, visible) => ({ name, get offsetParent() { return visible() ? {} : null; }, focus() { focused.push(name); } });
+    const hiddenLink = item("hidden link", () => false);
+    const link = item("first link", () => shown);
+    // 手机上提醒面板是 position:fixed：offsetParent 恒为 null，只能看 getClientRects
+    const panel = {
+        offsetParent: null,
+        getClientRects() { return shown ? [{}] : []; },
+        querySelectorAll() { return [hiddenLink, link]; },
+        setAttribute() {}, focus() { focused.push("panel"); },
+    };
+    focusFirst(panel);
+    assert.deepEqual(focused, [], "nothing to focus while x-show has not run yet");
+    shown = true;
+    await new Promise((resolve) => setTimeout(resolve, 80));
+    assert.deepEqual(focused, ["first link"], "skips invisible items and lands on the first visible one");
+
+    const empty = { getClientRects: () => [{}], querySelectorAll: () => [], attrs: {}, setAttribute(n, v) { this.attrs[n] = v; }, focus() { focused.push("empty panel"); } };
+    focusFirst(empty);
+    assert.equal(empty.attrs.tabindex, "-1");
+    assert.equal(focused.at(-1), "empty panel", "a panel without controls takes focus itself");
 });

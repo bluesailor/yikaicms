@@ -604,7 +604,7 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                                    role="searchbox" autocomplete="off" aria-label="<?php echo __('admin_quick_search'); ?>"
                                    x-model="query"
                                    @input="search()" @focus="open = true"
-                                   @keydown.escape="open = false; mExpand = false"
+                                   @keydown.escape="open = false; mExpand = false; YikaiAdminToolbar.returnFocus($root)"
                                    @keydown.down.prevent="moveSel(1)"
                                    @keydown.up.prevent="moveSel(-1)"
                                    @keydown.enter.prevent="goSelected()"
@@ -753,7 +753,8 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                     <?php /* AI 助手浮窗（仅在已配置 AI 且不在助手大页时显示） */ ?>
                     <?php if (in_array('ai', $__tbRendered, true)): ?>
                     <div class="relative" x-data="aiBubble()" x-init="init()"
-                         @yk-toolbar-open.window="if ($event.detail === 'ai') open = true"<?php echo $__tbAttr('ai'); ?>>
+                         @yk-toolbar-open.window="if ($event.detail === 'ai') { open = true; $nextTick(() => $el.querySelector('#aiAssistantPrompt').focus()) }"
+                         @keydown.escape="if (open) { open = false; YikaiAdminToolbar.returnFocus($el) }"<?php echo $__tbAttr('ai'); ?>>
                         <button @click="toggle()" data-yk-tb-trigger class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary relative px-2 py-1 rounded hover:bg-gray-50" title="<?php echo __('admin_ai_assistant'); ?>">
                             <i class="ti ti-robot text-lg"></i>
                             <span class="hidden sm:inline"><?php echo __('admin_ai_assistant'); ?></span>
@@ -956,8 +957,8 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                     <?php $__tbEntry = 'yk-tb-more-entry w-full items-center gap-2 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 text-left'; ?>
                     <div class="relative yk-tb-more" data-testid="admin-toolbar-more"
                          x-data="{ open: false, langOpen: false, bellCount: <?php echo isset($__notices) ? count($__notices) : 0; ?> }"
-                         @yk-bell-count.window="bellCount = Number($event.detail) || 0" @keydown.escape="open = false">
-                        <button type="button" @click="open = !open" :aria-expanded="open.toString()" aria-haspopup="true"
+                         @yk-bell-count.window="bellCount = Number($event.detail) || 0" @keydown.escape="if (open) { open = false; $refs.moreButton.focus() }">
+                        <button type="button" @click="open = !open" :aria-expanded="open.toString()" aria-haspopup="true" x-ref="moreButton"
                                 data-testid="admin-toolbar-more-button"
                                 aria-label="<?php echo e(__('admin_toolbar_more')); ?>" title="<?php echo e(__('admin_toolbar_more')); ?>"
                                 class="relative flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2">

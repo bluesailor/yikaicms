@@ -21,7 +21,7 @@ $__bellInit = [
 ];
 ?>
 <?php // 顶栏设置收进「更多」时由 header.php 传来 data-yk-tb-* 属性：组件照常挂载（计数、新版本推送不断），按钮藏起，面板从「更多」打开 ?>
-<div class="relative" x-data="adminBell(<?php echo e(json_encode($__bellInit, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT)); ?>)" @keydown.escape.window="open = false" @yk-update-found.window="addUpdate($event.detail)" @yk-toolbar-open.window="if ($event.detail === 'notifications') open = true" data-testid="admin-bell"<?php echo $__bellToolbarAttr ?? ''; ?>>
+<div class="relative" x-data="adminBell(<?php echo e(json_encode($__bellInit, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT)); ?>)" @keydown.escape.window="if (open) { const inside = $el.contains(document.activeElement); open = false; if (inside) YikaiAdminToolbar.returnFocus($el) }" @yk-update-found.window="addUpdate($event.detail)" @yk-toolbar-open.window="if ($event.detail === 'notifications') { open = true; $nextTick(() => YikaiAdminToolbar.focusFirst($el.querySelector('[data-testid=admin-bell-panel]'))) }" data-testid="admin-bell"<?php echo $__bellToolbarAttr ?? ''; ?>>
     <button type="button" @click="open = !open" :aria-expanded="open.toString()" aria-haspopup="true"
             data-testid="admin-bell-button" data-yk-tb-trigger
             class="relative flex h-9 w-9 items-center justify-center rounded-full text-gray-500 transition hover:bg-gray-50 hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"

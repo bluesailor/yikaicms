@@ -154,6 +154,13 @@
         });
         var resetButton = doc.querySelector('[data-yk-tb-reset]');
         if (resetButton) resetButton.addEventListener('click', function () { controller.reset(); });
+        // 对话框关闭时浏览器把焦点还给打开它的菜单项，可那个菜单已经收起：改放到账号菜单按钮上
+        var dialog = doc.getElementById('ykToolbarSettings');
+        if (dialog) dialog.addEventListener('close', function () {
+            var active = doc.activeElement;
+            var account = doc.querySelector('[data-testid="admin-account-menu"] button');
+            if (account && (!active || active === doc.body || active.offsetParent === null)) account.focus();
+        });
         var header = el.closest('header');
         if (header) {
             var refit = function () {
@@ -178,7 +185,40 @@
         setTimeout(function () { root.dispatchEvent(new CustomEvent('yk-toolbar-open', { detail: item })); }, 0);
     }
 
-    root.YikaiAdminToolbar = { normalize: normalize, withItem: withItem, attributeValue: attributeValue, create: create, fit: fit, boot: boot, open: open };
+    /** 收进「更多」的复杂入口（CSS 把它移出排版：position absolute）。 */
+    function collapsed(el) {
+        return !!el && el.hasAttribute('data-yk-tb-detach') && root.getComputedStyle(el).position === 'absolute';
+    }
+
+    /**
+     * 键盘关掉面板（Esc）后把焦点放回原处：入口收在「更多」里就回「更多」按钮，否则回它自己看得见的按钮；
+     * 都没有（桌面端常驻的查找输入框）就不动。焦点不能留在刚隐藏的元素上，否则 Tab 从页首重来。
+     */
+    function returnFocus(el) {
+        var doc = root.document;
+        var target = collapsed(el) ? doc.querySelector('[data-testid="admin-toolbar-more-button"]') : el && el.querySelector('[data-yk-tb-trigger]');
+        if (target && target.offsetParent !== null) target.focus();
+    }
+
+    /** 从「更多」打开的面板：焦点移到面板里第一个可操作的元素，键盘用户不用再从页首 Tab 过去。 */
+    function focusFirst(panel, tries) {
+        if (!panel) return;
+        // x-show 不一定在 $nextTick 时已经显示出来（没有过渡的面板晚一拍），没显示就稍等再试。
+        // 用 getClientRects 判断：手机上提醒面板是 position:fixed，它的 offsetParent 永远是 null
+        if (!panel.getClientRects().length) {
+            if ((tries || 0) < 20) setTimeout(function () { focusFirst(panel, (tries || 0) + 1); }, 25);
+            return;
+        }
+        var items = panel.querySelectorAll('a[href], button:not([disabled]), input:not([disabled]):not([type="hidden"]), select, textarea');
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].offsetParent !== null) { items[i].focus(); return; }
+        }
+        panel.setAttribute('tabindex', '-1');
+        panel.focus();
+    }
+
+    root.YikaiAdminToolbar = { normalize: normalize, withItem: withItem, attributeValue: attributeValue, create: create, fit: fit, boot: boot, open: open,
+        returnFocus: returnFocus, focusFirst: focusFirst };
     if (root.document && root.document.querySelector) {
         if (root.document.readyState === 'loading') {
             root.document.addEventListener('DOMContentLoaded', function () { boot(root.document); });

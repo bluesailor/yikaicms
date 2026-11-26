@@ -78,7 +78,7 @@ final class AdminToolbarSettingsContractTest extends TestCase
         // 计数广播到「更多」按钮
         $bell = $this->source('admin/includes/admin_bell.php');
         self::assertStringContainsString("new CustomEvent('yk-bell-count'", $bell);
-        self::assertStringContainsString("@yk-toolbar-open.window=\"if (\$event.detail === 'notifications') open = true\"", $bell);
+        self::assertStringContainsString("@yk-toolbar-open.window=\"if (\$event.detail === 'notifications') { open = true;", $bell);
         self::assertStringContainsString('@yk-bell-count.window="bellCount = Number($event.detail) || 0"', $header);
 
         $css = $this->source('assets/css/admin.css');
@@ -88,6 +88,29 @@ final class AdminToolbarSettingsContractTest extends TestCase
         // 放不下时（中等宽度 + 展开侧栏）脚本临时收起入口，账号菜单不被挤出屏幕
         self::assertStringContainsString('[data-yk-toolbar][data-yk-tb-overflowing] .yk-tb-more', $css);
         self::assertStringContainsString("var OVERFLOW_ORDER = ['cache', 'help', 'visit', 'language', 'ai'];", $this->source('assets/js/admin-toolbar.js'));
+    }
+
+    public function testKeyboardFocusFollowsPanelsOpenedFromMore(): void
+    {
+        $header = $this->source('admin/includes/header.php');
+        $bell = $this->source('admin/includes/admin_bell.php');
+        // 从「更多」打开：AI 进输入框，提醒进面板第一个可操作元素；Esc 关掉回「更多」按钮
+        self::assertStringContainsString("\$nextTick(() => \$el.querySelector('#aiAssistantPrompt').focus())", $header);
+        self::assertStringContainsString('@keydown.escape="if (open) { open = false; YikaiAdminToolbar.returnFocus($el) }"', $header);
+        self::assertStringContainsString('@keydown.escape="if (open) { open = false; $refs.moreButton.focus() }"', $header);
+        self::assertStringContainsString('YikaiAdminToolbar.returnFocus($root)', $header);
+        self::assertStringContainsString("YikaiAdminToolbar.focusFirst(\$el.querySelector('[data-testid=admin-bell-panel]'))", $bell);
+        self::assertStringContainsString('if (inside) YikaiAdminToolbar.returnFocus($el)', $bell);
+
+        $css = $this->source('assets/css/admin.css');
+        // 收起的按钮要 display:none：带文字的按钮比 36px 锚点宽，visibility:hidden 仍会撑出顶栏溢出
+        self::assertStringContainsString("[data-yk-tb-item][data-overflow][data-yk-tb-detach] [data-yk-tb-trigger] { display: none !important; }", $css);
+        self::assertStringNotContainsString('[data-yk-tb-trigger] { visibility: hidden; }', $css);
+        // 从右到左时「更多」菜单和收起面板从行尾一侧展开
+        self::assertStringContainsString('[data-testid="admin-toolbar-more-menu"] { right: auto; inset-inline-end: 0; }', $css);
+        self::assertStringContainsString('[data-yk-tb-panel="drop"] { top: 100%; right: auto; inset-inline-end: 0; }', $css);
+        $js = $this->source('assets/js/admin-toolbar.js');
+        self::assertStringContainsString('if (!panel.getClientRects().length) {', $js, 'fixed panels have no offsetParent');
     }
 
     public function testInlineScriptStringsInTheMoreMenuUseJsString(): void
