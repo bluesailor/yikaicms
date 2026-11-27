@@ -7509,6 +7509,8 @@ return [
     'blox_pimg_fit_contain' => '完整顯示',
     'blox_pimg_fit_cover' => '填滿裁切',
     'blox_pimg_help_card' => '工業產品目錄建議用 4:3 + 完整顯示，產品整件可見、不被裁掉。',
+    'blox_home_product_card_radius' => '卡片圓角（px）',
+    'blox_home_product_card_radius_help' => '留空沿用佈景主題圓角，填 0 顯示直角。',
     'blox_pimg_help_detail' => '工業產品詳情建議用 1:1 + 完整顯示。',
     'blox_pimg_custom_invalid' => ':path：自定義比例的寬和高都要填 :min 到 :max 之間的數字（最多兩位小數），寬高之比不能超過 :ratio 倍。',
     'blox_alert_appearance' => '提示框外觀',
