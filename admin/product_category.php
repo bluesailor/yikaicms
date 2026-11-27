@@ -15,6 +15,7 @@ require_once ROOT_PATH . '/admin/includes/row_sort.php';
 
 checkLogin();
 requirePermission('edit_product');
+if (isEnterpriseContentAdmin()) permissionDenied();
 
 // 多语言翻译创建器：拦截 action=create_translation 的 POST
 $langSwitcher = [

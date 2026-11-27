@@ -29,7 +29,7 @@ function adminBarResolveEditUrl(string $editUrl): string
     return '/admin/blox_editor.php?' . $query;
 }
 
-/** 前台不加载后台 auth.php，直接读取每次后台请求刷新过的会话权限快照。 */
+/** 前台不加载后台 auth.php，读取本请求开头 refreshFrontendAdminIdentity() 刷新过的会话权限快照。 */
 function adminBarHasPermission(string $permission): bool
 {
     $permissions = (array) ($_SESSION['admin_permissions'] ?? []);
@@ -130,7 +130,7 @@ function renderAdminBar(): void
         }
         return;
     }
-    if (empty($_SESSION['admin_id'])) return;   // 未登录管理员 → 不显示
+    if (empty($_SESSION['admin_id']) || isEnterpriseContentAdmin()) return;
 
     $name = $_SESSION['admin_nickname'] ?? ($_SESSION['admin_username'] ?? __('admin_administrator'));
   $returnTo = BloxAreaEditorTarget::frontendSourceReturnTo((string) ($_SERVER['REQUEST_URI'] ?? ''));

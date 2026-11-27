@@ -11,6 +11,7 @@ foreach ([
     'product_tag' => ['product_tab_tag', 'tags'],
     'product_setting' => ['product_tab_setting', 'settings'],
 ] as $route => [$key, $icon]) {
+    if ($route !== 'product' && isEnterpriseContentAdmin()) continue;
     $productNavItems[] = [
         'label' => __($key),
         'url' => '/admin/' . $route . '.php?lang=' . rawurlencode((string) ($_viewLang ?? siteLang())),

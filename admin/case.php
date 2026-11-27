@@ -223,6 +223,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
                                 <div class="min-w-0">
                                     <div class="font-medium"><?php echo e(cutStr($item['title'], 40)); ?></div>
                                     <?php echo renderRowActions([
+                                        'allow_delete' => hasPermission('delete_case'),
                                         'id'        => (int) $item['id'],
                                         'edit'      => '/admin/content_edit.php?id=' . (int) $item['id'],
                                         'view'      => contentUrl($item),
@@ -273,8 +274,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
             <?php echo renderBulkBar([
                 'batch_publish'   => __('admin_published'),
                 'batch_unpublish' => __('admin_unpublished'),
-                'batch_delete'    => __('admin_move_to_trash'),
-            ]); ?>
+            ] + (hasPermission('delete_case') ? ['batch_delete' => __('admin_move_to_trash')] : [])); ?>
             <?php if ($total > $perPage): ?>
             <div class="flex items-center gap-2">
                 <span class="text-sm text-gray-500"><?php echo sprintf(__('admin_total_items'), $total); ?></span>

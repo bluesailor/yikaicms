@@ -18,6 +18,7 @@ require_once ROOT_PATH . '/includes/TranslationCoverage.php';
 require_once ROOT_PATH . '/includes/TranslationPublish.php';
 
 checkLogin();
+if (isEnterpriseContentAdmin()) permissionDenied();
 /**
  * 各种类：要哪项权限、原文与译文各进哪个编辑页。产品分类没有单条编辑页，进该语言的分类列表。
  * @var array<string,array{permission:string,source:Closure(int,string):string,target:Closure(int,string):string}> $kinds

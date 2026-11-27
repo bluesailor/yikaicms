@@ -37,7 +37,8 @@ $workflowRoute = basename((string) ($_SERVER['SCRIPT_NAME'] ?? ''), '.php');
 $workflowLang = (string) adminLangView()['view'];
 $workflowItems = [];
 foreach ($workflowRoutes as $route => [$key, $icon, $permission]) {
-    if (!hasPermission($permission)) {
+    if (!hasPermission($permission)
+        || (isEnterpriseContentAdmin() && in_array($route, ['article_category', 'case_category'], true))) {
         continue;
     }
     $workflowItems[] = [

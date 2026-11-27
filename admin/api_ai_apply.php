@@ -34,6 +34,12 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit;
 }
 verifyCsrf();
+// AI 助手尚无单独授权（待办）：企业管理员与提案、撤销一并拒绝，与 api_ai_agent.php 一致
+if (isEnterpriseContentAdmin()) {
+    http_response_code(403);
+    echo json_encode(["success" => false, "error" => __("perm_enterprise_denied")], JSON_UNESCAPED_UNICODE);
+    exit;
+}
 
 $setId = trim((string)($_POST['set_id'] ?? ''));
 $idsRaw = trim((string)($_POST['ids'] ?? ''));

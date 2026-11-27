@@ -9,6 +9,7 @@ require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/admin/includes/auth.php';
 checkLogin();
 requirePermission('edit_product');
+if (isEnterpriseContentAdmin()) permissionDenied();
 
 // ============== 多语言视图 ==============
 $_lang        = adminLangView();

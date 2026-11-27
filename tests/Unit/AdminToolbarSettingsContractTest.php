@@ -55,7 +55,10 @@ final class AdminToolbarSettingsContractTest extends TestCase
         $header = $this->source('admin/includes/header.php');
         self::assertStringContainsString("'language' => count(\$availableLangs) >= 2,", $header);
         self::assertStringContainsString("'notifications' => hasPermission('*'),", $header);
-        self::assertStringContainsString("\$__tbAiReady = class_exists('AiService') && aiService()->isConfigured();", $header);
+        // 企业管理员（受限内容角色）不显示 AI 助手与缓存入口：AI 助手尚无单独授权，缓存属站点设置
+        self::assertStringContainsString("\$__tbAiReady = !isEnterpriseContentAdmin() && class_exists('AiService') && aiService()->isConfigured();", $header);
+        self::assertStringContainsString("'cache' => !isEnterpriseContentAdmin(),", $header);
+        self::assertSame(2, substr_count($header, "<?php if (in_array('cache', \$__tbRendered, true)): ?>"), 'cache is gated in the bar and in More');
         self::assertStringContainsString("\$key !== 'ai' || \$currentMenu !== 'ai_assistant'", $header);
         // 顶栏那份沿用原来的判断（语言 count >= 2、提醒在 admin_bell.php 里判权限），「更多」那份按同一份可用清单
         self::assertStringContainsString('<?php if (count($availableLangs) >= 2): ?>', $header);

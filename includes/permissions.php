@@ -54,6 +54,41 @@ function aiAccessPermKeys(): array
     return ['ai_access'];
 }
 
+/** The delivery preset keeps the three content types and only these optional grants. */
+function enterpriseContentPermissions(array $selected = []): array
+{
+    return array_merge(
+        ['enterprise_content', 'edit_article', 'edit_product', 'edit_case'],
+        array_values(array_intersect(enterpriseOptionalPermissions(), $selected))
+    );
+}
+
+/** Opt-in grants that only mean something on top of enterprise_content; each works on its own. */
+function enterpriseOptionalPermissions(): array
+{
+    return ['enterprise_ai_translation', 'enterprise_case_seo'];
+}
+
+function isEnterpriseContentAdmin(): bool
+{
+    return in_array('enterprise_content', (array) ($_SESSION['admin_permissions'] ?? []), true);
+}
+
+function canUseAdminTranslation(): bool
+{
+    return !isEnterpriseContentAdmin() || hasPermission('enterprise_ai_translation');
+}
+
+function canEditCaseSeo(): bool
+{
+    return !isEnterpriseContentAdmin() || hasPermission('enterprise_case_seo');
+}
+
+function caseSeoFields(): array
+{
+    return ['seo_title', 'seo_keywords', 'seo_description'];
+}
+
 /** Blox 场景能力；内容编辑范围仍由 edit_page 等内容权限约束。 */
 function bloxPermKeys(): array
 {
@@ -68,7 +103,8 @@ function allPermissionKeys(): array
         $keys[] = 'edit_' . $t;
         $keys[] = 'delete_' . $t;
     }
-    return array_merge($keys, modulePermKeys(), bloxPermKeys(), maintenancePermKeys(), aiAccessPermKeys(), pluginPermissionKeys());
+    return array_merge($keys, modulePermKeys(), bloxPermKeys(), maintenancePermKeys(), aiAccessPermKeys(),
+        ['enterprise_content', 'enterprise_ai_translation', 'enterprise_case_seo'], pluginPermissionKeys());
 }
 
 /**
@@ -262,6 +298,9 @@ function permLabel(string $key): string
         'blox_global' => 'perm_blox_global', 'blox_code' => 'perm_blox_code',
         'system_maintenance' => 'perm_system_maintenance',
         'ai_access' => 'perm_ai_access',
+        'enterprise_content' => 'perm_enterprise_content',
+        'enterprise_ai_translation' => 'perm_enterprise_ai_translation',
+        'enterprise_case_seo' => 'perm_enterprise_case_seo',
     ];
     if (isset($mod[$key])) {
         return __($mod[$key]);
@@ -280,6 +319,9 @@ function permDescription(string $key): string
         'blox_code' => 'perm_blox_code_desc',
         'system_maintenance' => 'perm_system_maintenance_desc',
         'ai_access' => 'perm_ai_access_desc',
+        'enterprise_content' => 'perm_enterprise_content_desc',
+        'enterprise_ai_translation' => 'perm_enterprise_ai_translation_desc',
+        'enterprise_case_seo' => 'perm_enterprise_case_seo_desc',
     ];
     return isset($descriptions[$key]) ? __($descriptions[$key]) : pluginPermissionDescription($key);
 }
@@ -745,6 +787,11 @@ function permissionCatalog(): array
         'blox'     => ['label' => __('perm_group_blox'),     'caps' => $blox],
         'maintenance' => ['label' => __('perm_group_maintenance'), 'caps' => array_combine(maintenancePermKeys(), array_map('permLabel', maintenancePermKeys()))],
         'ai' => ['label' => __('perm_group_ai'), 'caps' => array_combine(aiAccessPermKeys(), array_map('permLabel', aiAccessPermKeys()))],
+        'enterprise' => ['label' => __('perm_enterprise_content'), 'caps' => [
+            'enterprise_content' => permLabel('enterprise_content'),
+            'enterprise_ai_translation' => permLabel('enterprise_ai_translation'),
+            'enterprise_case_seo' => permLabel('enterprise_case_seo'),
+        ]],
     ];
     // 插件声明的权限键（G1）：有才出现该分组——没装插件的站点角色界面保持原样
     $plugin = [];
@@ -756,4 +803,72 @@ function permissionCatalog(): array
     }
 
     return $catalog;
+}
+
+/**
+ * 按数据库重新解析已登录管理员的角色与权限，写回会话快照。
+ *
+ * 后台每次请求（refreshAdminIdentity）和前台带管理员会话的请求
+ * （refreshFrontendAdminIdentity）都走这里：账号被改成企业管理员或改回来，
+ * 下一次刷新前台就按新角色显示工具条与就地编辑，不用重新登录或先进后台。
+ * 返回 false 表示账号已停用或删除，由调用方决定怎么让会话失效。
+ */
+function syncAdminSessionIdentity(): bool
+{
+    $uid = (int) ($_SESSION['admin_id'] ?? 0);
+    if ($uid <= 0) {
+        return false;
+    }
+    $user = userModel()->find($uid);
+    if (!$user || (int) ($user['status'] ?? 0) !== 1) {
+        return false;
+    }
+
+    $roleId = (int) ($user['role_id'] ?? 0);
+    $role   = $roleId > 0 ? roleModel()->find($roleId) : null;
+    // 角色被停用或删除 → 权限清空（不踢出，让人能看到「没有操作权限」而不是莫名被登出）
+    $perms  = ($role && (int) ($role['status'] ?? 1) === 1)
+        ? (json_decode((string) ($role['permissions'] ?? '[]'), true) ?: [])
+        : [];
+
+    $_SESSION['admin_role_id']     = $roleId;
+    $_SESSION['admin_permissions'] = is_array($perms) ? $perms : [];
+    if (isEnterpriseContentAdmin()) {
+        $_SESSION['admin_permissions'] = enterpriseContentPermissions($_SESSION['admin_permissions']);
+    }
+    return true;
+}
+
+/**
+ * 前台请求开头重新解析管理员身份（includes/init.php 调用，在任何输出之前）。
+ *
+ * 会话里的权限原本只在后台请求时刷新：在前台挂着的账号被改成企业管理员后，
+ * 直接刷新前台仍显示工具条与就地编辑。这里每个带管理员会话的前台请求查一次
+ * 用户 + 角色（两次主键查询，访客不查）。编辑页与写入端点仍各自在后台校验权限。
+ * 账号已停用或删除时只清掉管理员那部分会话，前台按访客显示，会员登录不受影响；
+ * 技术支持账号的权限保持锁定，到期收回仍由后台请求处理。
+ */
+function refreshFrontendAdminIdentity(): void
+{
+    if (empty($_SESSION['admin_id'])) {
+        return;
+    }
+    try {
+        require_once ROOT_PATH . '/includes/SupportAccess.php';
+        if (SupportAccess::isSupportSession()) {
+            $_SESSION['admin_permissions'] = SupportAccess::PERMISSIONS;
+            $_SESSION['support_access'] = true;
+            return;
+        }
+        if (!syncAdminSessionIdentity()) {
+            foreach (array_keys($_SESSION) as $key) {
+                if (str_starts_with((string) $key, 'admin_')) {
+                    unset($_SESSION[$key]);
+                }
+            }
+            unset($_SESSION['support_access']);
+        }
+    } catch (\Throwable $e) {
+        // 安装未完成或数据库暂不可用：不影响前台出页，权限快照维持原样
+    }
 }

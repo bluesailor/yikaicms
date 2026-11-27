@@ -3,7 +3,7 @@
  * AI 助手 - 内嵌面板（放在文章标题上方，可展开收起）
  * 在编辑页面中 include 此文件
  */
-if (!defined('ROOT_PATH') || !config('ai_api_key')) return;
+if (!defined('ROOT_PATH') || isEnterpriseContentAdmin() || !config('ai_api_key')) return;
 $GLOBALS['_ai_panel_loaded'] = true;
 ?>
 

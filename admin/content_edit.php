@@ -52,6 +52,7 @@ requireContentEditPerm($content['type'] ?? ($_SERVER['REQUEST_METHOD'] === 'POST
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $content) {
     $newType = (string) post('type', 'article');
     if ($newType !== (string) $content['type']) {
+        if (isEnterpriseContentAdmin()) permissionDenied();
         requireContentEditPerm($newType);
     }
 }
@@ -77,13 +78,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         'is_top' => postInt('is_top'),
         'is_recommend' => postInt('is_recommend'),
         'is_hot' => postInt('is_hot'),
-        'seo_title' => post('seo_title'),
-        'seo_keywords' => post('seo_keywords'),
-        'seo_description' => post('seo_description'),
         'status' => postInt('status', 1),
         'publish_time' => strtotime(post('publish_time')) ?: time(),
         'updated_at' => time(),
     ];
+    if (($data['type'] !== 'case' && ($content['type'] ?? '') !== 'case') || canEditCaseSeo()) {
+        foreach (caseSeoFields() as $field) {
+            $data[$field] = post($field);
+        }
+    }
 
     // 状态以用户选择为准（已发布即上线、定时到点上线、草稿不上线），与文章、产品编辑页同一套规则，
     // 见 ScheduledPublish::normalize。此前这里另写一份，会把「已发布 + 未来时间」自动改成定时。
@@ -288,7 +291,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
             ]);
             ?>
 
-            <?php /* SEO 设置 */ ?>
+            <?php if (($content['type'] ?? $urlType) !== 'case' || canEditCaseSeo()): ?>
             <div class="bg-white rounded-lg shadow p-6">
                 <h3 class="font-bold text-gray-800 mb-4"><?php echo __('admin_seo_settings'); ?></h3>
                 <div class="space-y-4">
@@ -308,6 +311,7 @@ require_once ROOT_PATH . '/admin/includes/header.php';
                     </div>
                 </div>
             </div>
+            <?php endif; ?>
         </div>
 
         <?php /* 侧边栏 */ ?>

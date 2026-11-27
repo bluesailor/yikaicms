@@ -19,6 +19,7 @@ require_once ROOT_PATH . '/includes/Cron.php';
 
 checkLogin();
 requirePermission('edit_product');
+if (!canUseAdminTranslation()) permissionDenied();
 
 $currentMenu = 'translation_tasks';
 $pageTitle = __('tbt_title');

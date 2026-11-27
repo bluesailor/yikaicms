@@ -17,7 +17,11 @@ requirePermission('*');
 
 // 权限目录来自 includes/permissions.php（单一数据源）
 $permCatalog = permissionCatalog();
-$rolePresets = pluginRolePresets();
+$rolePresets = [[
+    'label' => __('perm_enterprise_content'),
+    'description' => __('perm_enterprise_content_desc'),
+    'permissions' => enterpriseContentPermissions(),
+], ...pluginRolePresets()];
 
 // 处理 AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -40,6 +44,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $permissions = array_values(array_intersect($permissions, allPermissionKeys()));
         if (in_array('*', $permissions, true)) {
             $permissions = ['*'];
+        } elseif (in_array('enterprise_content', $permissions, true)) {
+            $permissions = enterpriseContentPermissions($permissions);
+        } else {
+            // 企业管理员的两项可选授权只在企业管理员角色上有意义，单独勾选不落库
+            $permissions = array_values(array_diff($permissions, enterpriseOptionalPermissions()));
         }
         $permissionError = permissionSetError($permissions);
         if ($permissionError !== null) {
@@ -246,13 +255,15 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';
                                data-perm="*" onchange="handlePermChange(this)">
                         <span class="text-sm font-bold text-red-600"><?php echo e(__('perm_all')); ?></span>
                     </label>
-                    <?php foreach ($permCatalog as $groupKey => $group): $detailed = in_array($groupKey, ['blox', 'plugin', 'ai'], true); ?>
+                    <?php foreach ($permCatalog as $groupKey => $group): $detailed = in_array($groupKey, ['blox', 'plugin', 'ai', 'enterprise'], true); ?>
                     <div data-permission-group="<?php echo e($groupKey); ?>"<?php echo $detailed ? ' data-testid="role-' . e($groupKey) . '-permissions"' : ''; ?>>
                         <div class="text-xs font-medium text-gray-400 uppercase mb-1.5"><?php echo e($group['label']); ?></div>
                         <?php if ($groupKey === 'blox'): ?>
                         <p class="mb-2 text-xs leading-5 text-gray-500"><?php echo e(__('role_blox_permissions_hint')); ?></p>
                         <?php elseif ($groupKey === 'plugin'): ?>
                         <p class="mb-2 text-xs leading-5 text-gray-500"><?php echo e(__('role_plugin_permissions_hint')); ?></p>
+                        <?php elseif ($groupKey === 'enterprise'): ?>
+                        <p class="mb-2 text-xs leading-5 text-gray-500"><?php echo e(__('role_enterprise_permissions_hint')); ?></p>
                         <?php endif; ?>
                         <div class="<?php echo $detailed ? 'space-y-2' : 'grid grid-cols-2 gap-x-4 gap-y-1.5'; ?>">
                             <?php foreach ($group['caps'] as $key => $label): ?>
@@ -322,6 +333,7 @@ function openEditModal(item = null) {
         }
     }
 
+    updateEnterprisePermissionState();
     updateBloxPermissionState();
 
     document.getElementById('editModal').classList.remove('hidden');
@@ -344,6 +356,7 @@ function applyRolePreset(button) {
         cb.disabled = false;
         cb.checked = permissions.includes(cb.dataset.perm);
     });
+    updateEnterprisePermissionState();
     updateBloxPermissionState();
 }
 
@@ -361,7 +374,28 @@ function handlePermChange(checkbox) {
         const bloxEdit = document.querySelector('.perm-checkbox[data-perm="blox_edit"]');
         if (bloxEdit) bloxEdit.checked = false;
     }
+    updateEnterprisePermissionState();
     updateBloxPermissionState();
+}
+
+// 企业管理员：勾上后只保留三类内容与两项可选授权，其余权限置灰（服务端保存时同样收窄）；
+// 不勾时两项可选授权单独无意义，置灰不提交
+const ENTERPRISE_CONTENT_KEYS = <?= json_encode(enterpriseContentPermissions(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+const ENTERPRISE_OPTIONAL_KEYS = <?= json_encode(enterpriseOptionalPermissions(), JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+function updateEnterprisePermissionState() {
+    const base = document.querySelector('.perm-checkbox[data-perm="enterprise_content"]');
+    if (!base || document.querySelector('.perm-checkbox[data-perm="*"]')?.checked) return;
+    document.querySelectorAll('.perm-checkbox:not([data-perm="*"])').forEach(cb => {
+        const key = cb.dataset.perm;
+        if (ENTERPRISE_OPTIONAL_KEYS.includes(key)) {
+            cb.disabled = !base.checked;
+            if (!base.checked) cb.checked = false;
+        } else if (key !== 'enterprise_content') {
+            const fixed = ENTERPRISE_CONTENT_KEYS.includes(key);
+            cb.disabled = base.checked;
+            if (base.checked) cb.checked = fixed;
+        }
+    });
 }
 
 function updateBloxPermissionState() {

@@ -107,11 +107,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_onboard
 }
 
 
-// 统计数据
+// 统计数据（企业管理员不碰询盘：待处理表单数既不查也不显示）
+$showFormStats = !isEnterpriseContentAdmin();
 $stats = [
     'contents' => contentModel()->count(),
     'channels' => channelModel()->count(),
-    'forms' => formModel()->count(['status' => 0]),
+    'forms' => $showFormStats ? formModel()->count(['status' => 0]) : 0,
     'media' => mediaModel()->count(),
 ];
 
@@ -135,12 +136,18 @@ $_dashDefaultLang = (string) config('site_lang', 'zh-CN');
 $latestContents = contentModel()->query(
     'SELECT c.*, ch.type AS channel_type FROM ' . contentModel()->tableName() . ' c '
     . 'LEFT JOIN ' . channelModel()->tableName() . ' ch ON c.channel_id = ch.id '
-    . 'WHERE c.lang = ? ORDER BY c.id DESC LIMIT 10',
+    . 'WHERE c.lang = ? ORDER BY c.id DESC LIMIT 30',
     [$_dashDefaultLang]
 );
+// 只列本账号能编辑的类型：受限角色（如企业管理员）不该看到点进去就被拒绝的单页、下载等
+$latestContents = array_slice(array_values(array_filter($latestContents, static function (array $item): bool {
+    if (($item['channel_type'] ?? '') === 'page') return hasPermission('edit_page');
+    $type = (string) ($item['type'] ?? '');
+    return hasPermission('edit_' . (in_array($type, contentPermTypes(), true) ? $type : 'article'));
+})), 0, 10);
 
-// 最新表单
-$latestForms = formModel()->where([], 'id DESC', 10);
+// 最新表单：含访客姓名与电话，只给有表单权限的账号
+$latestForms = hasPermission('form') ? formModel()->where([], 'id DESC', 10) : [];
 
 $pageTitle = __('admin_dashboard');
 $currentMenu = 'dashboard';
@@ -497,7 +504,7 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
 <?php endif; ?>
 
 <?php /* 統計カード */ ?>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<div class="grid grid-cols-1 md:grid-cols-2 <?php echo $showFormStats ? 'lg:grid-cols-4' : 'lg:grid-cols-3'; ?> gap-6 mb-8">
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
             <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -522,7 +529,8 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6">
+    <?php if ($showFormStats): ?>
+    <div class="bg-white rounded-lg shadow p-6" data-testid="dashboard-pending-forms">
         <div class="flex items-center">
             <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
                 <i class="ti ti-message-dots text-xl text-yellow-600"></i>
@@ -533,6 +541,7 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
@@ -588,6 +597,7 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
     </div>
 
     <?php /* 最新表单 */ ?>
+    <?php if (hasPermission('form')): ?>
     <div class="bg-white rounded-lg shadow">
         <div class="px-6 py-4 border-b flex justify-between items-center">
             <h2 class="font-bold text-gray-800"><?php echo __('dashboard_latest_forms'); ?></h2>
@@ -616,6 +626,7 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
             <?php endif; ?>
         </div>
     </div>
+    <?php endif; ?>
 </div>
 
 <?php require_once ROOT_PATH . '/admin/includes/footer.php'; ?>

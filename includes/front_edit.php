@@ -12,7 +12,7 @@ if (!defined('ROOT_PATH')) exit;
 function renderFrontEdit(): void
 {
     if (isCleanFrontendPreview()) return;
-    if (empty($_SESSION['admin_id'])) return;
+    if (empty($_SESSION['admin_id']) || isEnterpriseContentAdmin()) return;
     $csrf = function_exists('csrfToken') ? csrfToken() : '';
     $frontendEditResult = BloxAreaEditorTarget::consumeReturnReceipt($_GET['yk_edit_receipt'] ?? '');
     $frontendReturnTo = BloxAreaEditorTarget::frontendSourceReturnTo((string) ($_SERVER['REQUEST_URI'] ?? ''));

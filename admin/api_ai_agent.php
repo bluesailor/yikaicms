@@ -54,6 +54,11 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 // CSRF：本端点自建登录判断、未走 checkLogin 的自动校验，此处补上（前端 fetch 已由全局拦截器附带 _token）
 verifyCsrf();
+if (isEnterpriseContentAdmin()) {
+    http_response_code(403);
+    echo json_encode(['success' => false, 'error' => __('perm_enterprise_denied')]);
+    exit;
+}
 
 $prompt    = trim((string)($_POST['prompt'] ?? ''));
 $absRaw    = trim((string)($_POST['abilities'] ?? ''));
