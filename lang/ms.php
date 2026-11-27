@@ -7516,6 +7516,8 @@ return [
     'blox_pimg_fit_contain' => 'Tunjukkan imej penuh',
     'blox_pimg_fit_cover' => 'Isi dan potong',
     'blox_pimg_help_card' => 'Untuk katalog perindustrian, gunakan 4:3 dengan Tunjukkan imej penuh supaya keseluruhan produk kelihatan.',
+    'blox_home_product_card_radius' => 'Jejari bucu kad (px)',
+    'blox_home_product_card_radius_help' => 'Biarkan kosong untuk menggunakan jejari bucu tema. Masukkan 0 untuk bucu tajam.',
     'blox_pimg_help_detail' => 'Untuk halaman butiran produk perindustrian, gunakan 1:1 dengan Tunjukkan imej penuh.',
     'blox_pimg_custom_invalid' => ':path: nisbah tersuai memerlukan lebar dan tinggi antara :min dan :max (sehingga dua tempat perpuluhan), dan satu sisi paling banyak :ratio kali sisi yang lain.',
     'blox_alert_appearance' => 'Penampilan amaran',

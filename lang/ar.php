@@ -7516,6 +7516,8 @@ return [
     'blox_pimg_fit_contain' => 'عرض الصورة كاملة',
     'blox_pimg_fit_cover' => 'ملء مع قص',
     'blox_pimg_help_card' => 'لكتالوجات المنتجات الصناعية، استخدم 4:3 مع عرض الصورة كاملة ليظهر المنتج بالكامل.',
+    'blox_home_product_card_radius' => 'استدارة حواف البطاقة (px)',
+    'blox_home_product_card_radius_help' => 'اتركه فارغًا لاستخدام استدارة القالب. أدخل 0 لزوايا قائمة.',
     'blox_pimg_help_detail' => 'لصفحات تفاصيل المنتجات الصناعية، استخدم 1:1 مع عرض الصورة كاملة.',
     'blox_pimg_custom_invalid' => ':path: تتطلب النسبة المخصصة عرضًا وارتفاعًا بين :min و:max (حتى منزلتين عشريتين)، ولا يزيد أحد الضلعين على :ratio أضعاف الآخر.',
     'blox_alert_appearance' => 'مظهر صندوق التنبيه',

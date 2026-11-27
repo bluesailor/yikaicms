@@ -7516,6 +7516,8 @@ return [
     'blox_pimg_fit_contain' => 'Ganzes Bild zeigen',
     'blox_pimg_fit_cover' => 'Ausfüllen und zuschneiden',
     'blox_pimg_help_card' => 'Für Industriekataloge empfiehlt sich 4:3 mit „Ganzes Bild zeigen“, damit das Produkt vollständig sichtbar bleibt.',
+    'blox_home_product_card_radius' => 'Eckenradius der Karte (px)',
+    'blox_home_product_card_radius_help' => 'Leer lassen, um den Radius des Themes zu verwenden. 0 eingeben für eckige Ecken.',
     'blox_pimg_help_detail' => 'Für Detailseiten von Industrieprodukten empfiehlt sich 1:1 mit „Ganzes Bild zeigen“.',
     'blox_pimg_custom_invalid' => ':path: Ein benutzerdefiniertes Format braucht Breite und Höhe zwischen :min und :max (höchstens zwei Nachkommastellen); eine Seite darf höchstens :ratio-mal so lang sein wie die andere.',
     'blox_alert_appearance' => 'Darstellung des Hinweisfelds',

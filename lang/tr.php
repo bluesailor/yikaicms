@@ -7516,6 +7516,8 @@ return [
     'blox_pimg_fit_contain' => 'Görselin tamamını göster',
     'blox_pimg_fit_cover' => 'Doldur ve kırp',
     'blox_pimg_help_card' => 'Endüstriyel kataloglarda 4:3 ve Görselin tamamını göster seçeneğini kullanın; ürün kırpılmadan görünür.',
+    'blox_home_product_card_radius' => 'Kart köşe yuvarlaklığı (px)',
+    'blox_home_product_card_radius_help' => 'Temanın köşe yuvarlaklığını kullanmak için boş bırakın. Keskin köşeler için 0 girin.',
     'blox_pimg_help_detail' => 'Endüstriyel ürün ayrıntı sayfalarında 1:1 ve Görselin tamamını göster seçeneğini kullanın.',
     'blox_pimg_custom_invalid' => ':path: özel oran için :min ile :max arasında (en fazla iki ondalık basamak) genişlik ve yükseklik girin; bir kenar diğerinin en fazla :ratio katı olabilir.',
     'blox_alert_appearance' => 'Uyarı görünümü',

@@ -7516,6 +7516,8 @@ return [
     'blox_pimg_fit_contain' => 'Mostrar imagem inteira',
     'blox_pimg_fit_cover' => 'Preencher e recortar',
     'blox_pimg_help_card' => 'Para catálogos industriais, use 4:3 com Mostrar imagem inteira para que o produto apareça por completo.',
+    'blox_home_product_card_radius' => 'Raio dos cantos do cartão (px)',
+    'blox_home_product_card_radius_help' => 'Deixe em branco para usar o raio do tema. Digite 0 para cantos retos.',
     'blox_pimg_help_detail' => 'Para detalhes de produtos industriais, use 1:1 com Mostrar imagem inteira.',
     'blox_pimg_custom_invalid' => ':path: uma proporção personalizada precisa de largura e altura entre :min e :max (até duas casas decimais), e um lado pode ter no máximo :ratio vezes o outro.',
     'blox_alert_appearance' => 'Aparência do aviso',

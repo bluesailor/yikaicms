@@ -7516,6 +7516,8 @@ return [
     'blox_pimg_fit_contain' => 'Tampilkan gambar utuh',
     'blox_pimg_fit_cover' => 'Isi dan potong',
     'blox_pimg_help_card' => 'Untuk katalog industri, gunakan 4:3 dengan Tampilkan gambar utuh agar produk terlihat seluruhnya.',
+    'blox_home_product_card_radius' => 'Sudut membulat kartu (px)',
+    'blox_home_product_card_radius_help' => 'Biarkan kosong untuk memakai sudut membulat tema. Isi 0 untuk sudut siku.',
     'blox_pimg_help_detail' => 'Untuk halaman detail produk industri, gunakan 1:1 dengan Tampilkan gambar utuh.',
     'blox_pimg_custom_invalid' => ':path: rasio kustom memerlukan lebar dan tinggi antara :min dan :max (maksimal dua angka desimal), dan satu sisi paling banyak :ratio kali sisi lainnya.',
     'blox_alert_appearance' => 'Tampilan notifikasi',

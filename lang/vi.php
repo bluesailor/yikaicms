@@ -7516,6 +7516,8 @@ return [
     'blox_pimg_fit_contain' => 'Hiện toàn bộ ảnh',
     'blox_pimg_fit_cover' => 'Lấp đầy và cắt',
     'blox_pimg_help_card' => 'Với danh mục sản phẩm công nghiệp, nên dùng 4:3 kèm Hiện toàn bộ ảnh để sản phẩm hiển thị trọn vẹn.',
+    'blox_home_product_card_radius' => 'Bo góc thẻ (px)',
+    'blox_home_product_card_radius_help' => 'Để trống để dùng bo góc của chủ đề. Nhập 0 để có góc vuông.',
     'blox_pimg_help_detail' => 'Với trang chi tiết sản phẩm công nghiệp, nên dùng 1:1 kèm Hiện toàn bộ ảnh.',
     'blox_pimg_custom_invalid' => ':path: tỷ lệ tùy chỉnh cần chiều rộng và chiều cao trong khoảng :min đến :max (tối đa hai chữ số thập phân), và một cạnh dài nhất bằng :ratio lần cạnh kia.',
     'blox_alert_appearance' => 'Giao diện hộp thông báo',

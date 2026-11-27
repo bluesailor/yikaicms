@@ -7516,6 +7516,8 @@ return [
     'blox_pimg_fit_contain' => 'Mostra immagine intera',
     'blox_pimg_fit_cover' => 'Riempi e ritaglia',
     'blox_pimg_help_card' => 'Per i cataloghi industriali usa 4:3 con Mostra immagine intera, così il prodotto resta visibile per intero.',
+    'blox_home_product_card_radius' => 'Raggio angoli della scheda (px)',
+    'blox_home_product_card_radius_help' => 'Lascia vuoto per usare il raggio del tema. Inserisci 0 per angoli retti.',
     'blox_pimg_help_detail' => 'Per le schede di prodotti industriali usa 1:1 con Mostra immagine intera.',
     'blox_pimg_custom_invalid' => ':path: un rapporto personalizzato richiede larghezza e altezza tra :min e :max (al massimo due decimali) e un lato può essere al massimo :ratio volte l’altro.',
     'blox_alert_appearance' => 'Aspetto avviso',

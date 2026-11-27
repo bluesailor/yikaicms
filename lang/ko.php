@@ -7516,6 +7516,8 @@ return [
     'blox_pimg_fit_contain' => '전체 표시',
     'blox_pimg_fit_cover' => '잘라서 채우기',
     'blox_pimg_help_card' => '산업용 제품 카탈로그에는 4:3과 전체 표시를 권장합니다. 제품 전체가 잘리지 않고 보입니다.',
+    'blox_home_product_card_radius' => '카드 모서리 반경(px)',
+    'blox_home_product_card_radius_help' => '비워 두면 테마의 모서리 반경을 사용합니다. 0을 입력하면 직각 모서리가 됩니다.',
     'blox_pimg_help_detail' => '산업용 제품 상세에는 1:1과 전체 표시를 권장합니다.',
     'blox_pimg_custom_invalid' => ':path: 사용자 지정 비율의 너비와 높이는 :min~:max 사이의 숫자(소수점 둘째 자리까지)로 입력해야 하며, 한 변은 다른 변의 최대 :ratio배까지입니다.',
     'blox_alert_appearance' => '알림 상자 모양',
