@@ -23,4 +23,14 @@ final class HomeBloxBlockSchema
 
     public const MAX_ITEMS = 24;
     public const MAX_COLUMNS = 8;
+    public const PRODUCT_CARD_RADIUS_CONTROL = [
+        'type' => 'number', 'default' => '', 'allow_empty' => true, 'min' => 0, 'max' => 999,
+    ];
+
+    /** @psalm-api Theme template entry point (themes/default/blocks/channel.php; themes are outside the Psalm scan). */
+    public static function productCardRadiusStyle(mixed $input): string
+    {
+        $radius = BloxValueSanitizer::sanitize(self::PRODUCT_CARD_RADIUS_CONTROL, $input);
+        return $radius === '' ? '' : 'border-radius:' . (int) $radius . 'px;';
+    }
 }

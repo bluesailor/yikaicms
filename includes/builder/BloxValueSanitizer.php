@@ -99,6 +99,10 @@ final class BloxValueSanitizer
                 return AbstractElement::cssImageUrl(self::str($value)) ?? '';
 
             case 'number':
+                if (!empty($control['allow_empty']) && !is_numeric($value)) {
+                    return '';
+                }
+                // Fall through to the shared numeric bounds.
             case 'range':
                 if (!is_numeric($value)) {
                     $fallback = $control['default'] ?? 0;
