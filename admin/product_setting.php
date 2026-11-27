@@ -15,6 +15,7 @@ require_once ROOT_PATH . '/admin/includes/auth.php';
 
 checkLogin();
 requirePermission('edit_product');
+if (isEnterpriseContentAdmin()) permissionDenied();
 
 require_once ROOT_PATH . '/admin/includes/trans_pills.php';   // adminLangView / 语言切换器
 

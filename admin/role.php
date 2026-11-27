@@ -17,7 +17,11 @@ requirePermission('*');
 
 // 权限目录来自 includes/permissions.php（单一数据源）
 $permCatalog = permissionCatalog();
-$rolePresets = pluginRolePresets();
+$rolePresets = [[
+    'label' => __('perm_enterprise_content'),
+    'description' => __('perm_enterprise_content_desc'),
+    'permissions' => enterpriseContentPermissions(),
+], ...pluginRolePresets()];
 
 // 处理 AJAX
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -40,6 +44,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $permissions = array_values(array_intersect($permissions, allPermissionKeys()));
         if (in_array('*', $permissions, true)) {
             $permissions = ['*'];
+        } elseif (in_array('enterprise_content', $permissions, true)) {
+            $permissions = enterpriseContentPermissions($permissions);
         }
         $permissionError = permissionSetError($permissions);
         if ($permissionError !== null) {

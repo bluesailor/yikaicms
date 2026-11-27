@@ -65,7 +65,9 @@ function renderRowActions(array $o): string
     if ($statusLabel !== '') {
         $parts[] = '<button type="button" data-row-status-action="' . $id . '" onclick="' . e($statusFn) . '(' . $id . ')" class="hover:text-primary hover:underline">' . e($statusLabel) . '</button>';
     }
-    $parts[] = '<button type="button" onclick="' . e($delFn) . '(' . $id . ')" class="hover:text-primary hover:underline">' . __('admin_move_to_trash') . '</button>';
+    if ($o['allow_delete'] ?? true) {
+        $parts[] = '<button type="button" onclick="' . e($delFn) . '(' . $id . ')" class="hover:text-primary hover:underline">' . __('admin_move_to_trash') . '</button>';
+    }
     if ($categoryUrl !== '') {
         $parts[] = '<a href="' . e($categoryUrl) . '" class="hover:text-primary hover:underline">' . __('product_tab_category') . '</a>';
     }

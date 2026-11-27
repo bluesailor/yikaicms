@@ -130,7 +130,7 @@ function renderAdminBar(): void
         }
         return;
     }
-    if (empty($_SESSION['admin_id'])) return;   // 未登录管理员 → 不显示
+    if (empty($_SESSION['admin_id']) || isEnterpriseContentAdmin()) return;
 
     $name = $_SESSION['admin_nickname'] ?? ($_SESSION['admin_username'] ?? __('admin_administrator'));
   $returnTo = BloxAreaEditorTarget::frontendSourceReturnTo((string) ($_SERVER['REQUEST_URI'] ?? ''));

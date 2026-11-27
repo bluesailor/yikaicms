@@ -54,6 +54,35 @@ function aiAccessPermKeys(): array
     return ['ai_access'];
 }
 
+/** The delivery preset keeps the three content types and only these optional grants. */
+function enterpriseContentPermissions(array $selected = []): array
+{
+    return array_merge(
+        ['enterprise_content', 'edit_article', 'edit_product', 'edit_case'],
+        array_values(array_intersect(['enterprise_ai_translation', 'enterprise_case_seo'], $selected))
+    );
+}
+
+function isEnterpriseContentAdmin(): bool
+{
+    return in_array('enterprise_content', (array) ($_SESSION['admin_permissions'] ?? []), true);
+}
+
+function canUseAdminTranslation(): bool
+{
+    return !isEnterpriseContentAdmin() || hasPermission('enterprise_ai_translation');
+}
+
+function canEditCaseSeo(): bool
+{
+    return !isEnterpriseContentAdmin() || hasPermission('enterprise_case_seo');
+}
+
+function caseSeoFields(): array
+{
+    return ['seo_title', 'seo_keywords', 'seo_description'];
+}
+
 /** Blox 场景能力；内容编辑范围仍由 edit_page 等内容权限约束。 */
 function bloxPermKeys(): array
 {
@@ -68,7 +97,8 @@ function allPermissionKeys(): array
         $keys[] = 'edit_' . $t;
         $keys[] = 'delete_' . $t;
     }
-    return array_merge($keys, modulePermKeys(), bloxPermKeys(), maintenancePermKeys(), aiAccessPermKeys(), pluginPermissionKeys());
+    return array_merge($keys, modulePermKeys(), bloxPermKeys(), maintenancePermKeys(), aiAccessPermKeys(),
+        ['enterprise_content', 'enterprise_ai_translation', 'enterprise_case_seo'], pluginPermissionKeys());
 }
 
 /**
@@ -262,6 +292,9 @@ function permLabel(string $key): string
         'blox_global' => 'perm_blox_global', 'blox_code' => 'perm_blox_code',
         'system_maintenance' => 'perm_system_maintenance',
         'ai_access' => 'perm_ai_access',
+        'enterprise_content' => 'perm_enterprise_content',
+        'enterprise_ai_translation' => 'perm_enterprise_ai_translation',
+        'enterprise_case_seo' => 'perm_enterprise_case_seo',
     ];
     if (isset($mod[$key])) {
         return __($mod[$key]);
@@ -280,6 +313,7 @@ function permDescription(string $key): string
         'blox_code' => 'perm_blox_code_desc',
         'system_maintenance' => 'perm_system_maintenance_desc',
         'ai_access' => 'perm_ai_access_desc',
+        'enterprise_content' => 'perm_enterprise_content_desc',
     ];
     return isset($descriptions[$key]) ? __($descriptions[$key]) : pluginPermissionDescription($key);
 }
@@ -745,6 +779,11 @@ function permissionCatalog(): array
         'blox'     => ['label' => __('perm_group_blox'),     'caps' => $blox],
         'maintenance' => ['label' => __('perm_group_maintenance'), 'caps' => array_combine(maintenancePermKeys(), array_map('permLabel', maintenancePermKeys()))],
         'ai' => ['label' => __('perm_group_ai'), 'caps' => array_combine(aiAccessPermKeys(), array_map('permLabel', aiAccessPermKeys()))],
+        'enterprise' => ['label' => __('perm_enterprise_content'), 'caps' => [
+            'enterprise_content' => permLabel('enterprise_content'),
+            'enterprise_ai_translation' => permLabel('enterprise_ai_translation'),
+            'enterprise_case_seo' => permLabel('enterprise_case_seo'),
+        ]],
     ];
     // 插件声明的权限键（G1）：有才出现该分组——没装插件的站点角色界面保持原样
     $plugin = [];

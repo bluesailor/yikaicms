@@ -19,6 +19,7 @@ require_once ROOT_PATH . '/admin/includes/row_sort.php';
 
 checkLogin();
 requirePermission('edit_case');
+if (isEnterpriseContentAdmin()) permissionDenied();
 
 $srcLang = (string) config('site_lang', 'zh-CN');
 

@@ -32,6 +32,7 @@ if (in_array($_POST['action'] ?? '', ['translation_mark_reviewed', 'translation_
 if (($_POST['action'] ?? '') !== 'create_translation') return;
 
 verifyCsrf();
+if (!canUseAdminTranslation()) permissionDenied();
 
 $srcId  = (int) ($_POST['src_id'] ?? 0);
 $toLang = (string) ($_POST['to_lang'] ?? '');
@@ -108,12 +109,15 @@ $translationRead = [
     // 调用页有没有逐字段审阅界面（lang_switcher_edit）。没有的（产品分类列表）不存看不到的待审结果
     'review_ui' => ($langSwitcher['review_ui'] ?? true) !== false,
 ];
+$source = TranslationWrite::source($src, $titleKey, $summKey, $bodySource, $bodyField);
+$omitSeo = $table === 'contents' && ($src['type'] ?? '') === 'case' && !canEditCaseSeo();
+$seoKeys = $omitSeo ? array_fill_keys(caseSeoFields(), true) : [];
 try {
-    $translated = TranslationWrite::generate(TranslationWrite::source($src, $titleKey, $summKey, $bodySource, $bodyField), $toLang);
+    $translated = array_diff_key(TranslationWrite::generate(array_diff_key($source, $seoKeys), $toLang), $seoKeys);
 } catch (Throwable $exception) {
     error(__('lse_failed') . ': ' . $exception->getMessage());
 }
-$newData = TranslationWrite::newRow($table, $src, $translated, $toLang, $groupId, $titleKey, $summKey, $bodyField);
+$newData = array_diff_key(TranslationWrite::newRow($table, $src, $translated, $toLang, $groupId, $titleKey, $summKey, $bodyField), $seoKeys);
 
 try {
     $writer = new TranslationWrite(db());

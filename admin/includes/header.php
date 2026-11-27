@@ -543,10 +543,11 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                 if (isset($langLabels['en'])) $langLabels['en'] = 'EN';
                 // 「基本设置 → 后台语言」；没设（或仍是旧安装原值）= 全部可用的语言包
                 $availableLangs = adminLanguageChoices();
-                $__tbAiReady = class_exists('AiService') && aiService()->isConfigured();
+                $__tbAiReady = !isEnterpriseContentAdmin() && class_exists('AiService') && aiService()->isConfigured();
                 $__tbAvailable = array_values(array_filter(AdminToolbarPrefs::ITEMS, static fn (string $key): bool => match ($key) {
                     'language' => count($availableLangs) >= 2,
                     'notifications' => hasPermission('*'),
+                    'cache' => !isEnterpriseContentAdmin(),
                     'ai' => $__tbAiReady,
                     default => true,
                 }));
@@ -745,10 +746,12 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                     </a>
 
                     <?php /* HTML 缓存设置 */ ?>
+                    <?php if (in_array('cache', $__tbRendered, true)): ?>
                     <a href="/admin/setting_cache.php"<?php echo $__tbAttr('cache'); ?> class="flex items-center gap-1.5 text-sm text-gray-600 hover:text-primary px-2 py-1 rounded hover:bg-gray-50 <?php echo ($currentMenu ?? '') === 'setting_cache' ? 'text-primary' : ''; ?>" title="<?php echo e(__('admin_cache_title')); ?>">
                         <i class="ti ti-database text-lg"></i>
                         <span class="hidden sm:inline"><?php echo e(__('admin_cache_short')); ?></span>
                     </a>
+                    <?php endif; ?>
 
                     <?php /* AI 助手浮窗（仅在已配置 AI 且不在助手大页时显示） */ ?>
                     <?php if (in_array('ai', $__tbRendered, true)): ?>
@@ -1001,9 +1004,11 @@ if ($_sbCompactPage) $_sbCollapsed = true;
                             <a href="/" target="_blank"<?php echo $__tbMoreAttr('visit'); ?> class="<?php echo $__tbEntry; ?>" @click="open = false">
                                 <i class="ti ti-external-link text-base text-gray-400" aria-hidden="true"></i><?php echo e($__tbLabels['visit']); ?>
                             </a>
+                            <?php if (in_array('cache', $__tbRendered, true)): ?>
                             <a href="/admin/setting_cache.php"<?php echo $__tbMoreAttr('cache'); ?> class="<?php echo $__tbEntry; ?><?php echo ($currentMenu ?? '') === 'setting_cache' ? ' text-primary' : ''; ?>">
                                 <i class="ti ti-database text-base text-gray-400" aria-hidden="true"></i><?php echo e($__tbLabels['cache']); ?>
                             </a>
+                            <?php endif; ?>
                             <?php if (in_array('ai', $__tbRendered, true)): ?>
                             <button type="button"<?php echo $__tbMoreAttr('ai'); ?> class="<?php echo $__tbEntry; ?>" @click="open = false; YikaiAdminToolbar.open('ai')">
                                 <i class="ti ti-robot text-base text-gray-400" aria-hidden="true"></i><?php echo e($__tbLabels['ai']); ?>

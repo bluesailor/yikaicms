@@ -277,9 +277,10 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
                                         'view_label' => (int) $item['status'] === 1 ? __('admin_view') : __('admin_draft_preview'),
                                         'duplicate' => true,
                                         'delete_fn' => 'deleteProduct',
+                                        'allow_delete' => hasPermission('delete_product'),
                                         'status_label' => (int) $item['status'] === 1 ? __('status_off') : __('status_on'),
                                         'status_fn' => 'toggleRowStatus',
-                                        'category_url' => '/admin/product_category.php?lang=' . rawurlencode($_viewLang),
+                                        'category_url' => isEnterpriseContentAdmin() ? '' : '/admin/product_category.php?lang=' . rawurlencode($_viewLang),
                                     ]); ?>
                                 </div>
                             </div>
@@ -347,12 +348,12 @@ require_once ROOT_PATH . '/admin/includes/product_nav.php';
             echo renderBulkBar([
                 'batch_publish'   => __('admin_published'),
                 'batch_unpublish' => __('admin_unpublished'),
-                'batch_delete'    => __('admin_move_to_trash'),
-            ] + ($_tbtLangs !== [] ? ['batch_translate' => __('tbt_bulk')] : [])); ?>
+            ] + (hasPermission('delete_product') ? ['batch_delete' => __('admin_move_to_trash')] : [])
+                + ($_tbtLangs !== [] && canUseAdminTranslation() ? ['batch_translate' => __('tbt_bulk')] : [])); ?>
             <?php if ($_tbtLangs !== []): ?>
             <?php if (hasPermission('*')): ?><a href="<?php echo e(BasePath::url('/admin/product_import.php')); ?>" data-testid="product-import-entry" class="text-sm text-primary hover:underline"><?php echo e(__('pimp_menu')); ?></a><?php endif; ?>
-            <a href="<?php echo e(BasePath::url('/admin/translation_status.php')); ?>" class="text-sm text-primary hover:underline"><?php echo e(__('tss_title')); ?></a>
-            <a href="<?php echo e(BasePath::url('/admin/translation_tasks.php')); ?>" class="text-sm text-primary hover:underline"><?php echo e(__('tbt_title')); ?></a>
+            <?php if (!isEnterpriseContentAdmin()): ?><a href="<?php echo e(BasePath::url('/admin/translation_status.php')); ?>" class="text-sm text-primary hover:underline"><?php echo e(__('tss_title')); ?></a><?php endif; ?>
+            <?php if (canUseAdminTranslation()): ?><a href="<?php echo e(BasePath::url('/admin/translation_tasks.php')); ?>" class="text-sm text-primary hover:underline"><?php echo e(__('tbt_title')); ?></a><?php endif; ?>
             <?php endif; ?>
 
             <?php if ($total > $perPage): ?>

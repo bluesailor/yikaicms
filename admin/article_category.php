@@ -19,6 +19,7 @@ require_once ROOT_PATH . '/admin/includes/row_sort.php';
 
 checkLogin();
 requirePermission('edit_article');
+if (isEnterpriseContentAdmin()) permissionDenied();
 
 $_lang     = adminLangView();
 $_viewLang = (string) $_lang['view'];

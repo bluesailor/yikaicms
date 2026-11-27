@@ -36,6 +36,8 @@ $_ls_item = $langSwitcher['item'];
 $_ls_model = $langSwitcher['model'];
 $_ls_editUrl = $langSwitcher['edit_url'];
 $_ls_table = $langSwitcher['table'];
+$_ls_canTranslate = canUseAdminTranslation();
+$_ls_hideCaseSeo = $_ls_table === 'contents' && ($_ls_item['type'] ?? '') === 'case' && !canEditCaseSeo();
 /** @var array<string, mixed> $langSwitcher 各编辑页自行声明，键集因页而异 */
 $_ls_type = $langSwitcher['type'] ?? '';
 $_ls_tableName = DB_PREFIX . $_ls_table;
@@ -77,7 +79,7 @@ $_ls_states = [];
 $_ls_proposal = null;
 $_ls_reviewBase = ['source_fp' => '', 'target_fp' => '', 'proposal_rev' => ''];
 $_ls_source = $_ls_currentLang === $_ls_defaultLang ? $_ls_item : ($_ls_translations[$_ls_defaultLang] ?? null);
-if ($_ls_item && $_ls_source && db()->tableExists('translation_links')) {
+if ($_ls_canTranslate && $_ls_item && $_ls_source && db()->tableExists('translation_links')) {
     require_once ROOT_PATH . '/includes/TranslationWrite.php';
     require_once ROOT_PATH . '/includes/content_translation.php';
     $_ls_titleKey = (string) ($langSwitcher['title_field'] ?? 'title');
@@ -114,6 +116,7 @@ if ($_ls_item && $_ls_source && db()->tableExists('translation_links')) {
             $current = TranslationWrite::source($row, $_ls_titleKey, $_ls_summaryKey, $body, translationBodyField($body));
             $_ls_proposal = ['at' => (int) $link['proposal_at'], 'fields' => []];
             foreach (TranslationState::TRACKED as $field) {
+                if ($_ls_hideCaseSeo && in_array($field, caseSeoFields(), true)) continue;
                 if (!array_key_exists($field, $proposed) || !array_key_exists($field, $current)) continue;
                 if (!$_ls_same($proposed[$field], $current[$field])) $_ls_proposal['fields'][$field] = [$_ls_text($current[$field]), $_ls_text($proposed[$field])];
             }
@@ -150,10 +153,10 @@ $_ls_badge = static function (array $state): array {
         <?php if (isset($_ls_states[$lc])): [$_ls_key, $_ls_cls] = $_ls_badge($_ls_states[$lc]); ?>
         <span class="px-2 py-0.5 rounded text-xs <?php echo $_ls_cls; ?>" data-translation-state="<?php echo e($lc); ?>" title="<?php echo e(__($_ls_key . '_hint')); ?>"><?php echo e(__($_ls_key)); ?></span>
         <?php endif; ?>
-        <?php if ($lc !== $_ls_defaultLang): ?>
+        <?php if ($_ls_canTranslate && $lc !== $_ls_defaultLang): ?>
         <button type="button" class="border rounded px-2 py-1 text-xs" onclick="createTranslation('<?php echo e($lc); ?>', '<?php echo e($ll); ?>', this, true)" aria-label="<?php echo e(__('lse_retranslate') . ' ' . $ll); ?>"><?php echo e(__('lse_retranslate')); ?></button>
         <?php endif; ?>
-        <?php else: ?>
+        <?php elseif ($_ls_canTranslate): ?>
         <button type="button" onclick="createTranslation('<?php echo e($lc); ?>', '<?php echo e($ll); ?>', this)"
                 class="px-3 py-1 rounded-full text-xs bg-gray-100 text-gray-400 hover:bg-amber-100 hover:text-amber-600 transition cursor-pointer" title="<?php echo e(__('lse_create_version')); ?>">
             <?php echo e($ll); ?>
@@ -161,7 +164,7 @@ $_ls_badge = static function (array $state): array {
         <?php endif; ?>
     <?php endforeach; ?>
 
-    <?php if ($_ls_currentLang !== $_ls_defaultLang): ?>
+    <?php if ($_ls_canTranslate && $_ls_currentLang !== $_ls_defaultLang): ?>
     <button type="button" class="border rounded px-2 py-1 text-xs" onclick="createTranslation('<?php echo e($_ls_currentLang); ?>', '<?php echo e($_ls_allLangs[$_ls_currentLang]); ?>', this, true)" aria-label="<?php echo e(__('lse_retranslate') . ' ' . $_ls_allLangs[$_ls_currentLang]); ?>"><?php echo e(__('lse_retranslate')); ?></button>
     <span class="text-xs text-amber-500 ml-1"><?php echo str_replace(':lang', e($_ls_allLangs[$_ls_defaultLang]), e(__('lse_translated_from'))); ?></span>
     <?php if (isset($_ls_states[$_ls_currentLang])): $_ls_state = $_ls_states[$_ls_currentLang]; [$_ls_key, $_ls_cls] = $_ls_badge($_ls_state); ?>

@@ -83,6 +83,7 @@ return [
             // 翻译工作中心（2.3.0）：有产品权限的在产品组里看到；只有文章 / 单页权限的在文章组里看到（见下）
             [
                 'key'      => 'translation_status',
+                'visible'  => !function_exists('isEnterpriseContentAdmin') || !isEnterpriseContentAdmin(),
                 'visible'  => hasPermission('edit_product'),
                 'label'    => __('tss_title'),
                 'url'      => '/admin/translation_status.php',
@@ -112,6 +113,7 @@ return [
             ],
             [
                 'key'      => 'translation_status',
+                'visible'  => !function_exists('isEnterpriseContentAdmin') || !isEnterpriseContentAdmin(),
                 'visible'  => !hasPermission('edit_product') && (hasPermission('edit_article') || hasPermission('edit_page')),
                 'label'    => __('tss_title'),
                 'url'      => '/admin/translation_status.php',

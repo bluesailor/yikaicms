@@ -11,6 +11,7 @@
 declare(strict_types=1);
 
 verifyCsrf();
+if (!canUseAdminTranslation()) permissionDenied();
 require_once ROOT_PATH . '/includes/TranslationWrite.php';
 
 /** @var array<string, mixed> $langSwitcher */
@@ -38,6 +39,10 @@ switch ((string) $_POST['action']) {
 
     case 'translation_accept':
         $_tr_fields = array_values(array_filter(array_map('strval', (array) ($_POST['fields'] ?? []))));
+        if ($_tr_table === 'contents' && ($_tr_target['type'] ?? '') === 'case' && !canEditCaseSeo()
+            && array_intersect($_tr_fields, caseSeoFields()) !== []) {
+            permissionDenied();
+        }
         $_tr_result = $_tr_writer->accept([
             'table' => $_tr_table, 'model' => $_tr_model, 'target_id' => $_tr_id,
             'title_key' => $_tr_titleKey, 'summary_key' => $_tr_summaryKey, 'has_page' => $_tr_hasPage,

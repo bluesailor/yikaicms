@@ -204,6 +204,9 @@ function refreshAdminIdentity(): void
 
     $_SESSION['admin_role_id']     = $roleId;
     $_SESSION['admin_permissions'] = is_array($perms) ? $perms : [];
+    if (isEnterpriseContentAdmin()) {
+        $_SESSION['admin_permissions'] = enterpriseContentPermissions($_SESSION['admin_permissions']);
+    }
     // 支持账号的权限锁死为「系统维护」，角色被改动也不放大
     SupportAccess::enforce();
 
@@ -345,7 +348,10 @@ function completeAdminLogin(array $user): void
 
     // 获取角色权限
     $role = roleModel()->find($user['role_id']);
-    $_SESSION['admin_permissions'] = $role ? json_decode($role['permissions'] ?? '[]', true) : [];
+    $_SESSION['admin_permissions'] = $role ? (array) json_decode($role['permissions'] ?? '[]', true) : [];
+    if (isEnterpriseContentAdmin()) {
+        $_SESSION['admin_permissions'] = enterpriseContentPermissions($_SESSION['admin_permissions']);
+    }
 
     // 静态直出绕过标记：让管理员浏览前台时始终拿到实时页面（见常量注释）
     setAdminStaticBypassCookie();

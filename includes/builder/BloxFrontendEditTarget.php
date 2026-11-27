@@ -47,7 +47,7 @@ final class BloxFrontendEditTarget
     {
         $target = self::TARGETS[self::$area][$elementType] ?? null;
         $nodeId = trim($nodeId);
-        if ($target === null || $html === '' || empty($_SESSION['admin_id'])
+        if ($target === null || $html === '' || empty($_SESSION['admin_id']) || isEnterpriseContentAdmin()
             || (function_exists('isCleanFrontendPreview') && isCleanFrontendPreview()) || $nodeId === ''
             || strlen($nodeId) > 512 || preg_match('/[\x00-\x1F\x7F]/', $nodeId) === 1) {
             return $html;

@@ -305,8 +305,10 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';   // 「文章列表 / �
                                     <span class="text-gray-300">|</span>
                                     <button type="button" onclick="duplicateItem(<?php echo $item['id']; ?>)" class="hover:text-primary hover:underline"><?php echo __('admin_duplicate'); ?></button>
                                     <span class="text-gray-300">|</span>
+                                    <?php if (hasPermission('delete_article')): ?>
                                     <button type="button" onclick="deleteItem(<?php echo $item['id']; ?>)" class="hover:text-primary hover:underline"><?php echo __('admin_move_to_trash'); ?></button>
                                     <span class="text-gray-300">|</span>
+                                    <?php endif; ?>
                                     <?php if ((int) $item['status'] !== 1): ?>
                                     <?php // 草稿与定时文章前台不可访问，给「预览」：带签名 token，仅签发者本人可看 ?>
                                     <a href="<?php echo e(contentUrl($item)); ?><?php echo (str_contains(contentUrl($item), '?') ? '&' : '?'); ?>preview=<?php echo e(contentPreviewToken((int) $item['id'])); ?>"
@@ -367,7 +369,7 @@ require ROOT_PATH . '/admin/includes/workflow_nav.php';   // 「文章列表 / �
                 <option value=""><?php echo __('admin_bulk_actions'); ?></option>
                 <option value="batch_publish"><?php echo __('admin_published'); ?></option>
                 <option value="batch_unpublish"><?php echo __('admin_unpublished'); ?></option>
-                <option value="batch_delete"><?php echo __('admin_move_to_trash'); ?></option>
+                <?php if (hasPermission('delete_article')): ?><option value="batch_delete"><?php echo __('admin_move_to_trash'); ?></option><?php endif; ?>
             </select>
             <button onclick="applyBulk()" class="border px-4 py-1.5 rounded text-sm hover:bg-gray-50 text-gray-700"><?php echo __('admin_apply'); ?></button>
             <span id="bulkCount" class="text-xs text-gray-400"></span>

@@ -216,7 +216,7 @@ final class BlockRenderer
         BloxCustomCode::collectDocumentCss(is_array($document['settings'] ?? null) ? $document['settings'] : []);
 
         // 仅当显式开启编辑上下文且当前是登录管理员时，才输出定位标记（不污染公开 HTML/缓存）
-        $editMode = self::$editChannelId > 0 && !empty($_SESSION['admin_id']);
+        $editMode = self::$editChannelId > 0 && !empty($_SESSION['admin_id']) && !isEnterpriseContentAdmin();
 
         $html = '';
         $renderedAnchors = [];
