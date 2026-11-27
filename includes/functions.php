@@ -460,7 +460,8 @@ function bloxAreaHtml(string $area): string
         if ($body === '') {
             return '';
         }
-        $editUrl = !empty($_SESSION['admin_id']) && !isCleanFrontendPreview()
+        // 企业管理员不进网页构建器：页头页尾不带编辑入口（与工具条、元素标记同一条件）
+        $editUrl = !empty($_SESSION['admin_id']) && !isCleanFrontendPreview() && !isEnterpriseContentAdmin()
             ? BloxAreaEditorTarget::url($area, $context)
             : '';
         // 文档级 settings（v1 信封）：sticky 吸顶只对 header 有意义。

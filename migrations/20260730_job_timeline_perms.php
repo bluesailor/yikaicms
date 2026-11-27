@@ -12,6 +12,8 @@
  *   有 delete_page    → 补 delete_timeline（原时间线删除就是挂在这上面）
  *
  * 超管（'*'）不动。幂等：目标键都已具备即视为已应用。
+ * 企业管理员角色（enterprise_content，2.3.2）也不动：它按预设只有新闻、产品、案例，本来就不该有招聘与历程，
+ * 否则每建一个企业管理员角色，数据库升级页就会多出这条「待执行」，执行后还会往角色里写进用不到的键。
  */
 
 declare(strict_types=1);
@@ -38,7 +40,7 @@ return [
         }
         foreach (db()->fetchAll('SELECT permissions FROM ' . DB_PREFIX . 'roles') as $r) {
             $p = json_decode((string) ($r['permissions'] ?? '[]'), true) ?: [];
-            if (in_array('*', $p, true)) {
+            if (in_array('*', $p, true) || in_array('enterprise_content', $p, true)) {
                 continue;
             }
             foreach ($__jtMap as $src => $targets) {
@@ -61,7 +63,7 @@ return [
         $changed = 0;
         foreach (db()->fetchAll('SELECT id, permissions FROM ' . DB_PREFIX . 'roles') as $r) {
             $p = json_decode((string) ($r['permissions'] ?? '[]'), true) ?: [];
-            if (in_array('*', $p, true)) {
+            if (in_array('*', $p, true) || in_array('enterprise_content', $p, true)) {
                 continue;
             }
             $before = $p;
