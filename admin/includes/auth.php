@@ -185,8 +185,7 @@ function refreshAdminIdentity(): void
     // 技术支持访问到期：先停用账号，下面的「账号已停用」检查就会当场让支持会话失效
     SupportAccess::expireIfDue();
 
-    $user = userModel()->find($uid);
-    if (!$user || (int) ($user['status'] ?? 0) !== 1) {
+    if (!syncAdminSessionIdentity()) {
         // 账号已被禁用或删除：当场失效，不等对方自己退出
         doLogout();   // 内含清除静态绕过标记
         if (isAjax()) {
@@ -195,18 +194,6 @@ function refreshAdminIdentity(): void
         redirect('/admin/login.php');
     }
 
-    $roleId = (int) ($user['role_id'] ?? 0);
-    $role   = $roleId > 0 ? roleModel()->find($roleId) : null;
-    // 角色被停用或删除 → 权限清空（不踢出，让人能看到「没有操作权限」而不是莫名被登出）
-    $perms  = ($role && (int) ($role['status'] ?? 1) === 1)
-        ? (json_decode((string) ($role['permissions'] ?? '[]'), true) ?: [])
-        : [];
-
-    $_SESSION['admin_role_id']     = $roleId;
-    $_SESSION['admin_permissions'] = is_array($perms) ? $perms : [];
-    if (isEnterpriseContentAdmin()) {
-        $_SESSION['admin_permissions'] = enterpriseContentPermissions($_SESSION['admin_permissions']);
-    }
     // 支持账号的权限锁死为「系统维护」，角色被改动也不放大
     SupportAccess::enforce();
 

@@ -107,11 +107,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && post('action') === 'dismiss_onboard
 }
 
 
-// 统计数据
+// 统计数据（企业管理员不碰询盘：待处理表单数既不查也不显示）
+$showFormStats = !isEnterpriseContentAdmin();
 $stats = [
     'contents' => contentModel()->count(),
     'channels' => channelModel()->count(),
-    'forms' => formModel()->count(['status' => 0]),
+    'forms' => $showFormStats ? formModel()->count(['status' => 0]) : 0,
     'media' => mediaModel()->count(),
 ];
 
@@ -503,7 +504,7 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
 <?php endif; ?>
 
 <?php /* 統計カード */ ?>
-<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+<div class="grid grid-cols-1 md:grid-cols-2 <?php echo $showFormStats ? 'lg:grid-cols-4' : 'lg:grid-cols-3'; ?> gap-6 mb-8">
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">
             <div class="w-12 h-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -528,7 +529,8 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
         </div>
     </div>
 
-    <div class="bg-white rounded-lg shadow p-6">
+    <?php if ($showFormStats): ?>
+    <div class="bg-white rounded-lg shadow p-6" data-testid="dashboard-pending-forms">
         <div class="flex items-center">
             <div class="w-12 h-12 bg-yellow-100 rounded-lg flex items-center justify-center">
                 <i class="ti ti-message-dots text-xl text-yellow-600"></i>
@@ -539,6 +541,7 @@ foreach (adminMenuUsageRecent($__adminId, 8) as $row) {
             </div>
         </div>
     </div>
+    <?php endif; ?>
 
     <div class="bg-white rounded-lg shadow p-6">
         <div class="flex items-center">

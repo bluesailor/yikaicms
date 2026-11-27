@@ -79,8 +79,10 @@ final class EnterpriseContentRoleTest extends TestCase
         self::assertStringContainsString('$permissions = enterpriseContentPermissions($permissions);', $role);
         self::assertStringContainsString('array_diff($permissions, enterpriseOptionalPermissions())', $role);
         self::assertStringContainsString('function updateEnterprisePermissionState()', $role);
-        self::assertSame(2, substr_count($auth, "\$_SESSION['admin_permissions'] = enterpriseContentPermissions(\$_SESSION['admin_permissions']);"),
-            'Both login and per-request identity refresh must narrow the role');
+        $narrow = "\$_SESSION['admin_permissions'] = enterpriseContentPermissions(\$_SESSION['admin_permissions']);";
+        self::assertSame(1, substr_count($auth, $narrow), 'Login must narrow the role');
+        self::assertSame(1, substr_count($this->source('includes/permissions.php'), $narrow),
+            'The shared per-request refresh (backend and frontend) must narrow the role');
     }
 
     public function testPageAndLayoutEditorsRequireGrantsTheRoleNeverHolds(): void

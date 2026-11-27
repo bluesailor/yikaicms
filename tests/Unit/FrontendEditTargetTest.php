@@ -10,6 +10,7 @@ final class FrontendEditTargetTest extends TestCase
 
     public static function setUpBeforeClass(): void
     {
+        require_once ROOT_PATH . '/includes/permissions.php';   // BloxFrontendEditTarget hides targets from the enterprise role
         require_once ROOT_PATH . '/includes/builder/bootstrap.php';
     }
 

@@ -168,6 +168,7 @@ require_once ROOT_PATH . '/includes/plugin.php';
 require_once ROOT_PATH . '/includes/License.php';
 require_once ROOT_PATH . '/includes/admin_bar.php';   // 前台管理工具条（登录管理员可见）
 require_once ROOT_PATH . '/includes/front_edit.php';  // 前台就地编辑覆盖层（管理员悬停编辑区块）
+refreshFrontendAdminIdentity();  // 角色在后台被改动后，下一次刷新前台即按新角色显示工具条与就地编辑
 
 // 已安装语言包但未启用的显式 URL 前缀不能回落成默认语言正文，否则形成软 404
 // 与重复内容。完整初始化后走主题 404，确保头尾、插件钩子和语言文案都可用。

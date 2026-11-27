@@ -804,3 +804,71 @@ function permissionCatalog(): array
 
     return $catalog;
 }
+
+/**
+ * 按数据库重新解析已登录管理员的角色与权限，写回会话快照。
+ *
+ * 后台每次请求（refreshAdminIdentity）和前台带管理员会话的请求
+ * （refreshFrontendAdminIdentity）都走这里：账号被改成企业管理员或改回来，
+ * 下一次刷新前台就按新角色显示工具条与就地编辑，不用重新登录或先进后台。
+ * 返回 false 表示账号已停用或删除，由调用方决定怎么让会话失效。
+ */
+function syncAdminSessionIdentity(): bool
+{
+    $uid = (int) ($_SESSION['admin_id'] ?? 0);
+    if ($uid <= 0) {
+        return false;
+    }
+    $user = userModel()->find($uid);
+    if (!$user || (int) ($user['status'] ?? 0) !== 1) {
+        return false;
+    }
+
+    $roleId = (int) ($user['role_id'] ?? 0);
+    $role   = $roleId > 0 ? roleModel()->find($roleId) : null;
+    // 角色被停用或删除 → 权限清空（不踢出，让人能看到「没有操作权限」而不是莫名被登出）
+    $perms  = ($role && (int) ($role['status'] ?? 1) === 1)
+        ? (json_decode((string) ($role['permissions'] ?? '[]'), true) ?: [])
+        : [];
+
+    $_SESSION['admin_role_id']     = $roleId;
+    $_SESSION['admin_permissions'] = is_array($perms) ? $perms : [];
+    if (isEnterpriseContentAdmin()) {
+        $_SESSION['admin_permissions'] = enterpriseContentPermissions($_SESSION['admin_permissions']);
+    }
+    return true;
+}
+
+/**
+ * 前台请求开头重新解析管理员身份（includes/init.php 调用，在任何输出之前）。
+ *
+ * 会话里的权限原本只在后台请求时刷新：在前台挂着的账号被改成企业管理员后，
+ * 直接刷新前台仍显示工具条与就地编辑。这里每个带管理员会话的前台请求查一次
+ * 用户 + 角色（两次主键查询，访客不查）。编辑页与写入端点仍各自在后台校验权限。
+ * 账号已停用或删除时只清掉管理员那部分会话，前台按访客显示，会员登录不受影响；
+ * 技术支持账号的权限保持锁定，到期收回仍由后台请求处理。
+ */
+function refreshFrontendAdminIdentity(): void
+{
+    if (empty($_SESSION['admin_id'])) {
+        return;
+    }
+    try {
+        require_once ROOT_PATH . '/includes/SupportAccess.php';
+        if (SupportAccess::isSupportSession()) {
+            $_SESSION['admin_permissions'] = SupportAccess::PERMISSIONS;
+            $_SESSION['support_access'] = true;
+            return;
+        }
+        if (!syncAdminSessionIdentity()) {
+            foreach (array_keys($_SESSION) as $key) {
+                if (str_starts_with((string) $key, 'admin_')) {
+                    unset($_SESSION[$key]);
+                }
+            }
+            unset($_SESSION['support_access']);
+        }
+    } catch (\Throwable $e) {
+        // 安装未完成或数据库暂不可用：不影响前台出页，权限快照维持原样
+    }
+}
