@@ -1,6 +1,6 @@
 # YikaiCMS 扩展开发：AI 阅读入口
 
-更新于 2026-11-26，按 v2.3.1 候选 `080e8629` 核对（上一轮为 v2.3.0 候选，再上一轮为 v2.2.2 维护基线 `ba6a1e6f`）。适用于不同 AI 编程助手和人工开发者，不依赖特定工具、账号或本机路径。
+更新于 2026-11-28，按 v2.3.2 候选核对（上一轮为 v2.3.1 候选 `080e8629`，再上一轮为 v2.3.0 候选）。适用于不同 AI 编程助手和人工开发者，不依赖特定工具、账号或本机路径。
 
 ## 阅读顺序
 
@@ -16,6 +16,7 @@
 2.2.0：外部 AI 接入（MCP，`mcp/`、`includes/ai-access/`，默认关闭）给 AI 客户端签发令牌，按能力读取或提交草稿/内容提案，令牌不能发布；没有插件钩子。`SecretStore::put()` 加密不可用时抛 `SecretStoreException`、不再明文保存（插件指南 8.2）。
 2.2.1：产品修改草稿（已上架版本照常展示，草稿用私有预览渲染前台产品模板，`includes/ProductEditDraft.php`）；译文来源追踪与待审译文（`includes/TranslationState.php`）、产品批量翻译任务（`includes/TranslationBatches.php`）；MCP 增加产品读取与内容提案。扩展接口不变。
 2.3.1：`AiService::setBeforeRequest(?Closure $hook)` 在每次真正发出 HTTP 请求前调用钩子（含分段、校对与 JSON 模式被拒后的兼容重试；钩子抛出的普通异常会让这次请求不发出，`chat()` 返回失败结果），只设在自己 `new` 的实例上，不要设在 `aiService()` 的共享实例上（插件指南 6.3）。批量翻译的上限改按模型请求计（`translation_batches.requests`，默认每项 `TranslationBatches::REQUESTS_PER_ITEM` = 16 次；升级前的批次 `requests_known = 0`，页面显示「未知」）。只有数值和单位的规格参数（如 `±0.02 mm`、`Ø320 mm`）不送模型、原样保留（`translationIsMeasurement()`，`includes/content_translation.php`）。外部 AI 接入：MCP 说明覆盖全部提案工具；站长可在 `config.php` 定义 `YK_AI_ACCESS_DISABLED` 全站关闭 AI 外部访问——这是站长的操作，AI 编程助手按下文「不修改 config/config.php」不得自行添加或删除。产品图片比例与填充（首页产品区块、产品目录卡片、详情主图与相册各一份，`BloxImageFraming::productControls()` / `productFrame()`，模板指南开头的 2.3.1 说明）；媒体库设置「显示官方素材」（设置键 `media_official_assets`，缺省开启，`RemoteOfficialMedia::enabled()`），关闭时两个选图弹窗都只开本站媒体、官方目录接口直接拒绝。扩展接口不变，整站模板可移植表结构不变。
+2.3.2：新增「企业内容管理员」角色预设（权限键 `enterprise_content`，`includes/permissions.php` 的 `enterpriseContentPermissions()` / `isEnterpriseContentAdmin()`），只管新闻、产品、案例；可另开 `enterprise_ai_translation`（后台 AI 翻译）与 `enterprise_case_seo`（案例 SEO 字段），两项互不依赖。会话里的权限按这个预设收窄，角色上多存的键（含插件权限键）不生效；前台每次请求开头用 `refreshFrontendAdminIdentity()` 按账号当前角色刷新会话权限，后台照旧在 `refreshAdminIdentity()` 刷新。企业账号看不到前台工具条与就地编辑，页面编辑器与 AI 助手接口在服务端返回 403。控制台「最新询盘」只给有 `form` 权限的账号（所有非超管角色都按这条）。首页产品区块新增卡片圆角 `product_card_radius`（模板指南开头的 2.3.2 说明）。扩展接口不变，整站模板可移植表结构不变。
 2.0.6（热修复）：控制台「检查更新」恢复（升级接口只认 POST + CSRF），控制台顶部提醒收进后台右上角铃铛（`includes/AdminNotices.php`，已知最新版本由 `includes/UpdateNotice.php` 记录）；扩展接口不变。
 2.0.5 起：多语言网址统一走 `LocalizedUrl`（内容、产品、栏目的各语言网址、hreflang、语言切换与 canonical，插件指南 5.5），设计变量扩到间距 / 容器宽度 / 排版（`BloxDesignScale`、`BloxDesignType`，模板指南 9.x），后台文章分类可由插件接管（`admin_article_categories` 过滤器）。
 
