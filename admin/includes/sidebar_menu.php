@@ -83,8 +83,7 @@ return [
             // 翻译工作中心（2.3.0）：有产品权限的在产品组里看到；只有文章 / 单页权限的在文章组里看到（见下）
             [
                 'key'      => 'translation_status',
-                'visible'  => !function_exists('isEnterpriseContentAdmin') || !isEnterpriseContentAdmin(),
-                'visible'  => hasPermission('edit_product'),
+                'visible'  => hasPermission('edit_product') && (!function_exists('isEnterpriseContentAdmin') || !isEnterpriseContentAdmin()),
                 'label'    => __('tss_title'),
                 'url'      => '/admin/translation_status.php',
                 'icon'     => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>',
@@ -113,8 +112,8 @@ return [
             ],
             [
                 'key'      => 'translation_status',
-                'visible'  => !function_exists('isEnterpriseContentAdmin') || !isEnterpriseContentAdmin(),
-                'visible'  => !hasPermission('edit_product') && (hasPermission('edit_article') || hasPermission('edit_page')),
+                'visible'  => !hasPermission('edit_product') && (hasPermission('edit_article') || hasPermission('edit_page'))
+                    && (!function_exists('isEnterpriseContentAdmin') || !isEnterpriseContentAdmin()),
                 'label'    => __('tss_title'),
                 'url'      => '/admin/translation_status.php',
                 'icon'     => '<path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path>',

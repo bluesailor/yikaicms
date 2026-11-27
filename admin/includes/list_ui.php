@@ -38,7 +38,7 @@ function listSafeUrl(string $url): string
  * @param array{
  *   id:int, edit:string, view?:string, view_label?:string, duplicate?:bool,
  *   delete_fn?:string, dup_fn?:string, status_label?:string,
- *   status_fn?:string, category_url?:string
+ *   status_fn?:string, category_url?:string, allow_delete?:bool
  * } $o
  */
 function renderRowActions(array $o): string

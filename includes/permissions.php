@@ -59,8 +59,14 @@ function enterpriseContentPermissions(array $selected = []): array
 {
     return array_merge(
         ['enterprise_content', 'edit_article', 'edit_product', 'edit_case'],
-        array_values(array_intersect(['enterprise_ai_translation', 'enterprise_case_seo'], $selected))
+        array_values(array_intersect(enterpriseOptionalPermissions(), $selected))
     );
+}
+
+/** Opt-in grants that only mean something on top of enterprise_content; each works on its own. */
+function enterpriseOptionalPermissions(): array
+{
+    return ['enterprise_ai_translation', 'enterprise_case_seo'];
 }
 
 function isEnterpriseContentAdmin(): bool
@@ -314,6 +320,8 @@ function permDescription(string $key): string
         'system_maintenance' => 'perm_system_maintenance_desc',
         'ai_access' => 'perm_ai_access_desc',
         'enterprise_content' => 'perm_enterprise_content_desc',
+        'enterprise_ai_translation' => 'perm_enterprise_ai_translation_desc',
+        'enterprise_case_seo' => 'perm_enterprise_case_seo_desc',
     ];
     return isset($descriptions[$key]) ? __($descriptions[$key]) : pluginPermissionDescription($key);
 }
