@@ -1603,7 +1603,8 @@ declare(strict_types=1);
                                      :class="ctrl.responsive || ctrl.key === 'faq_style' || ctrl.key === 'table_style' || ctrl.key === 'custom_style' || ['textarea','richtext','image','about_layout','faq_repeater','org_repeater','pricing_plans','table_grid','items_repeater'].indexOf(ctrl.type) !== -1 ? 'blox-property-span-full' : ''">
                                     <template x-if="ctrl.type !== 'checkbox' && !ctrl.compact_richtext">
                                         <div class="flex items-center justify-between gap-2 mb-1.5">
-                                            <label class="block text-[11px] font-semibold text-gray-700" x-text="ctrl.label"></label>
+                                            <label class="block text-[11px] font-semibold text-gray-700"
+                                                   :for="ctrl.allow_empty ? 'blox-number-' + ctrl.key : null" x-text="ctrl.label"></label>
                                             <div class="ml-auto flex items-center gap-0.5">
                                             <template x-if="ctrl.type === 'url'">
                                                 <?php $linkPickerId = 'ctrl.key'; $linkPickerSet = 'url => selEl.data[ctrl.key] = url'; require __DIR__ . '/link-picker.php'; ?>
@@ -2027,7 +2028,10 @@ declare(strict_types=1);
                                     </template>
 
                                     <template x-if="ctrl.type === 'number'">
-                                        <input type="number" :value="controlValue(ctrl)" @input="setControlValue(ctrl, Number($event.target.value))"
+                                        <input type="number" :value="controlValue(ctrl)"
+                                               :id="ctrl.allow_empty ? 'blox-number-' + ctrl.key : null"
+                                               :aria-describedby="ctrl.allow_empty && ctrl.help ? 'blox-number-help-' + ctrl.key : null"
+                                               @input="setControlValue(ctrl, ctrl.allow_empty && $event.target.value === '' ? '' : Number($event.target.value))"
                                                :min="ctrl.min ?? null" :max="ctrl.max ?? null" :step="ctrl.step ?? null"
                                                :placeholder="ctrl.placeholder ?? (ctrl.default ?? '')"
                                                class="w-full border border-gray-200 rounded px-2 py-1.5 text-sm">
@@ -2168,6 +2172,7 @@ declare(strict_types=1);
                                     </template>
                                     <template x-if="ctrl.help">
                                         <p class="mt-1 text-[10px] text-gray-400 leading-relaxed"
+                                           :id="ctrl.allow_empty ? 'blox-number-help-' + ctrl.key : null"
                                            :data-testid="ctrl.key === 'bg_image' ? 'blox-element-background-image-help' : null"
                                            x-text="ctrl.help"></p>
                                     </template>

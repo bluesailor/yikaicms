@@ -19,6 +19,8 @@ $productFrame = class_exists('BloxImageFraming')
     ? BloxImageFraming::productFrame(is_array($block ?? null) ? $block : [], 'aspect-[4/3]')
     : ['frameClass' => 'aspect-[4/3]', 'frameStyle' => '', 'imgClass' => 'h-full object-cover', 'imgStyle' => '', 'custom' => false];
 $productFrameNone = $productFrame['frameClass'] === '' && $productFrame['frameStyle'] === '';
+$productCardRadiusStyle = ($hChannel['is_product'] ?? false) && class_exists('HomeBloxBlockSchema')
+    ? HomeBloxBlockSchema::productCardRadiusStyle($block['product_card_radius'] ?? null) : '';
 ?>
 <section class="blk <?php echo $bg['class']; ?>" <?php echo $bg['style']; ?>>
     <?php echo $bg['overlay']; ?>
@@ -51,7 +53,7 @@ $productFrameNone = $productFrame['frameClass'] === '' && $productFrame['frameSt
 
         <div class="grid <?php echo $productGrid; ?> gap-6" id="productGrid">
             <?php foreach ($contents as $item): ?>
-            <a href="<?php echo productUrl($item); ?>" class="product-item block u-card group" data-category="<?php echo $item['category_id'] ?? 0; ?>">
+            <a href="<?php echo productUrl($item); ?>" class="product-item block u-card group" data-category="<?php echo $item['category_id'] ?? 0; ?>"<?php echo $productCardRadiusStyle !== '' ? ' style="' . e($productCardRadiusStyle) . '"' : ''; ?>>
                 <div class="<?php echo e(trim('relative overflow-hidden ' . $productFrame['frameClass'])); ?>"<?php echo $productFrame['frameStyle'] !== '' ? ' style="' . e($productFrame['frameStyle']) . '"' : ''; ?>>
                     <?php if ($item['cover']): ?>
                     <img loading="lazy" decoding="async" <?php echo responsiveImageAttributes($item['cover'], 'medium', '(min-width: 1280px) 25vw, (min-width: 768px) 33vw, 100vw'); ?> alt="<?php echo e($item['title']); ?>" class="w-full <?php echo e($productFrame['imgClass']); ?> group-hover:scale-110 transition duration-500"<?php echo $productFrame['imgStyle'] !== '' ? ' style="' . e($productFrame['imgStyle']) . '"' : ''; ?>>

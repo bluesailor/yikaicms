@@ -40,6 +40,16 @@ final class ProductImageFrameTest extends TestCase
         }
     }
 
+    public function testHomepageCardRadiusDistinguishesThemeDefaultFromSquareCorners(): void
+    {
+        self::assertSame('', HomeBloxBlockSchema::productCardRadiusStyle(null));
+        self::assertSame('', HomeBloxBlockSchema::productCardRadiusStyle(''));
+        self::assertSame('border-radius:0px;', HomeBloxBlockSchema::productCardRadiusStyle('0'));
+        self::assertSame('border-radius:8px;', HomeBloxBlockSchema::productCardRadiusStyle(8));
+        self::assertSame('', HomeBloxBlockSchema::productCardRadiusStyle('8; color:red'));
+        self::assertSame('', HomeBloxBlockSchema::productCardRadiusStyle(['d' => 8]));
+    }
+
     public function testRatiosFitsAndOriginal(): void
     {
         $f = BloxImageFraming::productFrame(['image_ratio' => 'square', 'image_fit' => 'contain'], 'aspect-[4/3]');

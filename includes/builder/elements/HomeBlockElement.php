@@ -63,6 +63,13 @@ final class HomeBlockElement extends AbstractElement
                 [['block_type', 'in', $productSources]],
                 'blox_pimg_help_card'
             ));
+            if (theme_path('blocks/channel.php') === ROOT_PATH . '/themes/default/blocks/channel.php') {
+                $controls[] = [
+                    'key' => 'product_card_radius', 'label' => __('blox_home_product_card_radius'),
+                    'tab' => 'style', 'step' => 1, 'help' => __('blox_home_product_card_radius_help'),
+                    'visible_when' => ['terms' => [['block_type', 'in', $productSources]]],
+                ] + HomeBloxBlockSchema::PRODUCT_CARD_RADIUS_CONTROL;
+            }
         }
         $surfaceTypes = [];
         foreach (function_exists('getThemes') ? getThemes() : [] as $theme) {
